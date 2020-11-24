@@ -110,18 +110,9 @@ includeBuild('<PATH-TO-RSKJ-SOURCE-CODE>') {
 
 **Note:** Change PATH-TO-RSKJ-SOURCE-CODE value to your local Rskj path.
 
-## Configuring rskj Powpeg node (THIS CHANGES BEFORE GO LIVE)
+## Report Security Vulnerabilities
 
-For reference on all existing options, their description and defaults you may refer to the default config `rskj.conf`
-To override needed options you may use one of the following ways:
-
-* put your options to the `<working dir>/config/rskj.conf` file
-* put `user.conf` to the root of your classpath (as a resource)
-* put your options to any file and supply it via `-rsk.conf.file=<your config>`
-* programmatically by using `SystemProperties.CONFIG.override*()`
-* programmatically using by overriding Spring `SystemProperties` bean
-
-Note that don’t need to put all the options to your custom config, just those you want to override.
+We have a [vulnerability reporting guideline](SECURITY.md) for details on how to contact us to report a vulnerability.
 
 ## License
 
