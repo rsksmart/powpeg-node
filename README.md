@@ -1,9 +1,9 @@
-# Welcome to rskj powpeg node
+# Welcome to RskJ Powpeg Node
 
 ## About
 
 Powpeg node is a specialized rskj node which interacts with both RSK and Bitcoin.
-This node is used by RSK Federation members to interact with the Bridge contract and to broadcast peg-out transactions to Bitcoin.
+This node is used by RSK PowPeg signatories to interact with the Bridge contract and to broadcast peg-out transactions to Bitcoin.
 
 ## Setting up the project
 
@@ -116,4 +116,4 @@ We have a [vulnerability reporting guideline](SECURITY.md) for details on how to
 
 ## License
 
-rskj is released under the [MIT license](LICENSE).
+This software is released under the [MIT license](LICENSE).
