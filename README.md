@@ -9,7 +9,7 @@ This node is used by RSK PowPeg signatories to interact with the Bridge contract
 
 Before anything, you must ensure the security chain of the source code. For that, you must go through the following steps. For Linux based OS (Ubuntu for example) it's recommended install `gnupg-curl` to download the key through HTTPS.
 
-1. Download sec channel public key (THIS CHANGES BEFORE GO LIVE)
+1. Download sec channel public key
 
 ```bash
  $ gpg --keyserver https://secchannel.rsk.co/ --recv-keys FD4FDAFD7D174BB2
@@ -20,7 +20,7 @@ Before anything, you must ensure the security chain of the source code. For that
  gpg:               imported: 1  (RSA: 1)
 ```
 
-2. Verify the downloaded key fingerprint (THIS CHANGES BEFORE GO LIVE)
+2. Verify the downloaded key fingerprint
 
 ```bash
 $ gpg --finger FD4FDAFD7D174BB2
