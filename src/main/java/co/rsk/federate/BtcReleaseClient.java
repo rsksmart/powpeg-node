@@ -3,6 +3,8 @@ package co.rsk.federate;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.script.FastBridgeRedeemScriptParser;
+import co.rsk.bitcoinj.script.RedeemScriptParser;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.bitcoinj.wallet.RedeemData;
@@ -30,6 +32,7 @@ import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.*;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.ScriptPattern;
+import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.TransactionReceipt;
@@ -271,6 +274,7 @@ public class BtcReleaseClient {
             for (int inputIndex = 0; inputIndex < btcTx.getInputs().size(); inputIndex++) {
                 TransactionInput txIn = btcTx.getInput(inputIndex);
                 Script redeemScript = getRedeemScriptFromInput(txIn);
+                Script baseRedeemScript = FastBridgeRedeemScriptParser.extractRedeemScriptFromMultiSigFastBridgeRedeemScript(redeemScript);
 
                 // Check if input is not already signed by the current federator
                 logger.trace("[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator", inputIndex);
@@ -295,7 +299,7 @@ public class BtcReleaseClient {
                 observedFederations.stream()
                         .forEach(f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
                 List<Federation> spendingFedFilter = observedFederations.stream()
-                        .filter(f -> f.getRedeemScript().equals(redeemScript)).collect(Collectors.toList());
+                        .filter(f -> f.getRedeemScript().equals(baseRedeemScript)).collect(Collectors.toList());
                 logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
                 if (spendingFedFilter.isEmpty()) {
                     String message = String.format(
@@ -385,33 +389,33 @@ public class BtcReleaseClient {
             logger.trace("[removeSignaturesFromTransaction] input {} scriptSig {}", inputIndex, tx.getInput(inputIndex).getScriptSig());
             logger.trace("[removeSignaturesFromTransaction] input {} redeem script {}", inputIndex, inputRedeemScript);
 
-            txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed));
+            txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed, inputRedeemScript));
             logger.debug("[removeSignaturesFromTransaction] Updated input {} scriptSig with base input script that " +
                     "spends from the federation {}", inputIndex, spendingFed.getAddress());
         }
     }
 
-    private static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
+    private static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation, Script customRedeemScript) {
         Script scriptPubKey = federation.getP2SHScript();
         Script redeemScript = federation.getRedeemScript();
         RedeemData redeemData = RedeemData.of(federation.getBtcPublicKeys(), redeemScript);
-        Script inputScript = scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), redeemData.redeemScript);
+        // customRedeemScript might not be actually custom, but just in case, use the provided redeemScript
+        Script inputScript = scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), customRedeemScript);
 
         return inputScript;
     }
 
-    private Script getRedeemScriptFromInput(TransactionInput txInput) {
+    protected Script getRedeemScriptFromInput(TransactionInput txInput) {
         Script inputScript = txInput.getScriptSig();
         List<ScriptChunk> chunks = inputScript.getChunks();
         // Last chunk of the scriptSig contains the redeem script
         byte[] program = chunks.get(chunks.size() - 1).data;
-
         return new Script(program);
     }
 
-    private Federation getSpendingFederation(BtcTransaction btcTx) {
+    protected Federation getSpendingFederation(BtcTransaction btcTx) {
         TransactionInput firstInput = btcTx.getInput(0);
-        Script redeemScript = getRedeemScriptFromInput(firstInput);
+        Script redeemScript = FastBridgeRedeemScriptParser.extractRedeemScriptFromMultiSigFastBridgeRedeemScript(getRedeemScriptFromInput(firstInput));
         List<Federation> spendingFedFilter = observedFederations.stream()
                 .filter(f -> f.getRedeemScript().equals(redeemScript)).collect(Collectors.toList());
 
