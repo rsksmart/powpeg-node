@@ -3,6 +3,7 @@ package co.rsk.federate;
 import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.RegTestParams;
+import co.rsk.bitcoinj.script.RedeemScriptParser;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.script.ScriptChunk;
@@ -576,5 +577,82 @@ public class BtcReleaseClientTest {
         Assert.assertNotEquals(unsignedTxHash, signedTxHash);
         Assert.assertNotEquals(signedTxHash, removedSignaturesTxHash);
         Assert.assertEquals(unsignedTxHash, removedSignaturesTxHash);
+    }
+
+
+    @Test
+    public void getRedeemScriptFromInput_fast_bridge_redeem_script() {
+        test_getRedeemScriptFromInput(true);
+    }
+
+    @Test
+    public void getRedeemScriptFromInput_standard_redeem_script() {
+        test_getRedeemScriptFromInput(false);
+    }
+
+    private void test_getRedeemScriptFromInput(boolean isFastBridgeRedeemScript) {
+        BtcReleaseClient client = createBtcClient();
+
+        BtcECKey ecKey1 = BtcECKey.fromPrivate(BigInteger.valueOf(100));
+        BtcECKey ecKey2 = BtcECKey.fromPrivate(BigInteger.valueOf(200));
+        BtcECKey ecKey3 = BtcECKey.fromPrivate(BigInteger.valueOf(300));
+
+        List<BtcECKey> btcECKeys = Arrays.asList(ecKey1, ecKey2, ecKey3);
+        Federation federation = createFederation(btcECKeys);
+        Script federationRedeemScript = federation.getRedeemScript();
+        Script inputScript;
+
+        if (isFastBridgeRedeemScript) {
+            federationRedeemScript = RedeemScriptParser.createMultiSigFastBridgeRedeemScript(
+                federationRedeemScript,
+                Sha256Hash.of(new byte[]{1})
+            );
+
+            inputScript = federation.getP2SHScript().createEmptyInputScript(
+                null,
+                federationRedeemScript
+            );
+
+        } else {
+            inputScript = federation.getP2SHScript().createEmptyInputScript(
+                null,
+                federationRedeemScript
+            );
+        }
+
+        BtcTransaction spendTx = new BtcTransaction(params);
+        spendTx.addInput(Sha256Hash.ZERO_HASH, 0, inputScript);
+        spendTx.addOutput(Coin.valueOf(190_000_000), federation.getAddress());
+
+        Assert.assertEquals(
+            federationRedeemScript,
+            client.getRedeemScriptFromInput(spendTx.getInput(0))
+        );
+    }
+
+    private BtcReleaseClient createBtcClient() {
+        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
+        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+
+        return new BtcReleaseClient(
+            mock(Ethereum.class),
+            mock(FederatorSupport.class),
+            fedNodeSystemProperties,
+            mock(NodeBlockProcessor.class)
+        );
+    }
+
+    private Federation createFederation(List<BtcECKey> btcECKeyList) {
+        List<FederationMember> federationMembers = new ArrayList<>();
+        btcECKeyList.forEach(btcECKey -> federationMembers.add(
+            new FederationMember(btcECKey, new ECKey(), new ECKey()))
+        );
+
+        return new Federation(
+            federationMembers,
+            Instant.now(),
+            0L,
+            params
+        );
     }
 }
