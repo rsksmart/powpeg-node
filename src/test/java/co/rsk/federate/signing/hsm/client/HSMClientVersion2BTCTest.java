@@ -166,9 +166,9 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void getChunks_fill_chunks() {
-        Integer[] payload = (Integer[]) java.util.Arrays.asList(
+        Integer[] payload = java.util.Arrays.asList(
                 1, 2, 3, 4, 5, 6
-        ).toArray();
+        ).toArray(new Integer[0]);
         int maxChunkSize = 2;
 
         List<Integer[]> result = client.getChunks(payload, maxChunkSize, false);
@@ -181,9 +181,9 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void getChunks_last_chunk_remainder() {
-        Integer[] payload = (Integer[]) java.util.Arrays.asList(
+        Integer[] payload = java.util.Arrays.asList(
                 1, 2, 3, 4, 5, 6, 7
-        ).toArray();
+        ).toArray(new Integer[0]);
 
         List<Integer[]> result = client.getChunks(payload, 2, false);
 
@@ -193,14 +193,14 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void getChunks_equals_to_max_size() {
-        Integer[] payload = (Integer[]) java.util.Arrays.asList(1, 2).toArray();
+        Integer[] payload = java.util.Arrays.asList(1, 2).toArray(new Integer[0]);
         List<Integer[]> result = client.getChunks(payload, 2, false);
         Assert.assertEquals(1, result.size());
     }
 
     @Test
     public void getChunks_below_chunk_max_size() {
-        Integer[] payload = (Integer[]) java.util.Arrays.asList(1).toArray();
+        Integer[] payload = java.util.Arrays.asList(1).toArray(new Integer[0]);
         List<Integer[]> result = client.getChunks(payload, 2, false);
         Assert.assertEquals(1, result.size());
     }
@@ -227,9 +227,9 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void getChunks_keepPreviousChunkLastItem_true() {
-        Integer[] payload = (Integer[]) java.util.Arrays.asList(
+        Integer[] payload = java.util.Arrays.asList(
                 1, 2, 3, 4, 5, 6, 7
-        ).toArray();
+        ).toArray(new Integer[0]);
         int maxChunkSize = 3;
 
         List<Integer[]> result = client.getChunks(payload, maxChunkSize, true);
@@ -240,9 +240,9 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void getChunks_keepPreviousChunkLastItem_false() {
-        Integer[] payload = (Integer[]) java.util.Arrays.asList(
+        Integer[] payload = java.util.Arrays.asList(
                 1, 2, 3, 4, 5, 6, 7
-        ).toArray();
+        ).toArray(new Integer[0]);
         int maxChunkSize = 3;
 
         List<Integer[]> result = client.getChunks(payload, maxChunkSize, false);
