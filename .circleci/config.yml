@@ -122,8 +122,8 @@ jobs:
             fi
             ./gradlew sonarqube --warning-mode all --no-daemon --stacktrace --info -x build -x test \
                 $extra_flags \
-                -Dsonar.organization=alejandrod-iov \
-                -Dsonar.projectKey=co.Rsk:powpeg-node \
+                -Dsonar.organization=rsksmart \
+                -Dsonar.projectKey=rsksmart_powpeg-node \
                 -Dsonar.host.url="$SONAR_URL" \
                 -Dsonar.login="$SONAR_TOKEN"
             

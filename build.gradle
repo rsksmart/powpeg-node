@@ -193,4 +193,3 @@ def stripJar(File originalFile) {
     }
     reproducibleFile.renameTo originalFile
 }
-
