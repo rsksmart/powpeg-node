@@ -3,7 +3,7 @@ package co.rsk.federate;
 import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.RegTestParams;
-import co.rsk.bitcoinj.script.RedeemScriptParser;
+import co.rsk.bitcoinj.script.FastBridgeRedeemScriptParser;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.script.ScriptChunk;
@@ -603,7 +603,7 @@ public class BtcReleaseClientTest {
         Script inputScript;
 
         if (isFastBridgeRedeemScript) {
-            federationRedeemScript = RedeemScriptParser.createMultiSigFastBridgeRedeemScript(
+            federationRedeemScript = FastBridgeRedeemScriptParser.createMultiSigFastBridgeRedeemScript(
                 federationRedeemScript,
                 Sha256Hash.of(new byte[]{1})
             );
