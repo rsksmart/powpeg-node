@@ -88,7 +88,7 @@ public class ReleaseCreationInformationGetter {
         TransactionReceipt transactionReceipt = baseReleaseCreationInformation.getTransactionReceipt();
 
         // Get transaction from the block, searching by tx hash, and set it in the tx receipt
-        logger.trace("[getTxInfoToSign] Searching for transaction {} in block {}", rskTxHash, block.getHash().toHexString());
+        logger.trace("[getTxInfoToSign] Searching for transaction {} in block {} ({})", rskTxHash, block.getHash(), block.getNumber());
         List<Transaction> transactions = block.getTransactionsList().stream()
             .filter(t -> t.getHash().equals(rskTxHash))
             .collect(Collectors.toList());
@@ -122,6 +122,11 @@ public class ReleaseCreationInformationGetter {
             );
         }
 
+        logger.trace(
+            "[searchEventInFollowingBlocks] searching in block {}. Has {} transactions",
+            blockNumber,
+            block.getTransactionsList().size()
+        );
         for (Transaction transaction : block.getTransactionsList()) {
             TransactionInfo transactionInfo = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore);
             TransactionReceipt transactionReceipt = transactionInfo.getReceipt();
@@ -149,13 +154,21 @@ public class ReleaseCreationInformationGetter {
         BtcTransaction btcTransaction,
         Keccak256 releaseRskTxHash
     ) {
-        if (transactionReceipt.getTransaction().getReceiveAddress().equals(PrecompiledContracts.BRIDGE_ADDR) &&
-            !transactionReceipt.getLogInfoList().isEmpty()) {
+        boolean hasLogs = !transactionReceipt.getLogInfoList().isEmpty();
+        logger.trace(
+            "[getInformationFromEvent] tx ({}) in block ({} - {}). has logs? {}",
+            transactionReceipt.getTransaction().getHash(),
+            block.getNumber(),
+            block.getHash(),
+            hasLogs
+        );
+        if (hasLogs) {
             List<LogInfo> logs = transactionReceipt.getLogInfoList();
             for (LogInfo logInfo : logs) {
                 // You should check that the event is Release and contains the hash of the transaction.
-                if (Arrays.equals(logInfo.getTopics().get(0).getData(), releaseRequestedSignatureTopic)
-                    && (Arrays.equals(logInfo.getTopics().get(2).getData(), btcTransaction.getHash().getBytes()))) {
+                boolean hashReleaseRequestEvent = Arrays.equals(logInfo.getTopics().get(0).getData(), releaseRequestedSignatureTopic);
+                logger.trace("[getInformationFromEvent] has release event? {}", hashReleaseRequestEvent);
+                if (hashReleaseRequestEvent && (Arrays.equals(logInfo.getTopics().get(2).getData(), btcTransaction.getHash().getBytes()))) {
                     logger.trace(
                         "[getInformationFromEvent] Found transaction {} and block {}",
                         transactionReceipt.getTransaction().getHash(),
