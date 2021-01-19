@@ -620,7 +620,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     private boolean isTxProcessable(BtcTransaction btcTx, TxSenderAddressType txSenderAddressType) {
         // If the tx is a release it means we are receiving change (or migrating funds)
         // If the tx is a release it should be processable
-        if (BridgeUtils.isReleaseTx(btcTx, Collections.singletonList(federation))) {
+        if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(federation))) {
             return true;
         }
 
