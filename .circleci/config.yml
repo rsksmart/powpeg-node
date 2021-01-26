@@ -27,6 +27,17 @@ jobs:
           name: Clone rskj repo
           command: |
             git clone https://github.com/rsksmart/rskj.git
+      - run:
+          name: Checkout rskj repo
+          command: |
+            cd rskj
+            BRANCH_GET=`git ls-remote --heads origin ${CIRCLE_BRANCH}`
+            if test -z "$BRANCH_GET"; then
+              echo "Building master branch from rskj repo"
+            else
+              echo "Building ${CIRCLE_BRANCH} branch from rskj"
+              git checkout ${CIRCLE_BRANCH}
+            fi
       - persist_to_workspace:
                 root: .
                 paths:
