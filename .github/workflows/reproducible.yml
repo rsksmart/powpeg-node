@@ -1,54 +1,46 @@
 name: "Reproducible build"
-on: [push]
+on:
+  release:
+    types:
+      - created
 
 jobs: 
   build:
     runs-on: ubuntu-18.04
     steps:
-      - 
+      - name: Chekcout
         uses: actions/checkout@v2
-      - 
-        name: Set version
+
+      - name: Set version
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-      - 
-        name: "Update packages"
-        run: "sudo apt-get update -y" 
-      - 
-        name: "Install packages" 
-        run: "sudo apt-get install -y git curl gnupg"
-      - 
-        name: "Download Release key"
-        run: "gpg --keyserver https://secchannel.rsk.co/release.asc --recv-keys 1A92D8942171AFA951A857365DECF4415E3B8FA4"
-      - 
-        name: "Check fingerprint"
-        run: "gpg --finger 1A92D8942171AFA951A857365DECF4415E3B8FA4"
-      - 
-        name: Clone
-        run: git clone https://github.com/rsksmart/powpeg-node.git 
-      - 
-        name: Checkout
-        run: git checkout ${{ steps.vars.outputs.tag }}
-        working-directory: powpeg-node
-      - 
-        name: "verify SHA256SUM"
-        run: "gpg --verify SHA256SUMS.asc"
-        working-directory: powpeg-node
-      - 
-        name: "check SHA256SUM"
-        run: "sha256sum --check SHA256SUMS.asc"
-        working-directory: powpeg-node
-      - 
-        name: "run configure.sh"
-        run: ./configure.sh
-        working-directory: powpeg-node
-      - 
-        name: build
-        run: "./gradlew --no-daemon clean build -x test"
-        working-directory: powpeg-node
-      - 
-        name: "calculate hashes"
-        run: "sha256sum build/libs/*"
-        working-directory: powpeg-node
-      -
+
+      - name: Install packages
+        run: sudo apt-get update -y && sudo apt-get install -y git curl gnupg
+
+      - name: Download Release key
+        run: gpg --keyserver https://secchannel.rsk.co/release.asc --recv-keys 1A92D8942171AFA951A857365DECF4415E3B8FA4
+
+      - name: Check fingerprint
+        run: gpg --finger 1A92D8942171AFA951A857365DECF4415E3B8FA4
+
+      - name: Verify SHA256SUM
+        run: gpg --verify SHA256SUMS.asc && sha256sum --check SHA256SUMS.asc
+
+      - name: Build powpeg-node
+        run: ./configure.sh && ./gradlew --no-daemon clean build -x test
+
+      - name: Calculate hashes
+        working-directory: build/libs
+        run: sha256sum * > hashes
+
+      - name: Print hashes
+        run: echo $(cat build/libs/hashes)
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.vars.outputs.tag }}
+          path: build/libs/
+
+      - name: Use openjdk container version 335627a2118556b3f412287e08ac7febb8ecc46325dc6b3570db56f32d33938f
         uses: docker://openjdk@sha256:335627a2118556b3f412287e08ac7febb8ecc46325dc6b3570db56f32d33938f
