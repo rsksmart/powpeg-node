@@ -5,6 +5,7 @@ import java.util.jar.JarOutputStream
 plugins {
     id 'application'
     id "jacoco"
+    id "org.sonarqube" version "2.7.1"
 }
 
 def config = new ConfigSlurper().parse(new File("$projectDir/src/main/resources/version.properties").toURI().toURL())
