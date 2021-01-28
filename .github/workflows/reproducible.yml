@@ -32,7 +32,7 @@ jobs:
 
       - name: Calculate hashes
         working-directory: build/libs
-        run: sha256sum * > hashes
+        run: sha256sum $(ls federate-node-* | grep -v javadoc) > hashes
 
       - name: Print hashes
         run: echo $(cat build/libs/hashes)
