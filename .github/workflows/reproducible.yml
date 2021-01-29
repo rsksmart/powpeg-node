@@ -1,46 +1,50 @@
-name: "Reproducible build"
+name: Reproducible build
 on:
   release:
     types:
       - created
 
-jobs: 
+jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
+    container:
+      image: openjdk@sha256:335627a2118556b3f412287e08ac7febb8ecc46325dc6b3570db56f32d33938f
+
     steps:
-      - name: Chekcout
+      - name: Install packages
+        run: |
+          apt-get update -y && apt-get install -y git curl gnupg
+
+      - name: Checkout
         uses: actions/checkout@v2
 
       - name: Set version
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
 
-      - name: Install packages
-        run: sudo apt-get update -y && sudo apt-get install -y git curl gnupg
-
       - name: Download Release key
-        run: gpg --keyserver https://secchannel.rsk.co/release.asc --recv-keys 1A92D8942171AFA951A857365DECF4415E3B8FA4
+        run: |
+          gpg --keyserver https://secchannel.rsk.co/release.asc --recv-keys 1A92D8942171AFA951A857365DECF4415E3B8FA4
 
-      - name: Check fingerprint
-        run: gpg --finger 1A92D8942171AFA951A857365DECF4415E3B8FA4
-
-      - name: Verify SHA256SUM
-        run: gpg --verify SHA256SUMS.asc && sha256sum --check SHA256SUMS.asc
+      - name: Verify files integrity
+        run: |
+          gpg --verify --output SHA256SUMS SHA256SUMS.asc && sha256sum --check SHA256SUMS
 
       - name: Build powpeg-node
-        run: ./configure.sh && ./gradlew --no-daemon clean build -x test
+        run: |
+          ./configure.sh && ./gradlew --no-daemon clean build -x test
 
       - name: Calculate hashes
         working-directory: build/libs
-        run: sha256sum * > hashes
+        run: |
+          sha256sum * > SHA256SUMS
 
       - name: Print hashes
-        run: echo $(cat build/libs/hashes)
+        run: |
+          cat build/libs/SHA256SUMS
 
-      - uses: actions/upload-artifact@v2
+      - name: Export artifacts
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ steps.vars.outputs.tag }}
           path: build/libs/
-
-      - name: Use openjdk container version 335627a2118556b3f412287e08ac7febb8ecc46325dc6b3570db56f32d33938f
-        uses: docker://openjdk@sha256:335627a2118556b3f412287e08ac7febb8ecc46325dc6b3570db56f32d33938f
