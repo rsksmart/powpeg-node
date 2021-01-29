@@ -1,8 +1,5 @@
 name: Reproducible build
-on:
-  release:
-    types:
-      - created
+on: [push]
 
 jobs:
   build:
