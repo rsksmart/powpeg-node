@@ -131,12 +131,6 @@ tasks.withType(Jar) {
 }
 
 jar {
-    def commitHash = gitCommitHash()
-    def currentBranch = gitCurrentBranch()
-    manifest {
-        attributes  'Git-Commit': commitHash,
-                    'Git-Branch': currentBranch
-    }
     from sourceSets.main.output.classesDirs
     from sourceSets.main.output.resourcesDir
     from generatedResources
