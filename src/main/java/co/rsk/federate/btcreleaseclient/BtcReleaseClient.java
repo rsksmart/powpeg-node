@@ -1,4 +1,4 @@
-package co.rsk.federate;
+package co.rsk.federate.btcreleaseclient;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
@@ -9,8 +9,15 @@ import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.config.BridgeConstants;
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.FedNodeRunner;
+import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileData;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileReadResult;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorage;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorageImpl;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorageInfo;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.FederationCantSignException;
 import co.rsk.federate.signing.FederatorAlreadySignedException;
@@ -29,6 +36,7 @@ import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerExcep
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.*;
+import java.io.IOException;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.ScriptPattern;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
@@ -59,6 +67,7 @@ public class BtcReleaseClient {
     private static final PanicProcessor panicProcessor = new PanicProcessor();
     private static final List<DataWord> SINGLE_RELEASE_BTC_TOPIC_RLP = Collections.singletonList(Bridge.RELEASE_BTC_TOPIC);
     private static final DataWord SINGLE_RELEASE_BTC_TOPIC_SOLIDITY = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
+    private static final DataWord RELEASE_REQUESTED_TOPIC = DataWord.valueOf(BridgeEvents.RELEASE_REQUESTED.getEvent().encodeSignatureLong());
 
     private ActivationConfig activationConfig;
     private BridgeConstants bridgeConstants;
@@ -76,6 +85,9 @@ public class BtcReleaseClient {
 
     private ReleaseCreationInformationGetter releaseCreationInformationGetter;
     private ReleaseRequirementsEnforcer releaseRequirementsEnforcer;
+
+    private BtcReleaseClientStorageAccessor storageAccessor;
+    private BtcReleaseClientStorageSynchronizer storageSynchronizer;
 
     public BtcReleaseClient(
         Ethereum ethereum,
@@ -97,8 +109,10 @@ public class BtcReleaseClient {
         ActivationConfig activationConfig,
         SignerMessageBuilderFactory signerMessageBuilderFactory,
         ReleaseCreationInformationGetter releaseCreationInformationGetter,
-        ReleaseRequirementsEnforcer releaseRequirementsEnforcer
-    ) throws Exception {
+        ReleaseRequirementsEnforcer releaseRequirementsEnforcer,
+        BtcReleaseClientStorageAccessor storageAccessor,
+        BtcReleaseClientStorageSynchronizer storageSynchronizer
+    ) throws BtcReleaseClientException {
         bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
         this.signer = signer;
         this.activationConfig = activationConfig;
@@ -106,11 +120,15 @@ public class BtcReleaseClient {
 
         org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
         peerGroup = new PeerGroup(btcContext);
-        if (federatorSupport.getBitcoinPeerAddresses().size()>0) {
-            for (PeerAddress peerAddress : federatorSupport.getBitcoinPeerAddresses()) {
-                peerGroup.addAddress(peerAddress);
+        try {
+            if (federatorSupport.getBitcoinPeerAddresses().size()>0) {
+                for (PeerAddress peerAddress : federatorSupport.getBitcoinPeerAddresses()) {
+                    peerGroup.addAddress(peerAddress);
+                }
+                peerGroup.setMaxConnections(federatorSupport.getBitcoinPeerAddresses().size());
             }
-            peerGroup.setMaxConnections(federatorSupport.getBitcoinPeerAddresses().size());
+        } catch(Exception e) {
+            throw new BtcReleaseClientException("Error configuring peerSupport", e);
         }
         peerGroup.start();
 
@@ -118,6 +136,9 @@ public class BtcReleaseClient {
         this.signerMessageBuilderFactory = signerMessageBuilderFactory;
         this.releaseCreationInformationGetter = releaseCreationInformationGetter;
         this.releaseRequirementsEnforcer = releaseRequirementsEnforcer;
+
+        this.storageAccessor = storageAccessor;
+        this.storageSynchronizer = storageSynchronizer;
     }
 
     public void start(Federation federation) {
@@ -154,13 +175,14 @@ public class BtcReleaseClient {
     private class BtcReleaseEthereumListener extends EthereumListenerAdapter {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (nodeBlockProcessor.hasBetterBlockToSync()) {
+            if (nodeBlockProcessor.hasBetterBlockToSync() || !storageSynchronizer.isSynced()) {
                 return;
             }
             // Processing transactions waiting for signatures on best block only still "works",
             // since it all lies within RSK's blockchain and normal rules apply. I.e., this
             // process works on a block-by-block basis.
             StateForFederator stateForFederator = federatorSupport.getStateForFederator();
+            storageSynchronizer.processBlock(block, receipts);
             // Delegate processing to our own method
             logger.trace("[onBestBlock] Got {} releases", stateForFederator.getRskTxsWaitingForSignatures().entrySet().size());
             processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
@@ -253,12 +275,17 @@ public class BtcReleaseClient {
         removeSignaturesFromTransaction(releaseTx, spendingFed);
         logger.trace("[tryGetReleaseInformation] Tx hash without signatures {}", releaseTx.getHash());
 
+        // Try to get the rskTxHash from the map in memory
+        Keccak256 actualRskTxHash = storageAccessor.hasBtcTxHash(releaseTx.getHash()) ?
+            storageAccessor.getRskTxHash(releaseTx.getHash()) :
+            rskTxHash;
+
         // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
         // -- Get Real Block where release_requested was emmited
         logger.trace("[tryGetReleaseInformation] Getting release information");
         return releaseCreationInformationGetter.getTxInfoToSign(
             signerVersion,
-            rskTxHash,
+            actualRskTxHash,
             releaseTx
         );
     }
