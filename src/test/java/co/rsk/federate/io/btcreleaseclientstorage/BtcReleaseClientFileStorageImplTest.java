@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.params.RegTestParams;
 import org.junit.After;
 import org.junit.Assert;
@@ -139,9 +138,9 @@ public class BtcReleaseClientFileStorageImplTest {
         Assert.assertEquals(storageInfo, storage.getInfo());
     }
 
-    private Map<Sha256Hash, Keccak256> getReleaseHashesData() {
-        Map<Sha256Hash, Keccak256> data = new HashMap<>();
-        data.put(Sha256Hash.ZERO_HASH, Keccak256.ZERO_HASH);
+    private Map<co.rsk.bitcoinj.core.Sha256Hash, Keccak256> getReleaseHashesData() {
+        Map<co.rsk.bitcoinj.core.Sha256Hash, Keccak256> data = new HashMap<>();
+        data.put(co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH, Keccak256.ZERO_HASH);
 
         return data;
     }

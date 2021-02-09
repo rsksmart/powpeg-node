@@ -1,9 +1,9 @@
 package co.rsk.federate.io.btcreleaseclientstorage;
 
+import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.bitcoinj.core.Sha256Hash;
 
 public class BtcReleaseClientFileData {
 
