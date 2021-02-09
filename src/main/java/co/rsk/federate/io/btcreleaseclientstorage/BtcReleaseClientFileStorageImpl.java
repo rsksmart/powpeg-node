@@ -1,5 +1,6 @@
 package co.rsk.federate.io.btcreleaseclientstorage;
 
+import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.io.FileStorageInfo;
 import java.io.File;
@@ -8,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
 import org.ethereum.util.RLP;
 import org.ethereum.util.RLPList;
 
