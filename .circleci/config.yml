@@ -42,11 +42,11 @@ jobs:
             BRANCH_PR_GET=`curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref'`
             echo "BRANCH_GET=${BRANCH_GET}"
             echo "BRANCH_PR_GET=${BRANCH_PR_GET}"
-            if test -n ${BRANCH_GET}; then
+            if test -n "${BRANCH_GET}"; then
               echo "Building ${CIRCLE_BRANCH} branch from rskj"
               git checkout ${CIRCLE_BRANCH}
             else
-              if test -n ${BRANCH_PR_GET}; then
+              if test -n "${BRANCH_PR_GET}"; then
                 echo "Building ${BRANCH_PR_GET} branch from rskj"
                 git checkout ${BRANCH_PR_GET}
               else
