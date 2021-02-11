@@ -46,7 +46,7 @@ jobs:
               echo "Building ${CIRCLE_BRANCH} branch from rskj"
               git checkout ${CIRCLE_BRANCH}
             else
-              if [ -n "${BRANCH_PR_GET}" ] && [ "${BRANCH_PR_GET}" == "null" ]; then
+              if [ -n "${BRANCH_PR_GET}" ] && [ "${BRANCH_PR_GET}" != "null" ]; then
                 echo "Building ${BRANCH_PR_GET} branch from rskj"
                 git checkout ${BRANCH_PR_GET}
               else
