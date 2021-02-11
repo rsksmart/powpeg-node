@@ -42,15 +42,14 @@ jobs:
             if test "$BRANCH_GET"; then
               echo "Building ${CIRCLE_BRANCH} branch from rskj"
               git checkout ${CIRCLE_BRANCH}
-            fi
-            
-            CIRCLE_PR_BRANCH=`curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref'`
-            BRANCH_GET=`git ls-remote --heads origin ${CIRCLE_PR_BRANCH}`
-            if test "$BRANCH_GET"; then
-              echo "Building ${CIRCLE_PR_BRANCH} branch from rskj"
-              git checkout ${CIRCLE_PR_BRANCH}
-            else
-              echo "Building master branch from rskj repo"
+            elseif
+              CIRCLE_PR_BRANCH=`curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref'`
+              BRANCH_GET=`git ls-remote --heads origin ${CIRCLE_PR_BRANCH}`
+              if test "$BRANCH_GET"; then
+                echo "Building ${CIRCLE_PR_BRANCH} branch from rskj"
+                git checkout ${CIRCLE_PR_BRANCH}
+              else
+                echo "Building master branch from rskj repo"
             fi
 
       - persist_to_workspace:
@@ -152,14 +151,14 @@ workflows:
     jobs:
       - clone_rskj_repo
 
-      - build_federator_node:
-          requires:
-            - clone_rskj_repo
+#      - build_federator_node:
+#          requires:
+#            - clone_rskj_repo
 
-      - sonarqube:
-          requires:
-            - build_federator_node
+#      - sonarqube:
+#          requires:
+#            - build_federator_node
 
-      - federator-tests:
-          requires:
-            - build_federator_node
+#      - federator-tests:
+#          requires:
+#            - build_federator_node
