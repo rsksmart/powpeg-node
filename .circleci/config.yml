@@ -44,6 +44,7 @@ jobs:
               echo "Building ${CIRCLE_BRANCH} branch from rskj"
               git checkout ${CIRCLE_BRANCH}
             fi
+            CIRCLE_PR_BRANCH = `curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref'`
       - persist_to_workspace:
                 root: .
                 paths:
