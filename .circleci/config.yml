@@ -50,6 +50,7 @@ jobs:
                 git checkout ${CIRCLE_PR_BRANCH}
               else
                 echo "Building master branch from rskj repo"
+              fi
             fi
 
       - persist_to_workspace:
