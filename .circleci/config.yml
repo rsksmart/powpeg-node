@@ -47,7 +47,7 @@ jobs:
               git checkout ${CIRCLE_BRANCH}
             else
               if [ -n "${BRANCH_PR_GET}" ] && [ "${BRANCH_PR_GET}" != "null" ]; then
-                echo "Building ${BRANCH_PR_GET} branch from rskj"
+                echo "Building ${BRANCH_PR_GET} PR branch from rskj"
                 git checkout ${BRANCH_PR_GET}
               else
                 echo "Building master branch from rskj"
