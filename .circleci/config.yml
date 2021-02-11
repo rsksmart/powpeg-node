@@ -36,6 +36,7 @@ jobs:
       - run:
           name: Checkout rskj repo
           command: |
+            apt-get update && apt-get -y install jq
             cd rskj
             BRANCH_GET=`git ls-remote --heads origin ${CIRCLE_BRANCH}`
             if test -z "$BRANCH_GET"; then
