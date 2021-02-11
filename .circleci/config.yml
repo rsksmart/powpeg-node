@@ -39,13 +39,20 @@ jobs:
             apt-get update && apt-get -y install jq
             cd rskj
             BRANCH_GET=`git ls-remote --heads origin ${CIRCLE_BRANCH}`
-            CIRCLE_PR_BRANCH=`curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER}`
-            if test -z "$BRANCH_GET"; then
-              echo "Building master branch from rskj repo"
-            else
+            if test "$BRANCH_GET"; then
               echo "Building ${CIRCLE_BRANCH} branch from rskj"
               git checkout ${CIRCLE_BRANCH}
             fi
+            
+            CIRCLE_PR_BRANCH=`curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref'`
+            BRANCH_GET=`git ls-remote --heads origin ${CIRCLE_PR_BRANCH}`
+            if test "$BRANCH_GET"; then
+              echo "Building ${CIRCLE_PR_BRANCH} branch from rskj"
+              git checkout ${CIRCLE_PR_BRANCH}
+            else
+              echo "Building master branch from rskj repo"
+            fi
+
       - persist_to_workspace:
                 root: .
                 paths:
