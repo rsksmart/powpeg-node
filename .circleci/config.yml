@@ -42,7 +42,17 @@ jobs:
             BRANCH_PR_GET=`curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref'`
             echo "BRANCH_GET=${BRANCH_GET}"
             echo "BRANCH_PR_GET=${BRANCH_PR_GET}"
-            
+            if test "$BRANCH_GET"; then
+              echo "Building ${CIRCLE_BRANCH} branch from rskj"
+              git checkout ${CIRCLE_BRANCH}
+            else
+              if test "$BRANCH_PR_GET"; then
+                echo "Building ${CIRCLE_BRANCH} branch from rskj"
+                git checkout ${CIRCLE_BRANCH}
+              else
+                echo "Building master branch from rskj"
+              fi
+            fi
       - persist_to_workspace:
                 root: .
                 paths:
