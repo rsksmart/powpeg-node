@@ -36,13 +36,22 @@ jobs:
       - run:
           name: Checkout rskj repo
           command: |
+            apt-get update && apt-get -y install jq
             cd rskj
             BRANCH_GET=`git ls-remote --heads origin ${CIRCLE_BRANCH}`
-            if test -z "$BRANCH_GET"; then
-              echo "Building master branch from rskj repo"
-            else
+            BRANCH_PR_GET=`echo https://api.github.com/repos/${CIRCLE_PULL_REQUEST:19} | sed "s/\/pull\//\/pulls\//" | xargs curl -s  | jq -r '.base.ref' | xargs git ls-remote --heads origin | awk -F\/ '{ print $NF }'`
+            echo "Branch found on rskj repo to build (if empty none)=${BRANCH_GET}"
+            echo "Branch found on rskj repo to build matching PR on powpeg (if null none)=${BRANCH_PR_GET}"
+            if test -n "${BRANCH_GET}"; then
               echo "Building ${CIRCLE_BRANCH} branch from rskj"
               git checkout ${CIRCLE_BRANCH}
+            else
+              if [ -n "${BRANCH_PR_GET}" ] && [ "${BRANCH_PR_GET}" != "null" ]; then
+                echo "Building ${BRANCH_PR_GET} PR branch from rskj"
+                git checkout ${BRANCH_PR_GET}
+              else
+                echo "Building master branch from rskj"
+              fi
             fi
       - persist_to_workspace:
                 root: .
