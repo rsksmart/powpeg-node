@@ -39,8 +39,8 @@ jobs:
             apt-get update && apt-get -y install jq
             cd rskj
             BRANCH_GET=`git ls-remote --heads origin ${CIRCLE_BRANCH}`
-            #BRANCH_PR_GET=`curl -s ${CIRCLE_PULL_REQUEST}`
             BRANCH_PR_GET=`echo https://api.github.com/repos/${CIRCLE_PULL_REQUEST:19} | sed "s/\/pull\//\/pulls\//"`
+            BRANCH_PR_GET=`curl -s ${BRANCH_PR_GET}`
             echo "Branch found on rskj repo to build (if empty none)=${BRANCH_GET}"
             echo "Branch found on rskj repo to build matchin PR on powpeg (if null none)=${BRANCH_PR_GET}"
             if test -n "${BRANCH_GET}"; then
