@@ -3,7 +3,8 @@ package co.rsk.federate.btcreleaseclient;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.TransactionInput;
-import co.rsk.bitcoinj.script.FastBridgeRedeemScriptParser;
+import co.rsk.bitcoinj.script.RedeemScriptParser;
+import co.rsk.bitcoinj.script.RedeemScriptParserFactory;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.bitcoinj.wallet.RedeemData;
@@ -309,7 +310,7 @@ public class BtcReleaseClient {
             for (int inputIndex = 0; inputIndex < btcTx.getInputs().size(); inputIndex++) {
                 TransactionInput txIn = btcTx.getInput(inputIndex);
                 Script redeemScript = getRedeemScriptFromInput(txIn);
-                Script baseRedeemScript = FastBridgeRedeemScriptParser.extractStandardRedeemScript(redeemScript);
+                Script standardRedeemScript = extractStandardRedeemScript(redeemScript);
 
                 // Check if input is not already signed by the current federator
                 logger.trace("[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator", inputIndex);
@@ -334,7 +335,7 @@ public class BtcReleaseClient {
                 observedFederations.stream()
                         .forEach(f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
                 List<Federation> spendingFedFilter = observedFederations.stream()
-                        .filter(f -> f.getRedeemScript().equals(baseRedeemScript)).collect(Collectors.toList());
+                        .filter(f -> f.getStandardRedeemScript().equals(standardRedeemScript)).collect(Collectors.toList());
                 logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
                 if (spendingFedFilter.isEmpty()) {
                     String message = String.format(
@@ -427,14 +428,9 @@ public class BtcReleaseClient {
         }
     }
 
-    private static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation, Script customRedeemScript) {
-        Script scriptPubKey = federation.getP2SHScript();
-        Script redeemScript = federation.getRedeemScript();
-        RedeemData redeemData = RedeemData.of(federation.getBtcPublicKeys(), redeemScript);
-        // customRedeemScript might not be actually custom, but just in case, use the provided redeemScript
-        Script inputScript = scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), customRedeemScript);
-
-        return inputScript;
+    protected Script extractStandardRedeemScript(Script redeemScript) {
+        RedeemScriptParser parser = RedeemScriptParserFactory.get(redeemScript.getChunks());
+        return parser.extractStandardRedeemScript();
     }
 
     protected Script getRedeemScriptFromInput(TransactionInput txInput) {
@@ -447,10 +443,31 @@ public class BtcReleaseClient {
 
     protected Federation getSpendingFederation(BtcTransaction btcTx) {
         TransactionInput firstInput = btcTx.getInput(0);
-        Script redeemScript = FastBridgeRedeemScriptParser.extractStandardRedeemScript(getRedeemScriptFromInput(firstInput));
+        Script redeemScript = extractStandardRedeemScript(getRedeemScriptFromInput(firstInput));
+
         List<Federation> spendingFedFilter = observedFederations.stream()
-                .filter(f -> f.getRedeemScript().equals(redeemScript)).collect(Collectors.toList());
+                .filter(f -> f.getStandardRedeemScript().equals(redeemScript)).collect(Collectors.toList());
 
         return spendingFedFilter.get(0);
+    }
+
+    private static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation, Script customRedeemScript) {
+        Script scriptPubKey = federation.getP2SHScript();
+        Script redeemScript = federation.getRedeemScript();
+        RedeemData redeemData = RedeemData.of(federation.getBtcPublicKeys(), redeemScript);
+
+        // customRedeemScript might not be actually custom, but just in case, use the provided redeemScript
+        return scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), customRedeemScript);
+    }
+
+    private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
+        RLPList dataElements = (RLPList)RLP.decode2(dataFromBtcReleaseTopic).get(0);
+
+        return new BtcTransaction(bridgeConstants.getBtcParams(), dataElements.get(1).getRLPData());
+    }
+
+    private BtcTransaction convertToBtcTxFromSolidityData(byte[] dataFromBtcReleaseTopic) {
+        return new BtcTransaction(bridgeConstants.getBtcParams(),
+            (byte[])BridgeEvents.RELEASE_BTC.getEvent().decodeEventData(dataFromBtcReleaseTopic)[0]);
     }
 }
