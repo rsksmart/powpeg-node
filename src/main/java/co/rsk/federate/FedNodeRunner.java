@@ -40,14 +40,12 @@ import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
 import co.rsk.federate.signing.hsm.requirements.AncestorBlockUpdater;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
-import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import org.bitcoinj.core.Context;
 import org.bouncycastle.util.encoders.Hex;
-import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -217,9 +215,10 @@ public class FedNodeRunner implements NodeRunner {
         if (config.isFederatorEnabled()) {
             // Setup a federation watcher to trigger starts and stops of the
             // btc to rsk client upon federation changes
-            FederationProvider federationProvider = new FederationProviderFromFederatorSupport(federatorSupport);
-
             bridgeConstants = this.config.getNetworkConstants().getBridgeConstants();
+            FederationProvider federationProvider =
+                new FederationProviderFromFederatorSupport(federatorSupport, bridgeConstants);
+
             BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
             PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
             btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(new BtcToRskClientFileStorageInfo(config));
