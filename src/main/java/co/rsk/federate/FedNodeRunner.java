@@ -218,9 +218,10 @@ public class FedNodeRunner implements NodeRunner {
         if (config.isFederatorEnabled()) {
             // Setup a federation watcher to trigger starts and stops of the
             // btc to rsk client upon federation changes
-            FederationProvider federationProvider = new FederationProviderFromFederatorSupport(federatorSupport);
-
             bridgeConstants = this.config.getNetworkConstants().getBridgeConstants();
+            FederationProvider federationProvider =
+                new FederationProviderFromFederatorSupport(federatorSupport, bridgeConstants);
+
             BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
             PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
             btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(new BtcToRskClientFileStorageInfo(config));
