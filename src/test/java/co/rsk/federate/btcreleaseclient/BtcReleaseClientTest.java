@@ -1,62 +1,5 @@
 package co.rsk.federate.btcreleaseclient;
 
-import co.rsk.bitcoinj.core.*;
-import co.rsk.bitcoinj.crypto.TransactionSignature;
-import co.rsk.bitcoinj.params.RegTestParams;
-import co.rsk.bitcoinj.script.FastBridgeRedeemScriptParser;
-import co.rsk.bitcoinj.script.Script;
-import co.rsk.bitcoinj.script.ScriptBuilder;
-import co.rsk.bitcoinj.script.ScriptChunk;
-import co.rsk.config.BridgeConstants;
-import co.rsk.crypto.Keccak256;
-import co.rsk.federate.FedNodeRunner;
-import co.rsk.federate.FederatorSupport;
-import co.rsk.federate.adapter.ThinConverter;
-import co.rsk.federate.config.FedNodeSystemProperties;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileReadResult;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorageImpl;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorageInfo;
-import co.rsk.federate.mock.SimpleEthereumImpl;
-import co.rsk.federate.signing.*;
-import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
-import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.message.*;
-import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
-import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
-import co.rsk.federate.signing.utils.TestUtils;
-import co.rsk.net.NodeBlockProcessor;
-import co.rsk.peg.Federation;
-import co.rsk.peg.FederationMember;
-import co.rsk.peg.StateForFederator;
-import co.rsk.peg.utils.BridgeEventLoggerImpl;
-import java.io.File;
-import java.io.IOException;
-import org.apache.commons.io.FileUtils;
-import org.ethereum.config.Constants;
-import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.core.Block;
-import org.ethereum.core.TransactionReceipt;
-import org.ethereum.crypto.ECKey;
-import org.ethereum.db.BlockStore;
-import org.ethereum.db.ReceiptStore;
-import org.ethereum.db.TransactionInfo;
-import org.ethereum.facade.Ethereum;
-import org.ethereum.listener.EthereumListener;
-import org.ethereum.vm.LogInfo;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-
-import java.math.BigInteger;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -68,23 +11,84 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import co.rsk.bitcoinj.core.BtcECKey;
+import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
+import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.bitcoinj.core.Sha256Hash;
+import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.crypto.TransactionSignature;
+import co.rsk.bitcoinj.params.RegTestParams;
+import co.rsk.bitcoinj.script.FastBridgeRedeemScriptParser;
+import co.rsk.bitcoinj.script.Script;
+import co.rsk.bitcoinj.script.ScriptBuilder;
+import co.rsk.bitcoinj.script.ScriptChunk;
+import co.rsk.config.BridgeConstants;
+import co.rsk.crypto.Keccak256;
+import co.rsk.federate.FedNodeRunner;
+import co.rsk.federate.FederatorSupport;
+import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.mock.SimpleEthereumImpl;
+import co.rsk.federate.signing.ECDSAHSMSigner;
+import co.rsk.federate.signing.ECDSASigner;
+import co.rsk.federate.signing.ECPublicKey;
+import co.rsk.federate.signing.FederationCantSignException;
+import co.rsk.federate.signing.FederatorAlreadySignedException;
+import co.rsk.federate.signing.KeyId;
+import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
+import co.rsk.federate.signing.hsm.SignerException;
+import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
+import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
+import co.rsk.federate.signing.hsm.message.SignerMessage;
+import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
+import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
+import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
+import co.rsk.federate.signing.hsm.message.SignerMessageBuilderVersion1;
+import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
+import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
+import co.rsk.federate.signing.utils.TestUtils;
+import co.rsk.net.NodeBlockProcessor;
+import co.rsk.peg.Federation;
+import co.rsk.peg.FederationMember;
+import co.rsk.peg.StateForFederator;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
+import org.ethereum.config.Constants;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.core.Block;
+import org.ethereum.core.TransactionReceipt;
+import org.ethereum.crypto.ECKey;
+import org.ethereum.db.BlockStore;
+import org.ethereum.db.ReceiptStore;
+import org.ethereum.db.TransactionInfo;
+import org.ethereum.facade.Ethereum;
+import org.ethereum.listener.EthereumListener;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+
 public class BtcReleaseClientTest {
     private NetworkParameters params;
     private BridgeConstants bridgeConstants;
 
-    String DIRECTORY_PATH = "src/test/java/co/rsk/federate/btcreleaseclient/storage";
-
     @Before
-    public void setup() throws IOException {
+    public void setup() {
         params = RegTestParams.get();
         bridgeConstants = Constants.regtest().bridgeConstants;
-        this.clean();
     }
 
-    @After
-    public void tearDown() throws IOException {
-        this.clean();
-    }
     @Test
     public void if_start_not_called_rsk_blockchain_not_listened() {
         Ethereum ethereum = mock(Ethereum.class);
@@ -220,12 +224,16 @@ public class BtcReleaseClientTest {
             block,
             mock(TransactionReceipt.class),
             rskTxHash,
-            releaseTx
+            releaseTx,
+            rskTxHash
         );
         ReleaseCreationInformationGetter releaseCreationInformationGetter = mock(ReleaseCreationInformationGetter.class);
-        when(releaseCreationInformationGetter.getTxInfoToSign(ArgumentMatchers.anyInt(), ArgumentMatchers
-            .any(), ArgumentMatchers.any()))
-            .thenReturn(releaseCreationInformation);
+        when(releaseCreationInformationGetter.getTxInfoToSign(
+            anyInt(),
+            any(),
+            any(),
+            any()
+        )).thenReturn(releaseCreationInformation);
 
         client.setup(
             signer,
@@ -245,8 +253,8 @@ public class BtcReleaseClientTest {
         client.processReleases(releases.entrySet());
 
         // Assert
-        Mockito.verify(signer, Mockito.times(amountOfInputs)).sign(eq(FedNodeRunner.BTC_KEY_ID), ArgumentMatchers
-            .any(SignerMessage.class));
+        Mockito.verify(signer, Mockito.times(amountOfInputs))
+            .sign(eq(FedNodeRunner.BTC_KEY_ID), any(SignerMessage.class));
     }
 
     @Test
@@ -644,125 +652,28 @@ public class BtcReleaseClientTest {
         test_getRedeemScriptFromInput(false);
     }
 
-    @Test( expected = InvalidStorageFileException.class)
-    @Ignore
-    public void error_reading_file_data_raises_error() throws Exception {
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.databaseDir()).thenReturn(DIRECTORY_PATH);
-
-        String innerDirectoryPath = fedNodeSystemProperties.databaseDir() + File.separator + "peg";
-        String filePath = DIRECTORY_PATH + File.separator + "peg" + File.separator + "btcReleaseClient.rlp";
-
-        BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
-        when(storageInfo.getPegDirectoryPath()).thenReturn(innerDirectoryPath);
-        when(storageInfo.getFilePath()).thenReturn(filePath);
-        File dataFile = new File(storageInfo.getFilePath());
-
-        FileUtils.writeByteArrayToFile(dataFile, new byte[]{ 6, 6, 6 });
-
-        BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
-            mock(Ethereum.class),
-            mock(FederatorSupport.class),
-            fedNodeSystemProperties,
-            mock(NodeBlockProcessor.class)
-        );
-
-        btcReleaseClient.setup(
-            mock(ECDSASigner.class),
-            mock(ActivationConfig.class),
-            mock(SignerMessageBuilderFactory.class),
-            mock(ReleaseCreationInformationGetter.class),
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
-        );
-    }
-
     @Test
-    @Ignore
-    public void adds_data_to_file_on_best_block() throws BtcReleaseClientException, IOException {
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.databaseDir()).thenReturn(DIRECTORY_PATH);
-
-        NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
-        when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
-
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getStateForFederator()).thenReturn(new StateForFederator(new TreeMap<>()));
-
-        SimpleEthereumImpl ethereumImpl = new SimpleEthereumImpl();
-
-        BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
-            ethereumImpl,
-            federatorSupport,
-            fedNodeSystemProperties,
-            nodeBlockProcessor
-        );
-
-        btcReleaseClient.setup(
-            mock(ECDSASigner.class),
-            mock(ActivationConfig.class),
-            mock(SignerMessageBuilderFactory.class),
-            mock(ReleaseCreationInformationGetter.class),
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
-        );
-
-        btcReleaseClient.start(createFederation());
-
-        // Release info
-        Keccak256 rskTxHash = createHash(0);
-        BtcTransaction releaseBtcTx = new BtcTransaction(bridgeConstants.getBtcParams());
-        releaseBtcTx.addInput(Sha256Hash.ZERO_HASH, 0, new Script(new byte[]{}));
-        Coin value = Coin.COIN;
-        releaseBtcTx.addOutput(value, new BtcECKey().toAddress(bridgeConstants.getBtcParams()));
-
-        List<TransactionReceipt> receipts = Arrays.asList(
-            createReleaseRequestedReceipt(rskTxHash, releaseBtcTx, value)
-        );
-
-        // Inform a block with the release
-        ethereumImpl.addBestBlockWithReceipts(mock(Block.class), receipts);
-
-        // Verify the file now contains the data
-        BtcReleaseClientFileStorageImpl btcReleaseClientFileStorage =
-            new BtcReleaseClientFileStorageImpl(new BtcReleaseClientFileStorageInfo(fedNodeSystemProperties));
-        BtcReleaseClientFileReadResult result = btcReleaseClientFileStorage.read(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
-        Assert.assertTrue(result.getSuccess());
-        Map<co.rsk.bitcoinj.core.Sha256Hash, Keccak256> data = result.getData().getReleaseHashesMap();
-        Assert.assertEquals(1, data.size());
-        Assert.assertTrue(data.containsKey(releaseBtcTx.getHash()));
-        Assert.assertEquals(rskTxHash, data.get(releaseBtcTx.getHash()));
-    }
-
-    @Test
-    @Ignore
     public void sets_rsk_tx_hash_with_file_data()
-        throws BtcReleaseClientException, IOException, SignerException,
+        throws BtcReleaseClientException, SignerException,
         HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
         testUsageOfStorageWhenSigning(true);
     }
 
     @Test
-    @Ignore
     public void sets_default_rsk_tx_hash_if_no_file_data()
-        throws BtcReleaseClientException, IOException, SignerException,
+        throws BtcReleaseClientException, SignerException,
         HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
         testUsageOfStorageWhenSigning(false);
     }
 
     private void testUsageOfStorageWhenSigning(boolean shouldHaveDataInFile)
-    throws BtcReleaseClientException, IOException, SignerException,
+    throws BtcReleaseClientException, SignerException,
     HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
     HSMUnsupportedVersionException, SignerMessageBuilderException {
         FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
         when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.databaseDir()).thenReturn(DIRECTORY_PATH);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
@@ -785,28 +696,16 @@ public class BtcReleaseClientTest {
         Coin value = Coin.COIN;
         releaseBtcTx.addOutput(value, new BtcECKey().toAddress(bridgeConstants.getBtcParams()));
 
-        List<TransactionReceipt> receipts = Arrays.asList(
-            createReleaseRequestedReceipt(rskTxHash, releaseBtcTx, value)
-        );
-
         // Confirmed release info
         Keccak256 otherRskTxHash = createHash(1);
         SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
         rskTxsWaitingForSignatures.put(otherRskTxHash, releaseBtcTx);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        if (shouldHaveDataInFile) {
-            when(federatorSupport.getStateForFederator())
-                .thenReturn(
-                    new StateForFederator(new TreeMap<>()), // First time don't return a confirmed release
-                    new StateForFederator(rskTxsWaitingForSignatures) // Then start returning a confirmed release
-                );
-        } else {
-            when(federatorSupport.getStateForFederator())
-                .thenReturn(
-                    new StateForFederator(rskTxsWaitingForSignatures) // Only return the confirmed release
-                );
-        }
+        when(federatorSupport.getStateForFederator())
+            .thenReturn(
+                new StateForFederator(rskTxsWaitingForSignatures) // Only return the confirmed release
+            );
 
         ECDSASigner signer = mock(ECDSASigner.class);
         when(signer.getVersionForKeyId(any())).thenReturn(2);
@@ -823,8 +722,9 @@ public class BtcReleaseClientTest {
             block,
             mock(TransactionReceipt.class),
             rskTxHash,
-            new BtcTransaction(bridgeConstants.getBtcParams())
-        )).when(releaseCreationInformationGetter).getTxInfoToSign(anyInt(), any(), any());
+            new BtcTransaction(bridgeConstants.getBtcParams()),
+            otherRskTxHash
+        )).when(releaseCreationInformationGetter).getTxInfoToSign(anyInt(), any(), any(), any());
 
         ReleaseRequirementsEnforcer releaseRequirementsEnforcer = mock(ReleaseRequirementsEnforcer.class);
         doNothing().when(releaseRequirementsEnforcer).enforce(anyInt(), any());
@@ -843,68 +743,39 @@ public class BtcReleaseClientTest {
             nodeBlockProcessor
         );
 
+        BtcReleaseClientStorageAccessor accessor = mock(BtcReleaseClientStorageAccessor.class);
+        when(accessor.hasBtcTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile);
+        when(accessor.getRskTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? rskTxHash: null);
+
+        BtcReleaseClientStorageSynchronizer synchronizer = mock(BtcReleaseClientStorageSynchronizer.class);
+        when(synchronizer.isSynced()).thenReturn(true);
+
         btcReleaseClient.setup(
             signer,
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             releaseRequirementsEnforcer,
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            accessor,
+            synchronizer
         );
 
         btcReleaseClient.start(federation);
 
-        if (shouldHaveDataInFile) {
-            // Inform a block with the release
-            ethereumImpl.addBestBlockWithReceipts(mock(Block.class), receipts);
-        }
-
         // Release "confirmed"
         ethereumImpl.addBestBlockWithReceipts(mock(Block.class), new ArrayList<>());
 
-        if (shouldHaveDataInFile) {
-            // Verify the file now contains the data
-            BtcReleaseClientFileStorageImpl btcReleaseClientFileStorage =
-                new BtcReleaseClientFileStorageImpl(new BtcReleaseClientFileStorageInfo(fedNodeSystemProperties));
-            BtcReleaseClientFileReadResult result = btcReleaseClientFileStorage.read(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
-            Assert.assertTrue(result.getSuccess());
-            Map<co.rsk.bitcoinj.core.Sha256Hash, Keccak256> data = result.getData().getReleaseHashesMap();
-            Assert.assertEquals(1, data.size());
-            Assert.assertTrue(data.containsKey(releaseBtcTx.getHash()));
-            Assert.assertEquals(rskTxHash, data.get(releaseBtcTx.getHash()));
-        }
-
         // Verify the rsk tx hash was updated
         verify(releaseCreationInformationGetter, times(1))
-            .getTxInfoToSign(anyInt(), eq(shouldHaveDataInFile ? rskTxHash: otherRskTxHash), any());
-    }
+            .getTxInfoToSign(
+                anyInt(),
+                eq(shouldHaveDataInFile ? rskTxHash: otherRskTxHash),
+                any(),
+                eq(otherRskTxHash)
+            );
 
-    private TransactionReceipt createReleaseRequestedReceipt(
-        Keccak256 rskTxHash,
-        BtcTransaction releaseBtcTx,
-        Coin value
-    ) {
-
-        List<LogInfo> logs = new ArrayList<>();
-        BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
-            bridgeConstants,
-            mock(ActivationConfig.ForBlock.class),
-            logs
-        );
-
-        // Event info
-        bridgeEventLogger.logReleaseBtcRequested(
-            rskTxHash.getBytes(),
-            releaseBtcTx,
-            value
-        );
-
-
-        TransactionReceipt receipt = mock(TransactionReceipt.class);
-        when(receipt.getLogInfoList()).thenReturn(logs);
-
-        return receipt;
+        // Verify the informing rsk tx hash is used
+        verify(federatorSupport).addSignature(any(), eq(otherRskTxHash.getBytes()));
     }
 
     private void test_getRedeemScriptFromInput(boolean isFastBridgeRedeemScript) {
@@ -959,10 +830,6 @@ public class BtcReleaseClientTest {
         );
     }
 
-    private Federation createFederation() {
-        return createFederation(Arrays.asList(new BtcECKey(), new BtcECKey(), new BtcECKey()));
-    }
-
     private Federation createFederation(List<BtcECKey> btcECKeyList) {
         List<FederationMember> federationMembers = new ArrayList<>();
         btcECKeyList.forEach(btcECKey -> federationMembers.add(
@@ -977,9 +844,5 @@ public class BtcReleaseClientTest {
         );
     }
 
-    private void clean() throws IOException {
-        File pegDirectory = new File(DIRECTORY_PATH);
-        FileUtils.deleteDirectory(pegDirectory);
-    }
 
 }

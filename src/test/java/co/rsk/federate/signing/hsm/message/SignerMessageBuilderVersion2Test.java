@@ -69,7 +69,8 @@ public class SignerMessageBuilderVersion2Test {
                 block,
                 txReceipt,
                 rskTxHash,
-                releaseTx
+                releaseTx,
+                rskTxHash
             )
         );
         SignerMessageVersion2 message = (SignerMessageVersion2) sigMessVersion2.buildMessageForIndex(inputIndex);
@@ -107,7 +108,8 @@ public class SignerMessageBuilderVersion2Test {
             block,
             transactionReceipt,
             rskTx.getHash(),
-            mock(BtcTransaction.class)
+            mock(BtcTransaction.class),
+            rskTx.getHash()
         );
         SignerMessageBuilderVersion2 sigMessVersion2 = new SignerMessageBuilderVersion2(
             receiptStore,

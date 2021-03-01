@@ -9,22 +9,23 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BtcReleaseClientFileData {
 
     private Map<Sha256Hash, Keccak256> releaseHashesMap;
-    private Keccak256 bestBlockHash;
+    private Optional<Keccak256> bestBlockHash;
 
     public BtcReleaseClientFileData() {
         releaseHashesMap = new ConcurrentHashMap<>();
+        bestBlockHash = Optional.empty();
     }
 
     public Map<Sha256Hash, Keccak256> getReleaseHashesMap() {
         return this.releaseHashesMap;
     }
 
-    public void setBestBlockHash(Keccak256 bestBlockHash) {
+    public void setBestBlockHash(Optional<Keccak256> bestBlockHash) {
         this.bestBlockHash = bestBlockHash;
     }
 
     public Optional<Keccak256> getBestBlockHash() {
-        return Optional.of(bestBlockHash);
+        return bestBlockHash;
     }
 
 }

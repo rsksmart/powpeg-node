@@ -49,7 +49,15 @@ public class BtcReleaseClientStorageSynchronizer {
         NodeBlockProcessor nodeBlockProcessor,
         BtcReleaseClientStorageAccessor storageAccessor
     ) {
-        this(blockStore, receiptStore, nodeBlockProcessor, storageAccessor, 0, DEFAULT_TIMER_DELAY);
+        this(
+            blockStore,
+            receiptStore,
+            nodeBlockProcessor,
+            storageAccessor,
+            Executors.newSingleThreadScheduledExecutor(),
+            0,
+            DEFAULT_TIMER_DELAY
+        );
     }
 
     public BtcReleaseClientStorageSynchronizer(
@@ -57,6 +65,7 @@ public class BtcReleaseClientStorageSynchronizer {
         ReceiptStore receiptStore,
         NodeBlockProcessor nodeBlockProcessor,
         BtcReleaseClientStorageAccessor storageAccessor,
+        ScheduledExecutorService executorService,
         int timerInitialDelayInMs,
         int timerDelayInMs
     ) {
@@ -66,10 +75,16 @@ public class BtcReleaseClientStorageSynchronizer {
         this.storageAccessor = storageAccessor;
         this.timerDelay = timerDelayInMs;
 
-        this.syncTimer = Executors.newSingleThreadScheduledExecutor();
-        this.syncTimer.scheduleAtFixedRate(this::sync, timerInitialDelayInMs, this.timerDelay, TimeUnit.MILLISECONDS);
-
         this.isSynced = false;
+
+        this.syncTimer = executorService;
+        this.syncTimer.scheduleAtFixedRate(
+            this::sync,
+            timerInitialDelayInMs,
+            this.timerDelay,
+            TimeUnit.MILLISECONDS
+        );
+
     }
 
     private void sync() {

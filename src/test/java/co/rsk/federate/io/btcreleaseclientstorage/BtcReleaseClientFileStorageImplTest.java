@@ -1,5 +1,6 @@
 package co.rsk.federate.io.btcreleaseclientstorage;
 
+import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -9,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.RegTestParams;
@@ -115,6 +117,7 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileData fileData = new BtcReleaseClientFileData();
         fileData.getReleaseHashesMap().putAll(getReleaseHashesData());
+        fileData.setBestBlockHash(Optional.of(createHash(1)));
 
         BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
@@ -125,6 +128,7 @@ public class BtcReleaseClientFileStorageImplTest {
         Assert.assertTrue(result.getSuccess());
 
         Assert.assertEquals(fileData.getReleaseHashesMap(), result.getData().getReleaseHashesMap());
+        Assert.assertEquals(fileData.getBestBlockHash(), result.getData().getBestBlockHash());
     }
 
     @Test

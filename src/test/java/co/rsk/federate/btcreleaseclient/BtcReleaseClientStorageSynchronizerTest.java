@@ -4,6 +4,9 @@ import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -23,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
@@ -31,6 +35,7 @@ import org.ethereum.db.ReceiptStore;
 import org.ethereum.vm.LogInfo;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.invocation.InvocationOnMock;
 
 public class BtcReleaseClientStorageSynchronizerTest {
 
@@ -57,6 +62,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
                 storageAccessor,
+                mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
                 1000,
                 100
             );
@@ -69,7 +75,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
     }
 
     @Test
-    public void isSynced_returns_true_after_sync() throws InterruptedException {
+    public void isSynced_returns_true_after_sync() {
         BlockStore blockStore = mock(BlockStore.class);
 
         Block firstBlock = mock(Block.class);
@@ -81,21 +87,29 @@ public class BtcReleaseClientStorageSynchronizerTest {
         when(blockStore.getChainBlockByNumber(1L)).thenReturn(bestBlock);
         when(blockStore.getBestBlock()).thenReturn(bestBlock);
 
+        ScheduledExecutorService mockedExecutor = mock(ScheduledExecutorService.class);
+        // Mock the executor to execute immediately
+        doAnswer((InvocationOnMock a) -> {
+            ((Runnable)(a.getArgument(0))).run();
+            return null;
+        }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
+
         BtcReleaseClientStorageSynchronizer storageSynchronizer =
             new BtcReleaseClientStorageSynchronizer(
                 blockStore,
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
-                mock(BtcReleaseClientStorageAccessor.class)
+                mock(BtcReleaseClientStorageAccessor.class),
+                mockedExecutor,
+                0,
+                1
             );
-
-        Thread.sleep(100);
 
         assertTrue(storageSynchronizer.isSynced());
     }
 
     @Test
-    public void syncs_from_last_stored_block() throws InterruptedException {
+    public void syncs_from_last_stored_block() {
         BlockStore blockStore = mock(BlockStore.class);
 
         Block firstBlock = mock(Block.class);
@@ -114,15 +128,24 @@ public class BtcReleaseClientStorageSynchronizerTest {
         BtcReleaseClientStorageAccessor storageAccessor = mock(BtcReleaseClientStorageAccessor.class);
         when(storageAccessor.getBestBlockHash()).thenReturn(Optional.of(firstHash));
 
+        ScheduledExecutorService mockedExecutor = mock(ScheduledExecutorService.class);
+        // Mock the executor to execute immediately
+        doAnswer((InvocationOnMock a) -> {
+            ((Runnable)(a.getArgument(0))).run();
+            return null;
+        }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
+
+
         BtcReleaseClientStorageSynchronizer storageSynchronizer =
             new BtcReleaseClientStorageSynchronizer(
                 blockStore,
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
-                storageAccessor
+                storageAccessor,
+                mockedExecutor,
+                0,
+                1
             );
-
-        Thread.sleep(100);
 
         assertTrue(storageSynchronizer.isSynced());
 
@@ -131,7 +154,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
     }
 
     @Test
-    public void processBlock_ok() throws InterruptedException {
+    public void processBlock_ok() {
         BlockStore blockStore = mock(BlockStore.class);
 
         Block firstBlock = mock(Block.class);
@@ -179,15 +202,23 @@ public class BtcReleaseClientStorageSynchronizerTest {
 
         BtcReleaseClientStorageAccessor storageAccessor = mock(BtcReleaseClientStorageAccessor.class);
 
+        ScheduledExecutorService mockedExecutor = mock(ScheduledExecutorService.class);
+        // Mock the executor to execute immediately
+        doAnswer((InvocationOnMock a) -> {
+            ((Runnable)(a.getArgument(0))).run();
+            return null;
+        }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
+
         BtcReleaseClientStorageSynchronizer storageSynchronizer =
             new BtcReleaseClientStorageSynchronizer(
                 blockStore,
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
-                storageAccessor
+                storageAccessor,
+                mockedExecutor,
+                0,
+                1
             );
-
-        Thread.sleep(100);
 
         // Verify sync
         assertTrue(storageSynchronizer.isSynced());

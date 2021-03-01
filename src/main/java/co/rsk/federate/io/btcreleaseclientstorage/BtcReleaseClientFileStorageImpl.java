@@ -2,14 +2,18 @@ package co.rsk.federate.io.btcreleaseclientstorage;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.io.BtcToRskClientFileReadResult;
 import co.rsk.federate.io.FileStorageInfo;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.bitcoinj.core.NetworkParameters;
 import org.ethereum.util.RLP;
+import org.ethereum.util.RLPElement;
 import org.ethereum.util.RLPList;
 
 public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStorage {
@@ -25,6 +29,8 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
         return this.storageInfo;
     }
 
+    // TODO: IMPLEMENT NEW DATA ! ! ! !
+
     @Override
     public void write(BtcReleaseClientFileData data) throws IOException {
         if (data == null) {
@@ -37,7 +43,13 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
 
         File dataFile = new File(storageInfo.getFilePath());
 
-        byte[] encodedData = this.serializeReleaseHashes(data.getReleaseHashesMap());
+        byte[] serializedMap = this.serializeReleaseHashes(data.getReleaseHashesMap());
+        byte[] serializedBlockHash = new byte[]{};
+        if (data.getBestBlockHash().isPresent()) {
+            serializedBlockHash = RLP.encodeElement(data.getBestBlockHash().get().getBytes());
+        }
+
+        byte[] encodedData = RLP.encodeList(serializedMap, serializedBlockHash);
 
         FileUtils.writeByteArrayToFile(dataFile, encodedData);
     }
@@ -60,11 +72,30 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
         }
 
         try {
-            RLPList rlpList = RLP.decodeList(fileData);
+            ArrayList<RLPElement> elements = RLP.decode2(fileData);
+            if (elements.isEmpty()) {
+                return new BtcReleaseClientFileReadResult(Boolean.TRUE, data);
+            }
+            RLPList rlpList = (RLPList)elements.get(0);
             if (rlpList.size() == 0) {
                 return new BtcReleaseClientFileReadResult(Boolean.TRUE, data);
             }
-            data.getReleaseHashesMap().putAll(this.deserializeReleaseHashes(rlpList));
+            // Map
+            byte[] mapData = rlpList.get(0).getRLPData();
+            RLPList mapList = (RLPList)RLP.decode2(mapData).get(0);
+            data.getReleaseHashesMap().putAll(this.deserializeReleaseHashes(mapList));
+            // Block hash
+            if (rlpList.size() == 1) {
+                // If there was no BestBlock set there won't be a second element in the list
+                data.setBestBlockHash(Optional.empty());
+            } else {
+                byte[] blockHashData = rlpList.get(1).getRLPData();
+                if (blockHashData != null && blockHashData.length > 0) {
+                    data.setBestBlockHash(Optional.of(new Keccak256(blockHashData)));
+                } else {
+                    data.setBestBlockHash(Optional.empty());
+                }
+            }
         } catch (Exception e) {
             return new BtcReleaseClientFileReadResult(Boolean.FALSE, null);
         }
