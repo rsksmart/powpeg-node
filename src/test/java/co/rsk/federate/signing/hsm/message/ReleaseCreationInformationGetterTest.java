@@ -69,7 +69,8 @@ public class ReleaseCreationInformationGetterTest {
                 blockStore
         );
 
-        ReleaseCreationInformation releaseCreationInformation = information.getTxInfoToSign(2, rskTxHash, btcTransaction);
+        ReleaseCreationInformation releaseCreationInformation =
+            information.getTxInfoToSign(2, rskTxHash, btcTransaction);
 
         Assert.assertEquals(releaseCreationInformation.getBlock(), block);
         Assert.assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());

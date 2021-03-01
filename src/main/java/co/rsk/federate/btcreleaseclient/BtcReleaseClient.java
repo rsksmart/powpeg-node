@@ -286,7 +286,8 @@ public class BtcReleaseClient {
         return releaseCreationInformationGetter.getTxInfoToSign(
             signerVersion,
             actualRskTxHash,
-            releaseTx
+            releaseTx,
+            rskTxHash
         );
     }
 
@@ -361,10 +362,10 @@ public class BtcReleaseClient {
                 signatures.add(sig.encodeToDER());
             }
 
-            logger.info("[signRelease] Signed Tx " + releaseCreationInformation.getReleaseRskTxHash());
-            federatorSupport.addSignature(signatures, releaseCreationInformation.getReleaseRskTxHash().getBytes());
+            logger.info("[signRelease] Signed Tx " + releaseCreationInformation.getInformingRskTxHash());
+            federatorSupport.addSignature(signatures, releaseCreationInformation.getInformingRskTxHash().getBytes());
         } catch (SignerException e) {
-            String message = String.format("Error signing Tx %s", releaseCreationInformation.getReleaseRskTxHash());
+            String message = String.format("Error signing Tx %s", releaseCreationInformation.getInformingRskTxHash());
             logger.error(message, e);
             panicProcessor.panic("btcrelease", message);
         } catch (HSMClientException | SignerMessageBuilderException | ReleaseRequirementsEnforcerException e) {

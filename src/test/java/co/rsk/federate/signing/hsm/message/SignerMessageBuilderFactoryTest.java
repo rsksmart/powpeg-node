@@ -33,6 +33,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -66,7 +67,8 @@ public class SignerMessageBuilderFactoryTest {
                     TestUtils.mockBlock(1),
                     mock(TransactionReceipt.class),
                     Keccak256.ZERO_HASH,
-                    mock(BtcTransaction.class)
+                    mock(BtcTransaction.class),
+                    createHash(1)
                 )
         );
         assertTrue(messageBuilder instanceof SignerMessageBuilderVersion2);
