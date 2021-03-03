@@ -15,9 +15,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BtcReleaseClientStorageAccessor {
+    private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClientStorageAccessor.class);
 
+    private static final int DEFAULT_DELAY_IN_MS = 5;
+    private static final int DEFAULT_MAX_DELAYS = 5;
     private final BtcReleaseClientFileStorage btcReleaseClientFileStorage;
     private final BtcReleaseClientFileData fileData;
     private final int maxDelays;
@@ -27,16 +32,19 @@ public class BtcReleaseClientStorageAccessor {
     private ScheduledFuture task;
     private int delays;
 
-    private static int DEFAULT_DELAY_IN_MS = 5;
-    private static int DEFAULT_MAX_DELAYS = 5;
-
     public BtcReleaseClientStorageAccessor(FedNodeSystemProperties systemProperties)
         throws InvalidStorageFileException {
-        this(systemProperties, DEFAULT_DELAY_IN_MS, DEFAULT_MAX_DELAYS);
+        this(
+            systemProperties,
+            Executors.newSingleThreadScheduledExecutor(),
+            DEFAULT_DELAY_IN_MS,
+            DEFAULT_MAX_DELAYS
+        );
     }
 
     public BtcReleaseClientStorageAccessor(
         FedNodeSystemProperties systemProperties,
+        ScheduledExecutorService executorService,
         int delaysInMs,
         int maxDelays
     ) throws InvalidStorageFileException {
@@ -57,16 +65,20 @@ public class BtcReleaseClientStorageAccessor {
                     )
                 );
             } catch (Exception e) {
-                throw new InvalidStorageFileException("Error reading storage file for BtcReleaseClient", e);
+                String message = "Error reading storage file for BtcReleaseClient";
+                logger.error(message);
+                throw new InvalidStorageFileException(message, e);
             }
         }
         if (!readResult.getSuccess()) {
-            throw new InvalidStorageFileException("Error reading storage file for BtcReleaseClient");
+            String message = "Error reading storage file for BtcReleaseClient";
+            logger.error(message);
+            throw new InvalidStorageFileException(message);
         }
 
         fileData = readResult.getData();
 
-        this.writeTimer = Executors.newSingleThreadScheduledExecutor();
+        this.writeTimer = executorService;
     }
 
     private void writeFile() {
@@ -74,7 +86,8 @@ public class BtcReleaseClientStorageAccessor {
             try {
                 this.btcReleaseClientFileStorage.write(fileData);
             } catch(IOException e) {
-                // TODO: should I raise the exception?
+                String message = "Error writing storage file for BtcReleaseClient";
+                logger.error(message, e);
             }
         }
         task = null;
@@ -103,7 +116,7 @@ public class BtcReleaseClientStorageAccessor {
     }
 
     public void setBestBlockHash(Keccak256 bestBlockHash) {
-        fileData.setBestBlockHash(Optional.of(bestBlockHash));
+        fileData.setBestBlockHash(bestBlockHash);
         signalWriting();
     }
 
