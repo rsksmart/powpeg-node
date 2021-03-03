@@ -3,9 +3,15 @@ package co.rsk.federate.btcreleaseclient;
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
@@ -22,13 +28,17 @@ import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorageInf
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.FileUtils;
 import org.ethereum.config.Constants;
 import org.ethereum.util.RLP;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
 
 public class BtcReleaseClientStorageAccessorTest {
 
@@ -68,7 +78,7 @@ public class BtcReleaseClientStorageAccessorTest {
         Keccak256 bestBlockHash = createHash(1);
 
         BtcReleaseClientFileData btcReleaseClientFileData = new BtcReleaseClientFileData();
-        btcReleaseClientFileData.setBestBlockHash(Optional.of(bestBlockHash));
+        btcReleaseClientFileData.setBestBlockHash(bestBlockHash);
 
         writeFile(btcReleaseClientFileData);
 
@@ -127,18 +137,28 @@ public class BtcReleaseClientStorageAccessorTest {
 
     @Test
     public void writes_to_file()
-        throws InvalidStorageFileException, IOException, InterruptedException {
+        throws InvalidStorageFileException, IOException {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
         Keccak256 bestBlockHash = createHash(2);
 
+        ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
+        // Ignore delay and execute immediately
+        doAnswer((InvocationOnMock a) -> {
+            ((Runnable)a.getArgument(0)).run();
+            return null;
+        }).when(executorService).schedule(any(Runnable.class), anyLong(), any());
+
         BtcReleaseClientStorageAccessor storageAccessor =
-            new BtcReleaseClientStorageAccessor(getFedNodeSystemProperties(), 10, 1);
+            new BtcReleaseClientStorageAccessor(
+                getFedNodeSystemProperties(),
+                executorService,
+                10,
+                1
+            );
 
         storageAccessor.putBtcTxHashRskTxHash(btcTxHash, rskTxHash);
         storageAccessor.setBestBlockHash(bestBlockHash);
-
-        Thread.sleep(100);
 
         FileStorageInfo storageInfo = new BtcReleaseClientFileStorageInfo(getFedNodeSystemProperties());
         BtcReleaseClientFileStorage storage = new BtcReleaseClientFileStorageImpl(storageInfo);
@@ -149,13 +169,14 @@ public class BtcReleaseClientStorageAccessorTest {
 
         BtcReleaseClientFileData data = readResult.getData();
 
+        assertTrue(data.getBestBlockHash().isPresent());
         assertEquals(bestBlockHash, data.getBestBlockHash().get());
         assertEquals(rskTxHash, data.getReleaseHashesMap().get(btcTxHash));
     }
 
     @Test
     public void multiple_sets_delay_writing()
-        throws InvalidStorageFileException, IOException, InterruptedException {
+        throws IOException, InvalidStorageFileException {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
         Keccak256 bestBlockHash = createHash(2);
@@ -167,22 +188,31 @@ public class BtcReleaseClientStorageAccessorTest {
         // Each operation will signal a writing request, given we perform 2 operations on each test I'll set a max of 4 delays
         int maxDelays = 4;
 
+        ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
+        ScheduledFuture task = mock(ScheduledFuture.class);
+        AtomicInteger calls = new AtomicInteger(1);
+        // Execute after the maxDelay is reached
+        doAnswer((InvocationOnMock a) -> {
+            if (calls.getAndIncrement() >= maxDelays) {
+                ((Runnable)a.getArgument(0)).run();
+            }
+            return task;
+        }).when(executorService).schedule(any(Runnable.class), anyLong(), any());
+
         BtcReleaseClientStorageAccessor storageAccessor =
-            new BtcReleaseClientStorageAccessor(getFedNodeSystemProperties(), 400, maxDelays);
+            new BtcReleaseClientStorageAccessor(
+                getFedNodeSystemProperties(),
+                executorService,
+                400,
+                maxDelays
+            );
 
         storageAccessor.putBtcTxHashRskTxHash(btcTxHash, rskTxHash);
         storageAccessor.setBestBlockHash(bestBlockHash);
 
-        // Wait almost until timer completion
-        Thread.sleep(200);
-
-        // Set a different set of data, this should extend delay
         storageAccessor.putBtcTxHashRskTxHash(btcTxHash2, rskTxHash2);
-        storageAccessor.setBestBlockHash(bestBlockHash2);
 
-        // The timer should have triggered the first write
-        Thread.sleep(200);
-
+        // Read the file, there shouldn't be information in it
         FileStorageInfo storageInfo = new BtcReleaseClientFileStorageInfo(
             getFedNodeSystemProperties());
         BtcReleaseClientFileStorage storage = new BtcReleaseClientFileStorageImpl(storageInfo);
@@ -198,8 +228,8 @@ public class BtcReleaseClientStorageAccessorTest {
         assertFalse(data.getBestBlockHash().isPresent());
         assertEquals(0, data.getReleaseHashesMap().size());
 
-        // Wait until second timer should have finished
-        Thread.sleep(400);
+        // the forth call should trigger the writing
+        storageAccessor.setBestBlockHash(bestBlockHash2);
 
         readResult = storage.read(
             ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString())
@@ -213,11 +243,14 @@ public class BtcReleaseClientStorageAccessorTest {
         assertEquals(bestBlockHash2, data.getBestBlockHash().get());
         assertEquals(rskTxHash, data.getReleaseHashesMap().get(btcTxHash));
         assertEquals(rskTxHash2, data.getReleaseHashesMap().get(btcTxHash2));
+
+        // It should have cancelled the overlapping tasks
+        verify(task, times(3)).cancel(anyBoolean());
     }
 
     @Test
     public void forces_writing_after_max_delay()
-        throws InvalidStorageFileException, InterruptedException, IOException {
+        throws InvalidStorageFileException, IOException {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
         Keccak256 bestBlockHash = createHash(2);
@@ -226,40 +259,33 @@ public class BtcReleaseClientStorageAccessorTest {
         Keccak256 rskTxHash2 = createHash(3);
         Keccak256 bestBlockHash2 = createHash(4);
 
-        // Configure 1 delay at most to exercise the maxDelay limitation
-        int maxDelays = 1;
+        // Configure 2 delay at most to exercise the maxDelay limitation
+        int maxDelays = 2;
+
+        ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
+        ScheduledFuture task = mock(ScheduledFuture.class);
+        AtomicInteger calls = new AtomicInteger(1);
+        doAnswer((InvocationOnMock a) -> {
+            if (calls.getAndIncrement() > maxDelays) {
+                // The schedule function shouldn't be called more than maxDelay with this Executor mock
+                fail();
+            }
+            return task;
+        }).when(executorService).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
 
         BtcReleaseClientStorageAccessor storageAccessor =
-            new BtcReleaseClientStorageAccessor(getFedNodeSystemProperties(), 500, maxDelays);
+            new BtcReleaseClientStorageAccessor(
+                getFedNodeSystemProperties(),
+                executorService,
+                500,
+                maxDelays
+            );
 
-        storageAccessor.putBtcTxHashRskTxHash(btcTxHash, rskTxHash);
-        storageAccessor.setBestBlockHash(bestBlockHash);
-
-        // Wait almost until timer completion
-        Thread.sleep(400);
-
-        // Set a different set of data, as the limit of delays is 1, it should not extend the writing
-        storageAccessor.putBtcTxHashRskTxHash(btcTxHash2, rskTxHash2);
-        storageAccessor.setBestBlockHash(bestBlockHash2);
-
-        // The timer should have triggered the first write
-        Thread.sleep(100);
-
-        FileStorageInfo storageInfo = new BtcReleaseClientFileStorageInfo(
-            getFedNodeSystemProperties());
-        BtcReleaseClientFileStorage storage = new BtcReleaseClientFileStorageImpl(storageInfo);
-        BtcReleaseClientFileReadResult readResult = storage.read(
-            ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString())
-        );
-
-        assertTrue(readResult.getSuccess());
-
-        BtcReleaseClientFileData data = readResult.getData();
-
-        // Data should be there by now
-        assertEquals(bestBlockHash2, data.getBestBlockHash().get());
-        assertEquals(rskTxHash, data.getReleaseHashesMap().get(btcTxHash));
-        assertEquals(rskTxHash2, data.getReleaseHashesMap().get(btcTxHash2));
+        storageAccessor.putBtcTxHashRskTxHash(btcTxHash, rskTxHash); // First write delayed
+        storageAccessor.setBestBlockHash(bestBlockHash); // Extends delay
+        storageAccessor.putBtcTxHashRskTxHash(btcTxHash2, rskTxHash2); // Triggers a writing
+        storageAccessor.setBestBlockHash(bestBlockHash2); // Triggers a writing again
+        verify(task, times(1)).cancel(false); // It should have cancelled the first task only
     }
 
     private FedNodeSystemProperties getFedNodeSystemProperties() {

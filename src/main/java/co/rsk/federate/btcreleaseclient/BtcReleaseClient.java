@@ -13,31 +13,43 @@ import co.rsk.federate.FedNodeRunner;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.config.FedNodeSystemProperties;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileData;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileReadResult;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorage;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorageImpl;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorageInfo;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.FederationCantSignException;
 import co.rsk.federate.signing.FederatorAlreadySignedException;
 import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
 import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
+import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
-import co.rsk.peg.*;
-import java.io.IOException;
-import org.bitcoinj.core.*;
+import co.rsk.peg.Bridge;
+import co.rsk.peg.BridgeEvents;
+import co.rsk.peg.BridgeUtils;
+import co.rsk.peg.Federation;
+import co.rsk.peg.StateForFederator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.PreDestroy;
+import org.bitcoinj.core.LegacyAddress;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.script.ScriptPattern;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
@@ -53,11 +65,6 @@ import org.ethereum.vm.PrecompiledContracts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PreDestroy;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 /**
  * Manages signing and broadcasting release txs
  * @author Oscar Guindzberg
@@ -67,7 +74,6 @@ public class BtcReleaseClient {
     private static final PanicProcessor panicProcessor = new PanicProcessor();
     private static final List<DataWord> SINGLE_RELEASE_BTC_TOPIC_RLP = Collections.singletonList(Bridge.RELEASE_BTC_TOPIC);
     private static final DataWord SINGLE_RELEASE_BTC_TOPIC_SOLIDITY = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
-    private static final DataWord RELEASE_REQUESTED_TOPIC = DataWord.valueOf(BridgeEvents.RELEASE_REQUESTED.getEvent().encodeSignatureLong());
 
     private ActivationConfig activationConfig;
     private BridgeConstants bridgeConstants;

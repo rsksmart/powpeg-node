@@ -117,7 +117,7 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileData fileData = new BtcReleaseClientFileData();
         fileData.getReleaseHashesMap().putAll(getReleaseHashesData());
-        fileData.setBestBlockHash(Optional.of(createHash(1)));
+        fileData.setBestBlockHash(createHash(1));
 
         BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 

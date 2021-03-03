@@ -2,7 +2,6 @@ package co.rsk.federate.io.btcreleaseclientstorage;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.io.BtcToRskClientFileReadResult;
 import co.rsk.federate.io.FileStorageInfo;
 import java.io.File;
 import java.io.IOException;
@@ -29,8 +28,6 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
         return this.storageInfo;
     }
 
-    // TODO: IMPLEMENT NEW DATA ! ! ! !
-
     @Override
     public void write(BtcReleaseClientFileData data) throws IOException {
         if (data == null) {
@@ -44,10 +41,10 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
         File dataFile = new File(storageInfo.getFilePath());
 
         byte[] serializedMap = this.serializeReleaseHashes(data.getReleaseHashesMap());
-        byte[] serializedBlockHash = new byte[]{};
-        if (data.getBestBlockHash().isPresent()) {
-            serializedBlockHash = RLP.encodeElement(data.getBestBlockHash().get().getBytes());
-        }
+        Optional<Keccak256> optionalblockHash = data.getBestBlockHash();
+        byte[] serializedBlockHash = RLP.encodeElement(
+            optionalblockHash.isPresent() ? optionalblockHash.get().getBytes() : new byte[]{}
+        );
 
         byte[] encodedData = RLP.encodeList(serializedMap, serializedBlockHash);
 
@@ -85,15 +82,10 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
             RLPList mapList = (RLPList)RLP.decode2(mapData).get(0);
             data.getReleaseHashesMap().putAll(this.deserializeReleaseHashes(mapList));
             // Block hash
-            if (rlpList.size() == 1) {
-                // If there was no BestBlock set there won't be a second element in the list
-                data.setBestBlockHash(Optional.empty());
-            } else {
+            if (rlpList.size() == 2) {
                 byte[] blockHashData = rlpList.get(1).getRLPData();
                 if (blockHashData != null && blockHashData.length > 0) {
-                    data.setBestBlockHash(Optional.of(new Keccak256(blockHashData)));
-                } else {
-                    data.setBestBlockHash(Optional.empty());
+                    data.setBestBlockHash(new Keccak256(blockHashData));
                 }
             }
         } catch (Exception e) {
