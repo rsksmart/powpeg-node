@@ -2,26 +2,39 @@ package co.rsk.federate.bitcoin;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.config.BridgeConstants;
+import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.Federation;
-import co.rsk.peg.btcLockSender.BtcLockSender;
+import co.rsk.peg.PeginInformation;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
+import co.rsk.peg.pegininstructions.PeginInstructionsException;
+import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import co.rsk.util.MaxSizeHashMap;
-import org.bitcoinj.core.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Context;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionConfidence;
+import org.bitcoinj.core.listeners.BlocksDownloadedEventListener;
 import org.bitcoinj.core.listeners.NewBestBlockListener;
-import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
-import org.bitcoinj.store.LevelDBBlockStore;
-import org.bitcoinj.wallet.Wallet;
-import org.ethereum.util.FileUtil;
+import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener;
+import org.bitcoinj.wallet.listeners.WalletCoinsSentEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.util.*;
 
 /**
  * @author ajlopez
@@ -58,110 +71,64 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         }
     }
 
-    private WalletAppKit kit;
     private Context btcContext;
     private BridgeConstants bridgeConstants;
-    private File pegDirectory;
     private boolean running = false;
     private List<FederationListener> watchedFederations;
     private List<BlockListener> blockListeners;
     private Collection<NewBestBlockListener> newBestBlockListeners;
+
     private final Map<Sha256Hash, StoredBlock> knownBlocks = new MaxSizeHashMap<>(MAX_SIZE_MAP_STORED_BLOCKS, true);
     private final BtcLockSenderProvider btcLockSenderProvider;
+    private final PeginInstructionsProvider peginInstructionsProvider;
+    private final FederatorSupport federatorSupport;
+    private final Kit kit;
 
     public static final int MAX_SIZE_MAP_STORED_BLOCKS = 10_000;
     private static final Logger LOGGER = LoggerFactory.getLogger(BitcoinWrapperImpl.class);
 
-    public BitcoinWrapperImpl(BridgeConstants bridgeConstants, File pegDirectory, BtcLockSenderProvider btcLockSenderProvider) {
-        this.btcContext = new Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
+    public BitcoinWrapperImpl(
+        Context btcContext,
+        BridgeConstants bridgeConstants,
+        BtcLockSenderProvider btcLockSenderProvider,
+        PeginInstructionsProvider peginInstructionsProvider,
+        FederatorSupport federatorSupport,
+        Kit kit) {
+
+        this.btcContext = btcContext;
         this.bridgeConstants = bridgeConstants;
-        this.pegDirectory = pegDirectory;
         this.blockListeners = new LinkedList<>();
         this.watchedFederations = new LinkedList<>();
         this.newBestBlockListeners = new LinkedList<>();
         this.btcLockSenderProvider = btcLockSenderProvider;
+        this.peginInstructionsProvider = peginInstructionsProvider;
+        this.federatorSupport = federatorSupport;
+        this.kit = kit;
     }
 
     @Override
     public void setup(List<PeerAddress> peerAddresses) {
-        kit = new WalletAppKit(btcContext.getParams(), pegDirectory, "BtcToRskClient") {
-            @Override
-            protected void onSetupCompleted() {
-                LOGGER.debug("Setup completed");
+        BlocksDownloadedEventListener blocksDownloadedEventListener = (peer, block, filteredBlock, blocksLeft) -> {
+            if (block != null && block.getTransactions() != null && block.getTransactions().size() > 0) {
+                // block may be empty if we are downloading just headers before fastCatchupTimeSecs
                 Context.propagate(btcContext);
-                vPeerGroup.addBlocksDownloadedEventListener((peer, block, filteredBlock, blocksLeft) -> {
-                    if (block != null && block.getTransactions()!=null && block.getTransactions().size() > 0) {
-                        // block may be empty if we are downloading just headers before fastCatchupTimeSecs
-                        Context.propagate(btcContext);
-                        for (BlockListener blockListener : blockListeners) {
-                            blockListener.onBlock(block);
-                        }
-                    }
-                });
-                if(!vWallet.isConsistent()) {
-                    LOGGER.warn("Wallet database is in an inconsistent state, starting to reset it");
-                    vWallet.reset();
+                for (BlockListener listener : blockListeners) {
+                    listener.onBlock(block);
                 }
-                vWallet.addCoinsReceivedEventListener((wallet, tx, prevBalance, newBalance) -> coinsReceivedOrSent(tx));
-                vWallet.addCoinsSentEventListener((wallet, tx, prevBalance, newBalance) -> coinsReceivedOrSent(tx));
-                vPeerGroup.setDownloadTxDependencies(0);
-                vChain.addNewBestBlockListener(
-                    storedBlock -> newBestBlockListeners.forEach(newBestBlockListener -> newBestBlockListener.notifyNewBestBlock(storedBlock))
-                );
-            }
-
-            private void coinsReceivedOrSent(Transaction tx) {
-                if (watchedFederations.size() > 0) {
-                    LOGGER.debug("Received filtered transaction {}", tx.getWTxId().toString());
-                    Context.propagate(btcContext);
-                    // Wrap tx in a co.rsk.bitcoinj.core.BtcTransaction
-                    BtcTransaction tx2 = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
-                    co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
-                    for (FederationListener watched : watchedFederations) {
-                        Federation watchedFederation = watched.getFederation();
-                        TransactionListener listener = watched.getListener();
-                        if (BridgeUtils.isLockTx(tx2, watchedFederation, btcContextThin, bridgeConstants)) {
-                            Optional<BtcLockSender> btcLockSenderOptional = btcLockSenderProvider.tryGetBtcLockSender(tx2);
-                            if(!btcLockSenderOptional.isPresent()) {
-                                LOGGER.warn("[btctx:{}] is not a valid lock tx and won't be processed!", tx.getWTxId());
-                                continue;
-                            }
-                            LOGGER.debug("[btctx:{}] is a lock", tx.getWTxId());
-                            listener.onTransaction(tx);
-                        }
-                        if (BridgeUtils.isReleaseTx(tx2, Collections.singletonList(watchedFederation))) {
-                            LOGGER.debug("[btctx:{}] is a release", tx.getWTxId());
-                            listener.onTransaction(tx);
-                        }
-                    }
-                }
-            }
-
-            @Override
-            protected Wallet createWallet() {
-                return super.createWallet();
-            }
-
-            @Override
-            protected BlockStore provideBlockStore(File file) throws BlockStoreException {
-                return new LevelDBBlockStore(btcContext, getChainFile());
-            }
-
-            @Override
-            protected boolean chainFileDelete(File chainFile) {
-                return FileUtil.recursiveDelete(chainFile.getAbsolutePath());
-            }
-
-            @Override
-            protected File getChainFile() {
-                return new File(directory, "chain");
-            }
-
-            @Override
-            protected boolean chainFileExists(File chainFile) {
-                return chainFile.exists();
             }
         };
+        WalletCoinsReceivedEventListener coinsReceivedEventListener = (wallet, tx, prevBalance, newBalance) -> coinsReceivedOrSent(tx);
+        WalletCoinsSentEventListener coinsSentEventListener = (wallet, tx, prevBalance, newBalance) -> coinsReceivedOrSent(tx);
+        NewBestBlockListener newBestBlockListener = storedBlock -> newBestBlockListeners.forEach(
+            listener -> listener.notifyNewBestBlock(storedBlock)
+        );
+
+        kit.setup(
+            blocksDownloadedEventListener,
+            coinsReceivedEventListener,
+            coinsSentEventListener,
+            newBestBlockListener
+        );
 
         if (!peerAddresses.isEmpty()) {
             kit.setPeerNodes(peerAddresses.toArray(new PeerAddress[]{}));
@@ -280,12 +247,12 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             // If first, add watched address
             if (watchedFederations.stream().noneMatch(w -> w.getFederation().equals(federation))) {
                 kit.wallet().addWatchedAddress(address, federation.getCreationTime().toEpochMilli());
-                LOGGER.debug("Added address watch for federation {}", federation.getAddress().toString());
+                LOGGER.debug("[addFederationListener] Added address watch for federation {}", federation.getAddress().toString());
             }
 
             if (!watchedFederations.contains(fl)) {
                 watchedFederations.add(fl);
-                LOGGER.debug("Added listener for federation {}", federation.getAddress().toString());
+                LOGGER.debug("[addFederationListener] Added listener for federation {}", federation.getAddress().toString());
             }
 
             traceWatchedFederations();
@@ -305,14 +272,14 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             if (watchedFederations.contains(fl)) {
                 Address address = ThinConverter.toOriginalInstance(federation.getBtcParams(), federation.getAddress());
                 watchedFederations.remove(fl);
-                LOGGER.debug("Removed listener for federation {}", federation.getAddress().toString());
+                LOGGER.debug("[removeFederationListener] Removed listener for federation {}", federation.getAddress().toString());
             }
 
             // If none left, remove the watched script
             if (watchedFederations.stream().noneMatch(w -> w.getFederation().equals(federation))) {
                 Script federationScript = new Script(federation.getP2SHScript().getProgram());
                 kit.wallet().removeWatchedScripts(Collections.singletonList(federationScript));
-                LOGGER.debug("Removed address watch for federation {}", federation.getAddress().toString());
+                LOGGER.debug("[removeFederationListener] Removed address watch for federation {}", federation.getAddress().toString());
             }
 
             traceWatchedFederations();
@@ -320,9 +287,9 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     }
 
     private void traceWatchedFederations() {
-        LOGGER.trace("Now wallet is watching {} scripts", kit.wallet().getWatchedScripts().size());
+        LOGGER.trace("[traceWatchedFederations] Now wallet is watching {} scripts", kit.wallet().getWatchedScripts().size());
         for (Script script : kit.wallet().getWatchedScripts()) {
-            LOGGER.trace("Script {}", script.toString());
+            LOGGER.trace("[traceWatchedFederations] Script {}", script.toString());
         }
     }
 
@@ -344,5 +311,45 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     @Override
     public void removeNewBestBlockListener(NewBestBlockListener newBestBlockListener) {
         newBestBlockListeners.remove(newBestBlockListener);
+    }
+
+    protected void coinsReceivedOrSent(Transaction tx) {
+        if (watchedFederations.size() > 0) {
+            LOGGER.debug("[coinsReceivedOrSent] Received filtered transaction {}", tx.getWTxId().toString());
+            Context.propagate(btcContext);
+            // Wrap tx in a co.rsk.bitcoinj.core.BtcTransaction
+            BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
+            co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
+            for (FederationListener watched : watchedFederations) {
+                Federation watchedFederation = watched.getFederation();
+                TransactionListener listener = watched.getListener();
+                if (BridgeUtils.isPegInTx(btcTx, watchedFederation, btcContextThin, bridgeConstants)) {
+
+                    PeginInformation peginInformation = new PeginInformation(
+                        btcLockSenderProvider,
+                        peginInstructionsProvider,
+                        federatorSupport.getConfigForBestBlock()
+                    );
+                    try {
+                        peginInformation.parse(btcTx);
+                    } catch (PeginInstructionsException e) {
+                        // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
+                        if (peginInformation.getSenderBtcAddress() != null) {
+                            LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx, funds will be refunded to sender", tx.getWTxId());
+                        } else {
+                            LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx and won't be processed!", tx.getWTxId());
+                            continue;
+                        }
+                    }
+
+                    LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a lock", tx.getWTxId());
+                    listener.onTransaction(tx);
+                }
+                if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(watchedFederation))) {
+                    LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a release", tx.getWTxId());
+                    listener.onTransaction(tx);
+                }
+            }
+        }
     }
 }

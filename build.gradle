@@ -5,6 +5,7 @@ import java.util.jar.JarOutputStream
 plugins {
     id 'application'
     id "jacoco"
+    id "org.sonarqube" version "2.7.1"
 }
 
 def config = new ConfigSlurper().parse(new File("$projectDir/src/main/resources/version.properties").toURI().toURL())
@@ -52,7 +53,7 @@ tasks.withType(AbstractArchiveTask) {
 
 ext {
     bitcoinjcoreVersion = '0.15.6-rsk-1'
-    bitcoinjVersion = '0.14.4-rsk-9'
+    bitcoinjVersion = '0.14.4-rsk-10-rc'
     commonsLang3Version = '3.5'
     commonsIoVersion = '2.5'
     slf4jVersion = '1.7.25'

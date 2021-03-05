@@ -23,6 +23,7 @@ import co.rsk.config.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
+import co.rsk.federate.bitcoin.Kit;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.config.HSM2SignerConfig;
 import co.rsk.federate.config.SignerConfig;
@@ -43,7 +44,10 @@ import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
+import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
+import org.bitcoinj.core.Context;
 import org.bouncycastle.util.encoders.Hex;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -217,14 +221,17 @@ public class FedNodeRunner implements NodeRunner {
 
             bridgeConstants = this.config.getNetworkConstants().getBridgeConstants();
             BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
+            PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
             btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(new BtcToRskClientFileStorageInfo(config));
-            bitcoinWrapper = createAndSetupBitcoinWrapper(btcLockSenderProvider);
+            bitcoinWrapper = createAndSetupBitcoinWrapper(btcLockSenderProvider, peginInstructionsProvider);
+
             btcToRskClientActive.setup(
                 config.getActivationConfig(),
                 bitcoinWrapper,
                 bridgeConstants,
                 btcToRskClientFileStorage,
                 btcLockSenderProvider,
+                peginInstructionsProvider,
                 config.isUpdateBridgeTimerEnabled(),
                 config.getAmountOfHeadersToSend()
             );
@@ -234,6 +241,7 @@ public class FedNodeRunner implements NodeRunner {
                 bridgeConstants,
                 btcToRskClientFileStorage,
                 btcLockSenderProvider,
+                peginInstructionsProvider,
                 config.isUpdateBridgeTimerEnabled(),
                 config.getAmountOfHeadersToSend()
             );
@@ -345,12 +353,25 @@ public class FedNodeRunner implements NodeRunner {
         LOGGER.info("Federation node Shut down.");
     }
 
-    private BitcoinWrapper createAndSetupBitcoinWrapper(BtcLockSenderProvider btcLockSenderProvider) throws UnknownHostException {
-        File pegDirectory = new File(this.btcToRskClientFileStorage.getInfo().getPegDirectoryPath());
+    private BitcoinWrapper createAndSetupBitcoinWrapper(
+        BtcLockSenderProvider btcLockSenderProvider,
+        PeginInstructionsProvider peginInstructionsProvider) throws UnknownHostException {
 
-        BitcoinWrapper bitcoinWrapper = new BitcoinWrapperImpl(bridgeConstants, pegDirectory, btcLockSenderProvider);
+        Context btcContext = new Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
+        File pegDirectory = new File(this.btcToRskClientFileStorage.getInfo().getPegDirectoryPath());
+        Kit kit = new Kit(btcContext, pegDirectory, "BtcToRskClient");
+
+        BitcoinWrapper bitcoinWrapper = new BitcoinWrapperImpl(
+            btcContext,
+            bridgeConstants,
+            btcLockSenderProvider,
+            peginInstructionsProvider,
+            federatorSupport,
+            kit
+        );
         bitcoinWrapper.setup(federatorSupport.getBitcoinPeerAddresses());
         bitcoinWrapper.start();
+
         return bitcoinWrapper;
     }
 }
