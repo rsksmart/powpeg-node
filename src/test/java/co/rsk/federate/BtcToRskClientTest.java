@@ -1390,7 +1390,7 @@ public class BtcToRskClientTest {
         releaseInput1.setScriptSig(inputScript);
 
         // Verify it was properly signed
-        assertThat(BridgeUtils.isReleaseTx(releaseTx1, Collections.singletonList(federation)), is(true));
+        assertThat(BridgeUtils.isPegOutTx(releaseTx1, Collections.singletonList(federation)), is(true));
 
         Transaction releaseTx = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString(), releaseTx1);
 
