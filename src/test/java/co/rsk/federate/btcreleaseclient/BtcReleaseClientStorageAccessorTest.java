@@ -42,8 +42,9 @@ import org.mockito.invocation.InvocationOnMock;
 
 public class BtcReleaseClientStorageAccessorTest {
 
-    String DIRECTORY_PATH = "src/test/java/co/rsk/federate/btcreleaseclient/storage";
-    String FILE_PATH = DIRECTORY_PATH + File.separator + "peg" + File.separator + "btcReleaseClient.rlp";
+    String DIRECTORY_PATH = "src/test/java/co/rsk/federate/btcreleaseclient";
+    String FILE_DIRECTORY_PATH = DIRECTORY_PATH + File.separator + "peg";
+    String FILE_PATH = FILE_DIRECTORY_PATH + File.separator + "btcReleaseClient.rlp";
 
     @Before
     public void setup() throws IOException {
@@ -323,8 +324,10 @@ public class BtcReleaseClientStorageAccessorTest {
     }
 
     private void clean() throws IOException {
-        File pegDirectory = new File(DIRECTORY_PATH);
-        FileUtils.deleteDirectory(pegDirectory);
+        File pegDirectory = new File(FILE_DIRECTORY_PATH);
+        if (pegDirectory.exists()) {
+            FileUtils.deleteDirectory(pegDirectory);
+        }
     }
 
 }
