@@ -28,6 +28,7 @@ test {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     jcenter()
     maven {
@@ -53,7 +54,7 @@ tasks.withType(AbstractArchiveTask) {
 
 ext {
     bitcoinjcoreVersion = '0.15.6-rsk-1'
-    bitcoinjVersion = '0.14.4-rsk-10-rc'
+    bitcoinjVersion = '0.14.4-rsk-10-erp'
     commonsLang3Version = '3.5'
     commonsIoVersion = '2.5'
     slf4jVersion = '1.7.25'
