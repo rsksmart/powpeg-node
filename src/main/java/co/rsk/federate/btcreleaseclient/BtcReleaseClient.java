@@ -306,7 +306,7 @@ public class BtcReleaseClient {
             for (int inputIndex = 0; inputIndex < btcTx.getInputs().size(); inputIndex++) {
                 TransactionInput txIn = btcTx.getInput(inputIndex);
                 Script redeemScript = getRedeemScriptFromInput(txIn);
-                Script baseRedeemScript = FastBridgeRedeemScriptParser.extractRedeemScriptFromMultiSigFastBridgeRedeemScript(redeemScript);
+                Script baseRedeemScript = FastBridgeRedeemScriptParser.extractStandardRedeemScript(redeemScript);
 
                 // Check if input is not already signed by the current federator
                 logger.trace("[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator", inputIndex);
@@ -447,7 +447,7 @@ public class BtcReleaseClient {
 
     protected Federation getSpendingFederation(BtcTransaction btcTx) {
         TransactionInput firstInput = btcTx.getInput(0);
-        Script redeemScript = FastBridgeRedeemScriptParser.extractRedeemScriptFromMultiSigFastBridgeRedeemScript(getRedeemScriptFromInput(firstInput));
+        Script redeemScript = FastBridgeRedeemScriptParser.extractStandardRedeemScript(getRedeemScriptFromInput(firstInput));
         List<Federation> spendingFedFilter = observedFederations.stream()
                 .filter(f -> f.getRedeemScript().equals(redeemScript)).collect(Collectors.toList());
 
