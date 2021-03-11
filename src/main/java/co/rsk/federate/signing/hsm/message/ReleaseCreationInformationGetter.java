@@ -40,16 +40,26 @@ public class ReleaseCreationInformationGetter {
         releaseRequestedSignatureTopic = releaseRequestedEvent.encodeSignatureLong();
     }
 
+    /* Use this method if the originating rsk tx hash and the informing rsk tx hash match */
     public ReleaseCreationInformation getTxInfoToSign(
         int version,
         Keccak256 rskTxHash,
         BtcTransaction btcTransaction
     ) throws HSMReleaseCreationInformationException {
+        return getTxInfoToSign(version, rskTxHash, btcTransaction, rskTxHash);
+    }
+
+    public ReleaseCreationInformation getTxInfoToSign(
+        int version,
+        Keccak256 rskTxHash,
+        BtcTransaction btcTransaction,
+        Keccak256 informingRskTxHash
+    ) throws HSMReleaseCreationInformationException {
         switch (version) {
             case 1:
-                return getBaseReleaseCreationInformation(rskTxHash, btcTransaction);
+                return getBaseReleaseCreationInformation(rskTxHash, btcTransaction, informingRskTxHash);
             case 2:
-                return getTxInfoToSignVersion2(rskTxHash, btcTransaction);
+                return getTxInfoToSignVersion2(rskTxHash, btcTransaction, informingRskTxHash);
             default:
                 throw new HSMReleaseCreationInformationException("Unsupported version " + version);
         }
@@ -57,7 +67,8 @@ public class ReleaseCreationInformationGetter {
 
     protected ReleaseCreationInformation getBaseReleaseCreationInformation(
         Keccak256 rskTxHash,
-        BtcTransaction btcTransaction
+        BtcTransaction btcTransaction,
+        Keccak256 informingRskTxHash
     ) throws HSMReleaseCreationInformationException {
         TransactionInfo transactionInfo = receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore);
         if (transactionInfo == null) {
@@ -72,23 +83,26 @@ public class ReleaseCreationInformationGetter {
         Block block = blockStore.getBlockByHash(transactionInfo.getBlockHash());
 
         return new ReleaseCreationInformation(
-          block,
-          transactionReceipt,
-          rskTxHash,
-          btcTransaction
+            block,
+            transactionReceipt,
+            rskTxHash,
+            btcTransaction,
+            informingRskTxHash
         );
     }
 
     protected ReleaseCreationInformation getTxInfoToSignVersion2(
         Keccak256 rskTxHash,
-        BtcTransaction btcTransaction
+        BtcTransaction btcTransaction,
+        Keccak256 informingRskTxHash
     ) throws HSMReleaseCreationInformationException {
-        ReleaseCreationInformation baseReleaseCreationInformation = getBaseReleaseCreationInformation(rskTxHash, btcTransaction);
+        ReleaseCreationInformation baseReleaseCreationInformation =
+            getBaseReleaseCreationInformation(rskTxHash, btcTransaction, informingRskTxHash);
         Block block = baseReleaseCreationInformation.getBlock();
         TransactionReceipt transactionReceipt = baseReleaseCreationInformation.getTransactionReceipt();
 
         // Get transaction from the block, searching by tx hash, and set it in the tx receipt
-        logger.trace("[getTxInfoToSign] Searching for transaction {} in block {}", rskTxHash, block.getHash().toHexString());
+        logger.trace("[getTxInfoToSign] Searching for transaction {} in block {} ({})", rskTxHash, block.getHash(), block.getNumber());
         List<Transaction> transactions = block.getTransactionsList().stream()
             .filter(t -> t.getHash().equals(rskTxHash))
             .collect(Collectors.toList());
@@ -106,13 +120,14 @@ public class ReleaseCreationInformationGetter {
         Transaction transaction = transactions.get(0);
         transactionReceipt.setTransaction(transaction);
 
-        return searchEventInFollowingBlocks(block.getNumber(), btcTransaction, rskTxHash);
+        return searchEventInFollowingBlocks(block.getNumber(), btcTransaction, rskTxHash, informingRskTxHash);
     }
 
     private ReleaseCreationInformation searchEventInFollowingBlocks(
         long blockNumber,
         BtcTransaction btcTransaction,
-        Keccak256 rskTxHash
+        Keccak256 rskTxHash,
+        Keccak256 informingRskTxHash
     ) throws HSMReleaseCreationInformationException {
         Block block = blockStore.getChainBlockByNumber(blockNumber);
         // If the block cannot be found by its number, the event cannot be searched further.
@@ -122,12 +137,17 @@ public class ReleaseCreationInformationGetter {
             );
         }
 
+        logger.trace(
+            "[searchEventInFollowingBlocks] searching in block {}. Has {} transactions",
+            blockNumber,
+            block.getTransactionsList().size()
+        );
         for (Transaction transaction : block.getTransactionsList()) {
             TransactionInfo transactionInfo = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore);
             TransactionReceipt transactionReceipt = transactionInfo.getReceipt();
             transactionReceipt.setTransaction(transaction);
             Optional<ReleaseCreationInformation> optionalReleaseCreationInformation =
-                getInformationFromEvent(block, transactionReceipt, btcTransaction, rskTxHash);
+                getInformationFromEvent(block, transactionReceipt, btcTransaction, rskTxHash, informingRskTxHash);
             if (optionalReleaseCreationInformation.isPresent()) {
                 return optionalReleaseCreationInformation.get();
             }
@@ -140,22 +160,31 @@ public class ReleaseCreationInformationGetter {
             );
         }
         // If the event was not found in this block, the next block is requested and the same search is performed.
-        return searchEventInFollowingBlocks(blockNumber + 1, btcTransaction, rskTxHash);
+        return searchEventInFollowingBlocks(blockNumber + 1, btcTransaction, rskTxHash, informingRskTxHash);
     }
 
     private Optional<ReleaseCreationInformation> getInformationFromEvent(
         Block block,
         TransactionReceipt transactionReceipt,
         BtcTransaction btcTransaction,
-        Keccak256 releaseRskTxHash
+        Keccak256 releaseRskTxHash,
+        Keccak256 informingRskTxHash
     ) {
-        if (transactionReceipt.getTransaction().getReceiveAddress().equals(PrecompiledContracts.BRIDGE_ADDR) &&
-            !transactionReceipt.getLogInfoList().isEmpty()) {
+        boolean hasLogs = !transactionReceipt.getLogInfoList().isEmpty();
+        logger.trace(
+            "[getInformationFromEvent] tx ({}) in block ({} - {}). has logs? {}",
+            transactionReceipt.getTransaction().getHash(),
+            block.getNumber(),
+            block.getHash(),
+            hasLogs
+        );
+        if (hasLogs) {
             List<LogInfo> logs = transactionReceipt.getLogInfoList();
             for (LogInfo logInfo : logs) {
                 // You should check that the event is Release and contains the hash of the transaction.
-                if (Arrays.equals(logInfo.getTopics().get(0).getData(), releaseRequestedSignatureTopic)
-                    && (Arrays.equals(logInfo.getTopics().get(2).getData(), btcTransaction.getHash().getBytes()))) {
+                boolean hashReleaseRequestEvent = Arrays.equals(logInfo.getTopics().get(0).getData(), releaseRequestedSignatureTopic);
+                logger.trace("[getInformationFromEvent] has release event? {}", hashReleaseRequestEvent);
+                if (hashReleaseRequestEvent && (Arrays.equals(logInfo.getTopics().get(2).getData(), btcTransaction.getHash().getBytes()))) {
                     logger.trace(
                         "[getInformationFromEvent] Found transaction {} and block {}",
                         transactionReceipt.getTransaction().getHash(),
@@ -166,7 +195,8 @@ public class ReleaseCreationInformationGetter {
                             block,
                             transactionReceipt,
                             releaseRskTxHash,
-                            btcTransaction
+                            btcTransaction,
+                            informingRskTxHash
                         )
                     );
                 }

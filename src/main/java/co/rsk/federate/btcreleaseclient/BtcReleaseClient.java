@@ -1,13 +1,16 @@
-package co.rsk.federate;
+package co.rsk.federate.btcreleaseclient;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.script.FastBridgeRedeemScriptParser;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.config.BridgeConstants;
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.FedNodeRunner;
+import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
@@ -16,19 +19,37 @@ import co.rsk.federate.signing.FederatorAlreadySignedException;
 import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
 import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
+import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
-import co.rsk.peg.*;
-import org.bitcoinj.core.*;
+import co.rsk.peg.Bridge;
+import co.rsk.peg.BridgeEvents;
+import co.rsk.peg.BridgeUtils;
+import co.rsk.peg.Federation;
+import co.rsk.peg.StateForFederator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.PreDestroy;
+import org.bitcoinj.core.LegacyAddress;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.script.ScriptPattern;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
@@ -43,11 +64,6 @@ import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.PreDestroy;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Manages signing and broadcasting release txs
@@ -76,6 +92,9 @@ public class BtcReleaseClient {
     private ReleaseCreationInformationGetter releaseCreationInformationGetter;
     private ReleaseRequirementsEnforcer releaseRequirementsEnforcer;
 
+    private BtcReleaseClientStorageAccessor storageAccessor;
+    private BtcReleaseClientStorageSynchronizer storageSynchronizer;
+
     public BtcReleaseClient(
         Ethereum ethereum,
         FederatorSupport federatorSupport,
@@ -96,8 +115,10 @@ public class BtcReleaseClient {
         ActivationConfig activationConfig,
         SignerMessageBuilderFactory signerMessageBuilderFactory,
         ReleaseCreationInformationGetter releaseCreationInformationGetter,
-        ReleaseRequirementsEnforcer releaseRequirementsEnforcer
-    ) throws Exception {
+        ReleaseRequirementsEnforcer releaseRequirementsEnforcer,
+        BtcReleaseClientStorageAccessor storageAccessor,
+        BtcReleaseClientStorageSynchronizer storageSynchronizer
+    ) throws BtcReleaseClientException {
         bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
         this.signer = signer;
         this.activationConfig = activationConfig;
@@ -105,11 +126,15 @@ public class BtcReleaseClient {
 
         org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
         peerGroup = new PeerGroup(btcContext);
-        if (federatorSupport.getBitcoinPeerAddresses().size()>0) {
-            for (PeerAddress peerAddress : federatorSupport.getBitcoinPeerAddresses()) {
-                peerGroup.addAddress(peerAddress);
+        try {
+            if (federatorSupport.getBitcoinPeerAddresses().size()>0) {
+                for (PeerAddress peerAddress : federatorSupport.getBitcoinPeerAddresses()) {
+                    peerGroup.addAddress(peerAddress);
+                }
+                peerGroup.setMaxConnections(federatorSupport.getBitcoinPeerAddresses().size());
             }
-            peerGroup.setMaxConnections(federatorSupport.getBitcoinPeerAddresses().size());
+        } catch(Exception e) {
+            throw new BtcReleaseClientException("Error configuring peerSupport", e);
         }
         peerGroup.start();
 
@@ -117,6 +142,9 @@ public class BtcReleaseClient {
         this.signerMessageBuilderFactory = signerMessageBuilderFactory;
         this.releaseCreationInformationGetter = releaseCreationInformationGetter;
         this.releaseRequirementsEnforcer = releaseRequirementsEnforcer;
+
+        this.storageAccessor = storageAccessor;
+        this.storageSynchronizer = storageSynchronizer;
     }
 
     public void start(Federation federation) {
@@ -153,13 +181,14 @@ public class BtcReleaseClient {
     private class BtcReleaseEthereumListener extends EthereumListenerAdapter {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (nodeBlockProcessor.hasBetterBlockToSync()) {
+            if (nodeBlockProcessor.hasBetterBlockToSync() || !storageSynchronizer.isSynced()) {
                 return;
             }
             // Processing transactions waiting for signatures on best block only still "works",
             // since it all lies within RSK's blockchain and normal rules apply. I.e., this
             // process works on a block-by-block basis.
             StateForFederator stateForFederator = federatorSupport.getStateForFederator();
+            storageSynchronizer.processBlock(block, receipts);
             // Delegate processing to our own method
             logger.trace("[onBestBlock] Got {} releases", stateForFederator.getRskTxsWaitingForSignatures().entrySet().size());
             processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
@@ -252,13 +281,19 @@ public class BtcReleaseClient {
         removeSignaturesFromTransaction(releaseTx, spendingFed);
         logger.trace("[tryGetReleaseInformation] Tx hash without signatures {}", releaseTx.getHash());
 
+        // Try to get the rskTxHash from the map in memory
+        Keccak256 actualRskTxHash = storageAccessor.hasBtcTxHash(releaseTx.getHash()) ?
+            storageAccessor.getRskTxHash(releaseTx.getHash()) :
+            rskTxHash;
+
         // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
         // -- Get Real Block where release_requested was emmited
         logger.trace("[tryGetReleaseInformation] Getting release information");
         return releaseCreationInformationGetter.getTxInfoToSign(
             signerVersion,
-            rskTxHash,
-            releaseTx
+            actualRskTxHash,
+            releaseTx,
+            rskTxHash
         );
     }
 
@@ -271,6 +306,7 @@ public class BtcReleaseClient {
             for (int inputIndex = 0; inputIndex < btcTx.getInputs().size(); inputIndex++) {
                 TransactionInput txIn = btcTx.getInput(inputIndex);
                 Script redeemScript = getRedeemScriptFromInput(txIn);
+                Script baseRedeemScript = FastBridgeRedeemScriptParser.extractRedeemScriptFromMultiSigFastBridgeRedeemScript(redeemScript);
 
                 // Check if input is not already signed by the current federator
                 logger.trace("[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator", inputIndex);
@@ -295,7 +331,7 @@ public class BtcReleaseClient {
                 observedFederations.stream()
                         .forEach(f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
                 List<Federation> spendingFedFilter = observedFederations.stream()
-                        .filter(f -> f.getRedeemScript().equals(redeemScript)).collect(Collectors.toList());
+                        .filter(f -> f.getRedeemScript().equals(baseRedeemScript)).collect(Collectors.toList());
                 logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
                 if (spendingFedFilter.isEmpty()) {
                     String message = String.format(
@@ -332,10 +368,10 @@ public class BtcReleaseClient {
                 signatures.add(sig.encodeToDER());
             }
 
-            logger.info("[signRelease] Signed Tx " + releaseCreationInformation.getReleaseRskTxHash());
-            federatorSupport.addSignature(signatures, releaseCreationInformation.getReleaseRskTxHash().getBytes());
+            logger.info("[signRelease] Signed Tx " + releaseCreationInformation.getInformingRskTxHash());
+            federatorSupport.addSignature(signatures, releaseCreationInformation.getInformingRskTxHash().getBytes());
         } catch (SignerException e) {
-            String message = String.format("Error signing Tx %s", releaseCreationInformation.getReleaseRskTxHash());
+            String message = String.format("Error signing Tx %s", releaseCreationInformation.getInformingRskTxHash());
             logger.error(message, e);
             panicProcessor.panic("btcrelease", message);
         } catch (HSMClientException | SignerMessageBuilderException | ReleaseRequirementsEnforcerException e) {
@@ -385,33 +421,33 @@ public class BtcReleaseClient {
             logger.trace("[removeSignaturesFromTransaction] input {} scriptSig {}", inputIndex, tx.getInput(inputIndex).getScriptSig());
             logger.trace("[removeSignaturesFromTransaction] input {} redeem script {}", inputIndex, inputRedeemScript);
 
-            txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed));
+            txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed, inputRedeemScript));
             logger.debug("[removeSignaturesFromTransaction] Updated input {} scriptSig with base input script that " +
                     "spends from the federation {}", inputIndex, spendingFed.getAddress());
         }
     }
 
-    private static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
+    private static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation, Script customRedeemScript) {
         Script scriptPubKey = federation.getP2SHScript();
         Script redeemScript = federation.getRedeemScript();
         RedeemData redeemData = RedeemData.of(federation.getBtcPublicKeys(), redeemScript);
-        Script inputScript = scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), redeemData.redeemScript);
+        // customRedeemScript might not be actually custom, but just in case, use the provided redeemScript
+        Script inputScript = scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), customRedeemScript);
 
         return inputScript;
     }
 
-    private Script getRedeemScriptFromInput(TransactionInput txInput) {
+    protected Script getRedeemScriptFromInput(TransactionInput txInput) {
         Script inputScript = txInput.getScriptSig();
         List<ScriptChunk> chunks = inputScript.getChunks();
         // Last chunk of the scriptSig contains the redeem script
         byte[] program = chunks.get(chunks.size() - 1).data;
-
         return new Script(program);
     }
 
-    private Federation getSpendingFederation(BtcTransaction btcTx) {
+    protected Federation getSpendingFederation(BtcTransaction btcTx) {
         TransactionInput firstInput = btcTx.getInput(0);
-        Script redeemScript = getRedeemScriptFromInput(firstInput);
+        Script redeemScript = FastBridgeRedeemScriptParser.extractRedeemScriptFromMultiSigFastBridgeRedeemScript(getRedeemScriptFromInput(firstInput));
         List<Federation> spendingFedFilter = observedFederations.stream()
                 .filter(f -> f.getRedeemScript().equals(redeemScript)).collect(Collectors.toList());
 

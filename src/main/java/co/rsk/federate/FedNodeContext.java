@@ -21,6 +21,7 @@ import co.rsk.NodeRunner;
 import co.rsk.RskContext;
 import co.rsk.config.ConfigLoader;
 import co.rsk.config.RskSystemProperties;
+import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;

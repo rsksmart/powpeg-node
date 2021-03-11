@@ -24,6 +24,9 @@ import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
 import co.rsk.federate.bitcoin.Kit;
+import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
+import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
+import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.config.HSM2SignerConfig;
 import co.rsk.federate.config.SignerConfig;
@@ -40,14 +43,12 @@ import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
 import co.rsk.federate.signing.hsm.requirements.AncestorBlockUpdater;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
-import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import org.bitcoinj.core.Context;
 import org.bouncycastle.util.encoders.Hex;
-import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -256,6 +257,7 @@ public class FedNodeRunner implements NodeRunner {
                 hsmBookkeepingService.start();
             }
             federateLogger.log();
+            BtcReleaseClientStorageAccessor btcReleaseClientStorageAccessor = new BtcReleaseClientStorageAccessor(config);
             btcReleaseClient.setup(
                 signer,
                 config.getActivationConfig(),
@@ -271,6 +273,13 @@ public class FedNodeRunner implements NodeRunner {
                         fedNodeContext.getBlockStore(),
                         hsmBookkeepingClient
                     )
+                ),
+                btcReleaseClientStorageAccessor,
+                new BtcReleaseClientStorageSynchronizer(
+                    fedNodeContext.getBlockStore(),
+                    fedNodeContext.getReceiptStore(),
+                    fedNodeContext.getNodeBlockProcessor(),
+                    btcReleaseClientStorageAccessor
                 )
             );
             federationWatcher.setup(federationProvider);
