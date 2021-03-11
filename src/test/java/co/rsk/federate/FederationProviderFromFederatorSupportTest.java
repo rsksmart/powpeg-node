@@ -112,18 +112,18 @@ public class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
-        when(federatorSupportMock.getFederationSize()).thenReturn(4);
-        when(federatorSupportMock.getFederationThreshold()).thenReturn(2);
+        when(federatorSupportMock.getFederationSize()).thenReturn(5);
+        when(federatorSupportMock.getFederationThreshold()).thenReturn(3);
         when(federatorSupportMock.getFederationCreationTime()).thenReturn(creationTime);
         when(federatorSupportMock.getBtcParams()).thenReturn(regtestParams);
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             when(federatorSupportMock.getFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000)));
             when(federatorSupportMock.getFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000+1)));
             when(federatorSupportMock.getFederatorPublicKeyOfType(i, FederationMember.KeyType.MST)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000+2)));
         }
 
         Federation expectedFederation = createFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000),
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             true
         );
 
@@ -203,20 +203,20 @@ public class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
-        when(federatorSupportMock.getRetiringFederationSize()).thenReturn(4);
-        when(federatorSupportMock.getRetiringFederationThreshold()).thenReturn(2);
+        when(federatorSupportMock.getRetiringFederationSize()).thenReturn(5);
+        when(federatorSupportMock.getRetiringFederationThreshold()).thenReturn(3);
         when(federatorSupportMock.getRetiringFederationCreationTime()).thenReturn(creationTime);
         when(federatorSupportMock.getRetiringFederationAddress()).thenReturn(Optional.of(randomActiveAddress));
 
         when(federatorSupportMock.getBtcParams()).thenReturn(regtestParams);
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000)));
             when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000+1)));
             when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.MST)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000+2)));
         }
 
         Federation expectedFederation = createFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000),
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             true
         );
 
@@ -377,36 +377,36 @@ public class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
-        when(federatorSupportMock.getFederationSize()).thenReturn(4);
-        when(federatorSupportMock.getFederationThreshold()).thenReturn(2);
+        when(federatorSupportMock.getFederationSize()).thenReturn(5);
+        when(federatorSupportMock.getFederationThreshold()).thenReturn(3);
         when(federatorSupportMock.getFederationCreationTime()).thenReturn(creationTime);
         when(federatorSupportMock.getFederationAddress()).thenReturn(randomActiveAddress);
         when(federatorSupportMock.getBtcParams()).thenReturn(regtestParams);
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             when(federatorSupportMock.getFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000)));
             when(federatorSupportMock.getFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000+1)));
             when(federatorSupportMock.getFederatorPublicKeyOfType(i, FederationMember.KeyType.MST)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000+2)));
         }
 
-        when(federatorSupportMock.getRetiringFederationSize()).thenReturn(6);
+        when(federatorSupportMock.getRetiringFederationSize()).thenReturn(5);
         when(federatorSupportMock.getRetiringFederationThreshold()).thenReturn(3);
         when(federatorSupportMock.getRetiringFederationCreationTime()).thenReturn(creationTime);
         when(federatorSupportMock.getRetiringFederationAddress()).thenReturn(Optional.of(randomRetiringAddress));
         when(federatorSupportMock.getBtcParams()).thenReturn(regtestParams);
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 5; i++) {
             when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*2000)));
             when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*2000+1)));
             when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.MST)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((i+1)*2000+2)));
         }
 
         Federation expectedActiveFederation = createFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000),
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             true
             );
 
 
         Federation expectedRetiringFederation = createFederation(
-            getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000, 12000),
+            getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000),
             true
         );
 

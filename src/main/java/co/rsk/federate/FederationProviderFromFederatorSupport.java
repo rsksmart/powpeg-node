@@ -135,7 +135,12 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         Federation initialFederation =
             new Federation(members, creationTime, creationBlockNumber, federatorSupport.getBtcParams());
 
-        Address federationAddress = federatorSupport.getRetiringFederationAddress().get();
+        Optional<Address> optionalFederationAddress = federatorSupport.getRetiringFederationAddress();
+        Address federationAddress = null;
+
+        if (optionalFederationAddress.isPresent()) {
+            federationAddress = optionalFederationAddress.get();
+        }
 
         if (initialFederation.getAddress().equals(federationAddress)) {
             return Optional.of(initialFederation);
