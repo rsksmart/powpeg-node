@@ -110,6 +110,48 @@ includeBuild('<PATH-TO-RSKJ-SOURCE-CODE>') {
 
 **Note:** Change PATH-TO-RSKJ-SOURCE-CODE value to your local Rskj path.
 
+## Configuration Settings
+
+### Signer's configurations
+```
+federator {
+    signers {
+       BTC {
+          type = "keyFile"
+          path = "A/PATH/TO/YOUR/BTC-KEY.key"
+       }
+       RSK {
+          type = "keyFile"
+          path = "A/PATH/TO/YOUR/RSK-KEY.key"
+       }
+       MST {
+          type = "keyFile"
+          path = "A/PATH/TO/YOUR/MST-KEY.key"
+       }
+    }
+```
+
+### Configuration for HSM 2
+```
+BTC {
+     bookkeeping {
+        difficultyTarget = 100
+        # This value is closely related to the amount of chunks per inform.
+        # e.g. if an usual inform takes 2 chunks then this value should be socketTimeout*2 at least
+        # This usually is important during the initial sync phase only, afterwards the advanceBlockchain are more apart each other
+        informerInterval = 40000
+        maxAmountBlockHeaders = 10
+        maxChunkSizeToHsm = 100
+     }
+      type = "hsm" # HSM 2
+      host = "127.0.0.1"
+      port = 9999
+      # This value directly related to the maxChunkSize. It takes about 15s to process 100 headers
+      socketTimeout = 20000
+      keyId = "m/44'/1'/0'/0/0"
+   }
+```
+
 ## Report Security Vulnerabilities
 
 We have a [vulnerability reporting guideline](SECURITY.md) for details on how to contact us to report a vulnerability.
