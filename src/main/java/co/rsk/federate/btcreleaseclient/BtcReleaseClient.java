@@ -39,8 +39,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -82,7 +84,7 @@ public class BtcReleaseClient {
     private final Ethereum ethereum;
     private final FederatorSupport federatorSupport;
     private final FedNodeSystemProperties systemProperties;
-    private final List<Federation> observedFederations;
+    private final Set<Federation> observedFederations;
     private final NodeBlockProcessor nodeBlockProcessor;
 
     private ECDSASigner signer;
@@ -104,7 +106,7 @@ public class BtcReleaseClient {
         this.ethereum = ethereum;
         this.federatorSupport = federatorSupport;
         this.systemProperties = systemProperties;
-        this.observedFederations = new ArrayList<>();
+        this.observedFederations = new HashSet<>();
         this.blockListener = new BtcReleaseEthereumListener();
         this.bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
         this.nodeBlockProcessor = nodeBlockProcessor;
@@ -127,7 +129,7 @@ public class BtcReleaseClient {
         org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
         peerGroup = new PeerGroup(btcContext);
         try {
-            if (federatorSupport.getBitcoinPeerAddresses().size()>0) {
+            if (!federatorSupport.getBitcoinPeerAddresses().isEmpty()) {
                 for (PeerAddress peerAddress : federatorSupport.getBitcoinPeerAddresses()) {
                     peerGroup.addAddress(peerAddress);
                 }
@@ -216,6 +218,17 @@ public class BtcReleaseClient {
 
             btcTransactionsToRelease.forEach(BtcReleaseClient.this::onBtcRelease);
         }
+
+        private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
+            RLPList dataElements = (RLPList)RLP.decode2(dataFromBtcReleaseTopic).get(0);
+
+            return new BtcTransaction(bridgeConstants.getBtcParams(), dataElements.get(1).getRLPData());
+        }
+
+        private BtcTransaction convertToBtcTxFromSolidityData(byte[] dataFromBtcReleaseTopic) {
+            return new BtcTransaction(bridgeConstants.getBtcParams(),
+                (byte[])BridgeEvents.RELEASE_BTC.getEvent().decodeEventData(dataFromBtcReleaseTopic)[0]);
+        }
     }
 
     protected void processReleases(Set<Map.Entry<Keccak256, BtcTransaction>> releases) {
@@ -227,74 +240,64 @@ public class BtcReleaseClient {
             List<ReleaseCreationInformation> releasesReadyToSign = new ArrayList<>();
             for (Map.Entry<Keccak256, BtcTransaction> release : releases) {
                 BtcTransaction releaseTx = release.getValue();
-                try {
-                    releasesReadyToSign.add(
-                        tryGetReleaseInformation(version, release.getKey(), releaseTx)
-                    );
-                } catch (HSMReleaseCreationInformationException | FederationCantSignException e) {
-                    String message = String.format(
-                        "[processReleases] There was an error trying to process release for BTC tx %s",
-                        releaseTx.getHash()
-                    );
-                    logger.error(message, e);
-                } catch (FederatorAlreadySignedException e) {
-                    logger.info("[processReleases] {}", e.getMessage());
-                }
+                tryGetReleaseInformation(version, release.getKey(), releaseTx)
+                    .ifPresent(releasesReadyToSign::add);
             }
             logger.trace("[processReleases] Going to sign {} releases", releasesReadyToSign.size());
             // TODO: Sorting and then looping again is not efficient but we are making a compromise on performance here as we don't have that many release txs
             // Sort descending
             releasesReadyToSign.sort((a, b) -> (int) (b.getBlock().getNumber() - a.getBlock().getNumber()));
             // Sign
-            for (ReleaseCreationInformation release: releasesReadyToSign) {
-                try {
-                    signRelease(version, release);
-                } catch (Exception e) {
-                    String message = String.format(
-                        "[processReleases] There was an error trying to sign release for BTC tx %s",
-                        release.getBtcTransaction().getHash()
-                    );
-                    logger.error(message, e);
-                }
-            }
+            releasesReadyToSign.forEach(release -> signRelease(version, release));
         } catch (Exception e) {
             logger.error("[processReleases] There was an error trying to process releases", e);
         }
         logger.trace("[processReleases] Finished processing releases");
     }
 
-    protected ReleaseCreationInformation tryGetReleaseInformation(
+    protected Optional<ReleaseCreationInformation> tryGetReleaseInformation(
         int signerVersion,
         Keccak256 rskTxHash,
         BtcTransaction releaseTx
-    ) throws FederationCantSignException, HSMReleaseCreationInformationException, FederatorAlreadySignedException {
-        // Discard transactions this fed already signed or cannot be signed by the observed federations
-        logger.trace("[tryGetReleaseInformation] Validating tx {} can be signed by observed federations and " +
-                "that it is not already signed by current fed", releaseTx.getHash());
-        validateTxCanBeSigned(releaseTx);
+    ) {
+        try {
+            // Discard transactions this fed already signed or cannot be signed by the observed federations
+            logger.trace("[tryGetReleaseInformation] Validating tx {} can be signed by observed federations and " +
+                    "that it is not already signed by current fed", releaseTx.getHash());
+            validateTxCanBeSigned(releaseTx);
 
-        // IMPORTANT: As per the current behaviour of the bridge, no release tx should have inputs to be signed
-        // by different federations. Taking this into account, when removing the signatures from the tx new
-        // scriptSigs are created that all spend from the same federation
-        logger.trace("[tryGetReleaseInformation] Removing possible signatures from tx {}", releaseTx.getHash());
-        Federation spendingFed = getSpendingFederation(releaseTx);
-        removeSignaturesFromTransaction(releaseTx, spendingFed);
-        logger.trace("[tryGetReleaseInformation] Tx hash without signatures {}", releaseTx.getHash());
+            // IMPORTANT: As per the current behaviour of the bridge, no release tx should have inputs to be signed
+            // by different federations. Taking this into account, when removing the signatures from the tx new
+            // scriptSigs are created that all spend from the same federation
+            logger.trace("[tryGetReleaseInformation] Removing possible signatures from tx {}", releaseTx.getHash());
+            Federation spendingFed = getSpendingFederation(releaseTx);
+            removeSignaturesFromTransaction(releaseTx, spendingFed);
+            logger.trace("[tryGetReleaseInformation] Tx hash without signatures {}", releaseTx.getHash());
 
-        // Try to get the rskTxHash from the map in memory
-        Keccak256 actualRskTxHash = storageAccessor.hasBtcTxHash(releaseTx.getHash()) ?
-            storageAccessor.getRskTxHash(releaseTx.getHash()) :
-            rskTxHash;
+            // Try to get the rskTxHash from the map in memory
+            Keccak256 actualRskTxHash = storageAccessor.hasBtcTxHash(releaseTx.getHash()) ?
+                storageAccessor.getRskTxHash(releaseTx.getHash()) :
+                rskTxHash;
 
-        // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
-        // -- Get Real Block where release_requested was emmited
-        logger.trace("[tryGetReleaseInformation] Getting release information");
-        return releaseCreationInformationGetter.getTxInfoToSign(
-            signerVersion,
-            actualRskTxHash,
-            releaseTx,
-            rskTxHash
-        );
+            // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
+            // -- Get Real Block where release_requested was emmited
+            logger.trace("[tryGetReleaseInformation] Getting release information");
+            return Optional.of(releaseCreationInformationGetter.getTxInfoToSign(
+                signerVersion,
+                actualRskTxHash,
+                releaseTx,
+                rskTxHash
+            ));
+        } catch (HSMReleaseCreationInformationException | FederationCantSignException e) {
+            String message = String.format(
+                "[tryGetReleaseInformation] There was an error trying to process release for BTC tx %s",
+                releaseTx.getHash()
+            );
+            logger.error(message, e);
+        } catch (FederatorAlreadySignedException e) {
+            logger.info("[tryGetReleaseInformation] {}", e.getMessage());
+        }
+        return Optional.empty();
     }
 
     protected void validateTxCanBeSigned(BtcTransaction btcTx) throws FederatorAlreadySignedException, FederationCantSignException {
@@ -368,7 +371,7 @@ public class BtcReleaseClient {
                 signatures.add(sig.encodeToDER());
             }
 
-            logger.info("[signRelease] Signed Tx " + releaseCreationInformation.getInformingRskTxHash());
+            logger.info("[signRelease] Signed Tx {}", releaseCreationInformation.getInformingRskTxHash());
             federatorSupport.addSignature(signatures, releaseCreationInformation.getInformingRskTxHash().getBytes());
         } catch (SignerException e) {
             String message = String.format("Error signing Tx %s", releaseCreationInformation.getInformingRskTxHash());
@@ -376,6 +379,13 @@ public class BtcReleaseClient {
             panicProcessor.panic("btcrelease", message);
         } catch (HSMClientException | SignerMessageBuilderException | ReleaseRequirementsEnforcerException e) {
             logger.error("[signRelease] {}", e.getMessage());
+            panicProcessor.panic("btcrelease", e.getMessage());
+        } catch (Exception e) {
+            String message = String.format(
+                "[signRelease] There was an error trying to sign release for BTC tx %s",
+                releaseCreationInformation.getBtcTransaction().getHash()
+            );
+            logger.error(message, e);
             panicProcessor.panic("btcrelease", e.getMessage());
         }
     }
@@ -392,21 +402,11 @@ public class BtcReleaseClient {
             LegacyAddress destination = null;
             if (ScriptPattern.isP2SH(txo.getScriptPubKey())) {
                 destination = LegacyAddress.fromScriptHash(btcParams, ScriptPattern.extractHashFromP2SH(txo.getScriptPubKey()));
-            } else if (ScriptPattern.isP2PKH(txo.getScriptPubKey()))
+            } else if (ScriptPattern.isP2PKH(txo.getScriptPubKey())) {
                 destination = LegacyAddress.fromPubKeyHash(btcParams, ScriptPattern.extractHashFromP2PKH(txo.getScriptPubKey()));
+            }
             logger.info("Broadcasted {} to {} in tx {}", txo.getValue(), destination, signedBtcTx2.getTxId());
         });
-    }
-
-    private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
-        RLPList dataElements = (RLPList)RLP.decode2(dataFromBtcReleaseTopic).get(0);
-
-        return new BtcTransaction(bridgeConstants.getBtcParams(), dataElements.get(1).getRLPData());
-    }
-
-    private BtcTransaction convertToBtcTxFromSolidityData(byte[] dataFromBtcReleaseTopic) {
-        return new BtcTransaction(bridgeConstants.getBtcParams(),
-                (byte[])BridgeEvents.RELEASE_BTC.getEvent().decodeEventData(dataFromBtcReleaseTopic)[0]);
     }
 
     /*
