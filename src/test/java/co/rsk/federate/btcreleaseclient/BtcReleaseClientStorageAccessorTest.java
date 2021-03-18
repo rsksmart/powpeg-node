@@ -42,18 +42,14 @@ import org.mockito.invocation.InvocationOnMock;
 
 public class BtcReleaseClientStorageAccessorTest {
 
-    String DIRECTORY_PATH = "src/test/java/co/rsk/federate/btcreleaseclient";
-    String FILE_DIRECTORY_PATH = DIRECTORY_PATH + File.separator + "peg";
-    String FILE_PATH = FILE_DIRECTORY_PATH + File.separator + "btcReleaseClient.rlp";
+    private static final String DIRECTORY_PATH = "src/test/java/co/rsk/federate/btcreleaseclient";
+    private static final String FILE_DIRECTORY_PATH = DIRECTORY_PATH + File.separator + "peg";
+    private static final String FILE_PATH = FILE_DIRECTORY_PATH + File.separator + "btcReleaseClient.rlp";
 
     @Before
-    public void setup() throws IOException {
-        this.clean();
-    }
-
     @After
-    public void tearDown() throws IOException {
-        this.clean();
+    public void setup() throws IOException {
+        clean();
     }
 
     @Test(expected = InvalidStorageFileException.class)
@@ -126,8 +122,20 @@ public class BtcReleaseClientStorageAccessorTest {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
 
+        ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
+        // Ignore delay and execute immediately
+        doAnswer((InvocationOnMock a) -> {
+            ((Runnable)a.getArgument(0)).run();
+            return null;
+        }).when(executorService).schedule(any(Runnable.class), anyLong(), any());
+
         BtcReleaseClientStorageAccessor storageAccessor =
-            new BtcReleaseClientStorageAccessor(getFedNodeSystemProperties());
+            new BtcReleaseClientStorageAccessor(
+                getFedNodeSystemProperties(),
+                executorService,
+                10,
+                1
+            );
 
         storageAccessor.putBtcTxHashRskTxHash(btcTxHash, rskTxHash);
 
@@ -251,7 +259,7 @@ public class BtcReleaseClientStorageAccessorTest {
 
     @Test
     public void forces_writing_after_max_delay()
-        throws InvalidStorageFileException, IOException {
+        throws InvalidStorageFileException {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
         Keccak256 bestBlockHash = createHash(2);
@@ -323,7 +331,7 @@ public class BtcReleaseClientStorageAccessorTest {
         );
     }
 
-    private void clean() throws IOException {
+    private static void clean() throws IOException {
         File pegDirectory = new File(FILE_DIRECTORY_PATH);
         if (pegDirectory.exists()) {
             FileUtils.deleteDirectory(pegDirectory);
