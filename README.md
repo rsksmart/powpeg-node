@@ -110,20 +110,23 @@ includeBuild('<PATH-TO-RSKJ-SOURCE-CODE>') {
 
 **Note:** Change PATH-TO-RSKJ-SOURCE-CODE value to your local Rskj path.
 
-## Configuration Settings
+## Configuration Settings (For Local test / regtest only)
 
-### Signer's configurations
+### Signer's configurations i.e, BTC or RSK or MST
 ```
 federator {
     signers {
+        // Using RSK Config
        BTC {
           type = "keyFile"
           path = "A/PATH/TO/YOUR/BTC-KEY.key"
        }
+       // Using RSK Config
        RSK {
           type = "keyFile"
           path = "A/PATH/TO/YOUR/RSK-KEY.key"
        }
+       // Using MST Config
        MST {
           type = "keyFile"
           path = "A/PATH/TO/YOUR/MST-KEY.key"
@@ -131,7 +134,7 @@ federator {
     }
 ```
 
-### Configuration for HSM 2
+### Sample Configuration for BTC Using HSM 2
 ```
 BTC {
      bookkeeping {
@@ -149,6 +152,16 @@ BTC {
       # This value directly related to the maxChunkSize. It takes about 15s to process 100 headers
       socketTimeout = 20000
       keyId = "m/44'/1'/0'/0/0"
+   }
+```
+
+### Sample Configuration for RSK Using HSM 2
+```
+RSK {
+      type = "hsm"
+      host = "127.0.0.1"
+      port = 9999
+      keyId = "rsk"
    }
 ```
 
