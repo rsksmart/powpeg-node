@@ -96,6 +96,9 @@ Create a file **regtest-fed.conf** with the config below
 ### Signer's configurations
 ```
 federator {
+    # keep it false if you don't want to interact with bitcoin
+    enabled = true
+    
     signers {
        BTC {
           type = "keyFile"
@@ -110,6 +113,11 @@ federator {
           path = "A/PATH/TO/YOUR/MST-KEY.key"
        }
     }
+    # peers for the bitcoin network
+    bitcoinPeerAddresses = [
+        "127.0.0.1:18444"
+    ]
+}
 ```
 
 9. Steps to import and configure the project.
