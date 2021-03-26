@@ -5,6 +5,10 @@
 Powpeg node is a specialized rskj node which interacts with both RSK and Bitcoin.
 This node is used by RSK PowPeg signatories to interact with the Bridge contract and to broadcast peg-out transactions to Bitcoin.
 
+## Software Requirements
+1. Java JDK 1.8
+2. Bitcoin Core daemon (bitcoind) 0.17v or 0.18v 
+
 ## Setting up the project
 
 Before anything, you must ensure the security chain of the source code. For that, you must go through the following steps. For Linux based OS (Ubuntu for example) it's recommended install `gnupg-curl` to download the key through HTTPS.
@@ -72,17 +76,100 @@ sha256sum: WARNING: 19 lines are improperly formatted
 ./configure.sh
  ```
 
-**Now you're ready to run the project.**
+7. Steps to generate a Private Key File
 
-*To run from command line:*
+- Using **GenNodeKeyId** class in the project
 
-```bash
-./gradlew run -PmainClass=co.rsk.federate.FederateRunner
+- Set String generator = "federator1";
+
+- Run the Class to generate a private key
+
+- Create a file **reg1.key** with the private key as the content
+
+- Add permission to the file by running **chmod 400 reg1.key**
+
+
+8. Creating the signers configuration. **(For Local test / regtest only)**
+
+Create a file **regtest-fed.conf** with the config below
+
+### Signer's configurations
 ```
+federator {
+    signers {
+       BTC {
+          type = "keyFile"
+          path = "A/PATH/TO/YOUR/BTC-KEY.key"
+       }
+       RSK {
+          type = "keyFile"
+          path = "A/PATH/TO/YOUR/RSK-KEY.key"
+       }
+       MST {
+          type = "keyFile"
+          path = "A/PATH/TO/YOUR/MST-KEY.key"
+       }
+    }
+```
+
+9. Steps to import and configure the project.
 
 *To import the project to [IntelliJ IDEA](https://www.jetbrains.com/idea/download):*
 
-You can import the project to your IDE. For example, [IntelliJ IDEA Community Edition](https://www.jetbrains.com/idea/). To import go to `File | New | Project from existing sources...` Select `federate-node/build.gradle` and import. After building, run `co.rsk.federate.FederateRunner`
+You can import the project to your IDE. For example, [IntelliJ IDEA Community Edition](https://www.jetbrains.com/idea/). To import go to `File | New | Project from existing sources...` Select `federate-node/build.gradle` and import.
+
+- Create a New Application configuration with name **FedRunner**
+
+**VM options**
+
+- -Drsk.conf.file=/<PATH-TO-CONF-FILE>/regtest-fed.conf
+- -Dlogback.configurationFile=/<PATH-TO-LOG-FILE>/logback.xml
+- -Dblockchain.config.hardforkActivationHeights.iris300=0
+
+**Program Arguments**
+
+- --regtest --reset
+
+**Module**
+
+- -cp federate-node.main
+
+**Main Class**
+
+- co.rsk.federate.FederateRunner
+
+Then clean and build project using **./gradle clean build**
+
+10. Install and run Bitcoind
+
+   In order to install Bitcoind, you can follow these steps. We will use version ``` 0.18.0 ```, but it can be any other valid one (i.e ``` 0.17.1 ```).
+
+```bash
+   curl -O https://bitcoin.org/bin/bitcoin-core-0.18.0/bitcoin-0.18.0-osx64.tar.gz
+   tar -zxf bitcoin-0.18.0-osx64.tar.gz
+   sudo mkdir -p /usr/local/bin
+   sudo cp bitcoin-0.18.0/bin/bitcoin* /usr/local/bin/.
+   rm -rf bitcoin-0.18.0*
+   As a validation, you can run *bitcoind -daemon*. Run *bitcoin-cli stop* afterwards.
+```
+Create the scripts below as a file and its content:
+
+**bitcoin-node.sh**
+```bash
+#!/bin/bash
+
+bitcoind -regtest -printtoconsole -server -rpcuser=rsk -rpcpassword=rsk -rpcport=18332 -txindex -debug=net --deprecatedrpc=signrawtransaction -addresstype=legacy -deprecatedrpc=accounts -deprecatedrpc=generate
+```
+**btc-regtest.sh**
+```bash
+#!/bin/bash
+
+bitcoin-cli -regtest --rpcuser=rsk --rpcpassword=rsk --rpcport=18332 $@
+```
+
+- Run the **bitcoin-node.sh** script to start the Bitcoin node
+- Generate 1 block using the command **./btc-regtest.sh generate 1**
+- Run **./btc-regtest getblockcount** to see the amount of blocks available
 
 ### Running Powpeg node using local RSKj source code
 
@@ -110,59 +197,13 @@ includeBuild('<PATH-TO-RSKJ-SOURCE-CODE>') {
 
 **Note:** Change PATH-TO-RSKJ-SOURCE-CODE value to your local Rskj path.
 
-## Configuration Settings (For Local test / regtest only)
 
-### Signer's configurations i.e, BTC or RSK or MST
-```
-federator {
-    signers {
-        // Using RSK Config
-       BTC {
-          type = "keyFile"
-          path = "A/PATH/TO/YOUR/BTC-KEY.key"
-       }
-       // Using RSK Config
-       RSK {
-          type = "keyFile"
-          path = "A/PATH/TO/YOUR/RSK-KEY.key"
-       }
-       // Using MST Config
-       MST {
-          type = "keyFile"
-          path = "A/PATH/TO/YOUR/MST-KEY.key"
-       }
-    }
-```
+### Steps to run the project.
 
-### Sample Configuration for BTC Using HSM 2
-```
-BTC {
-     bookkeeping {
-        difficultyTarget = 100
-        # This value is closely related to the amount of chunks per inform.
-        # e.g. if an usual inform takes 2 chunks then this value should be socketTimeout*2 at least
-        # This usually is important during the initial sync phase only, afterwards the advanceBlockchain are more apart each other
-        informerInterval = 40000
-        maxAmountBlockHeaders = 10
-        maxChunkSizeToHsm = 100
-     }
-      type = "hsm" # HSM 2
-      host = "127.0.0.1"
-      port = 9999
-      # This value directly related to the maxChunkSize. It takes about 15s to process 100 headers
-      socketTimeout = 20000
-      keyId = "m/44'/1'/0'/0/0"
-   }
-```
+*To run from command line:*
 
-### Sample Configuration for RSK Using HSM 2
-```
-RSK {
-      type = "hsm"
-      host = "127.0.0.1"
-      port = 9999
-      keyId = "rsk"
-   }
+```bash
+./gradle run -PmainClass=co.rsk.federate.FederateRunner
 ```
 
 ## Report Security Vulnerabilities
