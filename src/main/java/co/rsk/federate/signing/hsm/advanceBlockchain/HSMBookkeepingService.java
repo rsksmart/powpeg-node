@@ -5,6 +5,7 @@ import co.rsk.federate.config.HSM2SignerConfig;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
+import co.rsk.federate.signing.hsm.message.HSM2State;
 import co.rsk.net.NodeBlockProcessor;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
@@ -88,7 +89,7 @@ public class HSMBookkeepingService {
         }
 
         try {
-            if (hsmBookkeepingClient.getHSMPointer().getInProgressState())  {
+            if (hsmBookkeepingClient.getHSMState().getInProgressState())  {
                 // HSM status is inconsistent from a previous run, if the status is in progress, reset HSM must be done.
                 hsmBookkeepingClient.resetAdvanceBlockchain();
             }
@@ -135,7 +136,18 @@ public class HSMBookkeepingService {
     }
 
     private Block getHsmBestBlock() throws HSMClientException {
-        Keccak256 bestBlockHSMHash = hsmBookkeepingClient.getHSMPointer().getBestBlockHash();
+        HSM2State hsm2State = hsmBookkeepingClient.getHSMState();
+        Keccak256 bestBlockHSMHash = hsm2State.getBestBlockHash();
+        if (hsm2State.getInProgressState() && hsm2State.getInProgressNextBlockHash().isPresent()) {
+            Keccak256 nextExpectedBlockHash = hsm2State.getInProgressNextBlockHash().get();
+            // The next expected block should be provided, fetch its parent and use it as the "BEST" block
+            bestBlockHSMHash = blockStore.getBlockByHash(nextExpectedBlockHash.getBytes()).getParentHash();
+            logger.debug(
+                "[getHsmBestBlock] HSM is in progress using next expected block hash ({}). Best block is: {}",
+                nextExpectedBlockHash,
+                bestBlockHSMHash
+            );
+        }
         return blockStore.getBlockByHash(bestBlockHSMHash.getBytes());
     }
 

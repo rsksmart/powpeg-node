@@ -119,7 +119,7 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         if (blockHeaders == null || blockHeaders.isEmpty()) {
             return;
         }
-        if (getHSMPointer().getInProgressState()) {
+        if (getHSMState().getInProgressState()) {
             logger.trace(
                     "[{}] HSM is already updating its state. Not going to proceed with this request",
                     actualMethod
@@ -169,13 +169,14 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         sendBlockHeadersChunks(advanceBlockchainMessage.getData(), "advanceBlockchain", false);
     }
 
-    public HSM2State getHSMPointer() throws HSMClientException {
+    public HSM2State getHSMState() throws HSMClientException {
         final String BLOCKCHAIN_STATE_METHOD_NAME = "blockchainState";
         final String STATE_FIELD = "state";
         final String BEST_BLOCK_FIELD = "best_block";
         final String ANCESTOR_BLOCK_FIELD = "ancestor_block";
         final String UPDATING_FIELD = "updating";
         final String INPROGRESS_FIELD = "in_progress";
+        final String NEXT_EXPECTED_BLOCK = "next_expected_block";
 
         ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE_METHOD_NAME, this.getVersion());
         JsonNode response = this.hsmClientProtocol.send(command);
@@ -190,12 +191,23 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
 
         this.hsmClientProtocol.validatePresenceOf(updating, INPROGRESS_FIELD);
         Boolean inProgress = updating.get(INPROGRESS_FIELD).asBoolean();
+        String nextExpectedBlock = "";
+        if (inProgress) {
+            this.hsmClientProtocol.validatePresenceOf(updating, NEXT_EXPECTED_BLOCK);
+            nextExpectedBlock = updating.get(NEXT_EXPECTED_BLOCK).asText();
+        }
         String bestBlockHash = state.get(BEST_BLOCK_FIELD).asText();
         String ancestorBlockHash = state.get(ANCESTOR_BLOCK_FIELD).asText();
 
-        logger.trace("[getHSMPointer] HSM State: BestBlock: {}, ancestor: {}, inProgress:{}", bestBlockHash, ancestorBlockHash, inProgress);
+        logger.trace(
+            "[getHSMState] HSM State: BestBlock: {}, ancestor: {}, inProgress:{}, nextExpectedBlock: {}",
+            bestBlockHash,
+            ancestorBlockHash,
+            inProgress,
+            nextExpectedBlock
+        );
 
-        return new HSM2State(bestBlockHash, ancestorBlockHash, inProgress);
+        return new HSM2State(bestBlockHash, ancestorBlockHash, inProgress, nextExpectedBlock);
     }
 
     public void resetAdvanceBlockchain() throws HSMClientException {

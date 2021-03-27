@@ -3,10 +3,8 @@ package co.rsk.federate.signing.hsm.requirements;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.HSM2State;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.ethereum.core.Block;
@@ -31,10 +29,10 @@ public class AncestorBlockUpdater {
 
     public void ensureAncestorBlockInPosition(Block targetBlock) throws Exception {
         try {
-            HSM2State hsmPointer = hsmBookkeepingClient.getHSMPointer();
+            HSM2State hsmPointer = hsmBookkeepingClient.getHSMState();
             if (!hsmPointer.getAncestorBlockHash().equals(targetBlock.getHash())) {
                 moveAncestorBlockToPosition(hsmPointer, targetBlock);
-                hsmPointer = hsmBookkeepingClient.getHSMPointer();
+                hsmPointer = hsmBookkeepingClient.getHSMState();
                 if (!hsmPointer.getAncestorBlockHash().equals(targetBlock.getHash())) {
                     logger.warn(
                         "[ensureAncestorBlockInPosition] Failed to update ancestor block in signer. BlockHash: {}",

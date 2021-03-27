@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.mockito.Mockito.*;
 
 public class HSMClientVersion2BTCTest {
@@ -474,7 +475,7 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientMock.send(any(JsonNode.class)))
                 .thenReturn(buildResponse(0, "state", state));
 
-        HSM2State hsm2State = client.getHSMPointer();
+        HSM2State hsm2State = client.getHSMState();
         Assert.assertEquals(expectedBestBlockHash, hsm2State.getBestBlockHash());
         Assert.assertEquals(expectedAncestorBlockHash, hsm2State.getAncestorBlockHash());
         Assert.assertEquals(false, hsm2State.getInProgressState());
@@ -488,14 +489,14 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientMock.send(any(JsonNode.class)))
                 .thenReturn(buildResponse(0, "state", state));
 
-        client.getHSMPointer();
+        client.getHSMState();
     }
 
     @Test( expected = HSMDeviceNotReadyException.class )
     public void getHSMPointer_generic_error_response() throws HSMClientException, JsonRpcException {
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(-905));
 
-        client.getHSMPointer();
+        client.getHSMState();
     }
 
     // Reset
@@ -547,13 +548,15 @@ public class HSMClientVersion2BTCTest {
     }
 
     private ObjectNode buildStateResponse(boolean inProgress ) {
-        Keccak256 expectedBestBlockHash = Keccak256.ZERO_HASH;
-        Keccak256 expectedAncestorBlockHash = Keccak256.ZERO_HASH;
+        Keccak256 expectedBestBlockHash = createHash(1);
+        Keccak256 nextExpectedBlock = createHash(2);
+        Keccak256 expectedAncestorBlockHash = createHash(3);
         ObjectNode state = objectMapper.createObjectNode();
         state.put("best_block", expectedBestBlockHash.toHexString());
         state.put("ancestor_block", expectedAncestorBlockHash.toHexString());
         ObjectNode updating = objectMapper.createObjectNode();
         updating.put("in_progress", inProgress);
+        updating.put("next_expected_block", nextExpectedBlock.toHexString());
         state.set("updating", updating);
         return state;
     }

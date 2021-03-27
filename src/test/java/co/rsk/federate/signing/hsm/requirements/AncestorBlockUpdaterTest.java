@@ -33,9 +33,9 @@ public class AncestorBlockUpdaterTest {
         Block block = mock(Block.class);
         when(block.getHash()).thenReturn(Keccak256.ZERO_HASH);
 
-        HSM2State state = new HSM2State(block.getHash().toHexString(), block.getHash().toHexString(), false);
+        HSM2State state = new HSM2State(block.getHash().toHexString(), block.getHash().toHexString());
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
-        when(signer.getHSMPointer()).thenReturn(state);
+        when(signer.getHSMState()).thenReturn(state);
 
         AncestorBlockUpdater ancestorBlockUpdater = new AncestorBlockUpdater(
                 mock(BlockStore.class),
@@ -45,7 +45,7 @@ public class AncestorBlockUpdaterTest {
         ancestorBlockUpdater.ensureAncestorBlockInPosition(block);
 
         // As the target block and the ancestor match, there should be just one call to the pointer.
-        verify(signer, times(1)).getHSMPointer();
+        verify(signer, times(1)).getHSMState();
     }
 
     @Test
@@ -67,12 +67,12 @@ public class AncestorBlockUpdaterTest {
         when(initialAncestorBlock.getHeader()).thenReturn(initialAncestorBlockHeader);
         when(initialAncestorBlockHeader.getEncoded(true, false)).thenReturn(initialAncestorBlockHash.getBytes());
 
-        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString(), false);
-        HSM2State secondState = new HSM2State(targetBlockHash.toHexString(), targetBlockHash.toHexString(), false);
+        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString());
+        HSM2State secondState = new HSM2State(targetBlockHash.toHexString(), targetBlockHash.toHexString());
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
         // HsmPointer initially returns a different ancestor and then it changes
-        when(signer.getHSMPointer()).thenReturn(initialState).thenReturn(secondState);
+        when(signer.getHSMState()).thenReturn(initialState).thenReturn(secondState);
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(initialAncestorBlockHash.getBytes())).thenReturn(initialAncestorBlock);
@@ -85,7 +85,7 @@ public class AncestorBlockUpdaterTest {
         ancestorBlockUpdater.ensureAncestorBlockInPosition(targetBlock);
 
         // As the target block and the ancestor don't match, there should be two calls to the pointer.
-        verify(signer, times(2)).getHSMPointer();
+        verify(signer, times(2)).getHSMState();
     }
 
     @Test(expected = Exception.class)
@@ -94,7 +94,7 @@ public class AncestorBlockUpdaterTest {
         Block block = TestUtils.mockBlock(Keccak256.ZERO_HASH);
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
-        when(signer.getHSMPointer()).thenThrow(new HSMDeviceException("test", 1));
+        when(signer.getHSMState()).thenThrow(new HSMDeviceException("test", 1));
 
         AncestorBlockUpdater ancestorBlockUpdater = new AncestorBlockUpdater(
             mock(BlockStore.class),
@@ -116,10 +116,10 @@ public class AncestorBlockUpdaterTest {
         when(initialAncestorBlock.getParentHash()).thenReturn(targetBlockHash);
         when(initialAncestorBlock.getHeader()).thenReturn(mock(BlockHeader.class));
 
-        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString(), false);
+        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString());
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
-        when(signer.getHSMPointer()).thenReturn(initialState);
+        when(signer.getHSMState()).thenReturn(initialState);
         // Forcing a failure when trying to update ancestor
         doThrow(new HSMDeviceException("test", 1)).when(signer)
             .updateAncestorBlock(any(UpdateAncestorBlockMessage.class));
@@ -147,11 +147,11 @@ public class AncestorBlockUpdaterTest {
         when(initialAncestorBlock.getParentHash()).thenReturn(targetBlockHash);
         when(initialAncestorBlock.getHeader()).thenReturn(mock(BlockHeader.class));
 
-        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString(), false);
+        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString());
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
         // HsmPointer remains unchanged
-        when(signer.getHSMPointer()).thenReturn(initialState);
+        when(signer.getHSMState()).thenReturn(initialState);
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(initialAncestorBlockHash.getBytes())).thenReturn(initialAncestorBlock);
@@ -173,11 +173,11 @@ public class AncestorBlockUpdaterTest {
         // Ancestor is just one block ahead of the target block
         Block initialAncestorBlock = TestUtils.mockBlock(2, initialAncestorBlockHash, targetBlockHash);
 
-        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString(), false);
-        HSM2State secondState = new HSM2State(initialAncestorBlockHash.toHexString(), targetBlockHash.toHexString(), false);
+        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString());
+        HSM2State secondState = new HSM2State(initialAncestorBlockHash.toHexString(), targetBlockHash.toHexString());
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
-        when(signer.getHSMPointer()).thenReturn(initialState).thenReturn(secondState);
+        when(signer.getHSMState()).thenReturn(initialState).thenReturn(secondState);
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(initialAncestorBlockHash.getBytes())).thenReturn(initialAncestorBlock);
@@ -211,7 +211,7 @@ public class AncestorBlockUpdaterTest {
         Keccak256 initialAncestorBlockHash = TestUtils.createHash(amountOfBlocks + 1);
         Block initialAncestorBlock = TestUtils.mockBlock(amountOfBlocks + 1, initialAncestorBlockHash, blocks.get(blocks.size() - 1).getHash());
 
-        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString(), false);
+        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString());
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(initialAncestorBlockHash.getBytes())).thenReturn(initialAncestorBlock);
@@ -255,7 +255,7 @@ public class AncestorBlockUpdaterTest {
         // Best block is just one block ahead of the target block
         Block bestBlock = TestUtils.mockBlock(6, bestBlockHash, targetBlockHash);
 
-        HSM2State initialState = new HSM2State(bestBlockHash.toHexString(), initialAncestorBlockHash.toHexString(), false);
+        HSM2State initialState = new HSM2State(bestBlockHash.toHexString(), initialAncestorBlockHash.toHexString());
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
 
@@ -283,7 +283,7 @@ public class AncestorBlockUpdaterTest {
         Keccak256 initialAncestorBlockHash = TestUtils.createHash(2);
         Block initialAncestorBlock = TestUtils.mockBlock(2, initialAncestorBlockHash, targetBlockHash);
 
-        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString(), false);
+        HSM2State initialState = new HSM2State(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString());
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
         doThrow(new HSMBlockchainBookkeepingRelatedException("test")).when(signer).updateAncestorBlock(any(UpdateAncestorBlockMessage.class));
@@ -309,8 +309,7 @@ public class AncestorBlockUpdaterTest {
 
         HSM2State initialState = new HSM2State(
             initialAncestorBlockHash.toHexString(),
-            initialAncestorBlockHash.toHexString(),
-            false
+            initialAncestorBlockHash.toHexString()
         );
 
         BlockStore blockStore = mock(BlockStore.class);

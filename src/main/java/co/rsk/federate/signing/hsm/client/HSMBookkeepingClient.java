@@ -11,7 +11,7 @@ public interface HSMBookkeepingClient extends HSMClient {
 
     void advanceBlockchain(AdvanceBlockchainMessage advanceBlockchainMessage) throws HSMClientException;
 
-    HSM2State getHSMPointer() throws HSMClientException;
+    HSM2State getHSMState() throws HSMClientException;
 
     void resetAdvanceBlockchain() throws HSMClientException;
 
