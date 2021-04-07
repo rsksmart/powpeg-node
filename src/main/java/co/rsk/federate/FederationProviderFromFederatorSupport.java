@@ -20,6 +20,8 @@ package co.rsk.federate;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
+import co.rsk.config.BridgeConstants;
+import co.rsk.peg.ErpFederation;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
 import org.ethereum.crypto.ECKey;
@@ -40,9 +42,11 @@ import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
     private final FederatorSupport federatorSupport;
+    private final BridgeConstants bridgeConstants;
 
-    public FederationProviderFromFederatorSupport(FederatorSupport federatorSupport) {
+    public FederationProviderFromFederatorSupport(FederatorSupport federatorSupport, BridgeConstants bridgeConstants) {
         this.federatorSupport = federatorSupport;
+        this.bridgeConstants = bridgeConstants;
     }
 
     @Override
@@ -71,7 +75,24 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         Instant creationTime = federatorSupport.getFederationCreationTime();
         long creationBlockNumber = federatorSupport.getFederationCreationBlockNumber();
 
-        return new Federation(members, creationTime, creationBlockNumber, federatorSupport.getBtcParams());
+        Federation initialFederation =
+            new Federation(members, creationTime, creationBlockNumber, federatorSupport.getBtcParams());
+
+        Address federationAddress = federatorSupport.getFederationAddress();
+
+        if (initialFederation.getAddress().equals(federationAddress)) {
+            return initialFederation;
+        }
+
+        // There is no reason for addresses not to match but being an ERP federation
+        return new ErpFederation(
+            members,
+            creationTime,
+            creationBlockNumber,
+            federatorSupport.getBtcParams(),
+            bridgeConstants.getErpFedPubKeysList(),
+            bridgeConstants.getErpFedActivationDelay()
+        );
     }
 
     @Override
@@ -107,10 +128,34 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
 
             members.add(member);
         }
+
         Instant creationTime = federatorSupport.getRetiringFederationCreationTime();
         long creationBlockNumber = federatorSupport.getRetiringFederationCreationBlockNumber();
 
-        return Optional.of(new Federation(members, creationTime, creationBlockNumber, federatorSupport.getBtcParams()));
+        Federation initialFederation =
+            new Federation(members, creationTime, creationBlockNumber, federatorSupport.getBtcParams());
+
+        Optional<Address> optionalFederationAddress = federatorSupport.getRetiringFederationAddress();
+        Address federationAddress = null;
+
+        if (optionalFederationAddress.isPresent()) {
+            federationAddress = optionalFederationAddress.get();
+        }
+
+        if (initialFederation.getAddress().equals(federationAddress)) {
+            return Optional.of(initialFederation);
+        }
+
+        return Optional.of(
+            new ErpFederation(
+                members,
+                creationTime,
+                creationBlockNumber,
+                federatorSupport.getBtcParams(),
+                bridgeConstants.getErpFedPubKeysList(),
+                bridgeConstants.getErpFedActivationDelay()
+            )
+        );
     }
 
     @Override
