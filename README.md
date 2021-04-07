@@ -80,11 +80,11 @@ sha256sum: WARNING: 19 lines are improperly formatted
 
 - Using **GenNodeKeyId** class in the project
 
-- Set String generator = "federator1";
+- Set String generator = "pegnatorie1";
 
 - Run the Class to generate a private key
 
-- Create a file **reg1.key** with the private key as the content
+- Create a file **reg1.key** with only the private key as the content
 
 - Add permission to the file by running **chmod 400 reg1.key**
 
@@ -115,16 +115,17 @@ federator {
     }
     # peers for the bitcoin network
     bitcoinPeerAddresses = [
-        "127.0.0.1:18444"
+        "127.0.0.1:18332" #bitcoind host and port, change if running on a different port.
     ]
 }
 ```
+**Note: You can use the same key file for BTC, RSK, and MST**
 
 9. Steps to import and configure the project.
 
 *To import the project to [IntelliJ IDEA](https://www.jetbrains.com/idea/download):*
 
-You can import the project to your IDE. For example, [IntelliJ IDEA Community Edition](https://www.jetbrains.com/idea/). To import go to `File | New | Project from existing sources...` Select `federate-node/build.gradle` and import.
+You can import the project to your IDE. For example, [IntelliJ IDEA Community Edition](https://www.jetbrains.com/idea/). To import go to `File | New | Project from existing sources...` Select `powpeg-node/build.gradle` and import.
 
 - Create a New Application configuration with name **FedRunner**
 
@@ -138,6 +139,8 @@ You can import the project to your IDE. For example, [IntelliJ IDEA Community Ed
 
 - --regtest --reset
 
+*Remove `--reset` if you want to keep your database after restarting the node*
+
 **Module**
 
 - -cp federate-node.main
@@ -146,7 +149,7 @@ You can import the project to your IDE. For example, [IntelliJ IDEA Community Ed
 
 - co.rsk.federate.FederateRunner
 
-Then clean and build project using **./gradle clean build**
+Then clean and build project using **./gradlew clean build**
 
 10. Install and run Bitcoind
 
@@ -166,7 +169,7 @@ Create the scripts below as a file and its content:
 ```bash
 #!/bin/bash
 
-bitcoind -regtest -printtoconsole -server -rpcuser=rsk -rpcpassword=rsk -rpcport=18332 -txindex -debug=net --deprecatedrpc=signrawtransaction -addresstype=legacy -deprecatedrpc=accounts -deprecatedrpc=generate
+bitcoind -regtest -printtoconsole -server -rpcuser=rsk -rpcpassword=rsk -rpcport=18332 -txindex -debug=net -deprecatedrpc=signrawtransaction -addresstype=legacy -deprecatedrpc=accounts -deprecatedrpc=generate -datadir=PATH/TO/DATA/DIRECTORY
 ```
 **btc-regtest.sh**
 ```bash
@@ -211,7 +214,7 @@ includeBuild('<PATH-TO-RSKJ-SOURCE-CODE>') {
 *To run from command line:*
 
 ```bash
-./gradle run -PmainClass=co.rsk.federate.FederateRunner
+./gradlew run -PmainClass=co.rsk.federate.FederateRunner
 ```
 
 ## Report Security Vulnerabilities
