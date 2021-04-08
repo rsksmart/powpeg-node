@@ -323,8 +323,8 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             for (FederationListener watched : watchedFederations) {
                 Federation watchedFederation = watched.getFederation();
                 TransactionListener listener = watched.getListener();
-                if (BridgeUtils.isPegInTx(btcTx, watchedFederation, btcContextThin, bridgeConstants)) {
-
+                if (BridgeUtils.isPegInTx(btcTx, watchedFederation, btcContextThin)) {
+                    //it only verifies that the transaction type is pegin, it does not verify minimum value accepted.
                     PeginInformation peginInformation = new PeginInformation(
                         btcLockSenderProvider,
                         peginInstructionsProvider,
