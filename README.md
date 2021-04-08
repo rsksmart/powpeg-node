@@ -132,8 +132,6 @@ You can import the project to your IDE. For example, [IntelliJ IDEA Community Ed
 **VM options**
 
 - -Drsk.conf.file=/<PATH-TO-CONF-FILE>/regtest-fed.conf
-- -Dlogback.configurationFile=/<PATH-TO-LOG-FILE>/logback.xml
-- -Dblockchain.config.hardforkActivationHeights.iris300=0
 
 **Program Arguments**
 
