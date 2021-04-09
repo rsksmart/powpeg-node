@@ -541,14 +541,16 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             if (!federatorSupport.hasBlockCoinbaseInformed(coinbaseInformation.getBlockHash())) {
                 logger.debug("informing coinbase transaction {}", coinbaseInformation.getCoinbaseTransaction().getTxId());
                 federatorSupport.sendRegisterCoinbaseTransaction(coinbaseInformation);
+            } else {
+                logger.debug("coinbase transaction already informed, removing from map");
+                // Remove the coinbase from the map
+                fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
             }
         } else {
             logger.debug("RSKIP-143 is not active. Can't send coinbase transactions.");
+            // Remove the coinbase from the map
+            fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
         }
-
-        logger.debug("removing informed coinbase transaction from map");
-        // Remove the coinbase from the map
-        fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
 
         synchronized (this) {
             try {
