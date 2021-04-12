@@ -434,6 +434,15 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
 
             long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
+            if (!validatePeginWithMinimum(btcTx, bestBlockNumber)) {
+                logger.warn(
+                        "updateBridgeBtcTransactions] Pegin value sent is less than minimum value. {}",
+                       btcTx.getHash()
+                );
+                txsToSendToRskHashes.remove(txHash);
+                continue;
+            }
+
             PeginInformation peginInformation = new PeginInformation(
                 btcLockSenderProvider,
                 peginInstructionsProvider,
@@ -449,7 +458,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 logger.warn("[updateBridgeBtcTransactions] {}", message);
                 // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
                 if (peginInformation.getSenderBtcAddress() != null) {
-                    logger.warn("[updateBridgeBtcTransactions] Funds will be refunded to sender.");
+                    logger.warn("[updateBridgeBtcTransactions] Funds will be refunded to sender in tx {}.");
                 } else {
                     // Remove the tx from the set to be sent to the Bridge since it's not processable
                     txsToSendToRskHashes.remove(txHash);
@@ -520,6 +529,17 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
         }
     }
+
+    protected boolean validatePeginWithMinimum(BtcTransaction btcTx, long bestBlockNumber ) {
+        return BridgeUtils.isPegInTxAndValidateMinimum(
+                btcTx,
+                federation,
+                new co.rsk.bitcoinj.core.Context(bridgeConstants.getBtcParams()),
+                bridgeConstants,
+                activationConfig.forBlock(bestBlockNumber)
+        );
+    }
+
 
     /**
      * Gets the first ready to be informed coinbase transaction and informs it
