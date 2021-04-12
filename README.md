@@ -208,6 +208,7 @@ includeBuild('<PATH-TO-RSKJ-SOURCE-CODE>') {
 
 
 ### Steps to run the project.
+Note: In order to run the powpeg-node from the command line you will have to also provide the configuration file.
 
 *To run from command line:*
 
