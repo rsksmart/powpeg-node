@@ -208,12 +208,12 @@ includeBuild('<PATH-TO-RSKJ-SOURCE-CODE>') {
 
 
 ### Steps to run the project.
-Note: In order to run the powpeg-node from the command line you will have to also provide the configuration file.
+Note: In order to run the powpeg-node from the command line you will have to also provide the configuration file. i.e **regtest-fed.conf**
 
 *To run from command line:*
 
 ```bash
-./gradlew run -PmainClass=co.rsk.federate.FederateRunner
+./gradlew run -PmainClass=co.rsk.federate.FederateRunner --Drsk.conf.file=/<PATH-TO-CONF-FILE>/regtest-fed.conf --regtest --reset
 ```
 
 ## Report Security Vulnerabilities
