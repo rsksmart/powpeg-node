@@ -5,6 +5,10 @@
 Powpeg node is a specialized rskj node which interacts with both RSK and Bitcoin.
 This node is used by RSK PowPeg signatories to interact with the Bridge contract and to broadcast peg-out transactions to Bitcoin.
 
+## Software Requirements
+1. Java JDK 1.8
+2. Bitcoin Core daemon (bitcoind) 0.17v or 0.18v 
+
 ## Setting up the project
 
 Before anything, you must ensure the security chain of the source code. For that, you must go through the following steps. For Linux based OS (Ubuntu for example) it's recommended install `gnupg-curl` to download the key through HTTPS.
@@ -72,17 +76,109 @@ sha256sum: WARNING: 19 lines are improperly formatted
 ./configure.sh
  ```
 
-**Now you're ready to run the project.**
+7. Steps to generate a Private Key File
 
-*To run from command line:*
+- Using **GenNodeKeyId** class in the project
 
-```bash
-./gradlew run -PmainClass=co.rsk.federate.FederateRunner
+- Set String generator = "pegnatorie1";
+
+- Run the Class to generate a private key
+
+- Create a file **reg1.key** with only the private key as the content
+
+- Add permission to the file by running **chmod 400 reg1.key**
+
+
+8. Creating the signers configuration. **(For Local test / regtest only)**
+
+Create a file **regtest-fed.conf** with the config below
+
+### Signer's configurations
 ```
+federator {
+    # keep it false if you don't want to interact with bitcoin
+    enabled = true
+    
+    signers {
+       BTC {
+          type = "keyFile"
+          path = "A/PATH/TO/YOUR/BTC-KEY.key"
+       }
+       RSK {
+          type = "keyFile"
+          path = "A/PATH/TO/YOUR/RSK-KEY.key"
+       }
+       MST {
+          type = "keyFile"
+          path = "A/PATH/TO/YOUR/MST-KEY.key"
+       }
+    }
+    # peers for the bitcoin network
+    bitcoinPeerAddresses = [
+        "127.0.0.1:18332" #bitcoind host and port, change if running on a different port.
+    ]
+}
+```
+**Note: You can use the same key file for BTC, RSK, and MST**
+
+9. Steps to import and configure the project.
 
 *To import the project to [IntelliJ IDEA](https://www.jetbrains.com/idea/download):*
 
-You can import the project to your IDE. For example, [IntelliJ IDEA Community Edition](https://www.jetbrains.com/idea/). To import go to `File | New | Project from existing sources...` Select `federate-node/build.gradle` and import. After building, run `co.rsk.federate.FederateRunner`
+You can import the project to your IDE. For example, [IntelliJ IDEA Community Edition](https://www.jetbrains.com/idea/). To import go to `File | New | Project from existing sources...` Select `powpeg-node/build.gradle` and import.
+
+- Create a New Application configuration with name **FedRunner**
+
+**VM options**
+
+- -Drsk.conf.file=/<PATH-TO-CONF-FILE>/regtest-fed.conf
+
+**Program Arguments**
+
+- --regtest --reset
+
+*Remove `--reset` if you want to keep your database after restarting the node*
+
+**Module**
+
+- -cp federate-node.main
+
+**Main Class**
+
+- co.rsk.federate.FederateRunner
+
+Then clean and build project using **./gradlew clean build**
+
+10. Install and run Bitcoind
+
+   In order to install Bitcoind, you can follow these steps. We will use version ``` 0.18.0 ```, but it can be any other valid one (i.e ``` 0.17.1 ```).
+
+```bash
+   curl -O https://bitcoin.org/bin/bitcoin-core-0.18.0/bitcoin-0.18.0-osx64.tar.gz
+   tar -zxf bitcoin-0.18.0-osx64.tar.gz
+   sudo mkdir -p /usr/local/bin
+   sudo cp bitcoin-0.18.0/bin/bitcoin* /usr/local/bin/.
+   rm -rf bitcoin-0.18.0*
+   As a validation, you can run *bitcoind -daemon*. Run *bitcoin-cli stop* afterwards.
+```
+Create the scripts below as a file and its content:
+
+**bitcoin-node.sh**
+```bash
+#!/bin/bash
+
+bitcoind -regtest -printtoconsole -server -rpcuser=rsk -rpcpassword=rsk -rpcport=18332 -txindex -debug=net -deprecatedrpc=signrawtransaction -addresstype=legacy -deprecatedrpc=accounts -deprecatedrpc=generate -datadir=PATH/TO/DATA/DIRECTORY
+```
+**btc-regtest.sh**
+```bash
+#!/bin/bash
+
+bitcoin-cli -regtest --rpcuser=rsk --rpcpassword=rsk --rpcport=18332 $@
+```
+
+- Run the **bitcoin-node.sh** script to start the Bitcoin node
+- Generate 1 block using the command **./btc-regtest.sh generate 1**
+- Run **./btc-regtest getblockcount** to see the amount of blocks available
 
 ### Running Powpeg node using local RSKj source code
 
@@ -109,6 +205,16 @@ includeBuild('<PATH-TO-RSKJ-SOURCE-CODE>') {
 ```
 
 **Note:** Change PATH-TO-RSKJ-SOURCE-CODE value to your local Rskj path.
+
+
+### Steps to run the project.
+Note: In order to run the powpeg-node from the command line you will have to provide the path to the jar after gradle build, configuration file path, and a log file for debugging.
+
+*To run from command line:*
+
+```bash
+java -cp /<PATH-TO-POW-PEG-SOURCE-CODE>/build/libs/federate-node-SNAPSHOT-2.2.0.0-all.jar -Drsk.conf.file=/<PATH-TO-CONF-FILE>/regtest-fed.conf -Dlogback.configurationFile=/<PATH-TO-LOG-FILE>/logback.xml co.rsk.federate.FederateRunner --regtest --reset
+```
 
 ## Report Security Vulnerabilities
 
