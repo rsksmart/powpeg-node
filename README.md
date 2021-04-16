@@ -208,12 +208,12 @@ includeBuild('<PATH-TO-RSKJ-SOURCE-CODE>') {
 
 
 ### Steps to run the project.
-Note: In order to run the powpeg-node from the command line you will have to also provide the configuration file. i.e **regtest-fed.conf**
+Note: In order to run the powpeg-node from the command line you will have to provide the path to the jar after gradle build, configuration file path, and a log file for debugging.
 
 *To run from command line:*
 
 ```bash
-./gradlew run -PmainClass=co.rsk.federate.FederateRunner --Drsk.conf.file=/<PATH-TO-CONF-FILE>/regtest-fed.conf --regtest --reset
+java -cp /<PATH-TO-POW-PEG-SOURCE-CODE>/build/libs/federate-node-SNAPSHOT-2.2.0.0-all.jar -Drsk.conf.file=/<PATH-TO-CONF-FILE>/regtest-fed.conf -Dlogback.configurationFile=/<PATH-TO-LOG-FILE>/logback.xml co.rsk.federate.FederateRunner --regtest --reset
 ```
 
 ## Report Security Vulnerabilities
