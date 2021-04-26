@@ -345,7 +345,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                     LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a lock", tx.getWTxId());
                     listener.onTransaction(tx);
                 }
-                if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(watchedFederation))) {
+                if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
                     LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a release", tx.getWTxId());
                     listener.onTransaction(tx);
                 }

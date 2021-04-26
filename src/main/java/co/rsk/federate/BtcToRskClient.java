@@ -623,13 +623,14 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private boolean isTxProcessable(BtcTransaction btcTx, TxSenderAddressType txSenderAddressType) {
-        // If the tx is a release it means we are receiving change (or migrating funds)
-        // If the tx is a release it should be processable
-        if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(federation))) {
+        long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
+
+        // If the tx is a peg-out it means we are receiving change (or migrating funds)
+        // so it should be processable
+        if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(federation), activationConfig.forBlock(bestBlockNumber))) {
             return true;
         }
 
-        long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
         if (activationConfig.isActive(ConsensusRule.RSKIP170, bestBlockNumber)) {
             return true;
         }
