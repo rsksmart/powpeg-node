@@ -1362,6 +1362,12 @@ public class BtcToRskClientTest {
         co.rsk.bitcoinj.core.Address randomAddress =
                 new co.rsk.bitcoinj.core.Address(params, org.bouncycastle.util.encoders.Hex.decode("4a22c3c4cbb31e4d03b15550636762bda0baf85a"));
 
+        ActivationConfig activationsConfig = mock(ActivationConfig.class);
+        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
+        doReturn(activations).when(activationsConfig).forBlock(anyLong());
+        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
+        doReturn(false).when(activations).isActive(eq(ConsensusRule.RSKIP143));
+
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx1 = new BtcTransaction(params);
         releaseTx1.addOutput(co.rsk.bitcoinj.core.Coin.COIN, randomAddress);
@@ -1390,7 +1396,7 @@ public class BtcToRskClientTest {
         releaseInput1.setScriptSig(inputScript);
 
         // Verify it was properly signed
-        assertThat(BridgeUtils.isPegOutTx(releaseTx1, Collections.singletonList(federation)), is(true));
+        assertThat(BridgeUtils.isPegOutTx(releaseTx1, Collections.singletonList(federation), activations), is(true));
 
         Transaction releaseTx = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString(), releaseTx1);
 
@@ -1406,12 +1412,6 @@ public class BtcToRskClientTest {
         Block block = createBlock(releaseTx);
 
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
-
-        ActivationConfig activationsConfig = mock(ActivationConfig.class);
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(false).when(activations).isActive(eq(ConsensusRule.RSKIP143));
 
         BtcToRskClient client = buildWithFactoryAndSetup(
             fh,

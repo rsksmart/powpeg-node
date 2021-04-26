@@ -194,6 +194,8 @@ public class BitcoinWrapperImplTest {
         BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
         PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
+        when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
 
         BitcoinWrapperImpl bitcoinWrapper = new BitcoinWrapperImpl(
             btcContext,
