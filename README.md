@@ -161,6 +161,11 @@ Then clean and build project using **./gradlew clean build**
    rm -rf bitcoin-0.18.0*
    As a validation, you can run *bitcoind -daemon*. Run *bitcoin-cli stop* afterwards.
 ```
+
+**Important:**
+When setting up the Bitcoind Node host:port for the powpeg-node you MUST use the p2p port. 
+The powpeg-node will “connect” even if you setup the RPC port, but the connection won’t go through and the powpeg-node won’t start.
+
 Create the scripts below as a file and its content:
 
 **bitcoin-node.sh**
