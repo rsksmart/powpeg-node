@@ -115,11 +115,15 @@ federator {
     }
     # peers for the bitcoin network
     bitcoinPeerAddresses = [
-        "127.0.0.1:18332" #bitcoind host and port, change if running on a different port.
+        "127.0.0.1:18444" #bitcoind p2p port.
     ]
 }
 ```
 **Note: You can use the same key file for BTC, RSK, and MST**
+
+**Important:**
+When setting up the Bitcoind Node host:port for the powpeg-node you MUST use the p2p port.
+The powpeg-node will “connect” even if you setup the RPC port, but the connection won’t go through and the powpeg-node won’t start.
 
 9. Steps to import and configure the project.
 
@@ -161,10 +165,6 @@ Then clean and build project using **./gradlew clean build**
    rm -rf bitcoin-0.18.0*
    As a validation, you can run *bitcoind -daemon*. Run *bitcoin-cli stop* afterwards.
 ```
-
-**Important:**
-When setting up the Bitcoind Node host:port for the powpeg-node you MUST use the p2p port. 
-The powpeg-node will “connect” even if you setup the RPC port, but the connection won’t go through and the powpeg-node won’t start.
 
 Create the scripts below as a file and its content:
 
