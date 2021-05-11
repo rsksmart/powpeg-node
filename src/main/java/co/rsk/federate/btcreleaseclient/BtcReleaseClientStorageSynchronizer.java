@@ -138,7 +138,7 @@ public class BtcReleaseClientStorageSynchronizer {
             List<TransactionReceipt> receipts = blockToSearch
                 .getTransactionsList()
                 .stream()
-                .map(t -> receiptStore.getInMainChain(t.getHash().getBytes(), blockStore).getReceipt())
+                .map(t -> receiptStore.getInMainChain(t.getHash().getBytes(), blockStore).orElseThrow(NullPointerException::new).getReceipt())
                 .collect(Collectors.toList());
             checkLogsForReleaseRequested(blockToSearch, receipts);
             blockToSearch = blockStore.getChainBlockByNumber(blockToSearch.getNumber() + 1);
