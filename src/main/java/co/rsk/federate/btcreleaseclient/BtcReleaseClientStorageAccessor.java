@@ -82,11 +82,12 @@ public class BtcReleaseClientStorageAccessor {
     }
 
     private void writeFile() {
+        logger.trace("[writeFile] going to write file");
         synchronized (this) {
             try {
                 this.btcReleaseClientFileStorage.write(fileData);
             } catch(IOException e) {
-                String message = "Error writing storage file for BtcReleaseClient";
+                String message = "[writeFile] Error writing storage file for BtcReleaseClient";
                 logger.error(message, e);
             }
         }
@@ -99,16 +100,24 @@ public class BtcReleaseClientStorageAccessor {
         // If other process requests a new writing execution, extend the delay
         if (task != null) {
             delays++;
+            logger.trace("[signalWriting] Added delay (current:{})", delays);
         }
         // Do this at most maxDelays times to ensure we don't risk losing data
         if (delays >= maxDelays) {
+            logger.trace("[signalWriting] Not going to wait anymore");
             return;
         }
         if (task != null) {
-            task.cancel(false);
+            logger.trace("[signalWriting] Cancelling previous writing request");
+            try {
+                task.cancel(false);
+            } catch (Exception e) {
+                logger.warn("[signalWriting] Cancelling previous writing request failed. error: {}", e.getMessage());
+            }
         }
         // Reset timer to wait a bit more
         task = writeTimer.schedule(this::writeFile, this.delayInMs, TimeUnit.MILLISECONDS);
+        logger.trace("[signalWriting] Scheduling writing");
     }
 
     public Optional<Keccak256> getBestBlockHash() {
@@ -116,6 +125,7 @@ public class BtcReleaseClientStorageAccessor {
     }
 
     public void setBestBlockHash(Keccak256 bestBlockHash) {
+        logger.trace("[setBestBlockHash]");
         fileData.setBestBlockHash(bestBlockHash);
         signalWriting();
     }
@@ -129,6 +139,7 @@ public class BtcReleaseClientStorageAccessor {
     }
 
     public void putBtcTxHashRskTxHash(Sha256Hash btcTxHash, Keccak256 rskTxHash) {
+        logger.trace("[putBtcTxHashRskTxHash]");
         fileData.getReleaseHashesMap().put(btcTxHash, rskTxHash);
         signalWriting();
     }

@@ -89,6 +89,7 @@ public class BtcReleaseClientStorageSynchronizer {
 
     private void sync() {
         if (nodeBlockProcessor.hasBetterBlockToSync()) {
+            logger.trace("[sync] can't sync storage node has to sync with network");
             return;
         }
 
@@ -135,6 +136,7 @@ public class BtcReleaseClientStorageSynchronizer {
         );
 
         while(blockToSearch != null && blockStore.getBestBlock().getNumber() >= blockToSearch.getNumber()) {
+            logger.trace("[sync] going to fetch block {}({})", blockToSearch.getNumber(), blockToSearch.getHash());
             List<TransactionReceipt> receipts = blockToSearch
                 .getTransactionsList()
                 .stream()

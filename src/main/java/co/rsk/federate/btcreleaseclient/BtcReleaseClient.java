@@ -184,7 +184,14 @@ public class BtcReleaseClient {
     private class BtcReleaseEthereumListener extends EthereumListenerAdapter {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (nodeBlockProcessor.hasBetterBlockToSync() || !storageSynchronizer.isSynced()) {
+            boolean hasBetterBlockToSync = nodeBlockProcessor.hasBetterBlockToSync();
+            boolean isStorageSynced = storageSynchronizer.isSynced();
+            if (hasBetterBlockToSync || !isStorageSynced) {
+                logger.trace(
+                    "[onBestBlock] Node is not ready to process releases. hasBetterBlockToSync: {} isStorageSynced: {}",
+                    hasBetterBlockToSync,
+                    isStorageSynced
+                );
                 return;
             }
             // Processing transactions waiting for signatures on best block only still "works",
