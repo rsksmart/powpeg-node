@@ -371,7 +371,7 @@ public class BtcReleaseClientTest {
     }
 
     @Test
-    public void onBestBlock_return_when_node_is_syncing() {
+    public void onBestBlock_return_when_node_is_syncing() throws BtcReleaseClientException {
         // Arrange
         Federation federation = TestUtils.createFederation(params, 1);
 
@@ -396,6 +396,15 @@ public class BtcReleaseClientTest {
             federatorSupport,
             fedNodeSystemProperties,
             nodeBlockProcessor
+        );
+        btcReleaseClient.setup(
+            mock(ECDSASigner.class),
+            mock(ActivationConfig.class),
+            mock(SignerMessageBuilderFactory.class),
+            mock(ReleaseCreationInformationGetter.class),
+            mock(ReleaseRequirementsEnforcer.class),
+            mock(BtcReleaseClientStorageAccessor.class),
+            mock(BtcReleaseClientStorageSynchronizer.class)
         );
         btcReleaseClient.start(federation);
 

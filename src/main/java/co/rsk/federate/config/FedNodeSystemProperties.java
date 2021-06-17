@@ -69,4 +69,12 @@ public class FedNodeSystemProperties extends RskSystemProperties {
         return configFromFiles.hasPath("federator.amountOfHeadersToSend") ?
             configFromFiles.getInt("federator.amountOfHeadersToSend") : 25;
     }
+
+    // 6000 blocks is 150% the amount of blocks the Bridge waits before confirming a peg-out.
+    // If this powpeg-node was shutdown for 48hs this depth will be enough to resync all the information.
+    // If this powpeg-node was shutdown for longer periods, most likely the transaction was signed by other functionaries.
+    public int getBtcReleaseClientInitializationMaxDepth() {
+        return configFromFiles.hasPath("federator.pegoutStorageInitializationDepth") ?
+            configFromFiles.getInt("federator.pegoutStorageInitializationDepth"): 6_000;
+    }
 }
