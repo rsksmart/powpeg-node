@@ -323,7 +323,13 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             for (FederationListener watched : watchedFederations) {
                 Federation watchedFederation = watched.getFederation();
                 TransactionListener listener = watched.getListener();
-                if (BridgeUtils.isValidPegInTx(btcTx, watchedFederation, btcContextThin, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
+                if (BridgeUtils.isValidPegInTx(
+                    btcTx,
+                    Collections.singletonList(watchedFederation),
+                    btcContextThin,
+                    bridgeConstants,
+                    federatorSupport.getConfigForBestBlock()
+                )) {
 
                     PeginInformation peginInformation = new PeginInformation(
                         btcLockSenderProvider,
