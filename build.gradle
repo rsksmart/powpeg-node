@@ -49,6 +49,8 @@ tasks.withType(JavaCompile){
 tasks.withType(AbstractArchiveTask) {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
+    dirMode = 0775
+    fileMode = 0664
 }
 
 ext {
@@ -124,13 +126,6 @@ build.branch=$currentBranch
     }
 }
 
-tasks.withType(Jar) {
-    preserveFileTimestamps = false
-    reproducibleFileOrder = true
-    dirMode = 0775
-    fileMode = 0664
-}
-
 jar {
     from sourceSets.main.output.classesDirs
     from sourceSets.main.output.resourcesDir
@@ -138,12 +133,22 @@ jar {
 }
 
 task fatJar(type: Jar, dependsOn: jar) {
+    archiveClassifier = "all"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     manifest {
         attributes 'Main-Class': "$mainClassName"
     }
+
     exclude "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA"
-    classifier = 'all'
-    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude "module-info.class"
+
+    for (def jar in configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }) {
+        from(jar) {
+            eachFile { details -> amendPathIfNeeded(details) }
+        }
+    }
+
     with jar
 }
 
@@ -153,12 +158,22 @@ artifacts {
     archives fatJar
 }
 
-def gitCurrentBranch() {
+static def gitCurrentBranch() {
     def process = "git rev-parse --abbrev-ref HEAD".execute()
     return process.text.trim()
 }
 
-def gitCommitHash() {
+static def gitCommitHash() {
     def process = "git rev-parse --short HEAD".execute()
     return process.text.trim()
+}
+
+static def amendPathIfNeeded(details) {
+    def uPath = details.path.toUpperCase()
+    if (uPath.startsWith("META-INF/LICENSE") || uPath.startsWith("META-INF/NOTICE")) {
+        def originalFile = details.file as File
+        def jarName = originalFile.parentFile.parentFile.name.split(".jar")[0]
+        def newPath = originalFile.parentFile.name + "/" + jarName + "_" + originalFile.name
+        details.path = newPath
+    }
 }
