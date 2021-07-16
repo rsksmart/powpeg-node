@@ -47,12 +47,13 @@ public class SignerMessageBuilderVersion2Test {
         TransactionInfo txInfo = new TransactionInfo(txReceipt, rskBlockHash, 0);
 
         BlockHeader blockHeader = mock(BlockHeader.class);
+        when(blockHeader.getHash()).thenReturn(Keccak256.ZERO_HASH);
         byte[] trieRoot = BlockHashesHelper.getTxTrieRoot(Arrays.asList(rskTx), true);
         when(blockHeader.getTxTrieRoot()).thenReturn(trieRoot);
 
         Block block = new Block(blockHeader, Arrays.asList(rskTx), Collections.emptyList(), true, true);
 
-        when(receiptStore.get(rskTxHash, block.getHash())).thenReturn(Optional.of(txInfo));
+        when(receiptStore.get(eq(rskTxHash.getBytes()), eq(Keccak256.ZERO_HASH.getBytes()))).thenReturn(Optional.of(txInfo));
 
         BridgeRegTestConstants bridgeConstants = BridgeRegTestConstants.getInstance();
         Federation federation = bridgeConstants.getGenesisFederation();
@@ -98,11 +99,12 @@ public class SignerMessageBuilderVersion2Test {
         Transaction rskTx = mock(Transaction.class);
         when(rskTx.getHash()).thenReturn(Keccak256.ZERO_HASH);
         Block block = TestUtils.mockBlock(1);
+        when(block.getHash()).thenReturn(Keccak256.ZERO_HASH);
         when(block.getTransactionsList()).thenReturn(Arrays.asList(rskTx));
         TransactionReceipt transactionReceipt = mock(TransactionReceipt.class);
         when(transactionReceipt.getTransaction()).thenReturn(rskTx);
         ReceiptStore receiptStore = mock(ReceiptStore.class);
-        when(receiptStore.get(any(Keccak256.class), any(Keccak256.class))).thenReturn(Optional.empty());
+        when(receiptStore.get(any(byte[].class), any(byte[].class))).thenReturn(Optional.empty());
 
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
             block,
