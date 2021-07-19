@@ -26,7 +26,8 @@ public class Kit extends WalletAppKit {
     private static final Logger LOGGER = LoggerFactory.getLogger(Kit.class);
 
     public Kit(Context btcContext, File directory, String filePrefix) {
-        super(btcContext.getParams(), directory, filePrefix);
+        super(btcContext.getParams(), directory, filePrefix, 1514764800);
+        // 1514764800 corresponds to 01/01/2018 0hs
         this.btcContext = btcContext;
     }
 

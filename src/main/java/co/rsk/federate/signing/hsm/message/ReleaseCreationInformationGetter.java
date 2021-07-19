@@ -94,31 +94,35 @@ public class ReleaseCreationInformationGetter {
         BtcTransaction btcTransaction,
         Keccak256 informingRskTxHash
     ) throws HSMReleaseCreationInformationException {
-        ReleaseCreationInformation baseReleaseCreationInformation =
-            getBaseReleaseCreationInformation(rskTxHash, btcTransaction, informingRskTxHash);
-        Block block = baseReleaseCreationInformation.getBlock();
-        TransactionReceipt transactionReceipt = baseReleaseCreationInformation.getTransactionReceipt();
+        try {
+            ReleaseCreationInformation baseReleaseCreationInformation =
+                getBaseReleaseCreationInformation(rskTxHash, btcTransaction, informingRskTxHash);
+            Block block = baseReleaseCreationInformation.getBlock();
+            TransactionReceipt transactionReceipt = baseReleaseCreationInformation.getTransactionReceipt();
 
-        // Get transaction from the block, searching by tx hash, and set it in the tx receipt
-        logger.trace("[getTxInfoToSign] Searching for transaction {} in block {} ({})", rskTxHash, block.getHash(), block.getNumber());
-        List<Transaction> transactions = block.getTransactionsList().stream()
-            .filter(t -> t.getHash().equals(rskTxHash))
-            .collect(Collectors.toList());
-        logger.trace("[getTxInfoToSign] Transactions found {}", transactions.size());
-        if(transactions.size() != 1) {
-            String message = String.format(
-                "Transaction hash %s could not be found in block %s or more than 1 result obtained. Filter size: %d",
-                rskTxHash,
-                block.getHash().toHexString(),
-                transactions.size()
-            );
-            logger.error("[getTxInfoToSign] {}", message);
-            throw new HSMReleaseCreationInformationException(message);
+            // Get transaction from the block, searching by tx hash, and set it in the tx receipt
+            logger.trace("[getTxInfoToSign] Searching for transaction {} in block {} ({})", rskTxHash, block.getHash(), block.getNumber());
+            List<Transaction> transactions = block.getTransactionsList().stream()
+                .filter(t -> t.getHash().equals(rskTxHash))
+                .collect(Collectors.toList());
+            logger.trace("[getTxInfoToSign] Transactions found {}", transactions.size());
+            if(transactions.size() != 1) {
+                String message = String.format(
+                    "Transaction hash %s could not be found in block %s or more than 1 result obtained. Filter size: %d",
+                    rskTxHash,
+                    block.getHash().toHexString(),
+                    transactions.size()
+                );
+                logger.error("[getTxInfoToSign] {}", message);
+                throw new HSMReleaseCreationInformationException(message);
+            }
+            Transaction transaction = transactions.get(0);
+            transactionReceipt.setTransaction(transaction);
+
+            return searchEventInFollowingBlocks(block.getNumber(), btcTransaction, rskTxHash, informingRskTxHash);
+        } catch (Exception e) {
+            throw new HSMReleaseCreationInformationException("Unhandled exception occured", e);
         }
-        Transaction transaction = transactions.get(0);
-        transactionReceipt.setTransaction(transaction);
-
-        return searchEventInFollowingBlocks(block.getNumber(), btcTransaction, rskTxHash, informingRskTxHash);
     }
 
     private ReleaseCreationInformation searchEventInFollowingBlocks(
@@ -180,10 +184,9 @@ public class ReleaseCreationInformationGetter {
             List<LogInfo> logs = transactionReceipt.getLogInfoList();
             for (LogInfo logInfo : logs) {
                 // You should check that the event is Release and contains the hash of the transaction.
-                boolean hashReleaseRequestEvent = Arrays.equals(logInfo.getTopics().get(0).getData(), releaseRequestedSignatureTopic);
-                logger.trace("[getInformationFromEvent] has release event? {}", hashReleaseRequestEvent);
-                if (hashReleaseRequestEvent && (Arrays.equals(logInfo.getTopics().get(2).getData(), btcTransaction.getHash().getBytes()))) {
-                    logger.trace(
+                boolean hasReleaseRequestEvent = Arrays.equals(logInfo.getTopics().get(0).getData(), releaseRequestedSignatureTopic);
+                if (hasReleaseRequestEvent && (Arrays.equals(logInfo.getTopics().get(2).getData(), btcTransaction.getHash().getBytes()))) {
+                    logger.debug(
                         "[getInformationFromEvent] Found transaction {} and block {}",
                         transactionReceipt.getTransaction().getHash(),
                         block.getHash()

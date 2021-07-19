@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
+import org.ethereum.core.Transaction;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.db.BlockStore;
 import org.ethereum.db.ReceiptStore;
@@ -46,7 +47,11 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 mock(BlockStore.class),
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
-                mock(BtcReleaseClientStorageAccessor.class)
+                mock(BtcReleaseClientStorageAccessor.class),
+                mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
+                1000,
+                100,
+                6_000
             );
 
         assertFalse(storageSynchronizer.isSynced());
@@ -64,7 +69,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 storageAccessor,
                 mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
                 1000,
-                100
+                100,
+                6_000
             );
 
         assertFalse(storageSynchronizer.isSynced());
@@ -102,8 +108,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 mock(BtcReleaseClientStorageAccessor.class),
                 mockedExecutor,
                 0,
-                1
-            );
+                1,
+                6_000);
 
         assertTrue(storageSynchronizer.isSynced());
     }
@@ -144,8 +150,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 storageAccessor,
                 mockedExecutor,
                 0,
-                1
-            );
+                1,
+                6_000);
 
         assertTrue(storageSynchronizer.isSynced());
 
@@ -186,6 +192,9 @@ public class BtcReleaseClientStorageSynchronizerTest {
         Keccak256 value = createHash(3);
         Sha256Hash key = Sha256Hash.ZERO_HASH;
 
+        Transaction releaseRskTx = mock(Transaction.class);
+        when(releaseRskTx.getHash()).thenReturn(value);
+
         BtcTransaction releaseBtcTx = mock(BtcTransaction.class);
         when(releaseBtcTx.getHash()).thenReturn(key);
 
@@ -196,6 +205,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
             Coin.COIN
         );
         when(receipt.getLogInfoList()).thenReturn(logs);
+        when(receipt.getTransaction()).thenReturn(releaseRskTx);
         List<TransactionReceipt> receipts = Arrays.asList(receipt);
 
         when(blockStore.getBestBlock()).thenReturn(bestBlock);
@@ -217,8 +227,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 storageAccessor,
                 mockedExecutor,
                 0,
-                1
-            );
+                1,
+                6_000);
 
         // Verify sync
         assertTrue(storageSynchronizer.isSynced());

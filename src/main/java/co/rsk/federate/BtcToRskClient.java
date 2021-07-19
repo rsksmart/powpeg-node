@@ -360,7 +360,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         // Find the last federator's best chain block the bridge has and update from there
         int bridgeBtcBlockchainInitialBlockHeight = federatorSupport.getBtcBlockchainInitialBlockHeight();
         int maxSearchDepth = bridgeBtcBlockchainBestChainHeight - bridgeBtcBlockchainInitialBlockHeight;
-        logger.debug("Bridge BTC blockchain initial block height: {}, max search depth : {}.", bridgeBtcBlockchainInitialBlockHeight, maxSearchDepth);
+        logger.debug(
+            "[findBridgeBtcBlockchainMatchingAncestor] Bridge BTC blockchain initial block height: {}, max search depth : {}.",
+            bridgeBtcBlockchainInitialBlockHeight,
+            maxSearchDepth
+        );
 
         StoredBlock matchedBlock = null;
         int currentSearchDepth = 0;
@@ -368,8 +372,17 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         while (true) {
             Sha256Hash storedBlockHash = federatorSupport.getBtcBlockchainBlockHashAtDepth(currentSearchDepth);
             StoredBlock storedBlock = bitcoinWrapper.getBlock(storedBlockHash);
+            logger.trace(
+                "[findBridgeBtcBlockchainMatchingAncestor] block[storedBlockHash] found? {}",
+                storedBlock != null
+            );
             if (storedBlock != null) {
                 StoredBlock storedBlockInBestChain = bitcoinWrapper.getBlockAtHeight(storedBlock.getHeight());
+                logger.trace(
+                    "[findBridgeBtcBlockchainMatchingAncestor] block[{}] in best chain? {}",
+                    storedBlock.getHeader().getHash(),
+                    storedBlock.equals(storedBlockInBestChain)
+                );
                 if (storedBlock.equals(storedBlockInBestChain)) {
                     matchedBlock = storedBlockInBestChain;
                     break;

@@ -86,7 +86,7 @@ public class BtcReleaseClientStorageAccessor {
             try {
                 this.btcReleaseClientFileStorage.write(fileData);
             } catch(IOException e) {
-                String message = "Error writing storage file for BtcReleaseClient";
+                String message = "[writeFile] Error writing storage file for BtcReleaseClient";
                 logger.error(message, e);
             }
         }
@@ -105,7 +105,11 @@ public class BtcReleaseClientStorageAccessor {
             return;
         }
         if (task != null) {
-            task.cancel(false);
+            try {
+                task.cancel(false);
+            } catch (Exception e) {
+                logger.debug("[signalWriting] Cancelling previous writing request failed. error: {}", e.getMessage());
+            }
         }
         // Reset timer to wait a bit more
         task = writeTimer.schedule(this::writeFile, this.delayInMs, TimeUnit.MILLISECONDS);
@@ -129,6 +133,7 @@ public class BtcReleaseClientStorageAccessor {
     }
 
     public void putBtcTxHashRskTxHash(Sha256Hash btcTxHash, Keccak256 rskTxHash) {
+        logger.trace("[putBtcTxHashRskTxHash] btc tx hash {} => rsk tx hash {}", btcTxHash, rskTxHash);
         fileData.getReleaseHashesMap().put(btcTxHash, rskTxHash);
         signalWriting();
     }
