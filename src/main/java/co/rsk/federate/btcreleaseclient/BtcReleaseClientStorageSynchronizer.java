@@ -143,7 +143,7 @@ public class BtcReleaseClientStorageSynchronizer {
                 logger.trace("[sync] going to fetch block {}({})", blockToSearch.getNumber(), blockToSearch.getHash());
                 List<TransactionReceipt> receipts = new ArrayList<>();
                 for(Transaction transaction: blockToSearch.getTransactionsList()) {
-                    TransactionReceipt receipt = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore).getReceipt();
+                    TransactionReceipt receipt = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore).orElseThrow(NullPointerException::new).getReceipt();
                     receipt.setTransaction(transaction);
                     receipts.add(receipt);
                 }
