@@ -81,6 +81,10 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDatabindVersion}"
     implementation "com.typesafe:config:${typesafeVersion}"
 
+    runtimeOnly "org.slf4j:log4j-over-slf4j:${slf4jVersion}"
+    runtimeOnly "ch.qos.logback:logback-core:${logbackVersion}"
+    runtimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
+
     testImplementation "junit:junit:${junitVersion}"
     testImplementation "org.mockito:mockito-core:${mockitoVersion}"
     testImplementation "org.powermock:powermock-module-junit4:${powermockitoVersion}"
