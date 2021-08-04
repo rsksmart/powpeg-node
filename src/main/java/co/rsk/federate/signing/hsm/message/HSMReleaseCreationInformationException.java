@@ -9,4 +9,7 @@ public class HSMReleaseCreationInformationException extends Exception {
     public HSMReleaseCreationInformationException(String message) {
         super(message);
     }
+    public HSMReleaseCreationInformationException(String message, Throwable e) {
+        super(message, e);
+    }
 }

@@ -147,6 +147,7 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
                 if (isStopped) {
                     return;
                 }
+                logger.trace("[{}] chunk {}/{}", actualMethod, i + 1, blockHeadersChunks.size());
                 this.hsmClientProtocol.send(payload);
             } catch (HSMClientException e) {
                 logger.warn(
