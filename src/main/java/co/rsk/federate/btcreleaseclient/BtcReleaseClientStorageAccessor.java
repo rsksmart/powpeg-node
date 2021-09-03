@@ -37,6 +37,9 @@ public class BtcReleaseClientStorageAccessor {
         this(
             systemProperties,
             Executors.newSingleThreadScheduledExecutor(),
+            new BtcReleaseClientFileStorageImpl(
+                new BtcReleaseClientFileStorageInfo(systemProperties)
+            ),
             DEFAULT_DELAY_IN_MS,
             DEFAULT_MAX_DELAYS
         );
@@ -45,14 +48,12 @@ public class BtcReleaseClientStorageAccessor {
     public BtcReleaseClientStorageAccessor(
         FedNodeSystemProperties systemProperties,
         ScheduledExecutorService executorService,
+        BtcReleaseClientFileStorage btcReleaseClientFileStorage,
         int delaysInMs,
         int maxDelays
     ) throws InvalidStorageFileException {
 
-        this.btcReleaseClientFileStorage =
-            new BtcReleaseClientFileStorageImpl(
-                new BtcReleaseClientFileStorageInfo(systemProperties)
-            );
+        this.btcReleaseClientFileStorage = btcReleaseClientFileStorage;
         this.delayInMs = delaysInMs;
         this.maxDelays = maxDelays;
 
