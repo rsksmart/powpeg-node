@@ -143,7 +143,6 @@ public class BtcReleaseClientStorageSynchronizer {
                 logger.trace("[sync] going to fetch block {}({})", blockToSearch.getNumber(), blockToSearch.getHash());
                 List<TransactionReceipt> receipts = new ArrayList<>();
                 for(Transaction transaction: blockToSearch.getTransactionsList()) {
-                    logger.trace("[sync] fetching tx {}", transaction.getHash());
                     TransactionReceipt receipt = receiptStore
                         .getInMainChain(transaction.getHash().getBytes(), blockStore)
                         .orElseThrow(NullPointerException::new)
@@ -173,8 +172,7 @@ public class BtcReleaseClientStorageSynchronizer {
                 .stream()
                 .filter(info -> RELEASE_REQUESTED_TOPIC.equals(info.getTopics().get(0)))
                 .collect(Collectors.toList());
-            if (matches.size() == 1) {
-                LogInfo match = matches.get(0);
+            for (LogInfo match: matches) {
                 Keccak256 rskTxHash = receipt.getTransaction().getHash();
                 co.rsk.bitcoinj.core.Sha256Hash btcTxHash = co.rsk.bitcoinj.core.Sha256Hash.wrap(match.getTopics().get(2).getData());
                 logger.debug(
