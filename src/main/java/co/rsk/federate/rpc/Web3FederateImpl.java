@@ -8,6 +8,7 @@ import co.rsk.metrics.HashRateCalculator;
 import co.rsk.mine.MinerClient;
 import co.rsk.mine.MinerServer;
 import co.rsk.net.BlockProcessor;
+import co.rsk.net.SyncProcessor;
 import co.rsk.rpc.Web3InformationRetriever;
 import co.rsk.rpc.Web3RskImpl;
 import co.rsk.rpc.modules.debug.DebugModule;
@@ -60,7 +61,8 @@ public class Web3FederateImpl extends Web3RskImpl {
             ConfigCapabilities configCapabilities,
             BuildInfo buildInfo,
             BlocksBloomStore blocksBloomStore,
-            Web3InformationRetriever web3InformationRetriever) {
+            Web3InformationRetriever web3InformationRetriever,
+            SyncProcessor syncProcessor) {
         super(
             eth,
             blockchain,
@@ -86,7 +88,8 @@ public class Web3FederateImpl extends Web3RskImpl {
             configCapabilities,
             buildInfo,
             blocksBloomStore,
-            web3InformationRetriever
+            web3InformationRetriever,
+            syncProcessor
         );
         this.btcToRskClientActive = btcToRskClientActive;
         this.btcToRskClientRetiring = btcToRskClientRetiring;

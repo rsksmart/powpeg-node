@@ -105,7 +105,8 @@ public class FedNodeContext extends RskContext {
                 getConfigCapabilities(),
                 getBuildInfo(),
                 getBlocksBloomStore(),
-                getWeb3InformationRetriever());
+                getWeb3InformationRetriever(),
+                getSyncProcessor());
     }
 
     @Override
