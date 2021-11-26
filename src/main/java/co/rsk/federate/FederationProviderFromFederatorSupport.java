@@ -91,7 +91,8 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             creationBlockNumber,
             federatorSupport.getBtcParams(),
             bridgeConstants.getErpFedPubKeysList(),
-            bridgeConstants.getErpFedActivationDelay()
+            bridgeConstants.getErpFedActivationDelay(),
+            federatorSupport.getConfigForBestBlock()
         );
     }
 
@@ -153,7 +154,8 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
                 creationBlockNumber,
                 federatorSupport.getBtcParams(),
                 bridgeConstants.getErpFedPubKeysList(),
-                bridgeConstants.getErpFedActivationDelay()
+                bridgeConstants.getErpFedActivationDelay(),
+                federatorSupport.getConfigForBestBlock()
             )
         );
     }
