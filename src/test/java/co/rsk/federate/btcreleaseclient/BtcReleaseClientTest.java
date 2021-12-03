@@ -495,7 +495,8 @@ public class BtcReleaseClientTest {
             federation.getCreationBlockNumber(),
             params,
             erpFedKeys,
-            5063
+            5063,
+            mock(ActivationConfig.ForBlock.class)
         );
 
         // Create a tx from the Fed to a random btc address
@@ -703,7 +704,8 @@ public class BtcReleaseClientTest {
             federation.getCreationBlockNumber(),
             params,
             erpFedKeys,
-            5063
+            5063,
+            mock(ActivationConfig.ForBlock.class)
         );
 
         test_extractStandardRedeemScript(federation.getRedeemScript(), erpFederation.getRedeemScript());
