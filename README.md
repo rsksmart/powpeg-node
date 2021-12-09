@@ -16,22 +16,23 @@ Before anything, you must ensure the security chain of the source code. For that
 1. Download sec channel public key
 
 ```bash
- $ gpg --keyserver https://secchannel.rsk.co/ --recv-keys FD4FDAFD7D174BB2
- gpg: requesting key 7D174BB2 from https server secchannel.rsk.co
- gpg: /home/user/.gnupg/trustdb.gpg: trustdb created
- gpg: key 7D174BB2: public key "Sec Channel <secchannel@rsk.co>" imported
- gpg: Total number processed: 1
- gpg:               imported: 1  (RSA: 1)
+$ gpg --keyserver https://secchannel.rsk.co/release.asc --recv-keys 5DECF4415E3B8FA4
+gpg: requesting key 5E3B8FA4 from https server secchannel.rsk.co
+gpg: key 5E3B8FA4: public key "RSK Release Signing Key <support@rsk.co>"      imported
+gpg: Total number processed: 1
+gpg:               imported: 1  (RSA: 1)
 ```
 
 2. Verify the downloaded key fingerprint
 
 ```bash
-$ gpg --finger FD4FDAFD7D174BB2
-pub   4096R/7D174BB2 2016-10-14 [expires: 2020-10-14]
-	  Key fingerprint = 1310 29B2 D95E 815A 48DA  B443 FD4F DAFD 7D17 4BB2
-uid                  Sec Channel <secchannel@rsk.co>
-sub   4096R/498C250A 2016-10-14 [expires: 2020-10-14]
+$ gpg --finger 5DECF4415E3B8FA4
+pub   4096R/5E3B8FA4 2017-05-16 [expires: 2022-05-15]
+      Key fingerprint = 1A92 D894 2171 AFA9 51A8  5736 5DEC F441 5E3B 8FA4
+uid                  RSK Release Signing Key <support@rsk.co>
+sub   4096R/A44DCC86 2017-05-16 [expires: 2022-05-15]
+sub   4096R/5E488E87 2017-05-16 [expires: 2022-05-15]
+sub   4096R/9FC3E7C2 2017-05-16 [expires: 2022-05-15]
 ```
 
 3. Clone the repo
@@ -45,11 +46,11 @@ cd powpeg-node
 
 ```bash
 $ gpg --verify SHA256SUMS.asc
-gpg: Signature made Thu 13 Apr 2017 02:51:34 PM UTC using RSA key ID 7D174BB2
-gpg: Good signature from "Sec Channel <secchannel@rsk.co>"
-gpg: WARNING: This key is not certified with a trusted signature!
-gpg:          There is no indication that the signature belongs to the owner.
-Primary key fingerprint: 1310 29B2 D95E 815A 48DA  B443 FD4F DAFD 7D17 4BB2
+gpg: Signature made mar 16 may 2017 16:47:56 ART
+gpg:                using RSA key 0x67D06695A44DCC86
+gpg: Good signature from "RSK Release Signing Key <support@rsk.co>" [ultimate]
+Primary key fingerprint: 1A92 D894 2171 AFA9 51A8  5736 5DEC F441 5E3B 8FA4
+    Subkey fingerprint: D135 DDC0 B54D 6EF3 5901  52DF 67D0 6695 A44D CC86
 ```
 
 5. Verify the `configure.sh` script
