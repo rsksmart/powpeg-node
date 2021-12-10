@@ -7,6 +7,7 @@
          <trust file=".*-javadoc[.]jar" regex="true"/>
          <trust file=".*-sources[.]jar" regex="true"/>
          <trust group="co.rsk" name="rskj-core" version=".+-SNAPSHOT" regex="true"/>
+         <trust group="co.rsk" name="rskj-core" version=".+-RC" regex="true"/>
       </trusted-artifacts>
    </configuration>
    <components>
