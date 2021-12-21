@@ -17,7 +17,7 @@ This node is used by RSK PowPeg signatories to interact with the Bridge contract
 
 - Using **GenNodeKeyId** class in the rskj project
 
-- Set String generator = "pegnatory1";
+- Set String generator = "federator1";
 
 - Run the Class to generate a private key
 
@@ -226,7 +226,7 @@ Note: In order to run the powpeg-node from the command line you will have to pro
 ```bash
 java -cp /<PATH-TO-POW-PEG-SOURCE-CODE>/build/libs/federate-node-SNAPSHOT-2.2.0.0-all.jar -Drsk.conf.file=/<PATH-TO-CONF-FILE>/regtest-fed.conf -Dlogback.configurationFile=/<PATH-TO-LOG-FILE>/logback.xml co.rsk.federate.FederateRunner --regtest --reset
 ```
-
+    
 ## Report Security Vulnerabilities
 
 We have a [vulnerability reporting guideline](SECURITY.md) for details on how to contact us to report a vulnerability.
