@@ -1684,6 +1684,43 @@ public class BtcToRskClientTest {
     }
 
     @Test
+    public void updateTransaction_noOutputToCurrentFederation() throws Exception {
+        SimpleBtcTransaction tx = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), false);;
+        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
+        Set<Transaction> txs = new HashSet<>();
+        txs.add(tx);
+        bw.setTransactions(txs);
+        StoredBlock[] blocks = createBlockchain(4);
+        bw.setBlocks(blocks);
+        Map<Sha256Hash, Integer> appears = new HashMap<>();
+        appears.put(blocks[3].getHeader().getHash(), 1);
+        tx.setAppearsInHashes(appears);
+
+        Block block = createBlock(tx);
+
+        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+
+        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
+        BtcToRskClient client = builder
+            .withBitcoinWrapper(bw)
+            .withFederatorSupport(fh)
+            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withFederation(BridgeRegTestConstants.getInstance().getGenesisFederation())
+            .build();
+        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
+
+        client.onTransaction(tx);
+        client.onBlock(block);
+
+        client.updateBridgeBtcTransactions();
+
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+
+        Assert.assertNotNull(tstrbl);
+        Assert.assertTrue(tstrbl.isEmpty());
+    }
+
+    @Test
     public void raiseIfTransactionInClientWithBlockProofNotInBlockchain() throws Exception {
         Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
