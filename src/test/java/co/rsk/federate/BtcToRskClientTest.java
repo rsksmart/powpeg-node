@@ -1653,29 +1653,35 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransaction_noOutputToCurrentFederation() throws Exception {
-        SimpleBtcTransaction tx = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), false);;
+        SimpleBtcTransaction txWithoutOutputs = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), false);
+        SimpleBtcTransaction txToTheFederation = (SimpleBtcTransaction) createTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
-        txs.add(tx);
+        txs.add(txWithoutOutputs);
+        txs.add(txToTheFederation);
         bw.setTransactions(txs);
         StoredBlock[] blocks = createBlockchain(4);
         bw.setBlocks(blocks);
         Map<Sha256Hash, Integer> appears = new HashMap<>();
         appears.put(blocks[3].getHeader().getHash(), 1);
-        tx.setAppearsInHashes(appears);
+        txWithoutOutputs.setAppearsInHashes(appears);
+        txToTheFederation.setAppearsInHashes(appears);
 
-        Block block = createBlock(tx);
+        Block block = createBlock(txWithoutOutputs, txToTheFederation);
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
-        client.onTransaction(tx);
+        client.onTransaction(txWithoutOutputs);
+        client.onTransaction(txToTheFederation);
         client.onBlock(block);
 
         client.updateBridgeBtcTransactions();
@@ -1683,7 +1689,7 @@ public class BtcToRskClientTest {
         List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
 
         Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertEquals(1, tstrbl.size());
     }
 
     @Test
