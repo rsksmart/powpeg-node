@@ -48,15 +48,21 @@ import static org.mockito.Mockito.*;
  * Created by ajlopez on 6/1/2016.
  */
 public class BtcToRskClientTest {
-    private int nhash = 0;
-    private ActivationConfig activationConfig;
     private final NetworkParameters networkParameters = ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString());
 
+    private int nhash = 0;
+    private ActivationConfig activationConfig;
+    private Federation genesisFederation;
+    private BtcToRskClientBuilder btcToRskClientBuilder;
+
     @Before
-    public void setup() {
+    public void setup() throws PeginInstructionsException, IOException {
         activationConfig = mock(ActivationConfig.class);
         when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
         when(activationConfig.isActive(eq(ConsensusRule.RSKIP89), anyLong())).thenReturn(true);
+
+        genesisFederation = BridgeRegTestConstants.getInstance().getGenesisFederation();
+        btcToRskClientBuilder = new BtcToRskClientBuilder();
     }
 
     @Test
@@ -141,17 +147,15 @@ public class BtcToRskClientTest {
         ActivationConfig activationConfig,
         int amountOfHeadersToSend) throws Exception {
 
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(txSenderAddressType);
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationConfig)
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fs)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .withAmountOfHeadersToSend(amountOfHeadersToSend)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", blockchain);
@@ -165,27 +169,16 @@ public class BtcToRskClientTest {
         Blockchain blockchain,
         BtcToRskClientFileStorage btcToRskClientFileStorage) throws Exception {
 
-        BtcLockSender btcLockSender = mock(BtcLockSender.class);
-        when(btcLockSender.getTxSenderAddressType()).thenReturn(TxSenderAddressType.P2PKH );
-        BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
-        when(btcLockSenderProvider.tryGetBtcLockSender(any())).thenReturn(Optional.empty());
-
-        PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
-        when(peginInstructionsProvider.buildPeginInstructions(any())).thenReturn(Optional.empty());
-
-        BtcToRskClient client = new BtcToRskClient(
-            activationConfig,
-            bw,
-            fs,
-            BridgeRegTestConstants.getInstance(),
-            btcToRskClientFileStorage,
-            btcLockSenderProvider,
-            peginInstructionsProvider,
-            null,
-            true,
-            100
-        );
+        BtcToRskClient client = btcToRskClientBuilder
+            .withActivationConfig(activationConfig)
+            .withBitcoinWrapper(bw)
+            .withFederatorSupport(fs)
+            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
+            .withFederation(genesisFederation)
+            .build();
         Whitebox.setInternalState(client, "rskBlockchain", blockchain);
+
         return client;
     }
 
@@ -989,7 +982,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransactionInClientWithBlockProof() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1002,17 +994,15 @@ public class BtcToRskClientTest {
         tx.setAppearsInHashes(appears);
 
         Block block = createBlock(blocks[3].getHeader().getHash(), tx);
-
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1036,7 +1026,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransactionCheckMaximumRegisterBtcLocksTxsPerTurn() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         int AVAILABLE_TXS = 50;
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1058,13 +1047,12 @@ public class BtcToRskClientTest {
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1086,8 +1074,6 @@ public class BtcToRskClientTest {
     public void updateTransactionInClientWithBlockProofInTwoCompetitiveBlocks() throws Exception {
         // This tests btc forks.
         // It checks the federator sends to the bridge the Proof of the block in the best chain.
-
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         for (int testNumber = 0; testNumber < 2; testNumber++) {
             SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
             SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
@@ -1113,13 +1099,12 @@ public class BtcToRskClientTest {
             SimpleFederatorSupport fh = new SimpleFederatorSupport();
             BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
-            BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-            BtcToRskClient client = builder
+            BtcToRskClient client = btcToRskClientBuilder
                 .withBitcoinWrapper(bw)
                 .withFederatorSupport(fh)
                 .withBridgeConstants(BridgeRegTestConstants.getInstance())
                 .withBtcLockSenderProvider(btcLockSenderProvider)
-                .withFederation(federation)
+                .withFederation(genesisFederation)
                 .build();
             Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1192,7 +1177,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransactionWithNoSenderValid() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1205,15 +1189,13 @@ public class BtcToRskClientTest {
         tx.setAppearsInHashes(appears);
 
         Block block = createBlock(tx);
-
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1230,7 +1212,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransactionWithMultisig() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1243,7 +1224,6 @@ public class BtcToRskClientTest {
         tx.setAppearsInHashes(appears);
 
         Block block = createBlock(tx);
-
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHMULTISIG);
 
@@ -1253,14 +1233,13 @@ public class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1277,7 +1256,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransactionWithSegwitCompatible() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1300,14 +1278,13 @@ public class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1451,7 +1428,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransactionWithSegwitCompatible_before_rskip143() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createSegwitTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1531,7 +1507,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransactionWithSenderUnknown_after_rskip170() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1555,14 +1530,13 @@ public class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
         doReturn(true).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1579,7 +1553,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransaction_peginInformationParsingFails_withoutSenderAddress() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1592,7 +1565,6 @@ public class BtcToRskClientTest {
         tx.setAppearsInHashes(appears);
 
         Block block = createBlock(tx);
-
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
@@ -1606,13 +1578,12 @@ public class BtcToRskClientTest {
         PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         when(peginInstructionsProvider.buildPeginInstructions(any())).thenThrow(PeginInstructionsException.class);
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1629,7 +1600,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateTransaction_peginInformationParsingFails_withSenderAddress() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1642,7 +1612,6 @@ public class BtcToRskClientTest {
         tx.setAppearsInHashes(appears);
 
         Block block = createBlock(tx);
-
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
@@ -1661,14 +1630,13 @@ public class BtcToRskClientTest {
         PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         when(peginInstructionsProvider.buildPeginInstructions(any())).thenThrow(PeginInstructionsException.class);
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1697,15 +1665,13 @@ public class BtcToRskClientTest {
         tx.setAppearsInHashes(appears);
 
         Block block = createBlock(tx);
-
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
-            .withFederation(BridgeRegTestConstants.getInstance().getGenesisFederation())
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -1722,7 +1688,6 @@ public class BtcToRskClientTest {
 
     @Test
     public void raiseIfTransactionInClientWithBlockProofNotInBlockchain() throws Exception {
-        Federation federation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1733,17 +1698,15 @@ public class BtcToRskClientTest {
         tx.setAppearsInHashes(null);
 
         Block block = createBlock(tx);
-
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
-        BtcToRskClientBuilder builder = new BtcToRskClientBuilder();
-        BtcToRskClient client = builder
+        BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fh)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(federation)
+            .withFederation(genesisFederation)
             .build();
         Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
@@ -2176,7 +2139,7 @@ public class BtcToRskClientTest {
             false,
             100
         );
-        btcToRskClient.start(BridgeRegTestConstants.getInstance().getGenesisFederation());
+        btcToRskClient.start(genesisFederation);
 
         return btcToRskClient;
     }
@@ -2208,7 +2171,6 @@ public class BtcToRskClientTest {
     }
 
     private Transaction createTransaction() {
-        Federation genesisFederation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         Transaction tx = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), false);
         tx.addInput(Sha256Hash.ZERO_HASH, 0, org.bitcoinj.script.ScriptBuilder.createInputScript(null, new ECKey()));
         tx.addOutput(Coin.COIN, Address.fromString(networkParameters, genesisFederation.getAddress().toBase58()));
@@ -2217,7 +2179,6 @@ public class BtcToRskClientTest {
     }
 
     private Transaction createSegwitTransaction() {
-        Federation genesisFederation = BridgeRegTestConstants.getInstance().getGenesisFederation();
         Transaction tx = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), true);
         tx.addInput(Sha256Hash.ZERO_HASH, 0, org.bitcoinj.script.ScriptBuilder.createInputScript(null, new ECKey()));
         tx.addOutput(Coin.COIN, Address.fromString(networkParameters, genesisFederation.getAddress().toBase58()));
