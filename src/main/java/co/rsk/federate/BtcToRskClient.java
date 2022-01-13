@@ -360,7 +360,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         // Find the last federator's best chain block the bridge has and update from there
         int bridgeBtcBlockchainInitialBlockHeight = federatorSupport.getBtcBlockchainInitialBlockHeight();
         int maxSearchDepth = bridgeBtcBlockchainBestChainHeight - bridgeBtcBlockchainInitialBlockHeight;
-        logger.debug("Bridge BTC blockchain initial block height: {}, max search depth : {}.", bridgeBtcBlockchainInitialBlockHeight, maxSearchDepth);
+        logger.debug(
+            "[findBridgeBtcBlockchainMatchingAncestor] Bridge BTC blockchain initial block height: {}, max search depth : {}.",
+            bridgeBtcBlockchainInitialBlockHeight,
+            maxSearchDepth
+        );
 
         StoredBlock matchedBlock = null;
         int currentSearchDepth = 0;
@@ -368,8 +372,17 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         while (true) {
             Sha256Hash storedBlockHash = federatorSupport.getBtcBlockchainBlockHashAtDepth(currentSearchDepth);
             StoredBlock storedBlock = bitcoinWrapper.getBlock(storedBlockHash);
+            logger.trace(
+                "[findBridgeBtcBlockchainMatchingAncestor] block[storedBlockHash] found? {}",
+                storedBlock != null
+            );
             if (storedBlock != null) {
                 StoredBlock storedBlockInBestChain = bitcoinWrapper.getBlockAtHeight(storedBlock.getHeight());
+                logger.trace(
+                    "[findBridgeBtcBlockchainMatchingAncestor] block[{}] in best chain? {}",
+                    storedBlock.getHeader().getHash(),
+                    storedBlock.equals(storedBlockInBestChain)
+                );
                 if (storedBlock.equals(storedBlockInBestChain)) {
                     matchedBlock = storedBlockInBestChain;
                     break;
@@ -541,14 +554,16 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             if (!federatorSupport.hasBlockCoinbaseInformed(coinbaseInformation.getBlockHash())) {
                 logger.debug("informing coinbase transaction {}", coinbaseInformation.getCoinbaseTransaction().getTxId());
                 federatorSupport.sendRegisterCoinbaseTransaction(coinbaseInformation);
+            } else {
+                logger.debug("coinbase transaction already informed, removing from map");
+                // Remove the coinbase from the map
+                fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
             }
         } else {
             logger.debug("RSKIP-143 is not active. Can't send coinbase transactions.");
+            // Remove the coinbase from the map
+            fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
         }
-
-        logger.debug("removing informed coinbase transaction from map");
-        // Remove the coinbase from the map
-        fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
 
         synchronized (this) {
             try {
@@ -621,13 +636,14 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private boolean isTxProcessable(BtcTransaction btcTx, TxSenderAddressType txSenderAddressType) {
-        // If the tx is a release it means we are receiving change (or migrating funds)
-        // If the tx is a release it should be processable
-        if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(federation))) {
+        long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
+
+        // If the tx is a peg-out it means we are receiving change (or migrating funds)
+        // so it should be processable
+        if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(federation), activationConfig.forBlock(bestBlockNumber))) {
             return true;
         }
 
-        long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
         if (activationConfig.isActive(ConsensusRule.RSKIP170, bestBlockNumber)) {
             return true;
         }

@@ -29,7 +29,6 @@ test {
 
 repositories {
     mavenCentral()
-    jcenter()
     maven {
         url "https://deps.rsklabs.io"
     }
@@ -49,10 +48,12 @@ tasks.withType(JavaCompile){
 tasks.withType(AbstractArchiveTask) {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
+    dirMode = 0775
+    fileMode = 0664
 }
 
 ext {
-    bitcoinjcoreVersion = '0.15.6-rsk-1'
+    bitcoinjcoreVersion = '0.15.6-rsk-2'
     bitcoinjVersion = '0.14.4-rsk-10'
     commonsLang3Version = '3.5'
     commonsIoVersion = '2.5'
@@ -64,7 +65,7 @@ ext {
     junitVersion = '4.12'
     mockitoVersion = '2.23.4'
     powermockitoVersion = '2.0.2'
-    rskjcoreVersion = '3.0.0-SNAPSHOT'
+    rskjcoreVersion = '3.3.0-SNAPSHOT'
 }
 
 dependencies {
@@ -78,6 +79,10 @@ dependencies {
     implementation "javax.annotation:javax.annotation-api:${javaxAnnotationApiVersion}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDatabindVersion}"
     implementation "com.typesafe:config:${typesafeVersion}"
+
+    runtimeOnly "org.slf4j:log4j-over-slf4j:${slf4jVersion}"
+    runtimeOnly "ch.qos.logback:logback-core:${logbackVersion}"
+    runtimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
 
     testImplementation "junit:junit:${junitVersion}"
     testImplementation "org.mockito:mockito-core:${mockitoVersion}"
@@ -124,13 +129,6 @@ build.branch=$currentBranch
     }
 }
 
-tasks.withType(Jar) {
-    preserveFileTimestamps = false
-    reproducibleFileOrder = true
-    dirMode = 0775
-    fileMode = 0664
-}
-
 jar {
     from sourceSets.main.output.classesDirs
     from sourceSets.main.output.resourcesDir
@@ -138,12 +136,22 @@ jar {
 }
 
 task fatJar(type: Jar, dependsOn: jar) {
+    archiveClassifier = "all"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     manifest {
         attributes 'Main-Class': "$mainClassName"
     }
+
     exclude "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA"
-    classifier = 'all'
-    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude "module-info.class"
+
+    for (def jar in configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }) {
+        from(jar) {
+            eachFile { details -> amendPathIfNeeded(details) }
+        }
+    }
+
     with jar
 }
 
@@ -153,12 +161,22 @@ artifacts {
     archives fatJar
 }
 
-def gitCurrentBranch() {
+static def gitCurrentBranch() {
     def process = "git rev-parse --abbrev-ref HEAD".execute()
     return process.text.trim()
 }
 
-def gitCommitHash() {
+static def gitCommitHash() {
     def process = "git rev-parse --short HEAD".execute()
     return process.text.trim()
+}
+
+static def amendPathIfNeeded(details) {
+    def uPath = details.path.toUpperCase()
+    if (uPath.startsWith("META-INF/LICENSE") || uPath.startsWith("META-INF/NOTICE")) {
+        def originalFile = details.file as File
+        def jarName = originalFile.parentFile.parentFile.name.split(".jar")[0]
+        def newPath = originalFile.parentFile.name + "/" + jarName + "_" + originalFile.name
+        details.path = newPath
+    }
 }

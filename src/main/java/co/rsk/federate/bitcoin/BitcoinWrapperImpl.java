@@ -323,7 +323,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             for (FederationListener watched : watchedFederations) {
                 Federation watchedFederation = watched.getFederation();
                 TransactionListener listener = watched.getListener();
-                if (BridgeUtils.isPegInTx(btcTx, watchedFederation, btcContextThin, bridgeConstants)) {
+                if (BridgeUtils.isValidPegInTx(btcTx, watchedFederation, btcContextThin, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
 
                     PeginInformation peginInformation = new PeginInformation(
                         btcLockSenderProvider,
@@ -345,7 +345,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                     LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a lock", tx.getWTxId());
                     listener.onTransaction(tx);
                 }
-                if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(watchedFederation))) {
+                if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
                     LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a release", tx.getWTxId());
                     listener.onTransaction(tx);
                 }

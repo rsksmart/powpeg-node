@@ -184,7 +184,14 @@ public class BtcReleaseClient {
     private class BtcReleaseEthereumListener extends EthereumListenerAdapter {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (nodeBlockProcessor.hasBetterBlockToSync() || !storageSynchronizer.isSynced()) {
+            boolean hasBetterBlockToSync = nodeBlockProcessor.hasBetterBlockToSync();
+            boolean isStorageSynced = storageSynchronizer.isSynced();
+            if (hasBetterBlockToSync || !isStorageSynced) {
+                logger.trace(
+                    "[onBestBlock] Node is not ready to process releases. hasBetterBlockToSync: {} isStorageSynced: {}",
+                    hasBetterBlockToSync,
+                    isStorageSynced
+                );
                 return;
             }
             // Processing transactions waiting for signatures on best block only still "works",
@@ -234,7 +241,7 @@ public class BtcReleaseClient {
 
     protected void processReleases(Set<Map.Entry<Keccak256, BtcTransaction>> releases) {
         try {
-            logger.trace("[processReleases] Starting process with {} releases", releases.size());
+            logger.debug("[processReleases] Starting process with {} releases", releases.size());
             KeyId keyId = FedNodeRunner.BTC_KEY_ID;
             int version = signer.getVersionForKeyId(keyId);
             // Get release information and store it in a new list
@@ -244,7 +251,7 @@ public class BtcReleaseClient {
                 tryGetReleaseInformation(version, release.getKey(), releaseTx)
                     .ifPresent(releasesReadyToSign::add);
             }
-            logger.trace("[processReleases] Going to sign {} releases", releasesReadyToSign.size());
+            logger.debug("[processReleases] Going to sign {} releases", releasesReadyToSign.size());
             // TODO: Sorting and then looping again is not efficient but we are making a compromise on performance here as we don't have that many release txs
             // Sort descending
             releasesReadyToSign.sort((a, b) -> (int) (b.getBlock().getNumber() - a.getBlock().getNumber()));
@@ -275,10 +282,13 @@ public class BtcReleaseClient {
             removeSignaturesFromTransaction(releaseTx, spendingFed);
             logger.trace("[tryGetReleaseInformation] Tx hash without signatures {}", releaseTx.getHash());
 
+            logger.trace("[tryGetReleaseInformation] Is tx in storage? {}", storageAccessor.hasBtcTxHash(releaseTx.getHash()));
             // Try to get the rskTxHash from the map in memory
             Keccak256 actualRskTxHash = storageAccessor.hasBtcTxHash(releaseTx.getHash()) ?
                 storageAccessor.getRskTxHash(releaseTx.getHash()) :
                 rskTxHash;
+
+            logger.debug("[tryGetReleaseInformation] Going to lookup tx to sign {}", actualRskTxHash);
 
             // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
             // -- Get Real Block where release_requested was emmited
@@ -355,6 +365,7 @@ public class BtcReleaseClient {
     protected void signRelease(int signerVersion, ReleaseCreationInformation releaseCreationInformation) {
         try {
             logger.debug("[signRelease] HSM signer version {}", signerVersion);
+            logger.debug("[signRelease] Going to sign tx {}", releaseCreationInformation.getInformingRskTxHash());
             logger.trace("[signRelease] Enforce signer requirements");
             releaseRequirementsEnforcer.enforce(signerVersion, releaseCreationInformation);
             SignerMessageBuilder messageBuilder = signerMessageBuilderFactory.buildFromConfig(
