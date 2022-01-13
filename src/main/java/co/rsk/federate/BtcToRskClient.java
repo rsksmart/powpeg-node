@@ -68,7 +68,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public BtcToRskClient() {}
 
     /// This constructor should only be used by tests.
-    public BtcToRskClient(
+    protected BtcToRskClient(
         ActivationConfig activationConfig,
         BitcoinWrapper bitcoinWrapper,
         FederatorSupport federatorSupport,

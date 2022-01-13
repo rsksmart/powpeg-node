@@ -1,4 +1,4 @@
-package co.rsk.federate.builders;
+package co.rsk.federate;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -6,8 +6,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import co.rsk.config.BridgeConstants;
-import co.rsk.federate.BtcToRskClient;
-import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.io.BtcToRskClientFileData;
 import co.rsk.federate.io.BtcToRskClientFileReadResult;

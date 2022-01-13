@@ -11,7 +11,6 @@ import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
-import co.rsk.federate.builders.BtcToRskClientBuilder;
 import co.rsk.federate.io.*;
 import co.rsk.federate.mock.*;
 import co.rsk.net.NodeBlockProcessor;
