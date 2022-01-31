@@ -248,4 +248,107 @@ public class BtcReleaseClientStorageSynchronizerTest {
 
     }
 
+    @Test
+    public void accepts_transaction_with_two_release_requested() {
+        BlockStore blockStore = mock(BlockStore.class);
+
+        Block firstBlock = mock(Block.class);
+        when(firstBlock.getNumber()).thenReturn(0L);
+        Keccak256 firstHash = createHash(0);
+        when(firstBlock.getHash()).thenReturn(firstHash);
+        when(blockStore.getChainBlockByNumber(0L)).thenReturn(firstBlock);
+
+        Block bestBlock = mock(Block.class);
+        when(bestBlock.getNumber()).thenReturn(1L);
+        Keccak256 secondHash = createHash(1);
+        when(bestBlock.getHash()).thenReturn(secondHash);
+        when(blockStore.getChainBlockByNumber(1L)).thenReturn(bestBlock);
+
+        Block newBlock = mock(Block.class);
+        when(newBlock.getNumber()).thenReturn(2L);
+        Keccak256 thirdHash = createHash(2);
+        when(newBlock.getHash()).thenReturn(thirdHash);
+        when(blockStore.getChainBlockByNumber(2L)).thenReturn(newBlock);
+
+        Transaction updateCollectionsTx = mock(Transaction.class);
+        when(updateCollectionsTx.getHash()).thenReturn(createHash(666));
+
+        TransactionReceipt receipt = mock(TransactionReceipt.class);
+        List<LogInfo> logs = new ArrayList<>();
+        BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
+            BridgeRegTestConstants.getInstance(),
+            mock(ActivationConfig.ForBlock.class),
+            logs
+        );
+
+        Keccak256 releaseRequestTxHash = createHash(3);
+        Sha256Hash releaseBtcTxHash = Sha256Hash.ZERO_HASH;
+
+        BtcTransaction releaseBtcTx = mock(BtcTransaction.class);
+        when(releaseBtcTx.getHash()).thenReturn(releaseBtcTxHash);
+
+        // Event info
+        bridgeEventLogger.logReleaseBtcRequested(
+            releaseRequestTxHash.getBytes(),
+            releaseBtcTx,
+            Coin.COIN
+        );
+
+        // Log for the second release_requested in the same rsk tx
+        Keccak256 secondReleaseRequestTxHash = createHash(4);
+        Sha256Hash secondReleaseBtcTxHash = Sha256Hash.of(new byte[]{0x2});
+
+        BtcTransaction secondReleaseBtcTx = mock(BtcTransaction.class);
+        when(secondReleaseBtcTx.getHash()).thenReturn(secondReleaseBtcTxHash);
+
+        // Event info
+        bridgeEventLogger.logReleaseBtcRequested(
+            secondReleaseRequestTxHash.getBytes(),
+            secondReleaseBtcTx,
+            Coin.COIN
+        );
+        when(receipt.getLogInfoList()).thenReturn(logs);
+        when(receipt.getTransaction()).thenReturn(updateCollectionsTx);
+        List<TransactionReceipt> receipts = Arrays.asList(receipt);
+
+        when(blockStore.getBestBlock()).thenReturn(bestBlock);
+
+        BtcReleaseClientStorageAccessor storageAccessor = mock(BtcReleaseClientStorageAccessor.class);
+
+        ScheduledExecutorService mockedExecutor = mock(ScheduledExecutorService.class);
+        // Mock the executor to execute immediately
+        doAnswer((InvocationOnMock a) -> {
+            ((Runnable)(a.getArgument(0))).run();
+            return null;
+        }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
+
+        BtcReleaseClientStorageSynchronizer storageSynchronizer =
+            new BtcReleaseClientStorageSynchronizer(
+                blockStore,
+                mock(ReceiptStore.class),
+                mock(NodeBlockProcessor.class),
+                storageAccessor,
+                mockedExecutor,
+                0,
+                1,
+                6_000);
+
+        // Verify sync
+        assertTrue(storageSynchronizer.isSynced());
+
+        // Process a block that contains a release_requested event
+        storageSynchronizer.processBlock(newBlock, receipts);
+
+        // Verify it is correctly stored
+        ArgumentCaptor<Keccak256> captor = ArgumentCaptor.forClass(Keccak256.class);
+        verify(storageAccessor, times(3)).setBestBlockHash(captor.capture());
+        List<Keccak256> calls = captor.getAllValues();
+        assertEquals(firstHash, calls.get(0));
+        assertEquals(secondHash, calls.get(1));
+        assertEquals(thirdHash, calls.get(2));
+        verify(storageAccessor, times(1)).putBtcTxHashRskTxHash(releaseBtcTxHash, updateCollectionsTx.getHash());
+        verify(storageAccessor, times(1)).putBtcTxHashRskTxHash(secondReleaseBtcTxHash, updateCollectionsTx.getHash());
+
+    }
+
 }

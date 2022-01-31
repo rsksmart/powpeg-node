@@ -255,8 +255,10 @@ public class BtcReleaseClient {
             // TODO: Sorting and then looping again is not efficient but we are making a compromise on performance here as we don't have that many release txs
             // Sort descending
             releasesReadyToSign.sort((a, b) -> (int) (b.getBlock().getNumber() - a.getBlock().getNumber()));
-            // Sign
-            releasesReadyToSign.forEach(release -> signRelease(version, release));
+            // Sign only the first element
+            if (releasesReadyToSign.size() > 0) {
+                signRelease(version, releasesReadyToSign.get(0));
+            }
         } catch (Exception e) {
             logger.error("[processReleases] There was an error trying to process releases", e);
         }

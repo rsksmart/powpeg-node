@@ -261,7 +261,7 @@ public class BtcReleaseClientTest {
     }
 
     @Test
-    public void onBestBlock_catch_exception_add_signature() throws Exception {
+    public void having_two_pegouts_signs_only_one() throws Exception {
         // Arrange
         Federation federation = TestUtils.createFederation(params, 1);
         BtcTransaction tx1 = TestUtils.createBtcTransaction(params, federation);
@@ -361,7 +361,7 @@ public class BtcReleaseClientTest {
         ethereumListener.get().onBestBlock(null, Collections.emptyList());
 
         // Assert
-        Mockito.verify(federatorSupport, Mockito.times(2)).addSignature(ArgumentMatchers.anyListOf(byte[].class), ArgumentMatchers
+        Mockito.verify(federatorSupport, Mockito.times(1)).addSignature(ArgumentMatchers.anyListOf(byte[].class), ArgumentMatchers
             .any(byte[].class));
     }
 
@@ -495,7 +495,8 @@ public class BtcReleaseClientTest {
             federation.getCreationBlockNumber(),
             params,
             erpFedKeys,
-            5063
+            5063,
+            mock(ActivationConfig.ForBlock.class)
         );
 
         // Create a tx from the Fed to a random btc address
@@ -703,7 +704,8 @@ public class BtcReleaseClientTest {
             federation.getCreationBlockNumber(),
             params,
             erpFedKeys,
-            5063
+            5063,
+            mock(ActivationConfig.ForBlock.class)
         );
 
         test_extractStandardRedeemScript(federation.getRedeemScript(), erpFederation.getRedeemScript());

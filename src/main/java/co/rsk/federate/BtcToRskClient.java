@@ -68,7 +68,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public BtcToRskClient() {}
 
     /// This constructor should only be used by tests.
-    public BtcToRskClient(
+    protected BtcToRskClient(
         ActivationConfig activationConfig,
         BitcoinWrapper bitcoinWrapper,
         FederatorSupport federatorSupport,
@@ -76,6 +76,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         BtcToRskClientFileStorage btcToRskClientFileStorage,
         BtcLockSenderProvider btcLockSenderProvider,
         PeginInstructionsProvider peginInstructionsProvider,
+        Federation federation,
         boolean isUpdateBridgeTimerEnabled,
         int amountOfHeadersToSend
     ) throws Exception {
@@ -87,6 +88,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         this.restoreFileData();
         this.btcLockSenderProvider = btcLockSenderProvider;
         this.peginInstructionsProvider = peginInstructionsProvider;
+        this.federation = federation;
         this.isUpdateBridgeTimerEnabled = isUpdateBridgeTimerEnabled;
         this.amountOfHeadersToSend = amountOfHeadersToSend;
     }
@@ -139,10 +141,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     public void stop() {
         logger.info("Stopping");
-
-        if (federation != null) {
-            bitcoinWrapper.removeFederationListener(federation, this);
-        }
 
         federation = null;
 
@@ -435,6 +433,15 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         int numberOfTxsSent = 0;
         Set<Sha256Hash> txsToSendToRskHashes = this.fileData.getTransactionProofs().keySet();
         logger.debug("[updateBridgeBtcTransactions] Tx count: {}", txsToSendToRskHashes.size());
+
+        co.rsk.bitcoinj.core.Context context = co.rsk.bitcoinj.core.Context.getOrCreate(bridgeConstants.getBtcParams());
+        co.rsk.bitcoinj.wallet.Wallet federationWallet = BridgeUtils.getFederationNoSpendWallet(
+            context,
+            federation,
+            false,
+            null
+        );
+
         for (Sha256Hash txHash : txsToSendToRskHashes) {
             Transaction tx = federatorWalletTxMap.get(txHash);
             logger.debug("[updateBridgeBtcTransactions] Evaluating Btc Tx {}", txHash);
@@ -445,6 +452,18 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
             logger.debug("[updateBridgeBtcTransactions] Got Btc Tx {} (wtxid:{})", tx.getTxId(), tx.getWTxId());
             BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
+
+            if (btcTx.getValueSentToMe(federationWallet).isZero()) {
+                // Remove the tx from the set to be sent to the Bridge since it's not processable
+                txsToSendToRskHashes.remove(txHash);
+
+                logger.warn(
+                    "[updateBridgeBtcTransactions] Transaction hash {} does not have any output to the current federation {}",
+                    btcTx.getHash(true),
+                    federation.getAddress()
+                );
+                continue;
+            }
 
             long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
             PeginInformation peginInformation = new PeginInformation(
