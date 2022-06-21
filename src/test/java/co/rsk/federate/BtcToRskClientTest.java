@@ -157,7 +157,6 @@ public class BtcToRskClientTest {
             .withFederation(genesisFederation)
             .withAmountOfHeadersToSend(amountOfHeadersToSend)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", blockchain);
 
         return client;
     }
@@ -176,7 +175,6 @@ public class BtcToRskClientTest {
             .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", blockchain);
 
         return client;
     }
@@ -1003,7 +1001,6 @@ public class BtcToRskClientTest {
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         client.onTransaction(tx);
         client.onBlock(block);
@@ -1053,7 +1050,6 @@ public class BtcToRskClientTest {
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         for (Transaction tx : txs) {
             client.onTransaction(tx);
@@ -1105,7 +1101,6 @@ public class BtcToRskClientTest {
                 .withBtcLockSenderProvider(btcLockSenderProvider)
                 .withFederation(genesisFederation)
                 .build();
-            Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
             client.onTransaction(tx);
             if (testNumber==0) {
@@ -1196,7 +1191,6 @@ public class BtcToRskClientTest {
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         client.onTransaction(tx);
         client.onBlock(block);
@@ -1240,7 +1234,6 @@ public class BtcToRskClientTest {
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         client.onTransaction(tx);
         client.onBlock(block);
@@ -1285,7 +1278,6 @@ public class BtcToRskClientTest {
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         client.onTransaction(tx);
         client.onBlock(block);
@@ -1537,7 +1529,6 @@ public class BtcToRskClientTest {
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         client.onTransaction(tx);
         client.onBlock(block);
@@ -1584,7 +1575,6 @@ public class BtcToRskClientTest {
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         client.onTransaction(tx);
         client.onBlock(block);
@@ -1637,7 +1627,6 @@ public class BtcToRskClientTest {
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         client.onTransaction(tx);
         client.onBlock(block);
@@ -1677,7 +1666,6 @@ public class BtcToRskClientTest {
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         client.onTransaction(txWithoutOutputs);
         client.onTransaction(txToTheFederation);
@@ -1713,7 +1701,6 @@ public class BtcToRskClientTest {
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
-        Whitebox.setInternalState(client, "rskBlockchain", mockBlockchain());
 
         client.onTransaction(tx);
         client.onBlock(block);
@@ -1998,7 +1985,7 @@ public class BtcToRskClientTest {
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(true);
 
-        BtcToRskClient btcToRskClient = spy(buildWithFactory(mock(FederatorSupport.class), nodeBlockProcessor, mock(Blockchain.class)));
+        BtcToRskClient btcToRskClient = spy(buildWithFactory(mock(FederatorSupport.class), nodeBlockProcessor));
 
         btcToRskClient.updateBridge();
 
@@ -2116,8 +2103,8 @@ public class BtcToRskClientTest {
         return redeemScript;
     }
 
-    private BtcToRskClient buildWithFactory(FederatorSupport federatorSupport, NodeBlockProcessor nodeBlockProcessor, Blockchain blockchain) {
-        BtcToRskClient.Factory factory = new BtcToRskClient.Factory(federatorSupport, nodeBlockProcessor, blockchain);
+    private BtcToRskClient buildWithFactory(FederatorSupport federatorSupport, NodeBlockProcessor nodeBlockProcessor) {
+        BtcToRskClient.Factory factory = new BtcToRskClient.Factory(federatorSupport, nodeBlockProcessor);
         return factory.build();
     }
 
@@ -2132,7 +2119,7 @@ public class BtcToRskClientTest {
         BtcLockSenderProvider btcLockSenderProvider,
         PeginInstructionsProvider peginInstructionsProvider) throws Exception {
 
-        BtcToRskClient btcToRskClient = buildWithFactory(federatorSupport, nodeBlockProcessor, blockchain);
+        BtcToRskClient btcToRskClient = buildWithFactory(federatorSupport, nodeBlockProcessor);
 
         btcToRskClient.setup(
             activationConfig,

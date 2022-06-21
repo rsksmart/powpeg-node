@@ -134,8 +134,7 @@ public class FedNodeContext extends RskContext {
         if (btcToRskClientFactory == null) {
             btcToRskClientFactory = new BtcToRskClient.Factory(
                     getFederatorSupport(),
-                    getNodeBlockProcessor(),
-                    getBlockchain()
+                    getNodeBlockProcessor()
             );
         }
 
