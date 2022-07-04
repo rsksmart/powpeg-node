@@ -24,17 +24,17 @@ import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMClientProvider;
+import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.powermock.reflect.Whitebox;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,8 +54,8 @@ public class ECDSASignerFactoryTest {
         ECDSASigner signer = factory.buildFromConfig(signerConfig);
 
         Assert.assertEquals(ECDSASignerFromFileKey.class, signer.getClass());
-        Assert.assertEquals(new KeyId("a-random-id"), Whitebox.getInternalState(signer, "keyId"));
-        Assert.assertEquals("a-random-path", Whitebox.getInternalState(signer, "keyPath"));
+        Assert.assertEquals(new KeyId("a-random-id"), TestUtils.getInternalState(signer, "keyId"));
+        Assert.assertEquals("a-random-path", TestUtils.getInternalState(signer, "keyPath"));
     }
 
     @Test
@@ -78,33 +78,33 @@ public class ECDSASignerFactoryTest {
         Assert.assertEquals(ECDSAHSMSigner.class, signer.getClass());
 
         // Provider chain OK
-        HSMClientProvider clientProvider = (HSMClientProvider) Whitebox.getInternalState(signer, "clientProvider");
+        HSMClientProvider clientProvider = TestUtils.getInternalState(signer, "clientProvider");
 
-        HSMClientProtocol hsmClientProtocol = (HSMClientProtocol) Whitebox.getInternalState(clientProvider, "hsmClientProtocol");
+        HSMClientProtocol hsmClientProtocol = TestUtils.getInternalState(clientProvider, "hsmClientProtocol");
 
-        JsonRpcClientProvider jsonRpcClientProvider = (JsonRpcClientProvider) Whitebox.getInternalState(hsmClientProtocol, "clientProvider");
+        JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(hsmClientProtocol, "clientProvider");
         Assert.assertEquals(SocketBasedJsonRpcClientProvider.class, jsonRpcClientProvider.getClass());
         // Host OK
-        SocketAddress address = (SocketAddress)Whitebox.getInternalState(jsonRpcClientProvider, "address");
+        SocketAddress address = TestUtils.getInternalState(jsonRpcClientProvider, "address");
         Assert.assertEquals(InetSocketAddress.class, address.getClass());
         InetSocketAddress inetAddress = (InetSocketAddress)address;
         Assert.assertEquals("remotehost", inetAddress.getHostName());
         Assert.assertEquals(1234, inetAddress.getPort());
 
         // Timeout OK
-        int timeout = (int)Whitebox.getInternalState(jsonRpcClientProvider, "socketTimeout");
+        int timeout = TestUtils.getInternalState(jsonRpcClientProvider, "socketTimeout");
         Assert.assertEquals(6666, timeout);
 
         // Attempts OK
-        int attempts = (int)Whitebox.getInternalState(hsmClientProtocol, "maxConnectionAttempts");
+        int attempts = TestUtils.getInternalState(hsmClientProtocol, "maxConnectionAttempts");
         Assert.assertEquals(6, attempts);
 
         // Interval OK
-        int interval = (int)Whitebox.getInternalState(hsmClientProtocol, "waitTimeForReconnection");
+        int interval = TestUtils.getInternalState(hsmClientProtocol, "waitTimeForReconnection");
         Assert.assertEquals(666, interval);
 
         // Key mappings OK
-        Map<KeyId, String> keyMapping = (Map<KeyId, String>) Whitebox.getInternalState(signer, "keyIdMapping");
+        Map<KeyId, String> keyMapping = TestUtils.getInternalState(signer, "keyIdMapping");
         Assert.assertEquals(1, keyMapping.size());
         Assert.assertTrue(keyMapping.containsKey(new KeyId("a-random-id")));
         Assert.assertEquals("a-bip32-path", keyMapping.get(new KeyId("a-random-id")));

@@ -286,7 +286,7 @@ public class BtcReleaseClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         Mockito.doThrow(RuntimeException.class).when(federatorSupport).addSignature(
-            ArgumentMatchers.anyListOf(byte[].class), ArgumentMatchers.any(byte[].class));
+            ArgumentMatchers.anyList(), ArgumentMatchers.any(byte[].class));
         Mockito.doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
 
         ECKey ecKey = new ECKey();
@@ -361,7 +361,7 @@ public class BtcReleaseClientTest {
         ethereumListener.get().onBestBlock(null, Collections.emptyList());
 
         // Assert
-        Mockito.verify(federatorSupport, Mockito.times(1)).addSignature(ArgumentMatchers.anyListOf(byte[].class), ArgumentMatchers
+        Mockito.verify(federatorSupport, Mockito.times(1)).addSignature(ArgumentMatchers.anyList(), ArgumentMatchers
             .any(byte[].class));
     }
 
@@ -448,7 +448,7 @@ public class BtcReleaseClientTest {
         ethereumListener.get().onBlock(null, receipts);
 
         // Assert
-        Mockito.verifyZeroInteractions(mocktTransactionReceipt);
+        Mockito.verifyNoInteractions(mocktTransactionReceipt);
     }
 
     @Test

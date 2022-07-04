@@ -15,6 +15,7 @@ import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -95,7 +96,7 @@ public class HSMBookkeepingServiceTest {
         Thread.sleep(10);
 
         Assert.assertFalse(service.isStarted());
-        verifyZeroInteractions(mockListener);
+        Mockito.verifyNoInteractions(mockListener);
     }
 
     @Test
@@ -123,7 +124,7 @@ public class HSMBookkeepingServiceTest {
         Thread.sleep(10);
 
         Assert.assertTrue(service.isStarted());
-        verifyZeroInteractions(mockListener);
+        Mockito.verifyNoInteractions(mockListener);
     }
 
     @Test
@@ -148,7 +149,7 @@ public class HSMBookkeepingServiceTest {
         Thread.sleep(10);
 
         Assert.assertTrue(service.isStarted());
-        verifyZeroInteractions(mockListener);
+        Mockito.verifyNoInteractions(mockListener);
         verify(mockHsmBookkeepingClient, times(1)).resetAdvanceBlockchain();
     }
 
@@ -340,7 +341,7 @@ public class HSMBookkeepingServiceTest {
 
         // Assert
         verify(listener, never()).onIrrecoverableError(any());
-        verifyZeroInteractions(listener);
+        Mockito.verifyNoInteractions(listener);
     }
 
     // informConfirmedBlockHeaders
@@ -463,7 +464,7 @@ public class HSMBookkeepingServiceTest {
         Assert.assertTrue(hsmBookkeepingService.isStarted());
         verify(mockHsmBookkeepingClient, times(1)).advanceBlockchain(any(AdvanceBlockchainMessage.class));
         verify(mockBlockStore, times(2)).getBlockByHash(any());
-        verifyZeroInteractions(mockListener);
+        Mockito.verifyNoInteractions(mockListener);
     }
 
     @Test
@@ -490,8 +491,8 @@ public class HSMBookkeepingServiceTest {
 
         // Assert
         verify(mockNodeBlockProcessor, times(1)).hasBetterBlockToSync();
-        verifyZeroInteractions(mockHsmBookkeepingClient);
-        verifyZeroInteractions(mockListener);
+        Mockito.verifyNoInteractions(mockHsmBookkeepingClient);
+        Mockito.verifyNoInteractions(mockListener);
     }
 
     @Test
@@ -525,8 +526,8 @@ public class HSMBookkeepingServiceTest {
         verify(mockHsmBookkeepingClient, times(1)).getHSMPointer();
         verifyNoMoreInteractions(mockHsmBookkeepingClient);
         verify(mockBlockStore, times(1)).getBlockByHash(any());
-        verifyZeroInteractions(mockConfirmedBlockHeadersProvider);
-        verifyZeroInteractions(mockListener);
+        Mockito.verifyNoInteractions(mockConfirmedBlockHeadersProvider);
+        Mockito.verifyNoInteractions(mockListener);
     }
 
     @Test
@@ -565,7 +566,7 @@ public class HSMBookkeepingServiceTest {
         verify(mockConfirmedBlockHeadersProvider,times(1)).getConfirmedBlockHeaders(any());
         verify(mockHsmBookkeepingClient, never()).advanceBlockchain(any(AdvanceBlockchainMessage.class));
         verify(mockBlockStore, times(1)).getBlockByHash(any());
-        verifyZeroInteractions(mockListener);
+        Mockito.verifyNoInteractions(mockListener);
     }
 
 
