@@ -185,7 +185,6 @@ public class BtcReleaseClientStorageSynchronizerTest {
         List<LogInfo> logs = new ArrayList<>();
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
             BridgeRegTestConstants.getInstance(),
-            mock(ActivationConfig.ForBlock.class),
             logs
         );
 
@@ -277,7 +276,6 @@ public class BtcReleaseClientStorageSynchronizerTest {
         List<LogInfo> logs = new ArrayList<>();
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
             BridgeRegTestConstants.getInstance(),
-            mock(ActivationConfig.ForBlock.class),
             logs
         );
 
