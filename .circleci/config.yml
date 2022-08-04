@@ -73,7 +73,7 @@ jobs:
             echo "          if (dependency.requested instanceof ModuleComponentSelector" >> DONT-COMMIT-settings.gradle
             echo "                  && dependency.requested.group == 'co.rsk'" >> DONT-COMMIT-settings.gradle
             echo "                  && dependency.requested.module == 'rskj-core'" >> DONT-COMMIT-settings.gradle
-            echo "                  && dependency.requested.version.endsWith('SNAPSHOT')) {" >> DONT-COMMIT-settings.gradle
+            echo "                  && (dependency.requested.version.endsWith('SNAPSHOT') || dependency.requested.version.endsWith('RC'))) {" >> DONT-COMMIT-settings.gradle
             echo "              def targetProject = project(\":\${dependency.requested.module}\")" >> DONT-COMMIT-settings.gradle
             echo "              if (targetProject != null) {" >> DONT-COMMIT-settings.gradle
             echo "                  println('---- USING LOCAL ' + dependency.requested.displayName +' PROJECT ----')" >> DONT-COMMIT-settings.gradle
