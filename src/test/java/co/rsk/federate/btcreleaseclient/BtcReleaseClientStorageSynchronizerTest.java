@@ -51,7 +51,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
                 1000,
                 100,
-                6_000
+                6_000,
+                0
             );
 
         assertFalse(storageSynchronizer.isSynced());
@@ -70,7 +71,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
                 1000,
                 100,
-                6_000
+                6_000,
+                0
             );
 
         assertFalse(storageSynchronizer.isSynced());
@@ -109,7 +111,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 mockedExecutor,
                 0,
                 1,
-                6_000);
+                6_000,
+                0);
 
         assertTrue(storageSynchronizer.isSynced());
     }
@@ -151,7 +154,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 mockedExecutor,
                 0,
                 1,
-                6_000);
+                6_000,
+                0);
 
         assertTrue(storageSynchronizer.isSynced());
 
@@ -228,7 +232,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 mockedExecutor,
                 0,
                 1,
-                6_000);
+                6_000,
+                0);
 
         // Verify sync
         assertTrue(storageSynchronizer.isSynced());
@@ -331,7 +336,8 @@ public class BtcReleaseClientStorageSynchronizerTest {
                 mockedExecutor,
                 0,
                 1,
-                6_000);
+                6_000,
+                0);
 
         // Verify sync
         assertTrue(storageSynchronizer.isSynced());

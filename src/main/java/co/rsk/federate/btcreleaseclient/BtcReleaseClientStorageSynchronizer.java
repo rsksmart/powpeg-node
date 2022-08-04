@@ -33,6 +33,7 @@ public class BtcReleaseClientStorageSynchronizer {
     private final ReceiptStore receiptStore;
     private final int timerDelay;
     private final int maxInitializationDepth;
+    private final int maxSyncDepth;
 
     private BtcReleaseClientStorageAccessor storageAccessor;
     private ScheduledExecutorService syncTimer;
@@ -40,12 +41,12 @@ public class BtcReleaseClientStorageSynchronizer {
     private boolean isSynced;
 
     public BtcReleaseClientStorageSynchronizer(
-        BlockStore blockStore,
-        ReceiptStore receiptStore,
-        NodeBlockProcessor nodeBlockProcessor,
-        BtcReleaseClientStorageAccessor storageAccessor,
-        int maxInitializationDepth
-    ) {
+            BlockStore blockStore,
+            ReceiptStore receiptStore,
+            NodeBlockProcessor nodeBlockProcessor,
+            BtcReleaseClientStorageAccessor storageAccessor,
+            int maxInitializationDepth,
+            int maxSyncDepth) {
         this(
             blockStore,
             receiptStore,
@@ -54,24 +55,27 @@ public class BtcReleaseClientStorageSynchronizer {
             Executors.newSingleThreadScheduledExecutor(),
             DEFAULT_TIMER_DELAY, // Use default timer delay as initial delay as well
             DEFAULT_TIMER_DELAY,
-            maxInitializationDepth);
+            maxInitializationDepth,
+            maxSyncDepth);
     }
 
     public BtcReleaseClientStorageSynchronizer(
-        BlockStore blockStore,
-        ReceiptStore receiptStore,
-        NodeBlockProcessor nodeBlockProcessor,
-        BtcReleaseClientStorageAccessor storageAccessor,
-        ScheduledExecutorService executorService,
-        int timerInitialDelayInMs,
-        int timerDelayInMs,
-        int maxInitializationDepth) {
+            BlockStore blockStore,
+            ReceiptStore receiptStore,
+            NodeBlockProcessor nodeBlockProcessor,
+            BtcReleaseClientStorageAccessor storageAccessor,
+            ScheduledExecutorService executorService,
+            int timerInitialDelayInMs,
+            int timerDelayInMs,
+            int maxInitializationDepth,
+            int maxSyncDepth) {
         this.nodeBlockProcessor = nodeBlockProcessor;
         this.blockStore = blockStore;
         this.receiptStore = receiptStore;
         this.storageAccessor = storageAccessor;
         this.timerDelay = timerDelayInMs;
         this.maxInitializationDepth = maxInitializationDepth;
+        this.maxSyncDepth = maxSyncDepth;
 
         this.isSynced = false;
 
@@ -121,10 +125,10 @@ public class BtcReleaseClientStorageSynchronizer {
             Block blockToSearch = storageBestBlock;
             // If there is no data in the file, set a limit to avoid looking up all the blockchain
             if (storageBestBlock == null) {
-                long lastBlockNumberToSearch = blockStore.getBestBlock().getNumber() - this.maxInitializationDepth;
+                long lastBlockNumberToSearch = blockStore.getBestBlock().getNumber() - Math.max(this.maxInitializationDepth, this.maxSyncDepth);
                 blockToSearch = blockStore.getChainBlockByNumber(Math.max(lastBlockNumberToSearch, 0));
             } else {
-                if (blockToSearch.getNumber() == blockStore.getBestBlock().getNumber()) {
+                if (blockToSearch.getNumber() == blockStore.getBestBlock().getNumber() - this.maxSyncDepth) {
                     logger.info("[sync] Storage already on sync");
                     this.isSynced = true;
                     this.syncTimer.shutdown();
@@ -139,11 +143,17 @@ public class BtcReleaseClientStorageSynchronizer {
                 blockToSearch.getHash()
             );
 
-            while(blockToSearch != null && blockStore.getBestBlock().getNumber() >= blockToSearch.getNumber()) {
+            while(
+                    blockToSearch != null &&
+                    blockToSearch.getNumber() <= blockStore.getBestBlock().getNumber() - this.maxSyncDepth
+            ) {
                 logger.trace("[sync] going to fetch block {}({})", blockToSearch.getNumber(), blockToSearch.getHash());
                 List<TransactionReceipt> receipts = new ArrayList<>();
                 for(Transaction transaction: blockToSearch.getTransactionsList()) {
-                    TransactionReceipt receipt = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore).orElseThrow(NullPointerException::new).getReceipt();
+                    TransactionReceipt receipt = receiptStore
+                            .getInMainChain(transaction.getHash().getBytes(), blockStore)
+                            .orElseThrow(NullPointerException::new)
+                            .getReceipt();
                     receipt.setTransaction(transaction);
                     receipts.add(receipt);
                 }
@@ -171,7 +181,8 @@ public class BtcReleaseClientStorageSynchronizer {
                 .collect(Collectors.toList());
             for (LogInfo match: matches) {
                 Keccak256 rskTxHash = receipt.getTransaction().getHash();
-                co.rsk.bitcoinj.core.Sha256Hash btcTxHash = co.rsk.bitcoinj.core.Sha256Hash.wrap(match.getTopics().get(2).getData());
+                co.rsk.bitcoinj.core.Sha256Hash btcTxHash =
+                        co.rsk.bitcoinj.core.Sha256Hash.wrap(match.getTopics().get(2).getData());
                 logger.debug(
                     "[checkLogsForReleaseRequested] Storing rsk tx Hash {} for btc tx hash {} in block {} ({})",
                     rskTxHash,
@@ -186,10 +197,23 @@ public class BtcReleaseClientStorageSynchronizer {
         storageAccessor.setBestBlockHash(block.getHash());
     }
 
+    private boolean connectsToStorage(Block block) {
+        Optional<Keccak256> storageBestBlockHash = this.storageAccessor.getBestBlockHash();
+        return storageBestBlockHash.isPresent() && block.getParentHash().equals(storageBestBlockHash);
+    }
+
     public void processBlock(Block block, List<TransactionReceipt> receipts) {
+        logger.trace("[processBlock] Try to process block {}", block.getHash());
         if (!this.isSynced()) {
+            logger.trace("[processBlock] Storage is still syncing");
             return;
         }
+        if (!connectsToStorage(block)) {
+            logger.debug("[processBlock] Best block in storage doesn't connect to provided block. Starting sync!");
+            this.sync();
+            return;
+        }
+        logger.trace("[processBlock] Going to process block");
         checkLogsForReleaseRequested(block, receipts);
     }
 
