@@ -1,5 +1,8 @@
 name: Reproducible build
-on: [push]
+on:
+  release:
+      type:
+        - created
 
 jobs:
   build:
