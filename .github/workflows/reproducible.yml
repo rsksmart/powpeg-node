@@ -1,5 +1,8 @@
 name: Reproducible build
-on: [push]
+on:
+    push:
+      tags:
+        - '*' ## Runs on every tag
 
 jobs:
   build:
