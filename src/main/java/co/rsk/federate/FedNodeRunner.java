@@ -25,6 +25,7 @@ import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
 import co.rsk.federate.bitcoin.Kit;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
+import co.rsk.federate.btcreleaseclient.BtcReleaseClientServiceImpl;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
 import co.rsk.federate.config.FedNodeSystemProperties;
@@ -259,6 +260,7 @@ public class FedNodeRunner implements NodeRunner {
             }
             federateLogger.log();
             BtcReleaseClientStorageAccessor btcReleaseClientStorageAccessor = new BtcReleaseClientStorageAccessor(config);
+
             btcReleaseClient.setup(
                 signer,
                 config.getActivationConfig(),
@@ -282,7 +284,8 @@ public class FedNodeRunner implements NodeRunner {
                     fedNodeContext.getNodeBlockProcessor(),
                     btcReleaseClientStorageAccessor,
                     config.getBtcReleaseClientInitializationMaxDepth()
-                )
+                ),
+                new BtcReleaseClientServiceImpl(federatorSupport, btcReleaseClientStorageAccessor)
             );
             federationWatcher.setup(federationProvider);
 
