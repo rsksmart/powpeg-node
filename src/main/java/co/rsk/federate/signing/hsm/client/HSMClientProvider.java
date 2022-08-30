@@ -56,11 +56,11 @@ public class HSMClientProvider {
             case 2:
                 switch (keyId) {
                     case "BTC":
-                        client = new HSMClientVersion2BTC(this.hsmClientProtocol);
+                        client = new HSMClientVersion2BTC(this.hsmClientProtocol, version);
                         break;
                     case "RSK":
                     case "MST":
-                        client = new HSMClientVersion2RskMst(this.hsmClientProtocol);
+                        client = new HSMClientVersion2RskMst(this.hsmClientProtocol, version);
                         break;
                     default:
                         String message = String.format("Unsupported key id %s", keyId);

@@ -22,16 +22,8 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
     private int maxChunkSize = 10;  // DEFAULT VALUE
     private boolean isStopped = false;
 
-    public void setStopSending() {
-        this.isStopped = true;
-    }
-
-    public HSMClientVersion2BTC(HSMClientProtocol protocol) {
-        super(protocol);
-    }
-
-    public void setMaxChunkSizeToHsm(int maxChunkSize) {
-        this.maxChunkSize = maxChunkSize;
+    public HSMClientVersion2BTC(HSMClientProtocol protocol, int version) {
+        super(protocol, version);
     }
 
     @Override
@@ -119,7 +111,7 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         if (blockHeaders == null || blockHeaders.isEmpty()) {
             return;
         }
-        if (getHSMPointer().getInProgressState()) {
+        if (getHSMPointer().isInProgress()) {
             logger.trace(
                     "[{}] HSM is already updating its state. Not going to proceed with this request",
                     actualMethod
@@ -144,6 +136,9 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
                     blocksFieldData.add(blockHeader);
                 }
                 payload.set(BLOCKS_FIELD, blocksFieldData);
+                if (this.version == 3 && actualMethod.equals("advanceBlockchain")) {
+                    payload.set("uncles", new ObjectMapper().createArrayNode());
+                }
                 if (isStopped) {
                     return;
                 }
@@ -162,14 +157,17 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         }
     }
 
+    @Override
     public void updateAncestorBlock(UpdateAncestorBlockMessage updateAncestorBlockMessage) throws HSMClientException {
         sendBlockHeadersChunks(updateAncestorBlockMessage.getData(), "updateAncestorBlock", true);
     }
 
+    @Override
     public void advanceBlockchain(AdvanceBlockchainMessage advanceBlockchainMessage) throws HSMClientException {
-        sendBlockHeadersChunks(advanceBlockchainMessage.getData(), "advanceBlockchain", false);
+        sendBlockHeadersChunks(advanceBlockchainMessage.getBlockHeaders(), "advanceBlockchain", false);
     }
 
+    @Override
     public HSM2State getHSMPointer() throws HSMClientException {
         final String BLOCKCHAIN_STATE_METHOD_NAME = "blockchainState";
         final String STATE_FIELD = "state";
@@ -199,6 +197,7 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         return new HSM2State(bestBlockHash, ancestorBlockHash, inProgress);
     }
 
+    @Override
     public void resetAdvanceBlockchain() throws HSMClientException {
         final String RESET_COMMAND = "resetAdvanceBlockchain";
 
@@ -206,5 +205,15 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         this.hsmClientProtocol.send(command);
 
         logger.trace("[resetAdvanceBlockchain] Sent command to reset Advance Blockchain.");
+    }
+
+    @Override
+    public void setMaxChunkSizeToHsm(int maxChunkSize) {
+        this.maxChunkSize = maxChunkSize;
+    }
+
+    @Override
+    public void setStopSending() {
+        this.isStopped = true;
     }
 }
