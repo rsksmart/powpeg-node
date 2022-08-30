@@ -26,8 +26,8 @@ import org.bouncycastle.util.encoders.Hex;
 
 public abstract class HSMClientVersion2 extends HSMClientBase {
 
-    public HSMClientVersion2(HSMClientProtocol protocol) {
-        super(protocol, 2);
+    protected HSMClientVersion2(HSMClientProtocol protocol, int version) {
+        super(protocol, version);
         protocol.setResponseHandler(new HSMResponseHandlerVersion2());
     }
 
