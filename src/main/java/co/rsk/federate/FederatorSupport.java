@@ -4,6 +4,7 @@ import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.core.RskAddress;
+import co.rsk.crypto.Keccak256;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinPeerFactory;
 import co.rsk.federate.config.FedNodeSystemProperties;
@@ -258,6 +259,21 @@ public class FederatorSupport {
     public int getBtcBlockchainBestChainHeight() {
         BigInteger btcBlockchainBestChainHeight = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_BTC_BLOCKCHAIN_BEST_CHAIN_HEIGHT);
         return btcBlockchainBestChainHeight.intValue();
+    }
+
+    public Optional<Keccak256> getPegoutCreationRskTxHashByBtcTxHash(co.rsk.bitcoinj.core.Sha256Hash btcTxHash) {
+        byte[] pegoutCreationRskTxHash = this.bridgeTransactionSender.callTx(
+            federatorAddress,
+            Bridge.GET_PEGOUT_CREATION_RSK_TX_HASH_BY_BTC_TX_HASH,
+            new Object[]{btcTxHash.getBytes()}
+        );
+
+        if (pegoutCreationRskTxHash.length > 0) {
+            return Optional.of(new Keccak256(pegoutCreationRskTxHash));
+        }
+        else {
+            return Optional.empty();
+        }
     }
 
     public NetworkParameters getBtcParams() {
