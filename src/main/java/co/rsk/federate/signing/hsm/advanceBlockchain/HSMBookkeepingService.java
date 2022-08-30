@@ -88,7 +88,7 @@ public class HSMBookkeepingService {
         }
 
         try {
-            if (hsmBookkeepingClient.getHSMPointer().getInProgressState())  {
+            if (hsmBookkeepingClient.getHSMPointer().isInProgress())  {
                 // HSM status is inconsistent from a previous run, if the status is in progress, reset HSM must be done.
                 hsmBookkeepingClient.resetAdvanceBlockchain();
             }
@@ -180,7 +180,7 @@ public class HSMBookkeepingService {
                     blockHeaders.get(0).getHash(),
                     blockHeaders.get(blockHeaders.size() - 1).getHash()
             );
-            hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders));
+            hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders, new ArrayList<>()));
             hsmCurrentBestBlock = getHsmBestBlock();
             logger.debug(
                     "[informConfirmedBlockHeaders] HSM best block after informing {} (height: {})",
