@@ -250,7 +250,8 @@ public class BtcReleaseClientTest {
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcReleaseClientStorageSynchronizer.class),
+            mock(BtcReleaseClientServiceImpl.class)
         );
         client.start(federation);
 
@@ -359,7 +360,8 @@ public class BtcReleaseClientTest {
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer
+            storageSynchronizer,
+            mock(BtcReleaseClientServiceImpl.class)
         );
         btcReleaseClient.start(federation);
 
@@ -408,7 +410,8 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcReleaseClientStorageSynchronizer.class),
+            mock(BtcReleaseClientServiceImpl.class)
         );
         btcReleaseClient.start(federation);
 
@@ -658,7 +661,8 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcReleaseClientStorageSynchronizer.class),
+            mock(BtcReleaseClientServiceImpl.class)
         );
         client.start(federation);
 
@@ -697,7 +701,8 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcReleaseClientStorageSynchronizer.class),
+            mock(BtcReleaseClientServiceImpl.class)
         );
 
         // Act
@@ -754,7 +759,8 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcReleaseClientStorageSynchronizer.class),
+            mock(BtcReleaseClientServiceImpl.class)
         );
         client.start(federation);
 
@@ -849,7 +855,8 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcReleaseClientStorageSynchronizer.class),
+            mock(BtcReleaseClientServiceImpl.class)
         );
         client.start(federation);
 
@@ -1005,6 +1012,10 @@ public class BtcReleaseClientTest {
         when(accessor.hasBtcTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile);
         when(accessor.getRskTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? rskTxHash: null);
 
+        BtcReleaseClientServiceImpl btcReleaseClientService = mock(BtcReleaseClientServiceImpl.class);
+        when(btcReleaseClientService.hasBtcTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile);
+        when(btcReleaseClientService.getRskTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? Optional.of(rskTxHash): Optional.empty());
+
         BtcReleaseClientStorageSynchronizer synchronizer = mock(BtcReleaseClientStorageSynchronizer.class);
         when(synchronizer.isSynced()).thenReturn(true);
 
@@ -1015,7 +1026,8 @@ public class BtcReleaseClientTest {
             releaseCreationInformationGetter,
             releaseRequirementsEnforcer,
             accessor,
-            synchronizer
+            synchronizer,
+            btcReleaseClientService
         );
 
         btcReleaseClient.start(federation);

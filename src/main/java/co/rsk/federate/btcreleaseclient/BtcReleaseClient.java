@@ -99,6 +99,8 @@ public class BtcReleaseClient {
     private BtcReleaseClientStorageAccessor storageAccessor;
     private BtcReleaseClientStorageSynchronizer storageSynchronizer;
 
+    private BtcReleaseClientService btcReleaseClientService;
+
     public BtcReleaseClient(
         Ethereum ethereum,
         FederatorSupport federatorSupport,
@@ -122,7 +124,8 @@ public class BtcReleaseClient {
         ReleaseCreationInformationGetter releaseCreationInformationGetter,
         ReleaseRequirementsEnforcer releaseRequirementsEnforcer,
         BtcReleaseClientStorageAccessor storageAccessor,
-        BtcReleaseClientStorageSynchronizer storageSynchronizer
+        BtcReleaseClientStorageSynchronizer storageSynchronizer,
+        BtcReleaseClientService btcReleaseClientService
     ) throws BtcReleaseClientException {
         this.signer = signer;
         this.activationConfig = activationConfig;
@@ -149,6 +152,7 @@ public class BtcReleaseClient {
 
         this.storageAccessor = storageAccessor;
         this.storageSynchronizer = storageSynchronizer;
+        this.btcReleaseClientService = btcReleaseClientService;
 
         logger.debug("[setup] Is pegout enabled? {}", isPegoutEnabled);
     }
@@ -290,11 +294,11 @@ public class BtcReleaseClient {
             removeSignaturesFromTransaction(releaseTx, spendingFed);
             logger.trace("[tryGetReleaseInformation] Tx hash without signatures {}", releaseTx.getHash());
 
-            logger.trace("[tryGetReleaseInformation] Is tx in storage? {}", storageAccessor.hasBtcTxHash(releaseTx.getHash()));
+            Optional<Keccak256> optionalRskTxHash = btcReleaseClientService.getRskTxHash(releaseTx.getHash());
+
+            logger.trace("[tryGetReleaseInformation] Is tx found in storage? {}", optionalRskTxHash.isPresent());
             // Try to get the rskTxHash from the map in memory
-            Keccak256 actualRskTxHash = storageAccessor.hasBtcTxHash(releaseTx.getHash()) ?
-                storageAccessor.getRskTxHash(releaseTx.getHash()) :
-                rskTxHash;
+            Keccak256 actualRskTxHash = optionalRskTxHash.orElse(rskTxHash);
 
             logger.debug("[tryGetReleaseInformation] Going to lookup tx to sign {}", actualRskTxHash);
 
