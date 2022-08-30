@@ -44,7 +44,7 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
 
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        client = new HSMClientVersion2BTC(hsmClientProtocol);
+        client = new HSMClientVersion2BTC(hsmClientProtocol, VERSION);
         client.setMaxChunkSizeToHsm(1_000);
     }
 
@@ -278,7 +278,6 @@ public class HSMClientVersion2BTCTest {
                 .thenReturn(buildResponse(0, "state", buildStateResponse(false)))
                 .thenReturn(buildResponse(-203));
 
-        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol);
         client.setMaxChunkSizeToHsm(2);
 
         BlockHeader blockHeader = mock(BlockHeader.class);
@@ -293,7 +292,6 @@ public class HSMClientVersion2BTCTest {
                 .thenReturn(buildResponse(0, "state", buildStateResponse(false)))
                 .thenThrow(new Exception(""));
 
-        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol);
         client.setMaxChunkSizeToHsm(2);
 
         BlockHeader blockHeader = mock(BlockHeader.class);
@@ -309,7 +307,6 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", 2)))
                 .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
 
-        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol);
         client.setMaxChunkSizeToHsm(2);
 
         client.setStopSending();
@@ -326,7 +323,6 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", 2)))
                 .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
 
-        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol);
         client.setMaxChunkSizeToHsm(2);
 
         client.sendBlockHeadersChunks(Collections.singletonList(""), null, false);
@@ -341,7 +337,6 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", 2)))
                 .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
 
-        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol);
         client.setMaxChunkSizeToHsm(2);
 
         // Repeat the same mock multiple times
@@ -358,7 +353,6 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", 2)))
                 .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
 
-        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol);
         client.setMaxChunkSizeToHsm(2);
 
         List<String> blockHeaders = new ArrayList<>();
@@ -394,7 +388,6 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", 2)))
                 .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
 
-        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol);
         client.setMaxChunkSizeToHsm(2);
 
         List<String> blockHeaders = new ArrayList<>();
@@ -428,7 +421,6 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", 2)))
                 .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
 
-        HSMClientVersion2BTC client = spy(new HSMClientVersion2BTC(hsmClientProtocol));
         client.setMaxChunkSizeToHsm(2);
 
         BlockHeader blockHeader = mock(BlockHeader.class);
@@ -445,6 +437,32 @@ public class HSMClientVersion2BTCTest {
     }
 
     @Test
+    public void updateAncestorBlock_hsm_version_3() throws HSMClientException, JsonRpcException {
+        JsonRpcClientProvider jsonRpcClientProvider = mock(JsonRpcClientProvider.class);
+        JsonRpcClient jsonRpcClient = mock(JsonRpcClient.class);
+        when(jsonRpcClientProvider.acquire()).thenReturn(jsonRpcClient);
+
+        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProvider, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol, 3);
+        client.setMaxChunkSizeToHsm(2);
+
+        when(jsonRpcClient.send(any(JsonNode.class))).thenReturn(buildResponse(0));
+        when(jsonRpcClient.send(hsmClientProtocol.buildCommand("blockchainState", 3)))
+            .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
+
+        BlockHeader blockHeader = mock(BlockHeader.class);
+        when(blockHeader.getEncoded(true, false)).thenReturn(new byte[]{});
+
+        client.updateAncestorBlock(new UpdateAncestorBlockMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
+        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(jsonRpcClient, times(3)).send(captor.capture());
+        List<JsonNode> capturedArguments = captor.getAllValues();
+        Assert.assertEquals("blockchainState", capturedArguments.get(0).get("command").asText());
+        Assert.assertEquals("updateAncestorBlock", capturedArguments.get(1).get("command").asText());
+        Assert.assertEquals("updateAncestorBlock", capturedArguments.get(2).get("command").asText());
+    }
+
+    @Test
     public void advanceBlockchain_ok() throws HSMClientException, JsonRpcException {
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
         when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", 2)))
@@ -453,12 +471,41 @@ public class HSMClientVersion2BTCTest {
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
 
-        client.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
+        client.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader), new ArrayList<>()));
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(2)).send(captor.capture());
         List<JsonNode> capturedArguments = captor.getAllValues();
         Assert.assertEquals("blockchainState", capturedArguments.get(0).get("command").asText());
         Assert.assertEquals("advanceBlockchain", capturedArguments.get(1).get("command").asText());
+        Assert.assertTrue(capturedArguments.get(1).has("blocks"));
+        Assert.assertFalse(capturedArguments.get(1).has("uncles"));
+    }
+
+    @Test
+    public void advanceBlockchain_with_uncles_ok() throws HSMClientException, JsonRpcException {
+        JsonRpcClientProvider jsonRpcClientProvider = mock(JsonRpcClientProvider.class);
+        JsonRpcClient jsonRpcClient = mock(JsonRpcClient.class);
+        when(jsonRpcClientProvider.acquire()).thenReturn(jsonRpcClient);
+
+        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProvider, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol, 3);
+        client.setMaxChunkSizeToHsm(1_000);
+
+        when(jsonRpcClient.send(any(JsonNode.class))).thenReturn(buildResponse(0));
+        when(jsonRpcClient.send(hsmClientProtocol.buildCommand("blockchainState", 3)))
+            .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
+
+        BlockHeader blockHeader = mock(BlockHeader.class);
+        when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
+
+        client.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader), new ArrayList<>()));
+        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(jsonRpcClient, times(2)).send(captor.capture());
+        List<JsonNode> capturedArguments = captor.getAllValues();
+        Assert.assertEquals("blockchainState", capturedArguments.get(0).get("command").asText());
+        Assert.assertEquals("advanceBlockchain", capturedArguments.get(1).get("command").asText());
+        Assert.assertTrue(capturedArguments.get(1).has("blocks"));
+        Assert.assertTrue(capturedArguments.get(1).has("uncles"));
     }
 
     @Test
@@ -477,7 +524,7 @@ public class HSMClientVersion2BTCTest {
         HSM2State hsm2State = client.getHSMPointer();
         Assert.assertEquals(expectedBestBlockHash, hsm2State.getBestBlockHash());
         Assert.assertEquals(expectedAncestorBlockHash, hsm2State.getAncestorBlockHash());
-        Assert.assertEquals(false, hsm2State.getInProgressState());
+        Assert.assertEquals(false, hsm2State.isInProgress());
     }
 
     @Test( expected = HSMInvalidResponseException.class )
