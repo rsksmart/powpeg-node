@@ -45,7 +45,7 @@ public class HSMClientVersion2Test {
         jsonRpcClientMock = mock(JsonRpcClient.class);
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
         //Since parent class is abstract, test all the common methods using HSMClientVersion2BTC.
-        client = new HSMClientVersion2RskMst(hsmClientProtocol);
+        client = new HSMClientVersion2RskMst(hsmClientProtocol, VERSION);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
