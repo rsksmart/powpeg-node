@@ -8,8 +8,8 @@ import org.bouncycastle.util.encoders.Hex;
 
 public class HSMClientVersion2RskMst extends HSMClientVersion2 {
 
-    public HSMClientVersion2RskMst(HSMClientProtocol protocol) {
-        super(protocol);
+    public HSMClientVersion2RskMst(HSMClientProtocol protocol, int version) {
+        super(protocol, version);
     }
 
     @Override
