@@ -21,6 +21,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -316,7 +317,7 @@ public class HSMClientVersion2BTCTest {
         client.sendBlockHeadersChunks(Collections.singletonList(""), null, false);
 
         // once to verify state, second time to send blocheaders to hsm.
-        verifyZeroInteractions(jsonRpcClientMock);
+        Mockito.verifyNoInteractions(jsonRpcClientMock);
     }
 
     @Test

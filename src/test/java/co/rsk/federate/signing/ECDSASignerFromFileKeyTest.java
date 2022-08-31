@@ -30,19 +30,14 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.MockedConstruction;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Arrays;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({ ECDSASignerFromFileKey.class })
-@PowerMockIgnore({"com.sun.org.apache.xerces.*", "javax.xml.*", "org.xml.*", "javax.management.*"})
+@RunWith(MockitoJUnitRunner.class)
 public class ECDSASignerFromFileKeyTest {
     ECDSASignerFromFileKey signer;
 
@@ -58,30 +53,42 @@ public class ECDSASignerFromFileKeyTest {
     }
 
     @Test
-    public void check() throws Exception {
-        KeyFileChecker checkerMock = mock(KeyFileChecker.class);
-        when(checkerMock.check()).thenReturn(Arrays.asList("message-1", "message-2"));
-        PowerMockito.whenNew(KeyFileChecker.class).withArguments("a-file-path").thenReturn(checkerMock);
+    public void check() {
+        MockedConstruction.MockInitializer<KeyFileChecker> keyFileCheckerMockInitializer = (KeyFileChecker kfc, MockedConstruction.Context ctx) -> {
+            boolean isExpectedCall = ctx.arguments().size() == 1 && ctx.arguments().get(0).equals("a-file-path");
+            if (isExpectedCall) {
+                when(kfc.check()).thenReturn(Arrays.asList("message-1", "message-2"));
+            }
+        };
 
-        ECDSASigner.ECDSASignerCheckResult checkResult = signer.check();
-        Assert.assertFalse(checkResult.wasSuccessful());
-        Assert.assertEquals(Arrays.asList("message-1", "message-2"), checkResult.getMessages());
+        try (MockedConstruction<KeyFileChecker> keyFileCheckerMockedConstruction = mockConstruction(KeyFileChecker.class, keyFileCheckerMockInitializer)) {
+            ECDSASigner.ECDSASignerCheckResult checkResult = signer.check();
+            Assert.assertEquals(1, keyFileCheckerMockedConstruction.constructed().size());
+            Assert.assertFalse(checkResult.wasSuccessful());
+            Assert.assertEquals(Arrays.asList("message-1", "message-2"), checkResult.getMessages());
+        }
     }
 
     @Test
     public void sign() throws Exception {
-        KeyFileHandler handlerMock = mock(KeyFileHandler.class);
-        when(handlerMock.privateKey()).thenReturn(Hex.decode("1122334455"));
-        PowerMockito.whenNew(KeyFileHandler.class).withArguments("a-file-path").thenReturn(handlerMock);
+        MockedConstruction.MockInitializer<KeyFileHandler> keyFileHandlerMockInitializer = (KeyFileHandler kfh, MockedConstruction.Context ctx) -> {
+            boolean isExpectedCall = ctx.arguments().size() == 1 && ctx.arguments().get(0).equals("a-file-path");
+            if (isExpectedCall) {
+                when(kfh.privateKey()).thenReturn(Hex.decode("1122334455"));
+            }
+        };
 
-        byte[] message = Keccak256Helper.keccak256("aabbccdd");
+        try (MockedConstruction<KeyFileHandler> keyFileHandlerMockedConstruction = mockConstruction(KeyFileHandler.class, keyFileHandlerMockInitializer)) {
+            byte[] message = Keccak256Helper.keccak256("aabbccdd");
 
-        ECKey.ECDSASignature result = signer.sign(new KeyId("an-id"), new SignerMessageVersion1(message));
+            ECKey.ECDSASignature result = signer.sign(new KeyId("an-id"), new SignerMessageVersion1(message));
 
-        ECKey.ECDSASignature expectedSignature = ECKey.fromPrivate(Hex.decode("1122334455")).sign(message);
+            ECKey.ECDSASignature expectedSignature = ECKey.fromPrivate(Hex.decode("1122334455")).sign(message);
 
-        Assert.assertEquals(expectedSignature.r, result.r);
-        Assert.assertEquals(expectedSignature.s, result.s);
+            Assert.assertEquals(1, keyFileHandlerMockedConstruction.constructed().size());
+            Assert.assertEquals(expectedSignature.r, result.r);
+            Assert.assertEquals(expectedSignature.s, result.s);
+        }
     }
 
     @Test
@@ -89,21 +96,29 @@ public class ECDSASignerFromFileKeyTest {
         try {
             signer.sign(new KeyId("another-id"), new SignerMessageVersion1(Hex.decode("aabbcc")));
             Assert.fail();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
     }
 
     @Test
     public void getPublicKey() throws Exception {
-        KeyFileHandler handlerMock = mock(KeyFileHandler.class);
         ECKey key = new ECKey();
-        when(handlerMock.privateKey()).thenReturn(key.getPrivKeyBytes());
-        PowerMockito.whenNew(KeyFileHandler.class).withArguments("a-file-path").thenReturn(handlerMock);
 
-        ECPublicKey result = signer.getPublicKey(new KeyId("an-id"));
+        MockedConstruction.MockInitializer<KeyFileHandler> keyFileHandlerMockInitializer = (KeyFileHandler kfh, MockedConstruction.Context ctx) -> {
+            boolean isExpectedCall = ctx.arguments().size() == 1 && ctx.arguments().get(0).equals("a-file-path");
+            if (isExpectedCall) {
+                when(kfh.privateKey()).thenReturn(key.getPrivKeyBytes());
+            }
+        };
 
-        ECPublicKey expectedPublicKey = new ECPublicKey(key.getPubKey());
+        try (MockedConstruction<KeyFileHandler> keyFileHandlerMockedConstruction = mockConstruction(KeyFileHandler.class, keyFileHandlerMockInitializer)) {
+            ECPublicKey result = signer.getPublicKey(new KeyId("an-id"));
 
-        Assert.assertEquals(expectedPublicKey, result);
+            ECPublicKey expectedPublicKey = new ECPublicKey(key.getPubKey());
+
+            Assert.assertEquals(1, keyFileHandlerMockedConstruction.constructed().size());
+            Assert.assertEquals(expectedPublicKey, result);
+        }
     }
 
     @Test
@@ -111,7 +126,8 @@ public class ECDSASignerFromFileKeyTest {
         try {
             signer.getPublicKey(new KeyId("another-id"));
             Assert.fail();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
     }
 
     @Test
@@ -131,7 +147,7 @@ public class ECDSASignerFromFileKeyTest {
             version = signer.getVersionForKeyId(key);
             Assert.fail();
         } catch (SignerException e) {
-            Assert.assertEquals(e.getMessage(),String.format("Can't get public key for the requested signing key: %s", key));
+            Assert.assertEquals(e.getMessage(), String.format("Can't get public key for the requested signing key: %s", key));
         }
     }
 

@@ -7,9 +7,11 @@ import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 
+import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.List;
@@ -27,7 +29,7 @@ public class TestUtils {
 
         return new Keccak256(bytes);
     }
-    
+
     //Creation of mock of blockheaders
     public static BlockHeader createBlockHeaderMock(int hashValue) {
         BlockHeader blockHeader = mock(BlockHeader.class);
@@ -187,5 +189,51 @@ public class TestUtils {
 
         // customRedeemScript might not be actually custom, but just in case, use the provided redeemScript
         return scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), customRedeemScript);
+    }
+
+    public static <T, V> void setInternalState(T instance, String fieldName, V value) {
+        Field field = getPrivateField(instance, fieldName);
+        field.setAccessible(true);
+
+        try {
+            field.set(instance, value);
+        } catch (IllegalAccessException re) {
+            throw new WhiteboxException("Could not set private field", re);
+        }
+    }
+
+    public static <T> T getInternalState(Object instance, String fieldName) {
+        Field field = getPrivateField(instance, fieldName);
+        field.setAccessible(true);
+
+        try {
+            return (T) field.get(instance);
+        } catch (IllegalAccessException re) {
+            throw new WhiteboxException("Could not get private field", re);
+        }
+    }
+
+    private static Field getPrivateField(Object instance, String fieldName) {
+        Field field = FieldUtils.getAllFieldsList(instance.getClass())
+                .stream()
+                .filter(f -> f.getName().equals(fieldName))
+                .findFirst()
+                .orElse(null);
+
+        if (field == null) {
+            throw new WhiteboxException("Field not found in class");
+        }
+
+        return field;
+    }
+
+    private static class WhiteboxException extends RuntimeException {
+        public WhiteboxException(String message) {
+            super(message);
+        }
+
+        public WhiteboxException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 }

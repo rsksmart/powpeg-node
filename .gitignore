@@ -78,3 +78,6 @@ database/
 #GradleJARS
 libs/gradle-witness.jar
 gradle/wrapper/gradle-wrapper.jar
+
+# jenv
+.java-version

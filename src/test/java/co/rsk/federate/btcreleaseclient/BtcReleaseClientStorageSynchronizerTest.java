@@ -11,7 +11,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
@@ -36,6 +35,7 @@ import org.ethereum.db.ReceiptStore;
 import org.ethereum.vm.LogInfo;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 
 public class BtcReleaseClientStorageSynchronizerTest {
@@ -77,7 +77,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
 
         storageSynchronizer.processBlock(mock(Block.class), Collections.emptyList());
 
-        verifyZeroInteractions(storageAccessor);
+        Mockito.verifyNoInteractions(storageAccessor);
     }
 
     @Test

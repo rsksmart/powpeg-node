@@ -2,6 +2,7 @@ package co.rsk.federate;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
 import org.ethereum.crypto.ECKey;
@@ -12,7 +13,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
-import org.powermock.reflect.Whitebox;
 
 import java.math.BigInteger;
 import java.time.Instant;
@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class FederationWatcherTest {
@@ -62,7 +62,7 @@ public class FederationWatcherTest {
         Mockito.doAnswer((InvocationOnMock m) -> {
             Object listener = m.getArgument(0);
             Assert.assertEquals("co.rsk.federate.FederationWatcher$FederationWatcherRskListener", listener.getClass().getName());
-            Assert.assertSame(Whitebox.getInternalState(watcher, "federationProvider"), federationProvider);
+            Assert.assertSame(TestUtils.getInternalState(watcher, "federationProvider"), federationProvider);
             return null;
         }).when(ethereumMock).addListener(any());
 
@@ -355,8 +355,8 @@ public class FederationWatcherTest {
             return null;
         }).when(ethereumMock).addListener(any());
         watcher.setup(federationProvider);
-        Whitebox.setInternalState(watcher, "activeFederation", activeFederation);
-        Whitebox.setInternalState(watcher, "retiringFederation", retiringFederation);
+        TestUtils.setInternalState(watcher, "activeFederation", activeFederation);
+        TestUtils.setInternalState(watcher, "retiringFederation", retiringFederation);
         Assert.assertNotNull(holder.listener);
         return holder.listener;
     }

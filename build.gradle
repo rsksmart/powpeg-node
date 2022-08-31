@@ -42,7 +42,7 @@ applicationDefaultJvmArgs = ["-server", "-Xss32m", "-Xms3g", "-XX:+UseCompressed
 tasks.withType(JavaCompile){
     options.warnings = false
     options.encoding = 'UTF-8'
-    options.compilerArgs << '-XDignore.symbol.file'
+    options.compilerArgs << '-XDignore.symbol.file' // << "-Xlint:unchecked" << "-Xlint:deprecation"
 }
 
 tasks.withType(AbstractArchiveTask) {
@@ -55,16 +55,15 @@ tasks.withType(AbstractArchiveTask) {
 ext {
     bitcoinjcoreVersion = '0.15.6-rsk-2'
     bitcoinjVersion = '0.14.4-rsk-12'
-    commonsLang3Version = '3.5'
-    commonsIoVersion = '2.5'
-    slf4jVersion = '1.7.25'
+    commonsLang3Version = '3.12.0'
+    commonsIoVersion = '2.11.0'
+    slf4jVersion = '1.7.36'
     javaxAnnotationApiVersion = '1.3.2'
-    jacksonDatabindVersion = '2.8.7'
-    typesafeVersion = '1.3.3'
-    logbackVersion = '1.2.2'
-    junitVersion = '4.12'
-    mockitoVersion = '2.23.4'
-    powermockitoVersion = '2.0.2'
+    jacksonDatabindVersion = '2.13.3'
+    typesafeVersion = '1.4.2'
+    logbackVersion = '1.2.11'
+    junitVersion = '4.13.2'
+    mockitoVersion = '4.6.1'
     rskjcoreVersion = '4.2.0-SNAPSHOT'
 }
 
@@ -85,9 +84,7 @@ dependencies {
     runtimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
 
     testImplementation "junit:junit:${junitVersion}"
-    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
-    testImplementation "org.powermock:powermock-module-junit4:${powermockitoVersion}"
-    testImplementation "org.powermock:powermock-api-mockito2:${powermockitoVersion}"
+    testImplementation "org.mockito:mockito-inline:${mockitoVersion}"
 }
 
 javadoc {

@@ -1,29 +1,22 @@
 package co.rsk.federate.bitcoin;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import co.rsk.config.BridgeConstants;
 import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
+import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import org.bitcoinj.core.BlockChain;
-import org.bitcoinj.core.Context;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PeerAddress;
-import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.kits.WalletAppKit;
+import org.bitcoinj.core.*;
 import org.bitcoinj.wallet.Wallet;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.powermock.reflect.Whitebox;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.mockito.Mockito.*;
 
 public class KitTest {
     private static BridgeConstants bridgeConstants;
@@ -54,17 +47,17 @@ public class KitTest {
         );
         List<PeerAddress> peerAddresses = new ArrayList<>();
         bitcoinWrapper.setup(peerAddresses);
-        WalletAppKit kit = Whitebox.getInternalState(bitcoinWrapper, "kit");
+        Kit kit = TestUtils.getInternalState(bitcoinWrapper, "kit");
         PeerGroup vPeerGroupMock = mock(PeerGroup.class);
-        Whitebox.setInternalState(kit, "vPeerGroup", vPeerGroupMock);
+        TestUtils.setInternalState(kit, "vPeerGroup", vPeerGroupMock);
         BlockChain vChainMock = mock(BlockChain.class);
-        Whitebox.setInternalState(kit, "vChain", vChainMock);
+        TestUtils.setInternalState(kit, "vChain", vChainMock);
 
         Wallet vWalletMock = mock(Wallet.class);
         when(vWalletMock.isConsistent()).thenReturn(true);
-        Whitebox.setInternalState(kit, "vWallet", vWalletMock);
+        TestUtils.setInternalState(kit, "vWallet", vWalletMock);
 
-        Whitebox.invokeMethod(kit, "onSetupCompleted");
+        kit.onSetupCompleted();
 
         verify(vWalletMock, times(1)).isConsistent();
         verify(vWalletMock, times(0)).reset();
@@ -87,17 +80,17 @@ public class KitTest {
         );
         List<PeerAddress> peerAddresses = new ArrayList<>();
         bitcoinWrapper.setup(peerAddresses);
-        WalletAppKit kit = Whitebox.getInternalState(bitcoinWrapper, "kit");
+        Kit kit = TestUtils.getInternalState(bitcoinWrapper, "kit");
         PeerGroup vPeerGroupMock = mock(PeerGroup.class);
-        Whitebox.setInternalState(kit, "vPeerGroup", vPeerGroupMock);
+        TestUtils.setInternalState(kit, "vPeerGroup", vPeerGroupMock);
         BlockChain vChainMock = mock(BlockChain.class);
-        Whitebox.setInternalState(kit, "vChain", vChainMock);
+        TestUtils.setInternalState(kit, "vChain", vChainMock);
 
         Wallet vWalletMock = mock(Wallet.class);
         when(vWalletMock.isConsistent()).thenReturn(false);
-        Whitebox.setInternalState(kit, "vWallet", vWalletMock);
+        TestUtils.setInternalState(kit, "vWallet", vWalletMock);
 
-        Whitebox.invokeMethod(kit, "onSetupCompleted");
+        kit.onSetupCompleted();
 
         verify(vWalletMock, times(1)).isConsistent();
         verify(vWalletMock, times(1)).reset();
