@@ -69,9 +69,28 @@ public class ReleaseCreationInformationGetterTest {
                 receiptStore,
                 blockStore
         );
+        // HSM V2
+        createGetTxInfoToSign_returnOK_v2(information, rskTxHash, btcTransaction, block, transactionReceipt);
 
+        // HSM V3
+        createGetTxInfoToSign_returnOK_v3(information, rskTxHash, btcTransaction, block, transactionReceipt);
+    }
+
+    public void createGetTxInfoToSign_returnOK_v2(ReleaseCreationInformationGetter information, Keccak256 rskTxHash,
+                                                  BtcTransaction btcTransaction, Block block, TransactionReceipt transactionReceipt) throws HSMReleaseCreationInformationException {
         ReleaseCreationInformation releaseCreationInformation =
             information.getTxInfoToSign(2, rskTxHash, btcTransaction);
+
+        Assert.assertEquals(releaseCreationInformation.getBlock(), block);
+        Assert.assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
+        Assert.assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
+        Assert.assertEquals(btcTransaction, releaseCreationInformation.getBtcTransaction());
+    }
+
+    public void createGetTxInfoToSign_returnOK_v3(ReleaseCreationInformationGetter information, Keccak256 rskTxHash,
+                                                  BtcTransaction btcTransaction, Block block, TransactionReceipt transactionReceipt) throws HSMReleaseCreationInformationException {
+        ReleaseCreationInformation releaseCreationInformation =
+            information.getTxInfoToSign(3, rskTxHash, btcTransaction);
 
         Assert.assertEquals(releaseCreationInformation.getBlock(), block);
         Assert.assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
