@@ -57,6 +57,7 @@ public class ReleaseCreationInformationGetter {
             case 1:
                 return getBaseReleaseCreationInformation(rskTxHash, btcTransaction, informingRskTxHash);
             case 2:
+            case 3:
                 return getTxInfoToSignVersion2(rskTxHash, btcTransaction, informingRskTxHash);
             default:
                 throw new HSMReleaseCreationInformationException("Unsupported version " + version);
