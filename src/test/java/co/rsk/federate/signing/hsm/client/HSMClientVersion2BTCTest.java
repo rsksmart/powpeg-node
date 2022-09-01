@@ -460,6 +460,8 @@ public class HSMClientVersion2BTCTest {
         Assert.assertEquals("blockchainState", capturedArguments.get(0).get("command").asText());
         Assert.assertEquals("updateAncestorBlock", capturedArguments.get(1).get("command").asText());
         Assert.assertEquals("updateAncestorBlock", capturedArguments.get(2).get("command").asText());
+        Assert.assertTrue(capturedArguments.get(1).has("blocks"));
+        Assert.assertFalse(capturedArguments.get(1).has("uncles"));
     }
 
     @Test
@@ -506,6 +508,7 @@ public class HSMClientVersion2BTCTest {
         Assert.assertEquals("advanceBlockchain", capturedArguments.get(1).get("command").asText());
         Assert.assertTrue(capturedArguments.get(1).has("blocks"));
         Assert.assertTrue(capturedArguments.get(1).has("uncles"));
+        Assert.assertEquals(capturedArguments.get(1).get("blocks").size(), capturedArguments.get(1).get("uncles").size());
     }
 
     @Test
