@@ -462,7 +462,7 @@ public class HSMClientVersion2BTCTest {
         Assert.assertEquals("updateAncestorBlock", capturedArguments.get(1).get("command").asText());
         Assert.assertEquals("updateAncestorBlock", capturedArguments.get(2).get("command").asText());
         Assert.assertTrue(capturedArguments.get(1).has("blocks"));
-        Assert.assertFalse(capturedArguments.get(1).has("uncles"));
+        Assert.assertFalse(capturedArguments.get(1).has("brothers"));
     }
 
     @Test
@@ -481,11 +481,11 @@ public class HSMClientVersion2BTCTest {
         Assert.assertEquals("blockchainState", capturedArguments.get(0).get("command").asText());
         Assert.assertEquals("advanceBlockchain", capturedArguments.get(1).get("command").asText());
         Assert.assertTrue(capturedArguments.get(1).has("blocks"));
-        Assert.assertFalse(capturedArguments.get(1).has("uncles"));
+        Assert.assertFalse(capturedArguments.get(1).has("brothers"));
     }
 
     @Test
-    public void advanceBlockchain_with_uncles_ok() throws HSMClientException, JsonRpcException {
+    public void advanceBlockchain_with_brothers_ok() throws HSMClientException, JsonRpcException {
         JsonRpcClientProvider jsonRpcClientProvider = mock(JsonRpcClientProvider.class);
         JsonRpcClient jsonRpcClient = mock(JsonRpcClient.class);
         when(jsonRpcClientProvider.acquire()).thenReturn(jsonRpcClient);
@@ -508,8 +508,8 @@ public class HSMClientVersion2BTCTest {
         Assert.assertEquals("blockchainState", capturedArguments.get(0).get("command").asText());
         Assert.assertEquals("advanceBlockchain", capturedArguments.get(1).get("command").asText());
         Assert.assertTrue(capturedArguments.get(1).has("blocks"));
-        Assert.assertTrue(capturedArguments.get(1).has("uncles"));
-        Assert.assertEquals(capturedArguments.get(1).get("blocks").size(), capturedArguments.get(1).get("uncles").size());
+        Assert.assertTrue(capturedArguments.get(1).has("brothers"));
+        Assert.assertEquals(capturedArguments.get(1).get("blocks").size(), capturedArguments.get(1).get("brothers").size());
     }
 
     @Test

@@ -7,17 +7,17 @@ import org.spongycastle.util.encoders.Hex;
 
 public class AdvanceBlockchainMessage {
     private final List<String> blockHeaders;
-    private final List<String> blockHeadersUncles;
+    private final List<String> blockHeadersBrothers;
 
-    public AdvanceBlockchainMessage(List<BlockHeader> blockHeaders, List<BlockHeader> blockHeadersUncles) {
+    public AdvanceBlockchainMessage(List<BlockHeader> blockHeaders, List<BlockHeader> blockHeadersBrothers) {
         this.blockHeaders = new ArrayList<>();
         // Invert order
         for (int index = blockHeaders.size() - 1; index >= 0; index--) {
             this.blockHeaders.add(parseBlockHeader(blockHeaders.get(index)));
         }
-        this.blockHeadersUncles = new ArrayList<>();
-        for (int index = blockHeadersUncles.size() - 1; index >= 0; index--) {
-            this.blockHeadersUncles.add(parseBlockHeader(blockHeadersUncles.get(index)));
+        this.blockHeadersBrothers = new ArrayList<>();
+        for (int index = blockHeadersBrothers.size() - 1; index >= 0; index--) {
+            this.blockHeadersBrothers.add(parseBlockHeader(blockHeadersBrothers.get(index)));
         }
     }
 
@@ -29,7 +29,7 @@ public class AdvanceBlockchainMessage {
         return blockHeaders;
     }
 
-    public List<String> getBlockHeadersUncles() {
-        return blockHeadersUncles;
+    public List<String> getBlockHeadersBrothers() {
+        return blockHeadersBrothers;
     }
 }
