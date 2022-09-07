@@ -127,7 +127,7 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         logger.trace("[{}] Payload total size: {}", actualMethod, blockHeaders.size());
 
         final String BLOCKS_FIELD = "blocks";
-        final String UNCLES_FIELD = "uncles";
+        final String BROTHERS_FIELD = "brothers";
         for (int i = 0; i < blockHeadersChunks.size(); i++) {
             try {
                 String[] blockHeaderChunk = blockHeadersChunks.get(i);
@@ -138,12 +138,12 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
                 }
                 payload.set(BLOCKS_FIELD, blocksFieldData);
                 if (this.version == 3 && actualMethod.equals("advanceBlockchain")) {
-                    ArrayNode unclesFieldData = new ObjectMapper().createArrayNode();
+                    ArrayNode brothersFieldData = new ObjectMapper().createArrayNode();
                     for (String blockHeader : blockHeaderChunk) {
                         // TODO: This will change when Version 3 is fully implemented
-                        unclesFieldData.add(new ObjectMapper().createArrayNode());
+                        brothersFieldData.add(new ObjectMapper().createArrayNode());
                     }
-                    payload.set(UNCLES_FIELD, unclesFieldData);
+                    payload.set(BROTHERS_FIELD, brothersFieldData);
                 }
                 if (isStopped) {
                     return;
