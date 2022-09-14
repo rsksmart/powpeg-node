@@ -141,7 +141,7 @@ public class FederatorSupportTest {
     private void test_getPegoutCreationRskTxHashByBtcTxHash(co.rsk.bitcoinj.core.Sha256Hash sha256Hash, Keccak256 keccak256) {
         BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
-        FederatorSupport fs = new FederatorSupport(
+        FederatorSupport federatorSupport = new FederatorSupport(
             mock(Blockchain.class),
             new TestSystemProperties(),
             bridgeTransactionSender
@@ -149,7 +149,7 @@ public class FederatorSupportTest {
 
         FederationMember federationMember = federation.getMembers().get(0);
         RskAddress rskAddress = new RskAddress(federationMember.getRskPublicKey().getAddress());
-        fs.setMember(federationMember);
+        federatorSupport.setMember(federationMember);
 
         doAnswer((Answer<byte[]>) invocation -> {
             Object[] args = invocation.getArguments();
@@ -163,7 +163,7 @@ public class FederatorSupportTest {
             new Object[]{sha256Hash.getBytes()}
         );
 
-        Optional<Keccak256> pegoutCreationRskTxHashByBtcTxHash = fs.getPegoutCreationRskTxHashByBtcTxHash(sha256Hash);
+        Optional<Keccak256> pegoutCreationRskTxHashByBtcTxHash = federatorSupport.getPegoutCreationRskTxHashByBtcTxHash(sha256Hash);
 
         Assert.assertTrue(pegoutCreationRskTxHashByBtcTxHash.isPresent());
         Assert.assertArrayEquals(keccak256.getBytes(), pegoutCreationRskTxHashByBtcTxHash.get().getBytes());

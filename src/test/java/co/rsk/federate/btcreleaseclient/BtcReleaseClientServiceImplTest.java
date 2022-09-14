@@ -63,7 +63,7 @@ public class BtcReleaseClientServiceImplTest {
     private void hasBtcTxHash(Sha256Hash sha256Hash, Keccak256 hash, boolean fromPegoutCreationIndex, boolean fromLegacyStorage) {
         BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
-        FederatorSupport fs = Mockito.spy(new FederatorSupport(
+        FederatorSupport federatorSupport = Mockito.spy(new FederatorSupport(
             mock(Blockchain.class),
             new TestSystemProperties(),
             bridgeTransactionSender
@@ -71,12 +71,12 @@ public class BtcReleaseClientServiceImplTest {
 
         FederationMember federationMember = federation.getMembers().get(0);
         RskAddress rskAddress = new RskAddress(federationMember.getRskPublicKey().getAddress());
-        fs.setMember(federationMember);
+        federatorSupport.setMember(federationMember);
 
         BtcReleaseClientStorageAccessor btcReleaseClientStorageAccessor = mock(BtcReleaseClientStorageAccessor.class);
 
         BtcReleaseClientService btcReleaseClientService = new BtcReleaseClientServiceImpl(
-            fs,
+            federatorSupport,
             btcReleaseClientStorageAccessor
         );
 
@@ -94,7 +94,7 @@ public class BtcReleaseClientServiceImplTest {
             btcReleaseClientService.hasBtcTxHash(sha256Hash)
         );
 
-        verify(fs, times(1)).getPegoutCreationRskTxHashByBtcTxHash(sha256Hash);
+        verify(federatorSupport, times(1)).getPegoutCreationRskTxHashByBtcTxHash(sha256Hash);
 
         if (fromPegoutCreationIndex){
             verify(btcReleaseClientStorageAccessor, never()).hasBtcTxHash(sha256Hash);
@@ -132,7 +132,7 @@ public class BtcReleaseClientServiceImplTest {
                                    boolean fromLegacyStorage) {
         BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
-        FederatorSupport fs = Mockito.spy(new FederatorSupport(
+        FederatorSupport federatorSupport = Mockito.spy(new FederatorSupport(
             mock(Blockchain.class),
             new TestSystemProperties(),
             bridgeTransactionSender
@@ -140,12 +140,12 @@ public class BtcReleaseClientServiceImplTest {
 
         FederationMember federationMember = federation.getMembers().get(0);
         RskAddress rskAddress = new RskAddress(federationMember.getRskPublicKey().getAddress());
-        fs.setMember(federationMember);
+        federatorSupport.setMember(federationMember);
 
         BtcReleaseClientStorageAccessor btcReleaseClientStorageAccessor = mock(BtcReleaseClientStorageAccessor.class);
 
         BtcReleaseClientService btcReleaseClientService = new BtcReleaseClientServiceImpl(
-            fs,
+            federatorSupport,
             btcReleaseClientStorageAccessor
         );
 
@@ -167,7 +167,7 @@ public class BtcReleaseClientServiceImplTest {
             rskTxHash.isPresent()
         );
 
-        verify(fs, times(1)).getPegoutCreationRskTxHashByBtcTxHash(sha256Hash);
+        verify(federatorSupport, times(1)).getPegoutCreationRskTxHashByBtcTxHash(sha256Hash);
 
         if (fromLegacyStorage || fromPegoutCreationIndex){
             Assert.assertEquals(
