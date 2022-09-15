@@ -160,7 +160,8 @@ public class FedNodeRunner implements NodeRunner {
                     ECDSASigner createdSigner = buildSignerFromKey(keyId);
                     if (keyId == BTC_KEY_ID) {
                         try {
-                            HSM2SignerConfig hsm2Config = new HSM2SignerConfig(config.signerConfig(keyId.getId()));
+                            bridgeConstants = this.config.getNetworkConstants().getBridgeConstants();
+                            HSM2SignerConfig hsm2Config = new HSM2SignerConfig(config.signerConfig(keyId.getId()), bridgeConstants.getBtcParamsString());
 
                             ECDSAHSMSigner ecdsahsmSigner = (ECDSAHSMSigner)createdSigner;
                             hsmBookkeepingClient = (HSMBookkeepingClient)(ecdsahsmSigner.getClient());
