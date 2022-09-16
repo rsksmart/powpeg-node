@@ -20,19 +20,6 @@ public class BtcReleaseClientServiceImpl implements BtcReleaseClientService {
     }
 
     @Override
-    public boolean hasBtcTxHash(Sha256Hash btcTxHash) {
-        boolean exists = federatorSupport.getPegoutCreationRskTxHashByBtcTxHash(btcTxHash).isPresent();
-        if (!exists){
-            logger.trace("[hasBtcTxHash] btc tx hash {} does not exist in pegout creation index.", btcTxHash);
-            boolean hasBtcTxHash = btcReleaseClientStorageAccessor.hasBtcTxHash(btcTxHash);
-            logger.trace("[hasBtcTxHash] is btc tx hash {} in legacy storage? {}", btcTxHash, hasBtcTxHash);
-            return hasBtcTxHash;
-        }
-        logger.trace("[getRskTxHash] btc tx hash {} found in pegout creation index.", btcTxHash);
-        return true;
-    }
-
-    @Override
     public Optional<Keccak256> getRskTxHash(Sha256Hash btcTxHash) {
         Optional<Keccak256> rskTxHash = federatorSupport.getPegoutCreationRskTxHashByBtcTxHash(btcTxHash);
         if (rskTxHash.isPresent()){
