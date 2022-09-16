@@ -917,7 +917,6 @@ public class BtcReleaseClientTest {
         when(accessor.getRskTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? rskTxHash: null);
 
         BtcReleaseClientServiceImpl btcReleaseClientService = mock(BtcReleaseClientServiceImpl.class);
-        when(btcReleaseClientService.hasBtcTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile);
         when(btcReleaseClientService.getRskTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? Optional.of(rskTxHash): Optional.empty());
 
         BtcReleaseClientStorageSynchronizer synchronizer = mock(BtcReleaseClientStorageSynchronizer.class);
