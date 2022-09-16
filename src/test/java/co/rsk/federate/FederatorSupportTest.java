@@ -14,7 +14,10 @@ import co.rsk.peg.FederationMember;
 import org.bitcoinj.core.*;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.Blockchain;
+import org.ethereum.util.ByteUtil;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
 
@@ -27,10 +30,17 @@ import static org.mockito.Mockito.*;
 
 public class FederatorSupportTest {
 
-    private NetworkParameters networkParameters = ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString());
+    private NetworkParameters networkParameters;
 
-    private co.rsk.bitcoinj.core.NetworkParameters params = RegTestParams.get();
-    private Federation federation = TestUtils.createFederation(params, 1);
+    private co.rsk.bitcoinj.core.NetworkParameters params;
+    private Federation federation;
+
+    @Before
+    public void setUp() throws Exception {
+        networkParameters = ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString());
+        params = RegTestParams.get();
+        federation = TestUtils.createFederation(params, 1);
+    }
 
     @Test
     public void sendReceiveHeadersSendsBlockHeaders() {
@@ -121,13 +131,10 @@ public class FederatorSupportTest {
 
     @Test
     public void getPegoutCreationRskTxHashByBtcTxHash() {
-        co.rsk.bitcoinj.core.NetworkParameters params = RegTestParams.get();
-        Federation federation = TestUtils.createFederation(params, 1);
-
         co.rsk.bitcoinj.core.Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
         Keccak256 hash = TestUtils.createHash(5);
 
-        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash);
+        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash, true);
     }
 
     @Test
@@ -135,10 +142,17 @@ public class FederatorSupportTest {
         co.rsk.bitcoinj.core.Sha256Hash sha256Hash = co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH;
         Keccak256 hash = Keccak256.ZERO_HASH;
 
-        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash);
+        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash, true);
     }
 
-    private void test_getPegoutCreationRskTxHashByBtcTxHash(co.rsk.bitcoinj.core.Sha256Hash sha256Hash, Keccak256 keccak256) {
+    @Test
+    public void getPegoutCreationRskTxHashByBtcTxHash_not_found() {
+        co.rsk.bitcoinj.core.Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
+
+        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, null, false);
+    }
+
+    private void test_getPegoutCreationRskTxHashByBtcTxHash(co.rsk.bitcoinj.core.Sha256Hash sha256Hash, Keccak256 keccak256, boolean exists) {
         BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
         FederatorSupport federatorSupport = new FederatorSupport(
@@ -156,7 +170,11 @@ public class FederatorSupportTest {
             Assert.assertEquals(rskAddress, args[0]);
             Assert.assertEquals(BridgeMethods.GET_PEGOUT_CREATION_RSK_TX_HASH_BY_BTC_TX_HASH.getFunction(), args[1]);
             Assert.assertEquals(sha256Hash.getBytes(), ((Object[])args[2])[0]);
-            return keccak256.getBytes();
+            if (exists){
+                return keccak256.getBytes();
+            } else {
+                return ByteUtil.EMPTY_BYTE_ARRAY;
+            }
         }).when(bridgeTransactionSender).callTx(
             rskAddress,
             Bridge.GET_PEGOUT_CREATION_RSK_TX_HASH_BY_BTC_TX_HASH,
@@ -165,8 +183,10 @@ public class FederatorSupportTest {
 
         Optional<Keccak256> pegoutCreationRskTxHashByBtcTxHash = federatorSupport.getPegoutCreationRskTxHashByBtcTxHash(sha256Hash);
 
-        Assert.assertTrue(pegoutCreationRskTxHashByBtcTxHash.isPresent());
-        Assert.assertArrayEquals(keccak256.getBytes(), pegoutCreationRskTxHashByBtcTxHash.get().getBytes());
+        Assert.assertEquals(exists, pegoutCreationRskTxHashByBtcTxHash.isPresent());
+        if (exists) {
+            Assert.assertArrayEquals(keccak256.getBytes(), pegoutCreationRskTxHashByBtcTxHash.get().getBytes());
+        }
     }
 
     private Sha256Hash createHash() {
