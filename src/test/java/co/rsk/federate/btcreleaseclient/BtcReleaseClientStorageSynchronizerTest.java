@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.Transaction;
@@ -181,10 +182,13 @@ public class BtcReleaseClientStorageSynchronizerTest {
         when(newBlock.getHash()).thenReturn(thirdHash);
         when(blockStore.getChainBlockByNumber(2L)).thenReturn(newBlock);
 
+        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
+
         TransactionReceipt receipt = mock(TransactionReceipt.class);
         List<LogInfo> logs = new ArrayList<>();
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
             BridgeRegTestConstants.getInstance(),
+                activations,
             logs
         );
 
@@ -272,10 +276,13 @@ public class BtcReleaseClientStorageSynchronizerTest {
         Transaction updateCollectionsTx = mock(Transaction.class);
         when(updateCollectionsTx.getHash()).thenReturn(createHash(666));
 
+        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
+
         TransactionReceipt receipt = mock(TransactionReceipt.class);
         List<LogInfo> logs = new ArrayList<>();
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
             BridgeRegTestConstants.getInstance(),
+                activations,
             logs
         );
 
