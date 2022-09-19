@@ -20,7 +20,7 @@ public class BtcReleaseClientServiceImpl implements BtcReleaseClientService {
     }
 
     @Override
-    public Optional<Keccak256> getRskTxHash(Sha256Hash btcTxHash) {
+    public Optional<Keccak256> getPegoutCreationRskTxHashByBtcTxHash(Sha256Hash btcTxHash) {
         Optional<Keccak256> rskTxHash = federatorSupport.getPegoutCreationRskTxHashByBtcTxHash(btcTxHash);
         if (rskTxHash.isPresent()){
             logger.trace("[getRskTxHash] btc tx hash {} fetched from pegout creation index.", btcTxHash);
