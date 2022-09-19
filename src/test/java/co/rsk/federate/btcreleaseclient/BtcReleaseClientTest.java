@@ -85,16 +85,17 @@ public class BtcReleaseClientTest {
     private NetworkParameters params;
     private BridgeConstants bridgeConstants;
 
-    private static final List<BtcECKey> erpFedKeys = Arrays.stream(new String[]{
-        "03b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b24",
-        "029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e43301",
-        "03284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd",
-    }).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).collect(Collectors.toList());
+    private List<BtcECKey> erpFedKeys;
 
     @Before
     public void setup() {
         params = RegTestParams.get();
         bridgeConstants = Constants.regtest().bridgeConstants;
+        erpFedKeys = Arrays.stream(new String[]{
+            "03b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b24",
+            "029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e43301",
+            "03284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd",
+        }).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).collect(Collectors.toList());
     }
 
     @Test
@@ -1013,7 +1014,7 @@ public class BtcReleaseClientTest {
         when(accessor.getRskTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? rskTxHash: null);
 
         BtcReleaseClientServiceImpl btcReleaseClientService = mock(BtcReleaseClientServiceImpl.class);
-        when(btcReleaseClientService.getRskTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? Optional.of(rskTxHash): Optional.empty());
+        when(btcReleaseClientService.getPegoutCreationRskTxHashByBtcTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? Optional.of(rskTxHash): Optional.empty());
 
         BtcReleaseClientStorageSynchronizer synchronizer = mock(BtcReleaseClientStorageSynchronizer.class);
         when(synchronizer.isSynced()).thenReturn(true);

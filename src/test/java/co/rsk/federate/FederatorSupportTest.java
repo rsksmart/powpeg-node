@@ -17,7 +17,6 @@ import org.ethereum.core.Blockchain;
 import org.ethereum.util.ByteUtil;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
 
@@ -31,12 +30,11 @@ import static org.mockito.Mockito.*;
 public class FederatorSupportTest {
 
     private NetworkParameters networkParameters;
-
     private co.rsk.bitcoinj.core.NetworkParameters params;
     private Federation federation;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         networkParameters = ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString());
         params = RegTestParams.get();
         federation = TestUtils.createFederation(params, 1);

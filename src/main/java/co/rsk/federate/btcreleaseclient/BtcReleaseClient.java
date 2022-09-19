@@ -294,7 +294,7 @@ public class BtcReleaseClient {
             removeSignaturesFromTransaction(releaseTx, spendingFed);
             logger.trace("[tryGetReleaseInformation] Tx hash without signatures {}", releaseTx.getHash());
 
-            Optional<Keccak256> optionalRskTxHash = btcReleaseClientService.getRskTxHash(releaseTx.getHash());
+            Optional<Keccak256> optionalRskTxHash = btcReleaseClientService.getPegoutCreationRskTxHashByBtcTxHash(releaseTx.getHash());
 
             logger.trace("[tryGetReleaseInformation] Is tx found in storage? {}", optionalRskTxHash.isPresent());
             // Try to get the rskTxHash from the map in memory
