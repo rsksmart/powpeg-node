@@ -39,7 +39,8 @@ public class HSMBookkeepingService {
             BlockStore blockStore,
             HSMBookkeepingClient hsmBookkeepingClient,
             NodeBlockProcessor nodeBlockProcessor,
-            HSM2SignerConfig hsm2Config
+            HSM2SignerConfig hsm2Config,
+            int hsmVersion
     ) {
         this(
                 blockStore,
@@ -47,7 +48,8 @@ public class HSMBookkeepingService {
                 new ConfirmedBlockHeadersProvider(
                         hsm2Config.getDifficultyTarget(),
                         hsm2Config.getMaxAmountBlockHeaders(),
-                        blockStore
+                        blockStore,
+                        hsmVersion
                 ),
                 nodeBlockProcessor,
                 hsm2Config.getInformerInterval(),

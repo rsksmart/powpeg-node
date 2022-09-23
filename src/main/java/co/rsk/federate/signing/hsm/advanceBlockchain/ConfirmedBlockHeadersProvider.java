@@ -17,15 +17,17 @@ public class ConfirmedBlockHeadersProvider {
     private BigInteger minimumAccumulatedDifficulty;
     private final int maximumElementsToSendHSM;
     private BlockStore blockStore;
+    private int hsmVersion;
 
     public ConfirmedBlockHeadersProvider(
-            BigInteger minimumAccumulatedDifficulty,
-            int maximumElementsToSendHSM,
-            BlockStore blockStore
-    ) {
+        BigInteger minimumAccumulatedDifficulty,
+        int maximumElementsToSendHSM,
+        BlockStore blockStore,
+        int hsmVersion) {
         this.blockStore = blockStore;
         this.minimumAccumulatedDifficulty = minimumAccumulatedDifficulty;
         this.maximumElementsToSendHSM = maximumElementsToSendHSM;
+        this.hsmVersion = hsmVersion;
     }
 
     public List<BlockHeader> getConfirmedBlockHeaders(Keccak256 startingPoint) {
@@ -44,7 +46,7 @@ public class ConfirmedBlockHeadersProvider {
         Block blockToProcess = blockStore.getChainBlockByNumber(initialBlock.getNumber() + 1);
         while (blockToProcess != null && confirmedBlockHeaders.size() < maximumElementsToSendHSM) {
             potentialConfirmed.add(blockToProcess.getHeader());
-            accumulatedDifficulty = accumulatedDifficulty.add(blockToProcess.getDifficulty().asBigInteger());
+            accumulatedDifficulty = accumulatedDifficulty.add(hsmVersion == 3 ? difficultyCap.min(blockToProcess.getDifficulty().asBigInteger()) : blockToProcess.getDifficulty().asBigInteger());
             if (accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0) {
                 // The first block was confirmed. Add it to confirm, substract its difficulty from the accumulated and from the potentials list
                 BlockHeader confirmedBlockHeader = potentialConfirmed.get(0);
