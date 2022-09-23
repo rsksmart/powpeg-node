@@ -167,10 +167,11 @@ public class FedNodeRunner implements NodeRunner {
                             hsmBookkeepingClient = (HSMBookkeepingClient)(ecdsahsmSigner.getClient());
                             hsmBookkeepingClient.setMaxChunkSizeToHsm(hsm2Config.getMaxChunkSizeToHsm());
                             hsmBookkeepingService = new HSMBookkeepingService(
-                                fedNodeContext.getBlockStore(),
-                                hsmBookkeepingClient,
-                                fedNodeContext.getNodeBlockProcessor(),
-                                hsm2Config
+                                    fedNodeContext.getBlockStore(),
+                                    hsmBookkeepingClient,
+                                    fedNodeContext.getNodeBlockProcessor(),
+                                    hsm2Config,
+                                    ecdsahsmSigner.getVersionForKeyId(keyId)
                             );
                         } catch(ClassCastException | HSMClientException e) {
                             LOGGER.warn("BTC signer not configured to use HSM 2. Consider upgrading it!");
