@@ -250,7 +250,6 @@ public class BtcReleaseClientTest {
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class),
             mock(BtcReleaseClientServiceImpl.class)
         );
@@ -360,7 +359,6 @@ public class BtcReleaseClientTest {
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
             storageSynchronizer,
             mock(BtcReleaseClientServiceImpl.class)
         );
@@ -410,7 +408,6 @@ public class BtcReleaseClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class),
             mock(BtcReleaseClientServiceImpl.class)
         );
@@ -661,7 +658,6 @@ public class BtcReleaseClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class),
             mock(BtcReleaseClientServiceImpl.class)
         );
@@ -701,7 +697,6 @@ public class BtcReleaseClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class),
             mock(BtcReleaseClientServiceImpl.class)
         );
@@ -759,7 +754,6 @@ public class BtcReleaseClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class),
             mock(BtcReleaseClientServiceImpl.class)
         );
@@ -855,7 +849,6 @@ public class BtcReleaseClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class),
             mock(BtcReleaseClientServiceImpl.class)
         );
@@ -1025,7 +1018,6 @@ public class BtcReleaseClientTest {
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             releaseRequirementsEnforcer,
-            accessor,
             synchronizer,
             btcReleaseClientService
         );

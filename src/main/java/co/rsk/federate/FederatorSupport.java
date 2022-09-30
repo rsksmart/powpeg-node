@@ -16,6 +16,7 @@ import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Sha256Hash;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.Blockchain;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
@@ -260,18 +261,31 @@ public class FederatorSupport {
     }
 
     public Optional<Keccak256> getPegoutCreationRskTxHashByBtcTxHash(co.rsk.bitcoinj.core.Sha256Hash btcTxHash) {
-        byte[] pegoutCreationRskTxHash = this.bridgeTransactionSender.callTx(
+        if (!getConfigForBestBlock().isActive(ConsensusRule.RSKIP298)){
+            LOGGER.debug("[getPegoutCreationRskTxHashByBtcTxHash] RSKIP298 is not active.");
+            return Optional.empty();
+        }
+
+        byte[] pegoutCreationRskTxHashBytes = this.bridgeTransactionSender.callTx(
             federatorAddress,
             Bridge.GET_PEGOUT_CREATION_RSK_TX_HASH_BY_BTC_TX_HASH,
             new Object[]{btcTxHash.getBytes()}
         );
 
-        if (pegoutCreationRskTxHash.length > 0) {
-            return Optional.of(new Keccak256(pegoutCreationRskTxHash));
+        /* The result pegoutCreationRskTxHashBytes is expected to be a 32 bits byte array, if not, a
+        *  IllegalArgumentException will be thrown by the creation of the Keccak256.
+        */
+        Keccak256 pegoutCreationRskTxHash = new Keccak256(pegoutCreationRskTxHashBytes);
+
+        /* We assume that the rskTxHash was not found in the index if the returned pegoutCreationRskTxHash is equal
+         * to a Keccak256.ZERO_HASH.
+         */
+        if (!pegoutCreationRskTxHash.equals(Keccak256.ZERO_HASH)) {
+            return Optional.of(pegoutCreationRskTxHash);
         }
-        else {
-            return Optional.empty();
-        }
+
+        LOGGER.trace("[getPegoutCreationRskTxHashByBtcTxHash] no pegout was found by btc tx hash {}.", btcTxHash);
+        return Optional.empty();
     }
 
     public NetworkParameters getBtcParams() {

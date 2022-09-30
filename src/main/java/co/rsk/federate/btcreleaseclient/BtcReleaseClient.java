@@ -96,7 +96,6 @@ public class BtcReleaseClient {
     private ReleaseCreationInformationGetter releaseCreationInformationGetter;
     private ReleaseRequirementsEnforcer releaseRequirementsEnforcer;
 
-    private BtcReleaseClientStorageAccessor storageAccessor;
     private BtcReleaseClientStorageSynchronizer storageSynchronizer;
 
     private BtcReleaseClientService btcReleaseClientService;
@@ -123,7 +122,6 @@ public class BtcReleaseClient {
         SignerMessageBuilderFactory signerMessageBuilderFactory,
         ReleaseCreationInformationGetter releaseCreationInformationGetter,
         ReleaseRequirementsEnforcer releaseRequirementsEnforcer,
-        BtcReleaseClientStorageAccessor storageAccessor,
         BtcReleaseClientStorageSynchronizer storageSynchronizer,
         BtcReleaseClientService btcReleaseClientService
     ) throws BtcReleaseClientException {
@@ -150,7 +148,6 @@ public class BtcReleaseClient {
         this.releaseCreationInformationGetter = releaseCreationInformationGetter;
         this.releaseRequirementsEnforcer = releaseRequirementsEnforcer;
 
-        this.storageAccessor = storageAccessor;
         this.storageSynchronizer = storageSynchronizer;
         this.btcReleaseClientService = btcReleaseClientService;
 
@@ -296,7 +293,7 @@ public class BtcReleaseClient {
 
             Optional<Keccak256> optionalRskTxHash = btcReleaseClientService.getPegoutCreationRskTxHashByBtcTxHash(releaseTx.getHash());
 
-            logger.trace("[tryGetReleaseInformation] Is tx found in storage? {}", optionalRskTxHash.isPresent());
+            logger.trace("[tryGetReleaseInformation] Is tx in storage? {}", optionalRskTxHash.isPresent());
             // Try to get the rskTxHash from the map in memory
             Keccak256 actualRskTxHash = optionalRskTxHash.orElse(rskTxHash);
 
