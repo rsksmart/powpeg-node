@@ -474,7 +474,7 @@ public class HSMClientVersion2BTCTest {
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
 
-        client.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader), new ArrayList<>()));
+        client.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(2)).send(captor.capture());
         List<JsonNode> capturedArguments = captor.getAllValues();
@@ -501,7 +501,7 @@ public class HSMClientVersion2BTCTest {
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
 
-        client.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader), new ArrayList<>()));
+        client.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClient, times(2)).send(captor.capture());
         List<JsonNode> capturedArguments = captor.getAllValues();
