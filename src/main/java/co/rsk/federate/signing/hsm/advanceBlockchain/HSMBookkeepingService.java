@@ -180,7 +180,7 @@ public class HSMBookkeepingService {
                     blockHeaders.get(0).getHash(),
                     blockHeaders.get(blockHeaders.size() - 1).getHash()
             );
-            hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders, new ArrayList<>()));
+            hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders));
             hsmCurrentBestBlock = getHsmBestBlock();
             logger.debug(
                     "[informConfirmedBlockHeaders] HSM best block after informing {} (height: {})",
