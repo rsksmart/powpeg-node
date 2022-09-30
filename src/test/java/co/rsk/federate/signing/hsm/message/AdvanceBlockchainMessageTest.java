@@ -22,7 +22,7 @@ public class AdvanceBlockchainMessageTest {
         when(blockHeader1.getFullEncoded()).thenReturn(encodedBlockHeader1);
 
         List<BlockHeader> blockHeaders = Collections.singletonList(blockHeader1);
-        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blockHeaders, new ArrayList<>());
+        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blockHeaders);
 
         Assert.assertEquals(1, message.getBlockHeaders().size());
         Assert.assertEquals(Hex.toHexString(encodedBlockHeader1), message.getBlockHeaders().get(0));
@@ -38,7 +38,7 @@ public class AdvanceBlockchainMessageTest {
         when(blockHeader2.getFullEncoded()).thenReturn(encodedBlockHeader2);
 
         List<BlockHeader> blockHeaders = Arrays.asList(blockHeader1, blockHeader2);
-        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blockHeaders, new ArrayList<>());
+        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blockHeaders);
 
         Assert.assertEquals(2, message.getBlockHeaders().size());
         Assert.assertEquals(Hex.toHexString(encodedBlockHeader2), message.getBlockHeaders().get(0));
