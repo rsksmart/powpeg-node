@@ -13,8 +13,9 @@ import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
 import org.bitcoinj.core.*;
 import org.bouncycastle.util.encoders.Hex;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.Blockchain;
-import org.ethereum.util.ByteUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -140,7 +141,15 @@ public class FederatorSupportTest {
         co.rsk.bitcoinj.core.Sha256Hash sha256Hash = co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH;
         Keccak256 hash = Keccak256.ZERO_HASH;
 
-        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash, true);
+        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash, false);
+    }
+
+    @Test
+    public void getPegoutCreationRskTxHashByBtcTxHash_keccak256_from_a_zero_byte_array() {
+        co.rsk.bitcoinj.core.Sha256Hash sha256Hash = co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH;
+        Keccak256 hash = new Keccak256(new byte[32]);
+
+        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash, false);
     }
 
     @Test
@@ -153,15 +162,19 @@ public class FederatorSupportTest {
     private void test_getPegoutCreationRskTxHashByBtcTxHash(co.rsk.bitcoinj.core.Sha256Hash sha256Hash, Keccak256 keccak256, boolean exists) {
         BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
-        FederatorSupport federatorSupport = new FederatorSupport(
+        FederatorSupport federatorSupport = spy(new FederatorSupport(
             mock(Blockchain.class),
             new TestSystemProperties(),
             bridgeTransactionSender
-        );
+        ));
 
         FederationMember federationMember = federation.getMembers().get(0);
         RskAddress rskAddress = new RskAddress(federationMember.getRskPublicKey().getAddress());
         federatorSupport.setMember(federationMember);
+
+        ActivationConfig.ForBlock activationConfig = mock(ActivationConfig.ForBlock.class);
+        doReturn(true).when(activationConfig).isActive(ConsensusRule.RSKIP298);
+        doReturn(activationConfig).when(federatorSupport).getConfigForBestBlock();
 
         doAnswer((Answer<byte[]>) invocation -> {
             Object[] args = invocation.getArguments();
@@ -171,7 +184,7 @@ public class FederatorSupportTest {
             if (exists){
                 return keccak256.getBytes();
             } else {
-                return ByteUtil.EMPTY_BYTE_ARRAY;
+                return Keccak256.ZERO_HASH.getBytes();
             }
         }).when(bridgeTransactionSender).callTx(
             rskAddress,

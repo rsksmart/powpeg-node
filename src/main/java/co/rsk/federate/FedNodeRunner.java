@@ -277,7 +277,6 @@ public class FedNodeRunner implements NodeRunner {
                         hsmBookkeepingClient
                     )
                 ),
-                btcReleaseClientStorageAccessor,
                 new BtcReleaseClientStorageSynchronizer(
                     fedNodeContext.getBlockStore(),
                     fedNodeContext.getReceiptStore(),

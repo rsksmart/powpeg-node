@@ -2,13 +2,10 @@ package co.rsk.federate.btcreleaseclient;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.params.RegTestParams;
-import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.BridgeTransactionSender;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.Federation;
-import co.rsk.peg.FederationMember;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +32,13 @@ public class BtcReleaseClientServiceImplTest {
     }
 
     @Test
+    public void getPegoutCreationRskTxHashByBtcTxHash_ok_not_found_in_pegout_creation_index_before_RSKIP298_activation() {
+        Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
+        Keccak256 hash = TestUtils.createHash(5);
+        test_getPegoutCreationRskTxHashByBtcTxHash( sha256Hash, hash, true, false);
+    }
+
+    @Test
     public void getPegoutCreationRskTxHashByBtcTxHash_ok_found_in_pegout_creation_index() {
         Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
         Keccak256 hash = TestUtils.createHash(5);
@@ -49,6 +53,20 @@ public class BtcReleaseClientServiceImplTest {
     }
 
     @Test
+    public void getPegoutCreationRskTxHashByBtcTxHash_zero_hash() {
+        Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
+        Keccak256 hash = Keccak256.ZERO_HASH;
+        test_getPegoutCreationRskTxHashByBtcTxHash( sha256Hash, hash, false, false);
+    }
+
+    @Test
+    public void getPegoutCreationRskTxHashByBtcTxHash_keccak256_from_a_zero_byte_array() {
+        Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
+        Keccak256 hash = new Keccak256(new byte[32]);
+        test_getPegoutCreationRskTxHashByBtcTxHash( sha256Hash, hash, false, false);
+    }
+
+    @Test
     public void getPegoutCreationRskTxHashByBtcTxHash_not_found() {
         Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
         Keccak256 hash = TestUtils.createHash(5);
@@ -59,16 +77,12 @@ public class BtcReleaseClientServiceImplTest {
                                                             Keccak256 hash,
                                                             boolean fromPegoutCreationIndex,
                                                             boolean fromLegacyStorage) {
-        BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
         FederatorSupport federatorSupport = Mockito.mock(FederatorSupport.class);
 
         if (fromPegoutCreationIndex) {
             when(federatorSupport.getPegoutCreationRskTxHashByBtcTxHash(sha256Hash)).thenReturn(Optional.of(hash));
         }
-
-        FederationMember federationMember = federation.getMembers().get(0);
-        RskAddress rskAddress = new RskAddress(federationMember.getRskPublicKey().getAddress());
 
         BtcReleaseClientStorageAccessor btcReleaseClientStorageAccessor = mock(BtcReleaseClientStorageAccessor.class);
 
