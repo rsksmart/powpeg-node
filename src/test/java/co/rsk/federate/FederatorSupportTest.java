@@ -137,7 +137,7 @@ public class FederatorSupportTest {
     }
 
     @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash_after_RSKIP293() {
+    public void getPegoutCreationRskTxHashByBtcTxHash_after_RSKIP298() {
         co.rsk.bitcoinj.core.Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
         Keccak256 hash = TestUtils.createHash(5);
 
@@ -145,7 +145,7 @@ public class FederatorSupportTest {
     }
 
     @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash_keccak256_from_a_zero_byte_array_after_RSKIP293() {
+    public void getPegoutCreationRskTxHashByBtcTxHash_keccak256_from_a_zero_byte_array_after_RSKIP298() {
         co.rsk.bitcoinj.core.Sha256Hash sha256Hash = co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH;
         // getPegoutCreationRskTxHashByBtcTxHash bridge method returns an empty 32-byte array when no entry is found
         Keccak256 hash = new Keccak256(new byte[32]);
@@ -154,7 +154,7 @@ public class FederatorSupportTest {
     }
 
     @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash_not_found_after_RSKIP293() {
+    public void getPegoutCreationRskTxHashByBtcTxHash_not_found_after_RSKIP298() {
         co.rsk.bitcoinj.core.Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
         // getPegoutCreationRskTxHashByBtcTxHash bridge method returns an empty 32-byte array when no entry is found
         Keccak256 hash = Keccak256.ZERO_HASH;
