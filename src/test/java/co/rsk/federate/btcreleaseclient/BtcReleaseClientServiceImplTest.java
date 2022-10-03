@@ -32,13 +32,6 @@ public class BtcReleaseClientServiceImplTest {
     }
 
     @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash_ok_not_found_in_pegout_creation_index_before_RSKIP298_activation() {
-        Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
-        Keccak256 hash = TestUtils.createHash(5);
-        test_getPegoutCreationRskTxHashByBtcTxHash( sha256Hash, hash, true, false);
-    }
-
-    @Test
     public void getPegoutCreationRskTxHashByBtcTxHash_ok_found_in_pegout_creation_index() {
         Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
         Keccak256 hash = TestUtils.createHash(5);
