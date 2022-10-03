@@ -23,11 +23,19 @@ public class BtcReleaseClientServiceImpl implements BtcReleaseClientService {
     public Optional<Keccak256> getPegoutCreationRskTxHashByBtcTxHash(Sha256Hash btcTxHash) {
         Optional<Keccak256> rskTxHash = federatorSupport.getPegoutCreationRskTxHashByBtcTxHash(btcTxHash);
         if (rskTxHash.isPresent()){
-            logger.trace("[getPegoutCreationRskTxHashByBtcTxHash] pegout found by btc tx hash {} was fetched from pegout creation index.", btcTxHash);
+            logger.trace(
+                "[getPegoutCreationRskTxHashByBtcTxHash] pegout found {} by btc tx hash {} was fetched from pegout creation index.",
+                rskTxHash,
+                btcTxHash
+            );
             return rskTxHash;
         }
         if (btcReleaseClientStorageAccessor.hasBtcTxHash(btcTxHash)){
-            logger.trace("[getPegoutCreationRskTxHashByBtcTxHash] pegout found by btc tx hash {} was fetched from legacy storage.", btcTxHash);
+            logger.trace(
+                "[getPegoutCreationRskTxHashByBtcTxHash] pegout found {} by btc tx hash {} was fetched from legacy storage.",
+                rskTxHash,
+                btcTxHash
+            );
             return Optional.of(btcReleaseClientStorageAccessor.getRskTxHash(btcTxHash));
         }
 

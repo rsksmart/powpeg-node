@@ -129,37 +129,44 @@ public class FederatorSupportTest {
     }
 
     @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash() {
+    public void getPegoutCreationRskTxHashByBtcTxHash_empty_optional_before_RSKIP298() {
         co.rsk.bitcoinj.core.Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
         Keccak256 hash = TestUtils.createHash(5);
 
-        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash, true);
+        test_getPegoutCreationRskTxHashByBtcTxHash(false, sha256Hash, hash, false);
     }
 
     @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash_zero_hash() {
-        co.rsk.bitcoinj.core.Sha256Hash sha256Hash = co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH;
-        Keccak256 hash = Keccak256.ZERO_HASH;
+    public void getPegoutCreationRskTxHashByBtcTxHash_after_RSKIP293() {
+        co.rsk.bitcoinj.core.Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
+        Keccak256 hash = TestUtils.createHash(5);
 
-        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash, false);
+        test_getPegoutCreationRskTxHashByBtcTxHash(true, sha256Hash, hash, true);
     }
 
     @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash_keccak256_from_a_zero_byte_array() {
+    public void getPegoutCreationRskTxHashByBtcTxHash_keccak256_from_a_zero_byte_array_after_RSKIP293() {
         co.rsk.bitcoinj.core.Sha256Hash sha256Hash = co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH;
+        // getPegoutCreationRskTxHashByBtcTxHash bridge method returns an empty 32-byte array when no entry is found
         Keccak256 hash = new Keccak256(new byte[32]);
 
-        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, hash, false);
+        test_getPegoutCreationRskTxHashByBtcTxHash(true, sha256Hash, hash, false);
     }
 
     @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash_not_found() {
+    public void getPegoutCreationRskTxHashByBtcTxHash_not_found_after_RSKIP293() {
         co.rsk.bitcoinj.core.Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
-
-        test_getPegoutCreationRskTxHashByBtcTxHash(sha256Hash, null, false);
+        // getPegoutCreationRskTxHashByBtcTxHash bridge method returns an empty 32-byte array when no entry is found
+        Keccak256 hash = Keccak256.ZERO_HASH;
+        test_getPegoutCreationRskTxHashByBtcTxHash(true, sha256Hash, hash, false);
     }
 
-    private void test_getPegoutCreationRskTxHashByBtcTxHash(co.rsk.bitcoinj.core.Sha256Hash sha256Hash, Keccak256 keccak256, boolean exists) {
+    private void test_getPegoutCreationRskTxHashByBtcTxHash(
+        boolean isRSKIP298Active,
+        co.rsk.bitcoinj.core.Sha256Hash sha256Hash,
+        Keccak256 keccak256,
+        boolean exists
+    ) {
         BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
         FederatorSupport federatorSupport = spy(new FederatorSupport(
@@ -173,7 +180,7 @@ public class FederatorSupportTest {
         federatorSupport.setMember(federationMember);
 
         ActivationConfig.ForBlock activationConfig = mock(ActivationConfig.ForBlock.class);
-        doReturn(true).when(activationConfig).isActive(ConsensusRule.RSKIP298);
+        doReturn(isRSKIP298Active).when(activationConfig).isActive(ConsensusRule.RSKIP298);
         doReturn(activationConfig).when(federatorSupport).getConfigForBestBlock();
 
         doAnswer((Answer<byte[]>) invocation -> {
@@ -181,11 +188,8 @@ public class FederatorSupportTest {
             Assert.assertEquals(rskAddress, args[0]);
             Assert.assertEquals(BridgeMethods.GET_PEGOUT_CREATION_RSK_TX_HASH_BY_BTC_TX_HASH.getFunction(), args[1]);
             Assert.assertEquals(sha256Hash.getBytes(), ((Object[])args[2])[0]);
-            if (exists){
-                return keccak256.getBytes();
-            } else {
-                return Keccak256.ZERO_HASH.getBytes();
-            }
+            return keccak256.getBytes();
+
         }).when(bridgeTransactionSender).callTx(
             rskAddress,
             Bridge.GET_PEGOUT_CREATION_RSK_TX_HASH_BY_BTC_TX_HASH,
