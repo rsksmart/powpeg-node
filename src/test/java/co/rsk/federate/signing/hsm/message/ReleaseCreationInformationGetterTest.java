@@ -73,7 +73,7 @@ public class ReleaseCreationInformationGetterTest {
         createGetTxInfoToSign_returnOK(information, rskTxHash, btcTransaction, block, transactionReceipt, 3);
     }
 
-    public void createGetTxInfoToSign_returnOK(ReleaseCreationInformationGetter information,
+    private void createGetTxInfoToSign_returnOK(ReleaseCreationInformationGetter information,
                                                Keccak256 rskTxHash,
                                                BtcTransaction btcTransaction,
                                                Block block,
