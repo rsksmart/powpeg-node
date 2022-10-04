@@ -46,20 +46,6 @@ public class BtcReleaseClientServiceImplTest {
     }
 
     @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash_zero_hash() {
-        Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
-        Keccak256 hash = Keccak256.ZERO_HASH;
-        test_getPegoutCreationRskTxHashByBtcTxHash( sha256Hash, hash, false, false);
-    }
-
-    @Test
-    public void getPegoutCreationRskTxHashByBtcTxHash_keccak256_from_a_zero_byte_array() {
-        Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
-        Keccak256 hash = new Keccak256(new byte[32]);
-        test_getPegoutCreationRskTxHashByBtcTxHash( sha256Hash, hash, false, false);
-    }
-
-    @Test
     public void getPegoutCreationRskTxHashByBtcTxHash_not_found() {
         Sha256Hash sha256Hash = TestUtils.createBtcTransaction(params, federation).getHash();
         Keccak256 hash = TestUtils.createHash(5);
@@ -85,7 +71,9 @@ public class BtcReleaseClientServiceImplTest {
         );
 
         doReturn(fromLegacyStorage).when(btcReleaseClientStorageAccessor).hasBtcTxHash(sha256Hash);
-        doReturn(hash).when(btcReleaseClientStorageAccessor).getRskTxHash(sha256Hash);
+        if (fromLegacyStorage){
+            doReturn(hash).when(btcReleaseClientStorageAccessor).getRskTxHash(sha256Hash);
+        }
 
         Optional<Keccak256> rskTxHash = btcReleaseClientService.getPegoutCreationRskTxHashByBtcTxHash(sha256Hash);
 
