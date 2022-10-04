@@ -459,6 +459,7 @@ public class HSMClientVersion2BTCTest {
         verify(jsonRpcClient, times(3)).send(captor.capture());
         List<JsonNode> capturedArguments = captor.getAllValues();
         Assert.assertEquals("blockchainState", capturedArguments.get(0).get("command").asText());
+        // updateAncestorBlock is called twice because the maxChunkSizeToHsm is 2 and BlockHeaders is 3
         Assert.assertEquals("updateAncestorBlock", capturedArguments.get(1).get("command").asText());
         Assert.assertEquals("updateAncestorBlock", capturedArguments.get(2).get("command").asText());
         Assert.assertTrue(capturedArguments.get(1).has("blocks"));
