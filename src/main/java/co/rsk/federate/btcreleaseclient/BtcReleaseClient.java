@@ -81,6 +81,7 @@ public class BtcReleaseClient {
     private ActivationConfig activationConfig;
     private BridgeConstants bridgeConstants;
     private PeerGroup peerGroup;
+    private boolean isPegoutEnabled = true;
 
     private final Ethereum ethereum;
     private final FederatorSupport federatorSupport;
@@ -120,7 +121,8 @@ public class BtcReleaseClient {
         ReleaseCreationInformationGetter releaseCreationInformationGetter,
         ReleaseRequirementsEnforcer releaseRequirementsEnforcer,
         BtcReleaseClientStorageAccessor storageAccessor,
-        BtcReleaseClientStorageSynchronizer storageSynchronizer
+        BtcReleaseClientStorageSynchronizer storageSynchronizer,
+        boolean isPegoutEnabled
     ) throws BtcReleaseClientException {
         bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
         this.signer = signer;
@@ -148,6 +150,8 @@ public class BtcReleaseClient {
 
         this.storageAccessor = storageAccessor;
         this.storageSynchronizer = storageSynchronizer;
+
+        this.isPegoutEnabled = isPegoutEnabled;
     }
 
     public void start(Federation federation) {
@@ -199,14 +203,17 @@ public class BtcReleaseClient {
             // process works on a block-by-block basis.
             StateForFederator stateForFederator = federatorSupport.getStateForFederator();
             storageSynchronizer.processBlock(block, receipts);
+
             // Delegate processing to our own method
             logger.trace("[onBestBlock] Got {} releases", stateForFederator.getRskTxsWaitingForSignatures().entrySet().size());
-            processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
+            if (isPegoutEnabled) {
+                processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
+            }
         }
 
         @Override
         public void onBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (nodeBlockProcessor.hasBetterBlockToSync()) {
+            if (!isPegoutEnabled && nodeBlockProcessor.hasBetterBlockToSync()) {
                 return;
             }
             // BTC-release events must be processed on an every-single-block basis,

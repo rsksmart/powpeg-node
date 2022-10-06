@@ -20,6 +20,10 @@ public class FedNodeSystemProperties extends RskSystemProperties {
         return configFromFiles.hasPath("federator.enabled") && configFromFiles.getBoolean("federator.enabled");
     }
 
+    public boolean isPegoutEnabled() {
+        return !configFromFiles.hasPath("federator.pegout.enabled") || configFromFiles.getBoolean("federator.pegout.enabled");
+    }
+
     public boolean isUpdateBridgeTimerEnabled() {
         return !this.netName().equals("regtest") ||
                 (!configFromFiles.hasPath("federator.updateBridgeTimerEnabled") ||
