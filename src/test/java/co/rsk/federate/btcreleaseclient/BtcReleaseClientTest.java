@@ -245,8 +245,7 @@ public class BtcReleaseClientTest {
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class),
-            true
+            mock(BtcReleaseClientStorageSynchronizer.class)
         );
         client.start(federation);
 
@@ -354,8 +353,7 @@ public class BtcReleaseClientTest {
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer,
-            true
+            storageSynchronizer
         );
         btcReleaseClient.start(federation);
 
@@ -401,8 +399,7 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class),
-            true
+            mock(BtcReleaseClientStorageSynchronizer.class)
         );
         btcReleaseClient.start(federation);
 
@@ -442,16 +439,15 @@ public class BtcReleaseClientTest {
         );
         btcReleaseClient.start(federation);
 
-
         List<TransactionReceipt> receipts = new ArrayList<>();
-        TransactionReceipt mocktTransactionReceipt = mock(TransactionReceipt.class);
-        receipts.add(mocktTransactionReceipt);
+        TransactionReceipt transactionReceipt = mock(TransactionReceipt.class);
+        receipts.add(transactionReceipt);
 
         // Act
         ethereumListener.get().onBlock(null, receipts);
 
         // Assert
-        Mockito.verifyZeroInteractions(mocktTransactionReceipt);
+        Mockito.verifyZeroInteractions(transactionReceipt);
     }
 
     @Test
@@ -563,8 +559,7 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class),
-            true
+            mock(BtcReleaseClientStorageSynchronizer.class)
         );
         client.start(federation);
 
@@ -603,8 +598,7 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class),
-            true
+            mock(BtcReleaseClientStorageSynchronizer.class)
         );
 
         // Act
@@ -661,8 +655,7 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class),
-            true
+            mock(BtcReleaseClientStorageSynchronizer.class)
         );
         client.start(federation);
 
@@ -757,8 +750,7 @@ public class BtcReleaseClientTest {
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class),
-            true
+            mock(BtcReleaseClientStorageSynchronizer.class)
         );
         client.start(federation);
 
@@ -926,8 +918,7 @@ public class BtcReleaseClientTest {
             releaseCreationInformationGetter,
             releaseRequirementsEnforcer,
             accessor,
-            synchronizer,
-            true
+            synchronizer
         );
 
         btcReleaseClient.start(federation);

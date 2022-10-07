@@ -93,16 +93,16 @@ public class FedNodeRunner implements NodeRunner {
     private HSMBookkeepingService hsmBookkeepingService;
 
     public FedNodeRunner(
-            BtcToRskClient btcToRskClientActive,
-            BtcToRskClient btcToRskClientRetiring,
-            BtcReleaseClient btcReleaseClient,
-            FederationWatcher federationWatcher,
-            FederatorSupport federatorSupport,
-            FederateLogger federateLogger,
-            RskLogMonitor rskLogMonitor,
-            NodeRunner fullNodeRunner,
-            FedNodeSystemProperties config,
-            FedNodeContext fedNodeContext
+        BtcToRskClient btcToRskClientActive,
+        BtcToRskClient btcToRskClientRetiring,
+        BtcReleaseClient btcReleaseClient,
+        FederationWatcher federationWatcher,
+        FederatorSupport federatorSupport,
+        FederateLogger federateLogger,
+        RskLogMonitor rskLogMonitor,
+        NodeRunner fullNodeRunner,
+        FedNodeSystemProperties config,
+        FedNodeContext fedNodeContext
     ) {
         this.btcToRskClientActive = btcToRskClientActive;
         this.btcToRskClientRetiring = btcToRskClientRetiring;
@@ -166,10 +166,10 @@ public class FedNodeRunner implements NodeRunner {
                             hsmBookkeepingClient = (HSMBookkeepingClient)(ecdsahsmSigner.getClient());
                             hsmBookkeepingClient.setMaxChunkSizeToHsm(hsm2Config.getMaxChunkSizeToHsm());
                             hsmBookkeepingService = new HSMBookkeepingService(
-                                    fedNodeContext.getBlockStore(),
-                                    hsmBookkeepingClient,
-                                    fedNodeContext.getNodeBlockProcessor(),
-                                    hsm2Config
+                                fedNodeContext.getBlockStore(),
+                                hsmBookkeepingClient,
+                                fedNodeContext.getNodeBlockProcessor(),
+                                hsm2Config
                             );
                         } catch(ClassCastException | HSMClientException e) {
                             LOGGER.warn("BTC signer not configured to use HSM 2. Consider upgrading it!");
@@ -219,8 +219,10 @@ public class FedNodeRunner implements NodeRunner {
             // Setup a federation watcher to trigger starts and stops of the
             // btc to rsk client upon federation changes
             bridgeConstants = this.config.getNetworkConstants().getBridgeConstants();
-            FederationProvider federationProvider =
-                new FederationProviderFromFederatorSupport(federatorSupport, bridgeConstants);
+            FederationProvider federationProvider = new FederationProviderFromFederatorSupport(
+                federatorSupport,
+                bridgeConstants
+            );
 
             BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
             PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
@@ -263,7 +265,7 @@ public class FedNodeRunner implements NodeRunner {
                 signer,
                 config.getActivationConfig(),
                 new SignerMessageBuilderFactory(
-                        fedNodeContext.getReceiptStore()
+                    fedNodeContext.getReceiptStore()
                 ),
                 new ReleaseCreationInformationGetter(
                     fedNodeContext.getReceiptStore(),
@@ -282,8 +284,7 @@ public class FedNodeRunner implements NodeRunner {
                     fedNodeContext.getNodeBlockProcessor(),
                     btcReleaseClientStorageAccessor,
                     config.getBtcReleaseClientInitializationMaxDepth()
-                ),
-                config.isPegoutEnabled()
+                )
             );
             federationWatcher.setup(federationProvider);
 

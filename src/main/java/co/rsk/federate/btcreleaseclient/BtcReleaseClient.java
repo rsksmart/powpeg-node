@@ -81,13 +81,13 @@ public class BtcReleaseClient {
     private ActivationConfig activationConfig;
     private BridgeConstants bridgeConstants;
     private PeerGroup peerGroup;
-    private boolean isPegoutEnabled = true;
 
     private final Ethereum ethereum;
     private final FederatorSupport federatorSupport;
     private final FedNodeSystemProperties systemProperties;
     private final Set<Federation> observedFederations;
     private final NodeBlockProcessor nodeBlockProcessor;
+    private final boolean isPegoutEnabled;
 
     private ECDSASigner signer;
     private BtcReleaseEthereumListener blockListener;
@@ -111,6 +111,7 @@ public class BtcReleaseClient {
         this.observedFederations = new HashSet<>();
         this.blockListener = new BtcReleaseEthereumListener();
         this.bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
+        this.isPegoutEnabled = this.systemProperties.isPegoutEnabled();
         this.nodeBlockProcessor = nodeBlockProcessor;
     }
 
@@ -121,8 +122,7 @@ public class BtcReleaseClient {
         ReleaseCreationInformationGetter releaseCreationInformationGetter,
         ReleaseRequirementsEnforcer releaseRequirementsEnforcer,
         BtcReleaseClientStorageAccessor storageAccessor,
-        BtcReleaseClientStorageSynchronizer storageSynchronizer,
-        boolean isPegoutEnabled
+        BtcReleaseClientStorageSynchronizer storageSynchronizer
     ) throws BtcReleaseClientException {
         bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
         this.signer = signer;
@@ -150,8 +150,6 @@ public class BtcReleaseClient {
 
         this.storageAccessor = storageAccessor;
         this.storageSynchronizer = storageSynchronizer;
-
-        this.isPegoutEnabled = isPegoutEnabled;
     }
 
     public void start(Federation federation) {
