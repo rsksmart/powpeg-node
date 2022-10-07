@@ -476,7 +476,7 @@ public class BtcReleaseClientTest {
         doAnswer((InvocationOnMock invocation) -> {
             ethereumListener.set((EthereumListener) invocation.getArguments()[0]);
             return null;
-        }).when(ethereum).addListener(ArgumentMatchers.any(EthereumListener.class));
+        }).when(ethereum).addListener(any(EthereumListener.class));
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
 

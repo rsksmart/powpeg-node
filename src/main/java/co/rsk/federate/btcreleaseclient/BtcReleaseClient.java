@@ -210,7 +210,7 @@ public class BtcReleaseClient {
 
         @Override
         public void onBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (!isPegoutEnabled && nodeBlockProcessor.hasBetterBlockToSync()) {
+            if (!isPegoutEnabled || nodeBlockProcessor.hasBetterBlockToSync()) {
                 return;
             }
             // BTC-release events must be processed on an every-single-block basis,
