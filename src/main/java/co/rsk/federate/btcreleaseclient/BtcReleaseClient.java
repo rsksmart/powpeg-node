@@ -79,7 +79,6 @@ public class BtcReleaseClient {
     private static final DataWord SINGLE_RELEASE_BTC_TOPIC_SOLIDITY = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
 
     private ActivationConfig activationConfig;
-    private BridgeConstants bridgeConstants;
     private PeerGroup peerGroup;
 
     private final Ethereum ethereum;
@@ -87,6 +86,7 @@ public class BtcReleaseClient {
     private final FedNodeSystemProperties systemProperties;
     private final Set<Federation> observedFederations;
     private final NodeBlockProcessor nodeBlockProcessor;
+    private final BridgeConstants bridgeConstants;
     private final boolean isPegoutEnabled;
 
     private ECDSASigner signer;
@@ -124,7 +124,6 @@ public class BtcReleaseClient {
         BtcReleaseClientStorageAccessor storageAccessor,
         BtcReleaseClientStorageSynchronizer storageSynchronizer
     ) throws BtcReleaseClientException {
-        bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
         this.signer = signer;
         this.activationConfig = activationConfig;
         logger.debug("Signer: {}", signer.getClass());
