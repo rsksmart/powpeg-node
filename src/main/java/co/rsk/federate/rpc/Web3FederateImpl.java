@@ -21,6 +21,7 @@ import co.rsk.rpc.modules.trace.TraceModule;
 import co.rsk.rpc.modules.txpool.TxPoolModule;
 import co.rsk.scoring.PeerScoringManager;
 import org.ethereum.core.Blockchain;
+import org.ethereum.core.SignatureCache;
 import org.ethereum.db.BlockStore;
 import org.ethereum.db.ReceiptStore;
 import org.ethereum.facade.Ethereum;
@@ -62,7 +63,8 @@ public class Web3FederateImpl extends Web3RskImpl {
             BuildInfo buildInfo,
             BlocksBloomStore blocksBloomStore,
             Web3InformationRetriever web3InformationRetriever,
-            SyncProcessor syncProcessor) {
+            SyncProcessor syncProcessor,
+            SignatureCache signatureCache) {
         super(
             eth,
             blockchain,
@@ -89,7 +91,8 @@ public class Web3FederateImpl extends Web3RskImpl {
             buildInfo,
             blocksBloomStore,
             web3InformationRetriever,
-            syncProcessor
+            syncProcessor,
+            signatureCache
         );
         this.btcToRskClientActive = btcToRskClientActive;
         this.btcToRskClientRetiring = btcToRskClientRetiring;
