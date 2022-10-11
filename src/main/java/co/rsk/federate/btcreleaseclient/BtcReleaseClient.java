@@ -126,7 +126,7 @@ public class BtcReleaseClient {
     ) throws BtcReleaseClientException {
         this.signer = signer;
         this.activationConfig = activationConfig;
-        logger.debug("Signer: {}", signer.getClass());
+        logger.debug("[setup] Signer: {}", signer.getClass());
 
         org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
         peerGroup = new PeerGroup(btcContext);
@@ -149,16 +149,18 @@ public class BtcReleaseClient {
 
         this.storageAccessor = storageAccessor;
         this.storageSynchronizer = storageSynchronizer;
+
+        logger.debug("[setup] Is pegout enabled? {}", isPegoutEnabled);
     }
 
     public void start(Federation federation) {
         if (!observedFederations.contains(federation)) {
             observedFederations.add(federation);
-            logger.debug("observing Federation {}", federation.getAddress());
+            logger.debug("[start] observing Federation {}", federation.getAddress());
         }
         if (observedFederations.size() == 1) {
             // If there is just one observed Federation, it means the btcReleaseClient wasn't started
-            logger.debug("Starting");
+            logger.debug("[start] Starting");
             ethereum.addListener(this.blockListener);
         }
     }
@@ -166,11 +168,11 @@ public class BtcReleaseClient {
     public void stop(Federation federation) {
         if (observedFederations.contains(federation)) {
             observedFederations.remove(federation);
-            logger.debug("not observing Federation {}", federation.getAddress());
+            logger.debug("[stop] not observing Federation {}", federation.getAddress());
         }
         if (observedFederations.isEmpty()) {
             // If there are no more observed Federations, the btcReleaseClient should stop
-            logger.debug("Stopping");
+            logger.debug("[stop] Stopping");
             ethereum.removeListener(this.blockListener);
         }
     }
