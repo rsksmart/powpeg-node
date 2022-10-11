@@ -430,7 +430,7 @@ public class BtcReleaseClientTest {
         doAnswer((InvocationOnMock invocation) -> {
             ethereumListener.set((EthereumListener) invocation.getArguments()[0]);
             return null;
-        }).when(ethereum).addListener(ArgumentMatchers.any(EthereumListener.class));
+        }).when(ethereum).addListener(any(EthereumListener.class));
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
 
@@ -503,6 +503,7 @@ public class BtcReleaseClientTest {
         ethereumListener.get().onBlock(null, receipts);
 
         // Assert
+        verify(nodeBlockProcessor, times(1)).hasBetterBlockToSync();
         verifyZeroInteractions(transactionReceipt);
     }
 
@@ -517,7 +518,7 @@ public class BtcReleaseClientTest {
         doAnswer((InvocationOnMock invocation) -> {
             ethereumListener.set((EthereumListener) invocation.getArguments()[0]);
             return null;
-        }).when(ethereum).addListener(ArgumentMatchers.any(EthereumListener.class));
+        }).when(ethereum).addListener(any(EthereumListener.class));
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
 
@@ -544,6 +545,7 @@ public class BtcReleaseClientTest {
         ethereumListener.get().onBlock(null, receipts);
 
         // Assert
+        verify(nodeBlockProcessor, never()).hasBetterBlockToSync();
         verifyZeroInteractions(transactionReceipt);
     }
 
