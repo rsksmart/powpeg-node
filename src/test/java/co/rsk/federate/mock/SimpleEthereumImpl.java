@@ -5,6 +5,7 @@ import java.util.List;
 import org.ethereum.core.Block;
 import org.ethereum.core.ImportResult;
 import org.ethereum.core.Transaction;
+import org.ethereum.core.TransactionPoolAddResult;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.CompositeEthereumListener;
@@ -42,8 +43,8 @@ public class SimpleEthereumImpl implements Ethereum {
     }
 
     @Override
-    public void submitTransaction(Transaction transaction) {
-
+    public TransactionPoolAddResult submitTransaction(Transaction transaction) {
+        return TransactionPoolAddResult.okPendingTransaction(transaction);
     }
 
     @Override
