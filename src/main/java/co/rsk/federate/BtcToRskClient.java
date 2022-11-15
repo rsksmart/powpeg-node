@@ -54,7 +54,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     private BridgeConstants bridgeConstants;
     private FederatorSupport federatorSupport;
     private NodeBlockProcessor nodeBlockProcessor;
-    private Blockchain rskBlockchain;
     private BitcoinWrapper bitcoinWrapper;
     private BtcToRskClientFileStorage btcToRskClientFileStorage;
     private BtcLockSenderProvider btcLockSenderProvider;
@@ -279,7 +278,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     public int updateBridgeBtcBlockchain() throws BlockStoreException, IOException {
-        long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
+        long bestBlockNumber = federatorSupport.getRskBestChainHeight();
         boolean useBlockDepth = activationConfig.isActive(ConsensusRule.RSKIP89, bestBlockNumber);
 
         int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBestBlockChainHeight();
@@ -465,7 +464,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 continue;
             }
 
-            long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
+            long bestBlockNumber = federatorSupport.getRskBestChainHeight();
             PeginInformation peginInformation = new PeginInformation(
                 btcLockSenderProvider,
                 peginInstructionsProvider,
@@ -568,7 +567,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         CoinbaseInformation coinbaseInformation = coinbaseInformationReadyToInform.get();
         logger.debug("coinbase transaction {} ready to be informed for block {}", coinbaseInformation.getCoinbaseTransaction().getTxId(), coinbaseInformation.getBlockHash());
 
-        long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
+        long bestBlockNumber = federatorSupport.getRskBestChainHeight();
         if (activationConfig.isActive(ConsensusRule.RSKIP143, bestBlockNumber)) {
             if (!federatorSupport.hasBlockCoinbaseInformed(coinbaseInformation.getBlockHash())) {
                 logger.debug("informing coinbase transaction {}", coinbaseInformation.getCoinbaseTransaction().getTxId());
@@ -655,23 +654,13 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private boolean isTxProcessable(BtcTransaction btcTx, TxSenderAddressType txSenderAddressType) {
-        long bestBlockNumber = rskBlockchain.getBestBlock().getNumber();
+        long bestBlockNumber = federatorSupport.getRskBestChainHeight();
 
         // If the tx is a peg-out it means we are receiving change (or migrating funds)
         // so it should be processable
-        if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(federation), activationConfig.forBlock(bestBlockNumber))) {
-            return true;
-        }
-
-        if (activationConfig.isActive(ConsensusRule.RSKIP170, bestBlockNumber)) {
-            return true;
-        }
-
-        if (BridgeUtils.txIsProcessableInLegacyVersion(txSenderAddressType, activationConfig.forBlock(bestBlockNumber))) {
-            return true;
-        }
-
-        return false;
+        return BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(federation), activationConfig.forBlock(bestBlockNumber))
+            || activationConfig.isActive(ConsensusRule.RSKIP170, bestBlockNumber)
+            || BridgeUtils.txIsProcessableInLegacyVersion(txSenderAddressType, activationConfig.forBlock(bestBlockNumber));
     }
 
     @VisibleForTesting
@@ -703,19 +692,16 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public static class Factory {
         private final FederatorSupport federatorSupport;
         private final NodeBlockProcessor nodeBlockProcessor;
-        private final Blockchain rskBlockchain;
 
-        public Factory(FederatorSupport federatorSupport, NodeBlockProcessor nodeBlockProcessor, Blockchain rskBlockchain) {
+        public Factory(FederatorSupport federatorSupport, NodeBlockProcessor nodeBlockProcessor) {
             this.federatorSupport = federatorSupport;
             this.nodeBlockProcessor = nodeBlockProcessor;
-            this.rskBlockchain = rskBlockchain;
         }
 
         public BtcToRskClient build() {
             BtcToRskClient btcToRskClient = new BtcToRskClient();
             btcToRskClient.federatorSupport = federatorSupport;
             btcToRskClient.nodeBlockProcessor = nodeBlockProcessor;
-            btcToRskClient.rskBlockchain = rskBlockchain;
             return btcToRskClient;
         }
     }
