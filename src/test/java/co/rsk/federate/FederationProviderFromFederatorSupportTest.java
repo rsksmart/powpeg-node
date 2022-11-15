@@ -171,7 +171,7 @@ public class FederationProviderFromFederatorSupportTest {
         Assert.assertTrue(obtainedFederation instanceof ErpFederation);
         Assert.assertEquals(expectedFederation, obtainedFederation);
         Assert.assertEquals(HARDCODED_TESTNET_FED_ADDRESS, obtainedFederation.getAddress());
-        Assert.assertEquals(obtainedFederation.getRedeemScript(), HARDCODED_TESTNET_FED_REDEEM_SCRIPT);
+        Assert.assertEquals(HARDCODED_TESTNET_FED_REDEEM_SCRIPT, obtainedFederation.getRedeemScript());
     }
 
     @Test
