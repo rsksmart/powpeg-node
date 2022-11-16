@@ -24,6 +24,7 @@ import co.rsk.config.BridgeConstants;
 import co.rsk.peg.ErpFederation;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
+import co.rsk.peg.P2shErpFederation;
 import org.ethereum.crypto.ECKey;
 
 import java.time.Instant;
@@ -75,25 +76,14 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         Instant creationTime = federatorSupport.getFederationCreationTime();
         long creationBlockNumber = federatorSupport.getFederationCreationBlockNumber();
 
-        Federation initialFederation =
-            new Federation(members, creationTime, creationBlockNumber, federatorSupport.getBtcParams());
-
-        Address federationAddress = federatorSupport.getFederationAddress();
-
-        if (initialFederation.getAddress().equals(federationAddress)) {
-            return initialFederation;
-        }
-
-        // There is no reason for addresses not to match but being an ERP federation
-        return new ErpFederation(
+        Federation initialFederation = new Federation(
             members,
             creationTime,
             creationBlockNumber,
-            federatorSupport.getBtcParams(),
-            bridgeConstants.getErpFedPubKeysList(),
-            bridgeConstants.getErpFedActivationDelay(),
-            federatorSupport.getConfigForBestBlock()
+            federatorSupport.getBtcParams()
         );
+
+        return getExpectedFederation(initialFederation, getActiveFederationAddress());
     }
 
     @Override
@@ -104,10 +94,13 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     @Override
     public Optional<Federation> getRetiringFederation() {
         Integer federationSize = federatorSupport.getRetiringFederationSize();
-        if (federationSize == -1) {
+        Optional<Address> optionalRetiringFederationAddress = getRetiringFederationAddress();
+
+        if (federationSize == -1 || !optionalRetiringFederationAddress.isPresent()) {
             return Optional.empty();
         }
 
+        Address retiringFederationAddress = optionalRetiringFederationAddress.get();
         boolean useTypedPublicKeyGetter = federatorSupport.getConfigForBestBlock().isActive(RSKIP123);
         List<FederationMember> members = new ArrayList<>();
         for (int i = 0; i < federationSize; i++) {
@@ -133,31 +126,14 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         Instant creationTime = federatorSupport.getRetiringFederationCreationTime();
         long creationBlockNumber = federatorSupport.getRetiringFederationCreationBlockNumber();
 
-        Federation initialFederation =
-            new Federation(members, creationTime, creationBlockNumber, federatorSupport.getBtcParams());
-
-        Optional<Address> optionalFederationAddress = federatorSupport.getRetiringFederationAddress();
-        Address federationAddress = null;
-
-        if (optionalFederationAddress.isPresent()) {
-            federationAddress = optionalFederationAddress.get();
-        }
-
-        if (initialFederation.getAddress().equals(federationAddress)) {
-            return Optional.of(initialFederation);
-        }
-
-        return Optional.of(
-            new ErpFederation(
-                members,
-                creationTime,
-                creationBlockNumber,
-                federatorSupport.getBtcParams(),
-                bridgeConstants.getErpFedPubKeysList(),
-                bridgeConstants.getErpFedActivationDelay(),
-                federatorSupport.getConfigForBestBlock()
-            )
+        Federation initialFederation = new Federation(
+            members,
+            creationTime,
+            creationBlockNumber,
+            federatorSupport.getBtcParams()
         );
+
+        return Optional.of(getExpectedFederation(initialFederation, retiringFederationAddress));
     }
 
     @Override
@@ -174,5 +150,42 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         retiringFederation.ifPresent(result::add);
 
         return result;
+    }
+
+    private Federation getExpectedFederation(Federation initialFederation, Address expectedFederationAddress) {
+        // First check if the initial federation address matches the expected one
+        if (initialFederation.getAddress().equals(expectedFederationAddress)) {
+            return initialFederation;
+        }
+
+        // If addresses do not match build an ERP federation
+        Federation erpFederation = new ErpFederation(
+            initialFederation.getMembers(),
+            initialFederation.getCreationTime(),
+            initialFederation.getCreationBlockNumber(),
+            federatorSupport.getBtcParams(),
+            bridgeConstants.getErpFedPubKeysList(),
+            bridgeConstants.getErpFedActivationDelay(),
+            federatorSupport.getConfigForBestBlock()
+        );
+
+        if (erpFederation.getAddress().equals(expectedFederationAddress)) {
+            return erpFederation;
+        }
+
+        // Finally, try building a P2SH ERP federation
+        return new P2shErpFederation(
+            initialFederation.getMembers(),
+            initialFederation.getCreationTime(),
+            initialFederation.getCreationBlockNumber(),
+            federatorSupport.getBtcParams(),
+            bridgeConstants.getErpFedPubKeysList(),
+            bridgeConstants.getErpFedActivationDelay(),
+            federatorSupport.getConfigForBestBlock()
+        );
+
+        // TODO: what if no federation built matches the expected address?
+        //  It could mean that there is a different type of federation in the Bridge that we are not considering here
+        //  We should consider throwing an exception and shutting down the node
     }
 }
