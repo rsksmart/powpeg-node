@@ -470,6 +470,16 @@ public class BtcReleaseClient {
         return spendingFedFilter.get(0);
     }
 
+    public int round(int num) {
+        if (num > 100) {
+            return 100;
+        }
+        if (num > 50) {
+            return 50;
+        }
+        return 0;
+    }
+
     private static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation, Script customRedeemScript) {
         Script scriptPubKey = federation.getP2SHScript();
         Script redeemScript = federation.getRedeemScript();

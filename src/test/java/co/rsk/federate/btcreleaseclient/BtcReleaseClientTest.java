@@ -98,6 +98,31 @@ public class BtcReleaseClientTest {
     }
 
     @Test
+    public void test_round() {
+        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
+        Mockito.doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
+
+        BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
+            mock(Ethereum.class),
+            mock(FederatorSupport.class),
+            fedNodeSystemProperties,
+            mock(NodeBlockProcessor.class)
+        );
+
+        int num = 120;
+        int result = btcReleaseClient.round(num);
+        Assert.assertEquals(100, result);
+
+        num = 60;
+        result = btcReleaseClient.round(num);
+        Assert.assertEquals(50, result);
+
+        num = 10;
+        result = btcReleaseClient.round(num);
+        Assert.assertEquals(0, result);
+    }
+
+    @Test
     public void if_start_not_called_rsk_blockchain_not_listened() {
         Ethereum ethereum = mock(Ethereum.class);
         FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
