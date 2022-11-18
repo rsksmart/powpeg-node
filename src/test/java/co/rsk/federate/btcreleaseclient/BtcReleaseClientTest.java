@@ -13,7 +13,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -504,7 +504,7 @@ public class BtcReleaseClientTest {
 
         // Assert
         verify(nodeBlockProcessor, times(1)).hasBetterBlockToSync();
-        verifyZeroInteractions(transactionReceipt);
+        verifyNoInteractions(transactionReceipt);
     }
 
     @Test
@@ -546,7 +546,7 @@ public class BtcReleaseClientTest {
 
         // Assert
         verify(nodeBlockProcessor, never()).hasBetterBlockToSync();
-        verifyZeroInteractions(transactionReceipt);
+        verifyNoInteractions(transactionReceipt);
     }
 
     @Test
