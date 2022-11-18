@@ -79,7 +79,6 @@ public class BtcReleaseClient {
     private static final DataWord SINGLE_RELEASE_BTC_TOPIC_SOLIDITY = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
 
     private ActivationConfig activationConfig;
-    private BridgeConstants bridgeConstants;
     private PeerGroup peerGroup;
 
     private final Ethereum ethereum;
@@ -87,6 +86,8 @@ public class BtcReleaseClient {
     private final FedNodeSystemProperties systemProperties;
     private final Set<Federation> observedFederations;
     private final NodeBlockProcessor nodeBlockProcessor;
+    private final BridgeConstants bridgeConstants;
+    private final boolean isPegoutEnabled;
 
     private ECDSASigner signer;
     private BtcReleaseEthereumListener blockListener;
@@ -110,6 +111,7 @@ public class BtcReleaseClient {
         this.observedFederations = new HashSet<>();
         this.blockListener = new BtcReleaseEthereumListener();
         this.bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
+        this.isPegoutEnabled = this.systemProperties.isPegoutEnabled();
         this.nodeBlockProcessor = nodeBlockProcessor;
     }
 
@@ -122,10 +124,9 @@ public class BtcReleaseClient {
         BtcReleaseClientStorageAccessor storageAccessor,
         BtcReleaseClientStorageSynchronizer storageSynchronizer
     ) throws BtcReleaseClientException {
-        bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
         this.signer = signer;
         this.activationConfig = activationConfig;
-        logger.debug("Signer: {}", signer.getClass());
+        logger.debug("[setup] Signer: {}", signer.getClass());
 
         org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
         peerGroup = new PeerGroup(btcContext);
@@ -148,16 +149,18 @@ public class BtcReleaseClient {
 
         this.storageAccessor = storageAccessor;
         this.storageSynchronizer = storageSynchronizer;
+
+        logger.debug("[setup] Is pegout enabled? {}", isPegoutEnabled);
     }
 
     public void start(Federation federation) {
         if (!observedFederations.contains(federation)) {
             observedFederations.add(federation);
-            logger.debug("observing Federation {}", federation.getAddress());
+            logger.debug("[start] observing Federation {}", federation.getAddress());
         }
         if (observedFederations.size() == 1) {
             // If there is just one observed Federation, it means the btcReleaseClient wasn't started
-            logger.debug("Starting");
+            logger.debug("[start] Starting");
             ethereum.addListener(this.blockListener);
         }
     }
@@ -165,11 +168,11 @@ public class BtcReleaseClient {
     public void stop(Federation federation) {
         if (observedFederations.contains(federation)) {
             observedFederations.remove(federation);
-            logger.debug("not observing Federation {}", federation.getAddress());
+            logger.debug("[stop] not observing Federation {}", federation.getAddress());
         }
         if (observedFederations.isEmpty()) {
             // If there are no more observed Federations, the btcReleaseClient should stop
-            logger.debug("Stopping");
+            logger.debug("[stop] Stopping");
             ethereum.removeListener(this.blockListener);
         }
     }
@@ -199,14 +202,17 @@ public class BtcReleaseClient {
             // process works on a block-by-block basis.
             StateForFederator stateForFederator = federatorSupport.getStateForFederator();
             storageSynchronizer.processBlock(block, receipts);
+
             // Delegate processing to our own method
             logger.trace("[onBestBlock] Got {} releases", stateForFederator.getRskTxsWaitingForSignatures().entrySet().size());
-            processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
+            if (isPegoutEnabled) {
+                processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
+            }
         }
 
         @Override
         public void onBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (nodeBlockProcessor.hasBetterBlockToSync()) {
+            if (!isPegoutEnabled || nodeBlockProcessor.hasBetterBlockToSync()) {
                 return;
             }
             // BTC-release events must be processed on an every-single-block basis,
