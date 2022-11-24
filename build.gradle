@@ -27,6 +27,12 @@ test {
     finalizedBy jacocoTestReport
 }
 
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
+}
+
 repositories {
     mavenCentral()
     maven {
