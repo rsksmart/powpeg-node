@@ -454,8 +454,8 @@ public class BtcReleaseClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcReleaseClientStorageSynchronizer.class),
+            mock(BtcReleaseClientServiceImpl.class)
         );
         btcReleaseClient.start(federation);
 

@@ -263,7 +263,7 @@ public class BtcReleaseClient {
             // Sort descending
             releasesReadyToSign.sort((a, b) -> (int) (b.getBlock().getNumber() - a.getBlock().getNumber()));
             // Sign only the first element
-            if (releasesReadyToSign.size() > 0) {
+            if (!releasesReadyToSign.isEmpty()) {
                 signRelease(version, releasesReadyToSign.get(0));
             }
         } catch (Exception e) {
