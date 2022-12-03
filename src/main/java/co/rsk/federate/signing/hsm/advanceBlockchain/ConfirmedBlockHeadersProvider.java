@@ -48,8 +48,12 @@ public class ConfirmedBlockHeadersProvider {
         int lastIndexToConfirmBlock = 0;
         Block blockToProcess = blockStore.getChainBlockByNumber(initialBlock.getNumber() + 1);
         while (blockToProcess != null && confirmedBlockHeaders.size() < maximumElementsToSendHSM) {
+            BigInteger blockDifficulty = blockToProcess.getDifficulty().asBigInteger();
+            logger.info("[getConfirmedBlockHeaders] Block Difficulty {}", blockDifficulty);
             potentialConfirmed.add(blockToProcess.getHeader());
-            accumulatedDifficulty = accumulatedDifficulty.add(hsmVersion >= 3 ? difficultyCap.min(blockToProcess.getDifficulty().asBigInteger()) : blockToProcess.getDifficulty().asBigInteger());
+            BigInteger blockDifficultyToSend = hsmVersion >= 3 ? difficultyCap.min(blockDifficulty) : blockDifficulty;
+            logger.info("[getConfirmedBlockHeaders] Sending {} as Block Difficulty to the hsmVersion {}", blockDifficultyToSend, hsmVersion);
+            accumulatedDifficulty = accumulatedDifficulty.add(blockDifficultyToSend);
             if (accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0) {
                 // The first block was confirmed. Add it to confirm, subtract its difficulty from the accumulated and from the potentials list
                 BlockHeader confirmedBlockHeader = potentialConfirmed.get(0);
