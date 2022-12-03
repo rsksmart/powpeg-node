@@ -15,7 +15,7 @@ import java.math.BigInteger;
 public class HSM2SignerConfig {
 
     public static final BigInteger DIFFICULTY_CAP_MAINNET = new BigInteger("7000000000000000000000");
-    public static final BigInteger DIFFICULTY_CAP_TESTNET = BigInteger.valueOf(1000000000000000L);
+    public static final BigInteger DIFFICULTY_CAP_TESTNET = BigInteger.valueOf(560000000000000L);
     public static final BigInteger DIFFICULTY_CAP_REGTEST = BigInteger.valueOf(20);
     private BigInteger difficultyCap;
     private BigInteger difficultyTarget = BigInteger.valueOf(3);
