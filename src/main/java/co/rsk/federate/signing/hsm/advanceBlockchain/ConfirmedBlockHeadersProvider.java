@@ -53,6 +53,9 @@ public class ConfirmedBlockHeadersProvider {
             potentialConfirmed.add(blockToProcess.getHeader());
             BigInteger blockDifficultyToSend = hsmVersion >= 3 ? difficultyCap.min(blockDifficulty) : blockDifficulty;
             logger.info("[getConfirmedBlockHeaders] Sending {} as Block Difficulty to the hsmVersion {}", blockDifficultyToSend, hsmVersion);
+            if (blockDifficultyToSend.compareTo(blockDifficulty) < 0) {
+                logger.info("[getConfirmedBlockHeaders] Using difficulty cap. Original block difficulty {}", blockDifficulty);
+            }
             accumulatedDifficulty = accumulatedDifficulty.add(blockDifficultyToSend);
             if (accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0) {
                 // The first block was confirmed. Add it to confirm, subtract its difficulty from the accumulated and from the potentials list
