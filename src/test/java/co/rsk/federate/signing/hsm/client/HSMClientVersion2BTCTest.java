@@ -521,6 +521,7 @@ public class HSMClientVersion2BTCTest {
         state.put("ancestor_block", expectedAncestorBlockHash.toHexString());
         ObjectNode updating = objectMapper.createObjectNode();
         updating.put("in_progress", false);
+        updating.put("total_difficulty", 1234567890);
         state.set("updating", updating);
         when(jsonRpcClientMock.send(any(JsonNode.class)))
                 .thenReturn(buildResponse(0, "state", state));
@@ -605,6 +606,7 @@ public class HSMClientVersion2BTCTest {
         state.put("ancestor_block", expectedAncestorBlockHash.toHexString());
         ObjectNode updating = objectMapper.createObjectNode();
         updating.put("in_progress", inProgress);
+        updating.put("total_difficulty", 1234567890);
         state.set("updating", updating);
         return state;
     }

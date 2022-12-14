@@ -12,6 +12,7 @@ import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -182,6 +183,7 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         final String ANCESTOR_BLOCK_FIELD = "ancestor_block";
         final String UPDATING_FIELD = "updating";
         final String INPROGRESS_FIELD = "in_progress";
+        final String TOTAL_DIFFICULTY = "total_difficulty";
 
         ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE_METHOD_NAME, this.getVersion());
         JsonNode response = this.hsmClientProtocol.send(command);
@@ -195,11 +197,12 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         JsonNode updating = state.get(UPDATING_FIELD);
 
         this.hsmClientProtocol.validatePresenceOf(updating, INPROGRESS_FIELD);
-        Boolean inProgress = updating.get(INPROGRESS_FIELD).asBoolean();
+        boolean inProgress = updating.get(INPROGRESS_FIELD).asBoolean();
+        BigInteger totalDifficulty = updating.get(TOTAL_DIFFICULTY).bigIntegerValue();
         String bestBlockHash = state.get(BEST_BLOCK_FIELD).asText();
         String ancestorBlockHash = state.get(ANCESTOR_BLOCK_FIELD).asText();
 
-        logger.trace("[getHSMPointer] HSM State: BestBlock: {}, ancestor: {}, inProgress:{}", bestBlockHash, ancestorBlockHash, inProgress);
+        logger.trace("[getHSMPointer] HSM State: BestBlock: {}, ancestor: {}, inProgress: {}, totalDifficulty: {}", bestBlockHash, ancestorBlockHash, inProgress, totalDifficulty);
 
         return new HSM2State(bestBlockHash, ancestorBlockHash, inProgress);
     }
