@@ -59,6 +59,7 @@ public class ConfirmedBlockHeadersProvider {
             accumulatedDifficulty = accumulatedDifficulty.add(blockDifficultyToSend);
             if (accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0) {
                 // The first block was confirmed. Add it to confirm, subtract its difficulty from the accumulated and from the potentials list
+                logger.info("[getConfirmedBlockHeaders] AccumulatedDifficulty {} has now reached the minimumAccumulatedDifficulty of {} ", accumulatedDifficulty, minimumAccumulatedDifficulty);
                 BlockHeader confirmedBlockHeader = potentialConfirmed.get(0);
                 confirmedBlockHeaders.add(confirmedBlockHeader);
                 accumulatedDifficulty = accumulatedDifficulty.subtract(hsmVersion >= 3 ? difficultyCap.min(confirmedBlockHeader.getDifficulty().asBigInteger()) : confirmedBlockHeader.getDifficulty().asBigInteger());
