@@ -54,6 +54,7 @@ import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
+import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.ErpFederation;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
@@ -762,7 +763,7 @@ public class BtcReleaseClientTest {
         Sha256Hash signedTxHash = releaseTx.getHash();
 
         // Act
-        client.removeSignaturesFromTransaction(releaseTx, federation);
+        BridgeUtils.removeSignaturesFromTransaction(releaseTx, federation);
         Sha256Hash removedSignaturesTxHash = releaseTx.getHash();
 
         // Assert

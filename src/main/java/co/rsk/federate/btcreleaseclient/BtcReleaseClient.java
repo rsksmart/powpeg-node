@@ -68,6 +68,8 @@ import org.ethereum.vm.PrecompiledContracts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static co.rsk.peg.BridgeUtils.removeSignaturesFromTransaction;
+
 /**
  * Manages signing and broadcasting release txs
  * @author Oscar Guindzberg
@@ -430,24 +432,6 @@ public class BtcReleaseClient {
         });
     }
 
-    /*
-    Received tx inputs are replaced by base inputs without signatures that spend from the given federation.
-    This way the tx has the same hash as the one registered in release_requested event topics.
-     */
-    protected void removeSignaturesFromTransaction(BtcTransaction tx, Federation spendingFed) {
-        for (int inputIndex = 0; inputIndex < tx.getInputs().size(); inputIndex++) {
-            //Get redeem script for current input
-            TransactionInput txInput = tx.getInput(inputIndex);
-            Script inputRedeemScript = getRedeemScriptFromInput(txInput);
-            logger.trace("[removeSignaturesFromTransaction] input {} scriptSig {}", inputIndex, tx.getInput(inputIndex).getScriptSig());
-            logger.trace("[removeSignaturesFromTransaction] input {} redeem script {}", inputIndex, inputRedeemScript);
-
-            txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed, inputRedeemScript));
-            logger.debug("[removeSignaturesFromTransaction] Updated input {} scriptSig with base input script that " +
-                    "spends from the federation {}", inputIndex, spendingFed.getAddress());
-        }
-    }
-
     protected Script extractStandardRedeemScript(Script redeemScript) {
         RedeemScriptParser parser = RedeemScriptParserFactory.get(redeemScript.getChunks());
         return parser.extractStandardRedeemScript();
@@ -469,14 +453,5 @@ public class BtcReleaseClient {
                 .filter(f -> f.getStandardRedeemScript().equals(redeemScript)).collect(Collectors.toList());
 
         return spendingFedFilter.get(0);
-    }
-
-    private static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation, Script customRedeemScript) {
-        Script scriptPubKey = federation.getP2SHScript();
-        Script redeemScript = federation.getRedeemScript();
-        RedeemData redeemData = RedeemData.of(federation.getBtcPublicKeys(), redeemScript);
-
-        // customRedeemScript might not be actually custom, but just in case, use the provided redeemScript
-        return scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), customRedeemScript);
     }
 }
