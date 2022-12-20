@@ -28,9 +28,7 @@ import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.core.Block;
-import org.ethereum.core.Transaction;
-import org.ethereum.core.TransactionReceipt;
+import org.ethereum.core.*;
 import org.ethereum.db.BlockStore;
 import org.ethereum.db.ReceiptStore;
 import org.ethereum.vm.LogInfo;
@@ -186,10 +184,14 @@ public class BtcReleaseClientStorageSynchronizerTest {
 
         TransactionReceipt receipt = mock(TransactionReceipt.class);
         List<LogInfo> logs = new ArrayList<>();
+
+        SignatureCache signatureCache = new BlockTxSignatureCache(new ReceivedTxSignatureCache());
+
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
             BridgeRegTestConstants.getInstance(),
-                activations,
-            logs
+            activations,
+            logs,
+            signatureCache
         );
 
         Keccak256 value = createHash(3);
@@ -280,10 +282,14 @@ public class BtcReleaseClientStorageSynchronizerTest {
 
         TransactionReceipt receipt = mock(TransactionReceipt.class);
         List<LogInfo> logs = new ArrayList<>();
+
+        SignatureCache signatureCache = new BlockTxSignatureCache(new ReceivedTxSignatureCache());
+
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
             BridgeRegTestConstants.getInstance(),
-                activations,
-            logs
+            activations,
+            logs,
+            signatureCache
         );
 
         Keccak256 releaseRequestTxHash = createHash(3);
