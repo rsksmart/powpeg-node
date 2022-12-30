@@ -25,7 +25,7 @@ Add jenv to your path as it say on the output of jenv brew installation.
 
 Download [oracle-jdk8](https://www.oracle.com/ar/java/technologies/javase/javase8-archive-downloads.html) install it.
 
-**Note:** *if you have an Apple Silicon chip you may will get a notification saying that is not recommended to install a file that is for Intel chips, just ignore it and keep going with the installation.*
+**Note:** *if you have an Apple Silicon chip you may get a notification saying that is not recommended to install a file that is for Intel chips, just ignore it and keep going with the installation.*
 
 Add the just downloaded jdk to the jenv versions, run: `jenv add /Library/Java/JavaVirtualMachines/<ORACLE-JDK8-DIRECTORY>/Contents/Home/`
 
