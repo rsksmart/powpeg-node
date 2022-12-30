@@ -23,11 +23,11 @@ Although optional we recommend to install jenv to manage different Java versions
 
 Add jenv to your path as it say on the output of jenv brew installation.
 
-Download [zulu-jdk8](https://www.azul.com/downloads/?version=java-8-lts&architecture=x86-64-bit&package=jdk) .dmg file and install it.
+Download [oracle-jdk8](https://www.oracle.com/ar/java/technologies/javase/javase8-archive-downloads.html) install it.
 
-**Note:** *if you have an Apple Silicon chip you will get a notification saying that is not recommended to install a file that is for Intel chips, just ignore it and keep going with the installation.*
+**Note:** *if you have an Apple Silicon chip you may will get a notification saying that is not recommended to install a file that is for Intel chips, just ignore it and keep going with the installation.*
 
-Add the just downloaded jdk to the jenv versions, run: `jenv add /Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home/`
+Add the just downloaded jdk to the jenv versions, run: `jenv add /Library/Java/JavaVirtualMachines/<ORACLE-JDK8-DIRECTORY>/Contents/Home/`
 
 If you are using another java version in other projects, run `jenv local 1.8.0.352`. Otherwise you can set it globally by running: `jenv global 1.8.0.352`
 
@@ -35,8 +35,8 @@ To check that it worked, run `java -version` and it should show something like
 
 ```
 openjdk version "1.8.0_352"
-OpenJDK Runtime Environment (Zulu 8.66.0.15-CA-macosx) (build 1.8.0_352-b08)
-OpenJDK 64-Bit Server VM (Zulu 8.66.0.15-CA-macosx) (build 25.352-b08, mixed mode)
+OpenJDK Runtime Environment
+OpenJDK 64-Bit Server VM 
 ```
 
 *If not, try closing the terminal and open a new one cause sometimes it stays cached.*
