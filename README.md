@@ -1,10 +1,11 @@
 # Welcome to RskJ Powpeg Node
 
+
+
 ## About
 
 Powpeg node is a specialized rskj node which interacts with both Rootstock and Bitcoin.
 This node is used by Rootstock PowPeg signatories to interact with the Bridge contract and to broadcast peg-out transactions to Bitcoin.
-
 
 
 ## Software Requirements
@@ -15,6 +16,7 @@ This node is used by Rootstock PowPeg signatories to interact with the Bridge co
 
 
 **Not sure how to install any of these? See [software installation help](#software-installation-help)**
+
 
 ## Software installation help
 Disclaimer: this documentation will be specific for macOS operative system.
@@ -27,7 +29,9 @@ Add jenv to your path as it says on the output of jenv brew installation.
 
 Download [oracle-jdk8](https://www.oracle.com/ar/java/technologies/javase/javase8-archive-downloads.html) and install it.
 
+
 **Note:** *if you have an Apple Silicon chip you may get a notification saying that is not recommended to install a file that is for Intel chips, just ignore it and keep going with the installation.*
+
 
 Add the just downloaded jdk to the jenv versions, run: `jenv add /Library/Java/JavaVirtualMachines/<ORACLE-JDK8-DIRECTORY>/Contents/Home/`
 
@@ -61,117 +65,12 @@ It should output ```Bitcoin server starting```
 
 Run `bitcoin-cli stop` afterwards.
 
+
+
 ## Setting up the project
-
-### Required configurations
-
-
-
-**Pegnatories**
-
-You will need a private key file to be used by the pegnatory to sign BTC/RSK transactions. Follow these steps to generate it:
-
-- Look for the **[GenNodeKeyId](https://github.com/rsksmart/rskj/blob/master/rskj-core/src/main/java/co/rsk/GenNodeKeyId.java)** class in rskj
-- In that file, there is a `generator` variable that works as the seed of the private key.
-Set the desired value to it. (For example, `String generator = “federator1”;`)
-
-- Run the class to generate a privateKey, publicKey, publicKeyCompressed, address and nodeId
-
-
-You should get an output like the following:
-
-```
-{
-"privateKey": "405d0e226832757955482f9215447ac6306370578a67a4729c6afb71eeed2a94",
-"publicKey": "04a7c006420129b2f5d8c03bddef483a13cdbe0c0e6b3c7a8b39f1c9557fd48d3082a8b606601bba9fd2f1870569f694de702171b4848519d2d68f8adc26979c90",
-"publicKeyCompressed": "02a7c006420129b2f5d8c03bddef483a13cdbe0c0e6b3c7a8b39f1c9557fd48d30",
-"address": "9d5242d00ea7d7b6d20489da0390a8486758570b",
-"nodeId": "a7c006420129b2f5d8c03bddef483a13cdbe0c0e6b3c7a8b39f1c9557fd48d3082a8b606601bba9fd2f1870569f694de702171b4848519d2d68f8adc26979c90"
-}
-```
-
-- Create a file named `reg1.key` with only the private key as the content
-- Add permission to the file by running `chmod 400 reg1.key`
-
----
-
-**Configuration file**
-
-Create a `node.conf` file in powpeg-project directory (this exact file’s structure is for local test/regtest only):
-
-```
-federator{
-    enabled = true
-    
-    signers {
-       BTC {
-          type = "keyFile"
-          path = "<ABSOLUTE-PATH-TO-reg1.key-FILE>" # This should point to your generated key file
-       }
-       RSK {
-          type = "keyFile"
-          path = "<ABSOLUTE-PATH-TO-reg1.key-FILE>" # This should point to your generated key file
-       }
-       MST {
-          type = "keyFile"
-          path = "<ABSOLUTE-PATH-TO-reg1.key-FILE>" # This should point to your generated key file
-       }
-    }
-    # peers for the bitcoin network
-    bitcoinPeerAddresses = [
-        "127.0.0.1:18444" #bitcoind p2p port.
-    ]
-}
-```
-
-**Note:** *optionally you can generate three files, one per each signer to be used (BTC/RSK/MST) but you can use the same key file for BTC, RSK, and MST*
-
-**Important:** When setting up the Bitcoind Node host:port for the powpeg-node you MUST use the p2p port. The powpeg-node will “connect” even if you setup the RPC port, but the connection won’t go through and the powpeg-node won’t start.
-
----
-
-**Running Powpeg node using local RSKj source code**
-
-**Directory structure**
-
 Create a directory (for example, “powpeg-project”) to hold the rskj node, the powpeg node and further configurations.
 
-```bash
-mkdir powpeg-project
-cd powpeg-project
-```
-
-Inside the project directory clone the rskj repository.
-
-```bash
-git clone https://github.com/rsksmart/rskj
-```
-
----
-
-To run the Powpeg node using a local version of RSKj instead of relying on the dependencies been resolved by Maven, you will have to add a customization file.
-Search for `development-settings.gradle.sample` file inside powpeg-node directory, rename it to `DONT-COMMIT-settings.gradle` and make sure it only has the following content. Change `<ABSOLUTE-PATH-TO-RSKJ-SOURCE-CODE>` value to your local RSKj absolute path.
-
-```
-includeBuild('<ABSOLUTE-PATH-TO-RSKJ-SOURCE-CODE>') {
-    dependencySubstitution {
-        all { DependencySubstitution dependency ->
-            if (dependency.requested instanceof ModuleComponentSelector
-                    && dependency.requested.group == 'co.rsk'
-                    && dependency.requested.module == 'rskj-core'
-                    && dependency.requested.version.endsWith('SNAPSHOT')) {
-                def targetProject = project(":${dependency.requested.module}")
-                if (targetProject != null) {
-                    println('---- USING LOCAL ' + dependency.requested.displayName +' PROJECT ----')
-                    dependency.useTarget targetProject
-                }
-            }
-        }
-    }
-}
-```
-
-### Fetch the code!
+### Fetch the code
 
 Inside the `powpeg-project` directory clone the powpeg-node repository.
 
@@ -183,7 +82,7 @@ git clone https://github.com/rsksmart/powpeg-node
 cd powpeg-node
 ```
 
-### Verify the code!
+### Verify the code
 
 Before anything, you must ensure the security chain of the source code. For that, you must go through the following steps. For Linux based OS (Ubuntu for example) it’s recommended install `gnupg-curl` to download the key through HTTPS.
 
@@ -248,7 +147,7 @@ configure.sh: OK
 sha256sum: WARNING: 19 lines are improperly formatted
 ```
 
-### Compile the code!
+### Configure
 
 Run configure script to configure secure environment.
 
@@ -256,22 +155,123 @@ Run configure script to configure secure environment.
 ./configure.sh
 ```
 
-### Import and configure the project
+
+
+### Required configurations
+
+
+**1. Pegnatory private key**
+
+You will need a private key file to be used by the pegnatory to sign BTC/RSK transactions. Follow these steps to generate it:
+
+- Look for the **[GenNodeKeyId](https://github.com/rsksmart/rskj/blob/master/rskj-core/src/main/java/co/rsk/GenNodeKeyId.java)** class in rskj
+- In that file, there is a `generator` variable that works as the seed of the private key.
+Set the desired value to it. (For example, `String generator = “federator1”;`)
+
+- Run the class to generate a privateKey, publicKey, publicKeyCompressed, address and nodeId
+
+
+You should get an output like the following:
+
+```
+{
+"privateKey": "405d0e226832757955482f9215447ac6306370578a67a4729c6afb71eeed2a94",
+"publicKey": "04a7c006420129b2f5d8c03bddef483a13cdbe0c0e6b3c7a8b39f1c9557fd48d3082a8b606601bba9fd2f1870569f694de702171b4848519d2d68f8adc26979c90",
+"publicKeyCompressed": "02a7c006420129b2f5d8c03bddef483a13cdbe0c0e6b3c7a8b39f1c9557fd48d30",
+"address": "9d5242d00ea7d7b6d20489da0390a8486758570b",
+"nodeId": "a7c006420129b2f5d8c03bddef483a13cdbe0c0e6b3c7a8b39f1c9557fd48d3082a8b606601bba9fd2f1870569f694de702171b4848519d2d68f8adc26979c90"
+}
+```
+
+- Create a file named `reg1.key` with only the private key as the content
+- Add permission to the file by running `chmod 400 reg1.key`
+
+---
+
+**2. Configuration file**
+
+Create a `node.conf` file in powpeg-project directory (this exact file’s structure is for local test/regtest only):
+
+```
+federator{
+    enabled = true
+    
+    signers {
+       BTC {
+          type = "keyFile"
+          path = "<ABSOLUTE-PATH-TO-reg1.key-FILE>" # This should point to your generated key file
+       }
+       RSK {
+          type = "keyFile"
+          path = "<ABSOLUTE-PATH-TO-reg1.key-FILE>" # This should point to your generated key file
+       }
+       MST {
+          type = "keyFile"
+          path = "<ABSOLUTE-PATH-TO-reg1.key-FILE>" # This should point to your generated key file
+       }
+    }
+    # peers for the bitcoin network
+    bitcoinPeerAddresses = [
+        "127.0.0.1:18444" #bitcoind p2p port.
+    ]
+}
+```
+
+**Note:** *optionally you can generate three files, one per each signer to be used (BTC/RSK/MST) but you can use the same key file for BTC, RSK, and MST*
+
+**Important:** When setting up the Bitcoind Node host:port for the powpeg-node you MUST use the p2p port. The powpeg-node will “connect” even if you setup the RPC port, but the connection won’t go through and the powpeg-node won’t start.
+
+
+---
+
+
+**Using local source code for RSKj dependency**
+
+**Directory structure**
+
+
+```bash
+mkdir powpeg-project
+cd powpeg-project
+```
+
+Inside the project directory clone the rskj repository.
+
+```bash
+git clone https://github.com/rsksmart/rskj
+```
+
+---
+
+To run the Powpeg node using a local version of RSKj instead of relying on the dependencies been resolved by Maven, you will have to add a customization file.
+Search for `development-settings.gradle.sample` file inside powpeg-node directory, rename it to `DONT-COMMIT-settings.gradle` and make sure it only has the following content. Change `<ABSOLUTE-PATH-TO-RSKJ-SOURCE-CODE>` value to your local RSKj absolute path.
+
+```
+includeBuild('<ABSOLUTE-PATH-TO-RSKJ-SOURCE-CODE>') {
+    dependencySubstitution {
+        all { DependencySubstitution dependency ->
+            if (dependency.requested instanceof ModuleComponentSelector
+                    && dependency.requested.group == 'co.rsk'
+                    && dependency.requested.module == 'rskj-core'
+                    && dependency.requested.version.endsWith('SNAPSHOT')) {
+                def targetProject = project(":${dependency.requested.module}")
+                if (targetProject != null) {
+                    println('---- USING LOCAL ' + dependency.requested.displayName +' PROJECT ----')
+                    dependency.useTarget targetProject
+                }
+            }
+        }
+    }
+}
+```
+
+
+
+### [Optional] Import and configure the project
 
 To import the project to IntelliJ IDEA go to `File > New > Project from existing sources...` Select `powpeg-node/build.gradle` and import.
 
-- **Create a new running configuration with name FedRunner** (go to `Run > Edit configurations > Add configuration > Application`)
-- **Module*:*** `-cp federate-node.main`
 
-*When you select the module, the java version should change automatically*
-
-- **Main Class:** `co.rsk.federate.FederateRunner`
-
-- **Program Arguments:** add `--regtest -–reset`
-
-*Remove `--reset` if you want to keep your database after restarting the node*
-
-- **VM options:** `-Drsk.conf.file=/<PATH_TO_CONF_FILE>` (to add VM options, go to `Modify Options > Add VM options`)
 
 
 ### Build
@@ -282,11 +282,12 @@ Then clean and build project using:
 ./gradlew clean build
 ```
 
-### Running bitcoind
+### Run bitcoind
 
 Create a new directory called datadir inside powpeg-project. In the next step you need to replace `<PATH_TO_DATA_DIR>` with this directory absolute path.
 
 Create a new directory called scripts inside powpeg-project with the following scripts inside:
+
 
 File `bitcoin-node.sh`
 
@@ -302,11 +303,13 @@ File `btc-regtest.sh`
 bitcoin-cli -regtest --rpcuser=rsk --rpcpassword=rsk --rpcport=18332 $@
 ```
 
+
 Start the Bitcoin node with (use another terminal as you will have to keep it running)
 
 ```bash
 ./scripts/bitcoin-node.sh
 ```
+
 
 Generate 1 block with
 
@@ -316,23 +319,35 @@ Generate 1 block with
 
 This should return the block hash as an object.
 
+
 Get the amount of blocks available with
 
 ```bash
 ./scripts/btc-regtest getblockcount
 ```
 
-
-
 This should return an integer.
 
 - For more references, check **[https://github.com/BlockchainCommons/Learning-Bitcoin-from-the-Command-Line](https://github.com/BlockchainCommons/Learning-Bitcoin-from-the-Command-Line)**
 
-### Finally run!
+### Run PowPeg node!
 
 You can run it either with the FedRunner configuration from IntelliJ or manually from the command line.
 
+**FedRunner configuration from IntelliJ**
+- **Create a new running configuration with name FedRunner** (go to `Run > Edit configurations > Add configuration > Application`)
 
+- **Module:** `-cp federate-node.main`
+
+    *When you select the module, the java version should change automatically*
+
+- **Main Class:** `co.rsk.federate.FederateRunner`
+
+- **Program Arguments:** add `--regtest -–reset`
+
+    *Remove `--reset` if you want to keep your database after restarting the node*
+
+- **VM options:** `-Drsk.conf.file=/<PATH_TO_CONF_FILE>` (to add VM options, go to `Modify Options > Add VM options`)
 
 ---
 
@@ -347,10 +362,12 @@ java -cp /<PATH-TO-POW-PEG-SOURCE-CODE>/build/libs/<JAR-NAME>.jar -Drsk.conf.fil
 -**Note:** Change PATH-TO-RSKJ-SOURCE-CODE value to your local Rskj path.
 If you want to specify a directory to save the logs, add -Dlogback.configurationFile=/<PATH-TO-LOG-DIR>/logback.xml to the command.
 
+---
 ## Report Security Vulnerabilities
 
 We have a [vulnerability reporting guideline](SECURITY.md) for details on how to contact us to report a vulnerability.
 
+---
 ## License
 
 This software is released under the [MIT license](LICENSE).
