@@ -227,15 +227,12 @@ federator{
 
 **Using local source code for RSKj dependency**
 
+To run the Powpeg node using a local version of RSKj instead of relying on the dependencies been resolved by Maven, you will have to add a customization file.
+
+
 **Directory structure**
 
-
-```bash
-mkdir powpeg-project
-cd powpeg-project
-```
-
-Inside the project directory clone the rskj repository.
+Inside the `powpeg-project` directory clone the rskj repository.
 
 ```bash
 git clone https://github.com/rsksmart/rskj
@@ -243,7 +240,6 @@ git clone https://github.com/rsksmart/rskj
 
 ---
 
-To run the Powpeg node using a local version of RSKj instead of relying on the dependencies been resolved by Maven, you will have to add a customization file.
 Search for `development-settings.gradle.sample` file inside powpeg-node directory, rename it to `DONT-COMMIT-settings.gradle` and make sure it only has the following content. Change `<ABSOLUTE-PATH-TO-RSKJ-SOURCE-CODE>` value to your local RSKj absolute path.
 
 ```
