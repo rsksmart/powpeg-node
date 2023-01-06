@@ -40,9 +40,9 @@ If you are using another java version in other projects, run `jenv local 1.8.0.3
 To check that it worked, open a new terminal instance and run `java -version` command. It should output something like 
 
 ```
-openjdk version "1.8.0_352"
-OpenJDK Runtime Environment
-OpenJDK 64-Bit Server VM 
+java version "1.8.0_351"
+Java(TM) SE Runtime Environment (build 1.8.0_351-b10)
+Java HotSpot(TM) 64-Bit Server VM (build 25.351-b10, mixed mode)
 ```
 
 *If not, try closing the terminal and open a new one cause sometimes it stays cached.*
@@ -56,7 +56,6 @@ curl -O https://bitcoin.org/bin/bitcoin-core-0.18.0/bitcoin-0.18.0-osx64.tar.gz
 tar -zxf bitcoin-0.18.0-osx64.tar.gz
 sudo mkdir -p /usr/local/bin
 sudo cp bitcoin-0.18.0/bin/bitcoin* /usr/local/bin/.
-rm -rf bitcoin-0.18.0
 ```
 
 To validate it run `bitcoind -daemon`.
