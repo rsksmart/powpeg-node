@@ -27,6 +27,12 @@ Although optional we recommend to install jenv to manage different Java versions
 
 Add jenv to your path as it says on the output of jenv brew installation.
 
+```
+To activate jenv, add the following to your ~/.zshrc:
+  export PATH="$HOME/.jenv/bin:$PATH"
+  eval "$(jenv init -)"
+```
+
 Download [oracle-jdk8](https://www.oracle.com/ar/java/technologies/javase/javase8-archive-downloads.html) and install it.
 
 
