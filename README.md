@@ -33,13 +33,9 @@ To activate jenv, add the following to your ~/.zshrc:
   eval "$(jenv init -)"
 ```
 
-Download [oracle-jdk8](https://www.oracle.com/ar/java/technologies/javase/javase8-archive-downloads.html) and install it.
+Download jdk and install it.
 
-
-**Note:** *if you have an Apple Silicon chip you may get a notification saying that is not recommended to install a file that is for Intel chips, just ignore it and keep going with the installation.*
-
-
-Add the just downloaded jdk to the jenv versions, run: `jenv add /Library/Java/JavaVirtualMachines/<ORACLE-JDK8-DIRECTORY>/Contents/Home/`
+Add the just downloaded jdk to the jenv versions, run: `jenv add /Library/Java/JavaVirtualMachines/<JDK8-DIRECTORY>/Contents/Home/`
 
 If you are using another java version in other projects, run `jenv local 1.8.0.352`. Otherwise you can set it globally by running: `jenv global 1.8.0.352`
 
@@ -87,7 +83,7 @@ git clone https://github.com/rsksmart/powpeg-node
 cd powpeg-node
 ```
 
-### Verify the code
+### [Optional] Verify the code
 
 Before anything, you must ensure the security chain of the source code. For that, you must go through the following steps. For Linux based OS (Ubuntu for example) it’s recommended install `gnupg-curl` to download the key through HTTPS.
 
