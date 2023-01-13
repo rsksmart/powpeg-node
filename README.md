@@ -19,7 +19,7 @@ This node is used by Rootstock PowPeg signatories to interact with the Bridge co
 
 
 ## Software installation help
-Disclaimer: this documentation will be specific for macOS operative system.
+Disclaimer: this documentation will be specific for macOS operating system.
 
 ### **Java JDK 1.8**
 
@@ -85,7 +85,7 @@ cd powpeg-node
 
 ### [Optional] Verify the code
 
-Before anything, you must ensure the security chain of the source code. For that, you must go through the following steps. For Linux based OS (Ubuntu for example) it’s recommended install `gnupg-curl` to download the key through HTTPS.
+Before anything, you must ensure the security chain of the source code. For that, you must go through the following steps. For Linux based OS (Ubuntu for example) it’s recommended to install `gnupg-curl` to download the key through HTTPS.
 
 1. Download sec channel public key
 
