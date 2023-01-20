@@ -34,7 +34,6 @@ import co.rsk.federate.FedNodeRunner;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.mock.SimpleEthereumImpl;
-import co.rsk.federate.signing.ECDSAHSMSigner;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.ECPublicKey;
 import co.rsk.federate.signing.FederationCantSignException;
@@ -705,7 +704,7 @@ public class BtcReleaseClientTest {
     }
 
     @Test
-    public void removeSignaturesFromTransaction() throws Exception {
+    public void removeSignaturesFromTransaction() {
         // Arrange
         BtcECKey federator1PrivKey = new BtcECKey();
         BtcECKey federator2PrivKey = new BtcECKey();
