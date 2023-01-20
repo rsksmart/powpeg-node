@@ -2,7 +2,6 @@ package co.rsk.federate.btcreleaseclient;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileData;
 import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileReadResult;
@@ -28,7 +27,7 @@ public class BtcReleaseClientStorageAccessor {
     private final int maxDelays;
     private final int delayInMs;
     // Delay writing to avoid slowing down operations
-    private ScheduledExecutorService writeTimer;
+    private final ScheduledExecutorService writeTimer;
     private ScheduledFuture task;
     private int delays;
 
@@ -60,11 +59,7 @@ public class BtcReleaseClientStorageAccessor {
         BtcReleaseClientFileReadResult readResult;
         synchronized (this) {
             try {
-                readResult = this.btcReleaseClientFileStorage.read(
-                    ThinConverter.toOriginalInstance(
-                        systemProperties.getNetworkConstants().getBridgeConstants().getBtcParamsString()
-                    )
-                );
+                readResult = this.btcReleaseClientFileStorage.read();
             } catch (Exception e) {
                 String message = "Error reading storage file for BtcReleaseClient";
                 logger.error(message);
