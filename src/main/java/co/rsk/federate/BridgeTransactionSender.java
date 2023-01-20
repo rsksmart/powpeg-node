@@ -114,10 +114,15 @@ public class BridgeTransactionSender {
                     LOGGER.debug("[tx={} | nonce={} | method={}] Submit to Bridge", rskTx.getHash(), nonce, function.name);
                     ethereum.submitTransaction(rskTx);
                 } catch (SignerException e) {
-                    LOGGER.error("[tx={} | nonce={} | method={}] Could not sign RSK tx", rskTx.getHash(), nonce, function.name, e);
+                    LOGGER.error("[tx={} | nonce={} | method={}] Could not sign RSK tx. {}", rskTx.getHash(), nonce, function.name, e);
                 }
             } else {
-                LOGGER.warn("[method={} | required={} | current={}] Not enough balance. Required: {}, Balance: {}", function.name, txCost, federatorRskBalance);
+                LOGGER.warn(
+                    "[method={}] Not enough balance. Required: {}, Balance: {}",
+                    function.name,
+                    txCost,
+                    federatorRskBalance
+                );
             }
 
         }
