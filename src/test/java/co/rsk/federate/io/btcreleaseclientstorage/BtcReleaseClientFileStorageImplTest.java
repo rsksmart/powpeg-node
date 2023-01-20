@@ -10,18 +10,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.commons.io.FileUtils;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.params.RegTestParams;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class BtcReleaseClientFileStorageImplTest {
-
-    private NetworkParameters parameters = RegTestParams.get();
 
     private static final String DIRECTORY_PATH = "src/test/java/co/rsk/federate/io" + File.separator + "peg";
     private static final String FILE_PATH = DIRECTORY_PATH + File.separator + "btcReleaseClient.rlp";
@@ -44,7 +39,7 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
-        BtcReleaseClientFileReadResult result = storage.read(parameters);
+        BtcReleaseClientFileReadResult result = storage.read();
 
         Assert.assertTrue(result.getSuccess());
         Assert.assertTrue(result.getData().getReleaseHashesMap().isEmpty());
@@ -60,7 +55,7 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
-        BtcReleaseClientFileReadResult result = storage.read(parameters);
+        BtcReleaseClientFileReadResult result = storage.read();
 
         Assert.assertTrue(result.getSuccess());
         Assert.assertTrue(result.getData().getReleaseHashesMap().isEmpty());
@@ -76,7 +71,7 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
-        BtcReleaseClientFileReadResult result = storage.read(parameters);
+        BtcReleaseClientFileReadResult result = storage.read();
 
         Assert.assertFalse(result.getSuccess());
     }
@@ -102,7 +97,7 @@ public class BtcReleaseClientFileStorageImplTest {
 
         storage.write(new BtcReleaseClientFileData());
 
-        BtcReleaseClientFileReadResult result = storage.read(parameters);
+        BtcReleaseClientFileReadResult result = storage.read();
 
         Assert.assertTrue(result.getSuccess());
 
@@ -123,7 +118,7 @@ public class BtcReleaseClientFileStorageImplTest {
 
         storage.write(fileData);
 
-        BtcReleaseClientFileReadResult result = storage.read(parameters);
+        BtcReleaseClientFileReadResult result = storage.read();
 
         Assert.assertTrue(result.getSuccess());
 

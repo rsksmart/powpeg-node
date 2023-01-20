@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.io.FileUtils;
-import org.bitcoinj.core.NetworkParameters;
 import org.ethereum.util.RLP;
 import org.ethereum.util.RLPElement;
 import org.ethereum.util.RLPList;
@@ -52,13 +51,12 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
     }
 
     @Override
-    public BtcReleaseClientFileReadResult read(NetworkParameters networkParameters)
-        throws IOException {
+    public BtcReleaseClientFileReadResult read() throws IOException {
         File file = new File(this.storageInfo.getFilePath());
-
         if (!file.exists()) {
             return new BtcReleaseClientFileReadResult(Boolean.TRUE, new BtcReleaseClientFileData());
         }
+
         return this.readFromRlp(FileUtils.readFileToByteArray(file));
     }
 

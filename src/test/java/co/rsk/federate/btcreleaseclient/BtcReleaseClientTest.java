@@ -723,6 +723,7 @@ public class BtcReleaseClientTest {
 
         Sha256Hash unsignedTxHash = releaseTx.getHash();
 
+        // Sign the transaction
         Script inputScript = releaseInput.getScriptSig();
         List<ScriptChunk> chunks = inputScript.getChunks();
         byte[] program = chunks.get(chunks.size() - 1).data;
@@ -747,16 +748,6 @@ public class BtcReleaseClientTest {
             fedNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
-        client.setup(
-            mock(ECDSAHSMSigner.class),
-            mock(ActivationConfig.class),
-            mock(SignerMessageBuilderFactory.class),
-            mock(ReleaseCreationInformationGetter.class),
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
-        );
-        client.start(federation);
 
         Sha256Hash signedTxHash = releaseTx.getHash();
 
