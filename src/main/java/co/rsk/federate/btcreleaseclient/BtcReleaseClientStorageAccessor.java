@@ -31,10 +31,8 @@ public class BtcReleaseClientStorageAccessor {
     private ScheduledFuture task;
     private int delays;
 
-    public BtcReleaseClientStorageAccessor(FedNodeSystemProperties systemProperties)
-        throws InvalidStorageFileException {
+    public BtcReleaseClientStorageAccessor(FedNodeSystemProperties systemProperties) throws InvalidStorageFileException {
         this(
-            systemProperties,
             Executors.newSingleThreadScheduledExecutor(),
             new BtcReleaseClientFileStorageImpl(
                 new BtcReleaseClientFileStorageInfo(systemProperties)
@@ -45,7 +43,6 @@ public class BtcReleaseClientStorageAccessor {
     }
 
     public BtcReleaseClientStorageAccessor(
-        FedNodeSystemProperties systemProperties,
         ScheduledExecutorService executorService,
         BtcReleaseClientFileStorage btcReleaseClientFileStorage,
         int delaysInMs,

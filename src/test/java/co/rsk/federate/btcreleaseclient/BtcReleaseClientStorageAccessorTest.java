@@ -40,7 +40,6 @@ public class BtcReleaseClientStorageAccessorTest {
         );
 
         new BtcReleaseClientStorageAccessor(
-            getFedNodeSystemProperties(),
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             10,
@@ -56,7 +55,6 @@ public class BtcReleaseClientStorageAccessorTest {
         );
 
         BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
-            getFedNodeSystemProperties(),
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             10,
@@ -80,7 +78,6 @@ public class BtcReleaseClientStorageAccessorTest {
         );
 
         BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
-            getFedNodeSystemProperties(),
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             0,
@@ -101,7 +98,6 @@ public class BtcReleaseClientStorageAccessorTest {
         );
 
         BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
-            getFedNodeSystemProperties(),
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             10,
@@ -128,7 +124,6 @@ public class BtcReleaseClientStorageAccessorTest {
         );
 
         BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
-            getFedNodeSystemProperties(),
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             0,
@@ -158,7 +153,6 @@ public class BtcReleaseClientStorageAccessorTest {
         );
 
         BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
-            getFedNodeSystemProperties(),
             executorService,
             btcReleaseClientFileStorage,
             10,
@@ -193,7 +187,6 @@ public class BtcReleaseClientStorageAccessorTest {
         );
 
         BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
-            getFedNodeSystemProperties(),
             executorService,
             btcReleaseClientFileStorage,
             10,
@@ -250,7 +243,6 @@ public class BtcReleaseClientStorageAccessorTest {
         );
 
         BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
-            getFedNodeSystemProperties(),
             executorService,
             btcReleaseClientFileStorage,
             400,
@@ -303,7 +295,6 @@ public class BtcReleaseClientStorageAccessorTest {
         );
 
         BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
-            getFedNodeSystemProperties(),
             executorService,
             btcReleaseClientFileStorage,
             500,
