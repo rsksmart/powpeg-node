@@ -13,6 +13,7 @@ import org.ethereum.core.BlockHeader;
 
 import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -235,5 +236,15 @@ public class TestUtils {
         public WhiteboxException(String message, Throwable cause) {
             super(message, cause);
         }
+    }
+
+    /**
+     * @return - generate random 32 byte hash
+     */
+    public static byte[] randomHash() {
+        byte[] randomHash = new byte[32];
+        SecureRandom random = new SecureRandom();
+        random.nextBytes(randomHash);
+        return randomHash;
     }
 }
