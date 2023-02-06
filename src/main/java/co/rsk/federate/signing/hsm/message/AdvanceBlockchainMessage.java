@@ -20,7 +20,7 @@ public class AdvanceBlockchainMessage {
         return Hex.toHexString(blockHeader.getFullEncoded());
     }
 
-    public List<String> getData() {
+    public List<String> getBlockHeaders() {
         return blockHeaders;
     }
 }
