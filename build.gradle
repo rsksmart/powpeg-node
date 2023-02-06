@@ -27,6 +27,12 @@ test {
     finalizedBy jacocoTestReport
 }
 
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
+}
+
 repositories {
     mavenCentral()
     maven {
@@ -64,7 +70,7 @@ ext {
     logbackVersion = '1.2.11'
     junitVersion = '4.13.2'
     mockitoVersion = '4.6.1'
-    rskjcoreVersion = '4.2.0-HOP'
+    rskjcoreVersion = '4.3.0-SNAPSHOT'
 }
 
 dependencies {
