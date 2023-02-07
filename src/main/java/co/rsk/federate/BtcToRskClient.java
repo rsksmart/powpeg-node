@@ -115,7 +115,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
  }
 
     public void start(Federation federation) {
-        logger.info("Starting for Federation {}", federation.getAddress().toString());
+        logger.info("Starting for Federation {}", federation.getAddress());
         this.federation = federation;
         if (federation.isMember(federatorSupport.getFederationMember())) {
             logger.info("Watching federation {} since I belong to it", federation.getAddress().toString());
@@ -153,8 +153,12 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     public void updateBridge() {
-        if (federation == null) {
-            logger.warn("[updateBridge] updateBridge skipped because no Federation is associated to this BtcToRskClient");
+        if (federation == null || nodeBlockProcessor.hasBetterBlockToSync()) {
+            String reason = federation == null ?
+                "no Federation is associated to this BtcToRskClient" :
+                "the node is syncing blocks";
+            logger.warn("[updateBridge] updateBridge skipped because {}", reason);
+            return;
         }
         if (nodeBlockProcessor.hasBetterBlockToSync()) {
             logger.warn("[updateBridge] updateBridge skipped because the node is syncing blocks");
@@ -194,7 +198,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             logger.debug("[updateBridge] Sending updateCollections");
             federatorSupport.sendUpdateCollections();
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            logger.error("[updateBridge] Error while updating Bridge. {}", e.getMessage());
             panicProcessor.panic("btclock", e.getMessage());
         }
     }

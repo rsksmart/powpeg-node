@@ -2233,8 +2233,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBridgeBtcCoinbaseTransactions_not_removing_from_storage_until_confirmation()
-        throws Exception {
+    public void updateBridgeBtcCoinbaseTransactions_not_removing_from_storage_until_confirmation() throws Exception {
         Sha256Hash blockHash = Sha256Hash.ZERO_HASH;
 
         ActivationConfig activations = mock(ActivationConfig.class);
@@ -2282,7 +2281,26 @@ public class BtcToRskClientTest {
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(true);
 
-        BtcToRskClient btcToRskClient = spy(buildWithFactory(mock(FederatorSupport.class), nodeBlockProcessor));
+        BtcToRskClient btcToRskClient = spy(buildWithFactory(
+            mock(FederatorSupport.class),
+            nodeBlockProcessor
+        ));
+        btcToRskClient.start(mock(Federation.class)); // Ensure the federation is not null
+
+        btcToRskClient.updateBridge();
+
+        verify(btcToRskClient, never()).updateBridgeBtcBlockchain();
+    }
+
+    @Test
+    public void updateBridge_when_federation_is_null_does_not_update_headers() throws IOException, BlockStoreException {
+        NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
+        when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
+
+        BtcToRskClient btcToRskClient = spy(buildWithFactory(
+            mock(FederatorSupport.class),
+            nodeBlockProcessor
+        ));
 
         btcToRskClient.updateBridge();
 
