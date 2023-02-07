@@ -1,12 +1,16 @@
 package co.rsk.federate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.config.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BlockListener;
 import co.rsk.federate.bitcoin.TransactionListener;
-import co.rsk.federate.io.*;
+import co.rsk.federate.io.BtcToRskClientFileData;
+import co.rsk.federate.io.BtcToRskClientFileReadResult;
+import co.rsk.federate.io.BtcToRskClientFileStorage;
 import co.rsk.federate.timing.TurnScheduler;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
@@ -14,28 +18,37 @@ import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.Federation;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
+import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.annotations.VisibleForTesting;
-import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import com.google.common.collect.Lists;
-import org.bitcoinj.core.*;
+import java.io.IOException;
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
+import javax.annotation.PreDestroy;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PartialMerkleTree;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Utils;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.PreDestroy;
-import java.io.IOException;
-import java.time.Clock;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Manages the process of informing the RSK bridge news about the bitcoin blockchain
@@ -115,7 +128,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
  }
 
     public void start(Federation federation) {
-        logger.info("Starting for Federation {}", federation.getAddress());
+        logger.info("[start] Starting for Federation {}", federation.getAddress());
         this.federation = federation;
         if (federation.isMember(federatorSupport.getFederationMember())) {
             logger.info("Watching federation {} since I belong to it", federation.getAddress().toString());
@@ -138,7 +151,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     public void stop() {
-        logger.info("Stopping");
+        logger.info("[stop] Stopping");
 
         federation = null;
 
@@ -206,7 +219,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     @Override
     public void onBlock(Block block) {
         synchronized (this) {
-            logger.debug("onBlock {}", block.getHash());
+            logger.debug("[onBlock] onBlock {}", block.getHash());
             PartialMerkleTree tree;
             Transaction coinbase = null;
             boolean dataToWrite = false;
@@ -227,7 +240,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 List<Proof> proofs = fileData.getTransactionProofs().get(tx.getWTxId());
                 boolean blockInProofs = proofs.stream().anyMatch(p -> p.getBlockHash().equals(block.getHash()));
                 if (blockInProofs) {
-                    logger.info("Proof for tx {} in block {} already stored", tx, block.getHash());
+                    logger.info("[onBlock] Proof for tx {} in block {} already stored", tx, block.getHash());
                     continue;
                 }
 
@@ -249,14 +262,14 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         // Validate information
                         byte[] witnessReservedValue = coinbaseInformation.getCoinbaseWitnessReservedValue();
                         if (witnessReservedValue == null) {
-                            logger.error("block {} with lock segwit tx {} has coinbase with no witness reserved value. Aborting block processing.", block.getHash(), tx.getWTxId());
+                            logger.error("[onBlock] block {} with lock segwit tx {} has coinbase with no witness reserved value. Aborting block processing.", block.getHash(), tx.getWTxId());
                             // Can't register this transaction, it would be rejected by the Bridge
                             return;
                         }
                         Sha256Hash calculatedWitnessCommitment = Sha256Hash.twiceOf(witnessMerkleRoot.getReversedBytes(), witnessReservedValue);
                         Sha256Hash witnessCommitment = coinbase.findWitnessCommitment();
                         if (!witnessCommitment.equals(calculatedWitnessCommitment)) {
-                            logger.error("block {} with lock segwit tx {} generated an invalid witness merkle root", tx.getWTxId(), block.getHash());
+                            logger.error("[onBlock] block {} with lock segwit tx {} generated an invalid witness merkle root", tx.getWTxId(), block.getHash());
                             // Can't register this transaction, it would be rejected by the Bridge
                             return;
                         }
@@ -266,14 +279,14 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         // Register the coinbase just once per block
                         coinbaseRegistered = true;
                     } catch (Exception e) {
-                        logger.error(e.getMessage(), e);
+                        logger.error("[onBlock] {}", e.getMessage());
                         // Without a coinbase related to this transaction the Bridge would reject the transaction
                         return;
                     }
                 }
 
                 proofs.add(new Proof(block.getHash(), tree));
-                logger.info("New proof for tx {} in block {}", tx, block.getHash());
+                logger.info("[onBlock] New proof for tx {} in block {}", tx, block.getHash());
                 dataToWrite = true;
             }
 
@@ -283,9 +296,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
             try {
                 this.btcToRskClientFileStorage.write(fileData);
-                logger.info("Stored proofs for block {}", block.getHash());
+                logger.info("[onBlock] Stored proofs for block {}", block.getHash());
             } catch (IOException e) {
-                logger.error(e.getMessage(), e);
+                logger.error("[onBlock] {}", e.getMessage());
                 panicProcessor.panic("btclock", e.getMessage());
             }
         }
@@ -293,13 +306,13 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     @Override
     public void onTransaction(Transaction tx) {
-        logger.debug("onTransaction {}", tx.getWTxId());
+        logger.debug("[onTransaction] onTransaction {}", tx.getWTxId());
         synchronized (this) {
             this.fileData.getTransactionProofs().put(tx.getWTxId(), new ArrayList<>());
             try {
                 this.btcToRskClientFileStorage.write(this.fileData);
             } catch (IOException e) {
-                logger.error(e.getMessage(), e);
+                logger.error("[onTransaction] {}", e.getMessage());
                 panicProcessor.panic("btclock", e.getMessage());
             }
         }
@@ -313,8 +326,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
         if (federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight) {
             logger.debug(
-                "[updateBridgeBtcBlockchain] BTC blockchain height - Federator : {}, Bridge : {}.",
-                bitcoinWrapper.getBestChainHeight(),
+                "[updateBridgeBtcBlockchain] BTC blockchain height - Federator : {}, Bridge : {}",
+                federatorBtcBlockchainBestChainHeight,
                 bridgeBtcBlockchainBestChainHeight
             );
             // Federator's blockchain has more blocks than bridge's blockchain - go and try to
@@ -452,7 +465,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         // Find the last best chain block the bridge has with respect
         // to the federate node's best chain.
         Object[] blockLocatorArray = federatorSupport.getBtcBlockchainBlockLocator();
-        logger.debug("Block locator size {}, first {}, last {}.", blockLocatorArray.length, blockLocatorArray[0], blockLocatorArray[blockLocatorArray.length - 1]);
+        logger.debug(
+            "[findBridgeBtcBlockchainMatchingAncestorUsingBlockLocator] Block locator size {}, first {}, last {}.",
+            blockLocatorArray.length, blockLocatorArray[0],
+            blockLocatorArray[blockLocatorArray.length - 1]
+        );
 
         StoredBlock matchedBlock = null;
         for (Object o : blockLocatorArray) {
@@ -634,7 +651,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
      * Gets the first ready to be informed coinbase transaction and informs it
      */
     protected void updateBridgeBtcCoinbaseTransactions() {
-        Optional<CoinbaseInformation> coinbaseInformationReadyToInform = fileData.getCoinbaseInformationMap()
+        Optional<CoinbaseInformation> coinbaseInformationReadyToInform = fileData
+            .getCoinbaseInformationMap()
             .values()
             .stream()
             .filter(CoinbaseInformation::isReadyToInform)
@@ -705,7 +723,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     @PreDestroy
     public void tearDown() throws IOException {
-        logger.info("BtcToRskClient tearDown starting...");
+        logger.info("[tearDown] BtcToRskClient tearDown starting...");
 
         if (federation != null) {
             bitcoinWrapper.removeFederationListener(federation, this);
@@ -717,7 +735,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             this.btcToRskClientFileStorage.write(this.fileData);
         }
 
-        logger.info("BtcToRskClient tearDown finished.");
+        logger.info("[tearDown] BtcToRskClient tearDown finished.");
     }
 
     private void restoreFileData() throws Exception {
@@ -729,12 +747,12 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     this.fileData = result.getData();
                 } else {
                     String errorMessage = "Can't operate without a valid storage file";
-                    logger.error(errorMessage);
-                    panicProcessor.panic("fed-storage",errorMessage);
+                    logger.error("[restoreFileData] {}", errorMessage);
+                    panicProcessor.panic("fed-storage", errorMessage);
                     throw new Exception(errorMessage);
                 }
             } catch (IOException e) {
-                logger.error("Failed to read data from BtcToRskClient file: {}", e.getMessage(), e);
+                logger.error("[restoreFileData] Failed to read data from BtcToRskClient file: {}", e.getMessage(), e);
                 panicProcessor.panic("fed-storage",e.getMessage());
                 throw new Exception("Failed to read data from BtcToRskClient file", e);
             }
