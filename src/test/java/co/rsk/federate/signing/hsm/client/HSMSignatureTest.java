@@ -20,7 +20,6 @@ package co.rsk.federate.signing.hsm.client;
 
 import co.rsk.federate.signing.utils.TestUtils;
 import org.ethereum.crypto.ECKey;
-import org.ethereum.crypto.HashUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
