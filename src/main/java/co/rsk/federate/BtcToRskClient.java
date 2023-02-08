@@ -254,10 +254,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     try {
                         Sha256Hash witnessMerkleRoot = tree.getTxnHashAndMerkleRoot(new ArrayList<>());
                         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
-                                coinbase,
-                                witnessMerkleRoot,
-                                block.getHash(),
-                                coinbasePmt
+                            coinbase,
+                            witnessMerkleRoot,
+                            block.getHash(),
+                            coinbasePmt
                         );
                         // Validate information
                         byte[] witnessReservedValue = coinbaseInformation.getCoinbaseWitnessReservedValue();
@@ -336,13 +336,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             // First, find the common ancestor that is in the federator's bestchain
             // using either the old method -- block locator
             // or the new one -- block depth incremental search
-            StoredBlock commonAncestor = null;
-            if (useBlockDepth) {
-                commonAncestor = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
-            } else {
-                commonAncestor = findBridgeBtcBlockchainMatchingAncestorUsingBlockLocator();
-            }
-
+            StoredBlock commonAncestor = useBlockDepth ?
+                findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight) :
+                findBridgeBtcBlockchainMatchingAncestorUsingBlockLocator();
             checkNotNull(commonAncestor, "No best chain block found");
 
             logger.debug(
