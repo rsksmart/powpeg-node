@@ -15,9 +15,9 @@ import static org.mockito.Mockito.when;
  * @author kelvin.isievwore
  */
 
-public class HSM2SignerConfigTest {
+public class PowHSMBookkeepingConfigTest {
 
-    private HSM2SignerConfig hsm2SignerConfig;
+    private PowHSMBookkeepingConfig powHsmBookkeepingConfig;
     private SignerConfig signerConfigMock;
     private Config configMock;
 
@@ -30,21 +30,21 @@ public class HSM2SignerConfigTest {
     @Test
     public void testGetDifficultyCapForMainnet() {
         when(signerConfigMock.getConfig()).thenReturn(configMock);
-        hsm2SignerConfig = new HSM2SignerConfig(signerConfigMock, NetworkParameters.ID_MAINNET);
-        Assert.assertEquals(HSM2SignerConfig.DIFFICULTY_CAP_MAINNET, hsm2SignerConfig.getDifficultyCap());
+        powHsmBookkeepingConfig = new PowHSMBookkeepingConfig(signerConfigMock, NetworkParameters.ID_MAINNET);
+        Assert.assertEquals(PowHSMBookkeepingConfig.DIFFICULTY_CAP_MAINNET, powHsmBookkeepingConfig.getDifficultyCap());
     }
 
     @Test
     public void testGetDifficultyCapForTestnet() {
         when(signerConfigMock.getConfig()).thenReturn(configMock);
-        hsm2SignerConfig = new HSM2SignerConfig(signerConfigMock, NetworkParameters.ID_TESTNET);
-        Assert.assertEquals(HSM2SignerConfig.DIFFICULTY_CAP_TESTNET, hsm2SignerConfig.getDifficultyCap());
+        powHsmBookkeepingConfig = new PowHSMBookkeepingConfig(signerConfigMock, NetworkParameters.ID_TESTNET);
+        Assert.assertEquals(PowHSMBookkeepingConfig.DIFFICULTY_CAP_TESTNET, powHsmBookkeepingConfig.getDifficultyCap());
     }
 
     @Test
     public void testGetDifficultyCapForRegtest() {
         when(signerConfigMock.getConfig()).thenReturn(configMock);
-        hsm2SignerConfig = new HSM2SignerConfig(signerConfigMock, NetworkParameters.ID_REGTEST);
-        Assert.assertEquals(HSM2SignerConfig.DIFFICULTY_CAP_REGTEST, hsm2SignerConfig.getDifficultyCap());
+        powHsmBookkeepingConfig = new PowHSMBookkeepingConfig(signerConfigMock, NetworkParameters.ID_REGTEST);
+        Assert.assertEquals(PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST, powHsmBookkeepingConfig.getDifficultyCap());
     }
 }

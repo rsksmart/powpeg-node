@@ -23,8 +23,8 @@ import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
-import co.rsk.federate.signing.hsm.client.HSMClientProvider;
 import co.rsk.federate.signing.utils.TestUtils;
+import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
 import com.typesafe.config.Config;
 import org.junit.Assert;
 import org.junit.Before;
@@ -78,7 +78,7 @@ public class ECDSASignerFactoryTest {
         Assert.assertEquals(ECDSAHSMSigner.class, signer.getClass());
 
         // Provider chain OK
-        HSMClientProvider clientProvider = TestUtils.getInternalState(signer, "clientProvider");
+        HSMSigningClientProvider clientProvider = TestUtils.getInternalState(signer, "clientProvider");
 
         HSMClientProtocol hsmClientProtocol = TestUtils.getInternalState(clientProvider, "hsmClientProtocol");
 

@@ -29,7 +29,7 @@ import co.rsk.federate.signing.hsm.message.SignerMessage;
  *
  * @author Ariel Mendelzon
  */
-public interface HSMClient {
+public interface HSMSigningClient {
     int getVersion() throws HSMClientException;
 
     byte[] getPublicKey(String keyId) throws HSMClientException;

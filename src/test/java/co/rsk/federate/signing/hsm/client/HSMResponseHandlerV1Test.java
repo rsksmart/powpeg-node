@@ -25,12 +25,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class HSMResponseHandlerVersion1Test {
+public class HSMResponseHandlerV1Test {
     private HSMResponseHandlerBase responseHandler;
 
     @Before
     public void createResponseHandler() {
-        responseHandler = new HSMResponseHandlerVersion1();
+        responseHandler = new HSMResponseHandlerV1();
     }
 
     @Test(expected = HSMAuthException.class)

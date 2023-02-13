@@ -20,7 +20,7 @@ package co.rsk.federate.signing;
 
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import co.rsk.federate.signing.keyfile.KeyFileChecker;
 import co.rsk.federate.signing.keyfile.KeyFileHandler;
 import org.bouncycastle.util.encoders.Hex;
@@ -81,8 +81,7 @@ public class ECDSASignerFromFileKeyTest {
         try (MockedConstruction<KeyFileHandler> keyFileHandlerMockedConstruction = mockConstruction(KeyFileHandler.class, keyFileHandlerMockInitializer)) {
             byte[] message = Keccak256Helper.keccak256("aabbccdd");
 
-            ECKey.ECDSASignature result = signer.sign(new KeyId("an-id"), new SignerMessageVersion1(message));
-
+            ECKey.ECDSASignature result = signer.sign(new KeyId("an-id"), new SignerMessageV1(message));
             ECKey.ECDSASignature expectedSignature = ECKey.fromPrivate(Hex.decode("1122334455")).sign(message);
 
             Assert.assertEquals(1, keyFileHandlerMockedConstruction.constructed().size());
@@ -94,7 +93,7 @@ public class ECDSASignerFromFileKeyTest {
     @Test
     public void signNonMatchingKeyId() throws Exception {
         try {
-            signer.sign(new KeyId("another-id"), new SignerMessageVersion1(Hex.decode("aabbcc")));
+            signer.sign(new KeyId("another-id"), new SignerMessageV1(Hex.decode("aabbcc")));
             Assert.fail();
         } catch (Exception e) {
         }

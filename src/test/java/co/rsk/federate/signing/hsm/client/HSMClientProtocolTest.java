@@ -156,7 +156,7 @@ public class HSMClientProtocolTest {
         ObjectNode sendResponse = buildResponse(-4);
         sendResponse.put("error", "You should provide 'version' field");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(sendResponse);
-        hsmClientProtocol.setResponseHandler(new HSMResponseHandlerVersion1());
+        hsmClientProtocol.setResponseHandler(new HSMResponseHandlerV1());
 
         try {
             hsmClientProtocol.send(expectedRequest);
@@ -178,7 +178,7 @@ public class HSMClientProtocolTest {
         ObjectNode sendResponse = buildResponse(-666);
         sendResponse.put("error", "Requested version " + version + " but the gateway version is 1");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(sendResponse);
-        hsmClientProtocol.setResponseHandler(new HSMResponseHandlerVersion1());
+        hsmClientProtocol.setResponseHandler(new HSMResponseHandlerV1());
 
         try {
             hsmClientProtocol.send(expectedRequest);
