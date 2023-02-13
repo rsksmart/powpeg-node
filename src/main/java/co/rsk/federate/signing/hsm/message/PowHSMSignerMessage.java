@@ -27,18 +27,18 @@ import java.util.Objects;
 import org.ethereum.core.TransactionReceipt;
 import org.spongycastle.util.encoders.Hex;
 
-public class SignerMessageVersion2 extends SignerMessage {
+public class PowHSMSignerMessage extends SignerMessage {
     private final BtcTransaction btcTransaction;
     private final int inputIndex;
     private final TransactionReceipt txReceipt;
     private final List<Trie> receiptMerkleProof;
     private final Sha256Hash sigHash;
 
-    public SignerMessageVersion2(BtcTransaction btcTransaction,
-                                 int index,
-                                 TransactionReceipt txReceipt,
-                                 List<Trie> receiptMerkleProof,
-                                 Sha256Hash sigHash
+    public PowHSMSignerMessage(BtcTransaction btcTransaction,
+                               int index,
+                               TransactionReceipt txReceipt,
+                               List<Trie> receiptMerkleProof,
+                               Sha256Hash sigHash
     ) {
         this.btcTransaction = btcTransaction;
         this.inputIndex = index;
@@ -87,7 +87,7 @@ public class SignerMessageVersion2 extends SignerMessage {
             return false;
         }
 
-        SignerMessageVersion2 message = (SignerMessageVersion2) o;
+        PowHSMSignerMessage message = (PowHSMSignerMessage) o;
         return this.btcTransaction.equals(message.btcTransaction) &&
                 this.inputIndex == message.inputIndex &&
                 Arrays.equals(this.txReceipt.getEncoded(), message.txReceipt.getEncoded()) &&

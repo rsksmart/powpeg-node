@@ -21,11 +21,11 @@ public class SignerMessageBuilderFactory {
         SignerMessageBuilder messageBuilder;
         switch (version) {
             case 1:
-                messageBuilder = new SignerMessageBuilderVersion1(releaseCreationInformation.getBtcTransaction());
+                messageBuilder = new SignerMessageBuilderV1(releaseCreationInformation.getBtcTransaction());
                 break;
             case 2:
             case 3:
-                messageBuilder = new SignerMessageBuilderVersion2(receiptStore, releaseCreationInformation);
+                messageBuilder = new PowHSMSignerMessageBuilder(receiptStore, releaseCreationInformation);
                 break;
             default:
                 String message = String.format("Unsupported HSM signer version: %d", version);

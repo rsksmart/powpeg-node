@@ -32,11 +32,11 @@ import org.junit.Test;
 
 import static org.mockito.Mockito.*;
 
-public class HSMClientVersion2Test {
+public class PowHSMSigningClientTest {
     private JsonRpcClientProvider jsonRpcClientProviderMock;
     private HSMClientProtocol hsmClientProtocol;
     private JsonRpcClient jsonRpcClientMock;
-    private HSMClientVersion2 client;
+    private PowHSMSigningClient client;
     private final static int VERSION = 2;
 
     @Before
@@ -44,8 +44,8 @@ public class HSMClientVersion2Test {
         jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        //Since parent class is abstract, test all the common methods using HSMClientVersion2BTC.
-        client = new HSMClientVersion2RskMst(hsmClientProtocol, VERSION);
+        //Since parent class is abstract, test all the common methods using PowHSMSigningClientBtc.
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, VERSION);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 

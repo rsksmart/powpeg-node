@@ -21,7 +21,7 @@ package co.rsk.federate.signing.hsm.client;
 import co.rsk.federate.signing.hsm.*;
 import com.fasterxml.jackson.databind.JsonNode;
 
-public class HSMResponseHandlerVersion1 extends HSMResponseHandlerBase {
+public class HSMResponseHandlerV1 extends HSMResponseHandlerBase {
     private static final int HSM_REJECTED_KEY_ERROR_CODE = -1;
     private static final int HSM_SERVER_ERROR_CODE = -4;
     private static final int HSM_VERSION_CHANGED_ERROR_CODE = -666;

@@ -12,7 +12,7 @@ import co.rsk.bitcoinj.core.NetworkParameters;
 
 import java.math.BigInteger;
 
-public class HSM2SignerConfig {
+public class PowHSMBookkeepingConfig {
 
     public static final BigInteger DIFFICULTY_CAP_MAINNET = new BigInteger("7000000000000000000000");
     public static final BigInteger DIFFICULTY_CAP_TESTNET = BigInteger.valueOf(1000000000000000L);
@@ -24,7 +24,7 @@ public class HSM2SignerConfig {
     private boolean stopBookkeepingScheduler = false;
     private int maxChunkSizeToHsm = 10;
 
-    public HSM2SignerConfig(SignerConfig signerConfig, String networkParameter) {
+    public PowHSMBookkeepingConfig(SignerConfig signerConfig, String networkParameter) {
         if (signerConfig.getConfig().hasPath("bookkeeping.difficultyTarget")) {
             this.difficultyTarget = new BigInteger(signerConfig.getConfig().getString("bookkeeping.difficultyTarget"));
         }

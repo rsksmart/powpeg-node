@@ -22,7 +22,7 @@ import co.rsk.federate.signing.hsm.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
-public class HSMResponseHandlerVersion2 extends HSMResponseHandlerBase {
+public class PowHSMResponseHandler extends HSMResponseHandlerBase {
     private static final int HSM_WRONG_AUTH_ERROR_CODE = -101;
     private static final int HSM_INVALID_MESSAGE_ERROR_CODE = -102;
     private static final int HSM_REJECTED_KEY_ERROR_CODE = -103;

@@ -5,7 +5,7 @@ import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
@@ -15,11 +15,11 @@ import org.junit.Test;
 
 import static org.mockito.Mockito.*;
 
-public class HSMClientVersion2RskMstTest {
+public class PowHSMSigningClientRskMstTest {
     private JsonRpcClientProvider jsonRpcClientProviderMock;
     private HSMClientProtocol hsmClientProtocol;
     private JsonRpcClient jsonRpcClientMock;
-    private HSMClientVersion2 client;
+    private PowHSMSigningClient client;
     private final static int VERSION = 2;
 
     @Before
@@ -27,7 +27,7 @@ public class HSMClientVersion2RskMstTest {
         jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        client = new HSMClientVersion2RskMst(hsmClientProtocol, VERSION);
+        client = new PowHSMSigningClientRskMst(hsmClientProtocol, VERSION);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
@@ -38,7 +38,7 @@ public class HSMClientVersion2RskMstTest {
         publicKeyResponse.put("pubKey", "001122334455");
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
 
-        SignerMessageVersion1 messageForSignature = new SignerMessageVersion1(Hex.decode("bbccddee"));
+        SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
         ObjectNode response = buildSignResponse("223344", "55667788", 0);
@@ -56,7 +56,7 @@ public class HSMClientVersion2RskMstTest {
 
     @Test
     public void signNoErrorCode() throws Exception {
-        SignerMessageVersion1 messageForSignature = new SignerMessageVersion1(Hex.decode("bbccddee"));
+        SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
 
@@ -75,7 +75,7 @@ public class HSMClientVersion2RskMstTest {
 
     @Test
     public void signNonZeroErrorCode() throws Exception {
-        SignerMessageVersion1 messageForSignature = new SignerMessageVersion1(Hex.decode("bbccddee"));
+        SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
 
@@ -94,7 +94,7 @@ public class HSMClientVersion2RskMstTest {
 
     @Test
     public void signNoSignature() throws Exception {
-        SignerMessageVersion1 messageForSignature = new SignerMessageVersion1(Hex.decode("bbccddee"));
+        SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
         ObjectNode response = buildResponse(0);
@@ -111,7 +111,7 @@ public class HSMClientVersion2RskMstTest {
 
     @Test
     public void signNoR() throws Exception {
-        SignerMessageVersion1 messageForSignature = new SignerMessageVersion1(Hex.decode("bbccddee"));
+        SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
         ObjectNode response = buildResponse(0);
@@ -129,7 +129,7 @@ public class HSMClientVersion2RskMstTest {
 
     @Test
     public void signNoS() throws Exception {
-        SignerMessageVersion1 messageForSignature = new SignerMessageVersion1(Hex.decode("bbccddee"));
+        SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
         ObjectNode response = buildResponse(0);
