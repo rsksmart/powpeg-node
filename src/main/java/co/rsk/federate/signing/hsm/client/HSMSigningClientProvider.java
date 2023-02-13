@@ -32,48 +32,48 @@ import org.slf4j.LoggerFactory;
  *
  * @author Ariel Mendelzon
  */
-public class HSMClientProvider {
-    private static final Logger logger = LoggerFactory.getLogger(HSMClientProvider.class);
+public class HSMSigningClientProvider {
+    private static final Logger logger = LoggerFactory.getLogger(HSMSigningClientProvider.class);
 
     private final HSMClientProtocol hsmClientProtocol;
     private final String keyId;
 
-    public HSMClientProvider(HSMClientProtocol protocol, String keyId) {
+    public HSMSigningClientProvider(HSMClientProtocol protocol, String keyId) {
         this.hsmClientProtocol = protocol;
         this.keyId = keyId;
     }
 
-    public HSMClient getClient() throws HSMClientException {
+    public HSMSigningClient getSigningClient() throws HSMClientException {
         int version = this.hsmClientProtocol.getVersion();
-        HSMClient client;
+        HSMSigningClient client;
         logger.debug("[getClient] version: {}, keyId: {}", version, keyId);
         if (version == 1) {
-            client = new HSMClientVersion1(this.hsmClientProtocol);
+            client = new HSMSigningClientV1(this.hsmClientProtocol);
         } else if (version >= 2) {
             client = buildPowHSMClient(version);
         } else {
             String message = String.format("Unsupported HSM version %d", version);
-            logger.debug("[getClient] {}", message);
+            logger.debug("[getSigningClient] {}", message);
             throw new HSMUnsupportedVersionException(message);
         }
 
-        logger.debug("[getClient] HSM client: {}", client.getClass());
+        logger.debug("[getSigningClient] HSM client: {}", client.getClass());
         return client;
     }
 
-    private HSMClient buildPowHSMClient(int version) throws HSMUnsupportedTypeException {
-        HSMClient client;
+    private HSMSigningClient buildPowHSMClient(int version) throws HSMUnsupportedTypeException {
+        HSMSigningClient client;
         switch (keyId) {
             case "BTC":
-                client = new HSMClientVersion2BTC(this.hsmClientProtocol, version);
+                client = new PowHSMSigningClientBtc(this.hsmClientProtocol, version);
                 break;
             case "RSK":
             case "MST":
-                client = new HSMClientVersion2RskMst(this.hsmClientProtocol, version);
+                client = new PowHSMSigningClientRskMst(this.hsmClientProtocol, version);
                 break;
             default:
                 String message = String.format("Unsupported key id %s", keyId);
-                logger.debug("[getClient] {}", message);
+                logger.debug("[buildPowHSMClient] {}", message);
                 throw new HSMUnsupportedTypeException(message);
         }
         return client;

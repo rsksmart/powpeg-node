@@ -16,30 +16,30 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookkeepingClient {
-    private final Logger logger = LoggerFactory.getLogger(HSMClientVersion2BTC.class);
+public class PowHSMSigningClientBtc extends PowHSMSigningClient implements HSMBookkeepingClient {
+    private final Logger logger = LoggerFactory.getLogger(PowHSMSigningClientBtc.class);
 
     private int maxChunkSize = 10;  // DEFAULT VALUE
     private boolean isStopped = false;
 
-    public HSMClientVersion2BTC(HSMClientProtocol protocol, int version) {
+    public PowHSMSigningClientBtc(HSMClientProtocol protocol, int version) {
         super(protocol, version);
     }
 
     @Override
     protected final ObjectNode createObjectToSend(String keyId, SignerMessage message) {
         final String MESSAGE_FIELD = "message";
-        SignerMessageVersion2 messageVersion2 = (SignerMessageVersion2) message;
+        PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) message;
 
         ObjectNode objectToSign = this.hsmClientProtocol.buildCommand(SIGN_METHOD_NAME, this.getVersion());
         objectToSign.put(KEYID_FIELD, keyId);
-        objectToSign.set(AUTH_FIELD, createAuthField(messageVersion2));
-        objectToSign.set(MESSAGE_FIELD, createMessageField(messageVersion2));
+        objectToSign.set(AUTH_FIELD, createAuthField(powHSMSignerMessage));
+        objectToSign.set(MESSAGE_FIELD, createMessageField(powHSMSignerMessage));
 
         return objectToSign;
     }
 
-    private ObjectNode createAuthField(SignerMessageVersion2 message) {
+    private ObjectNode createAuthField(PowHSMSignerMessage message) {
         final String RECEIPT = "receipt";
         final String RECEIPT_MERKLE_PROOF = "receipt_merkle_proof";
 
@@ -53,7 +53,7 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
         return auth;
     }
 
-    private ObjectNode createMessageField(SignerMessageVersion2 message){
+    private ObjectNode createMessageField(PowHSMSignerMessage message){
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
         messageToSend.put("tx", message.getBtcTransactionSerialized());
         messageToSend.put("input", message.getInputIndex());

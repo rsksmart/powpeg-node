@@ -22,12 +22,12 @@ import org.bouncycastle.util.encoders.Hex;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class SignerMessageVersion1Test {
+public class SignerMessageV1Test {
     @Test
     public void equality() {
-        SignerMessage m1 = new SignerMessageVersion1(Hex.decode("aabb"));
-        SignerMessage m2 = new SignerMessageVersion1(Hex.decode("aabb"));
-        SignerMessage m3 = new SignerMessageVersion1(Hex.decode("aabbcc"));
+        SignerMessage m1 = new SignerMessageV1(Hex.decode("aabb"));
+        SignerMessage m2 = new SignerMessageV1(Hex.decode("aabb"));
+        SignerMessage m3 = new SignerMessageV1(Hex.decode("aabbcc"));
 
         Assert.assertEquals(m1, m2);
         Assert.assertNotEquals(m1, m3);
@@ -37,9 +37,9 @@ public class SignerMessageVersion1Test {
     @Test
     public void getBytes() {
         byte[] bytes = Hex.decode("aabb");
-        SignerMessage m = new SignerMessageVersion1(bytes);
+        SignerMessage m = new SignerMessageV1(bytes);
 
-        Assert.assertArrayEquals(bytes, ((SignerMessageVersion1) m).getBytes());
-        Assert.assertNotSame(bytes, ((SignerMessageVersion1) m).getBytes());
+        Assert.assertArrayEquals(bytes, ((SignerMessageV1) m).getBytes());
+        Assert.assertNotSame(bytes, ((SignerMessageV1) m).getBytes());
     }
 }

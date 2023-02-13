@@ -24,11 +24,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
 
-public abstract class HSMClientVersion2 extends HSMClientBase {
+public abstract class PowHSMSigningClient extends HSMSigningClientBase {
 
-    protected HSMClientVersion2(HSMClientProtocol protocol, int version) {
+    protected PowHSMSigningClient(HSMClientProtocol protocol, int version) {
         super(protocol, version);
-        protocol.setResponseHandler(new HSMResponseHandlerVersion2());
+        protocol.setResponseHandler(new PowHSMResponseHandler());
     }
 
     @Override

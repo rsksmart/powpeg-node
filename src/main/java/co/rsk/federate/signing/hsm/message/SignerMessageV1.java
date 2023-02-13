@@ -26,10 +26,10 @@ import org.bouncycastle.util.encoders.Hex;
  *
  * @author Ariel Mendelzon
  */
-public class SignerMessageVersion1 extends SignerMessage {
+public class SignerMessageV1 extends SignerMessage {
     private final byte[] message;
 
-    public SignerMessageVersion1(byte[] message) {
+    public SignerMessageV1(byte[] message) {
         // Save a copy
         this.message = copy(message);
     }
@@ -49,7 +49,7 @@ public class SignerMessageVersion1 extends SignerMessage {
             return false;
         }
 
-        return Arrays.equals(this.message, ((SignerMessageVersion1) o).message);
+        return Arrays.equals(this.message, ((SignerMessageV1) o).message);
     }
 
     @Override

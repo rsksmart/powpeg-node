@@ -20,9 +20,9 @@ public class SignerMessageBuilderFactory {
     ) throws HSMUnsupportedVersionException {
         SignerMessageBuilder messageBuilder;
         if (version == 1) {
-            messageBuilder = new SignerMessageBuilderVersion1(releaseCreationInformation.getBtcTransaction());
+            messageBuilder = new SignerMessageBuilderV1(releaseCreationInformation.getBtcTransaction());
         } else if (version >= 2) {
-            messageBuilder = new SignerMessageBuilderVersion2(receiptStore, releaseCreationInformation);
+            messageBuilder = new PowHSMSignerMessageBuilder(receiptStore, releaseCreationInformation);
         } else {
             String message = String.format("Unsupported HSM signer version: %d", version);
             logger.debug("[buildFromConfig] {}", message);
