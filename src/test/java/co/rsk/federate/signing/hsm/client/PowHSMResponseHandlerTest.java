@@ -34,12 +34,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class HSMResponseHandlerVersion2Test {
+public class PowHSMResponseHandlerTest {
     private HSMResponseHandlerBase responseHandler;
 
     @Before
     public void createResponseHandler() {
-        responseHandler = new HSMResponseHandlerVersion2();
+        responseHandler = new PowHSMResponseHandler();
     }
 
     @Test(expected = HSMAuthException.class)

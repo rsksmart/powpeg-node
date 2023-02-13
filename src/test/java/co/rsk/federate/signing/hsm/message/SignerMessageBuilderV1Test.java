@@ -11,7 +11,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
 
-public class SignerMessageBuilderVersion1Test {
+public class SignerMessageBuilderV1Test {
 
     @Test
     public void createHSMVersion1Message() {
@@ -36,9 +36,9 @@ public class SignerMessageBuilderVersion1Test {
 
         Sha256Hash sigHash = releaseTx1.hashForSignature(0, redeemScript, BtcTransaction.SigHash.ALL, false);
 
-        SignerMessageBuilderVersion1 sigMessVersion1 = new SignerMessageBuilderVersion1(releaseTx1) ;
+        SignerMessageBuilderV1 sigMessVersion1 = new SignerMessageBuilderV1(releaseTx1) ;
         SignerMessage message = sigMessVersion1.buildMessageForIndex(0);
-        assertArrayEquals(((SignerMessageVersion1) message).getBytes(), sigHash.getBytes());
+        assertArrayEquals(((SignerMessageV1) message).getBytes(), sigHash.getBytes());
     }
 
     private static co.rsk.bitcoinj.script.Script createBaseRedeemScriptThatSpendsFromTheFederation(Federation federation) {

@@ -24,7 +24,7 @@ import co.rsk.federate.signing.hsm.message.SignerMessage;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class HSMClientBase implements HSMClient {
+public abstract class HSMSigningClientBase implements HSMSigningClient {
     protected static final String KEYID_FIELD = "keyId";
     protected static final String AUTH_FIELD = "auth";
     protected static final String GETPUBKEY_METHOD_NAME = "getPubKey";
@@ -35,7 +35,7 @@ public abstract class HSMClientBase implements HSMClient {
     // Local caching of public keys
     protected Map<String, byte[]> publicKeys;
 
-    public HSMClientBase(HSMClientProtocol protocol, int version) {
+    public HSMSigningClientBase(HSMClientProtocol protocol, int version) {
         this.hsmClientProtocol = protocol;
         this.version = version;
         publicKeys = new HashMap<>();

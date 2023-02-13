@@ -19,10 +19,10 @@
 package co.rsk.federate.signing;
 
 import co.rsk.federate.signing.hsm.*;
-import co.rsk.federate.signing.hsm.client.HSMClient;
-import co.rsk.federate.signing.hsm.client.HSMClientProvider;
+import co.rsk.federate.signing.hsm.client.HSMSigningClient;
+import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
 import co.rsk.federate.signing.hsm.client.HSMSignature;
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
 import org.junit.Assert;
@@ -34,8 +34,8 @@ import java.util.Arrays;
 import static org.mockito.Mockito.*;
 
 public class ECDSAHSMSignerTest {
-    private HSMClientProvider providerMock;
-    private HSMClient clientMock;
+    private HSMSigningClientProvider providerMock;
+    private HSMSigningClient clientMock;
     private ECDSAHSMSigner signer;
     private KeyId keyA;
     private KeyId keyB;
@@ -43,8 +43,8 @@ public class ECDSAHSMSignerTest {
 
     @Before
     public void createSigner() {
-        clientMock = mock(HSMClient.class);
-        providerMock = mock(HSMClientProvider.class);
+        clientMock = mock(HSMSigningClient.class);
+        providerMock = mock(HSMSigningClientProvider.class);
         signer = new ECDSAHSMSigner(providerMock);
         keyA = new KeyId("keyA");
         keyB = new KeyId("keyB");
@@ -64,7 +64,7 @@ public class ECDSAHSMSignerTest {
 
     @Test
     public void checkOk() throws HSMClientException {
-        when(providerMock.getClient()).thenReturn(clientMock);
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
 
         ECDSASigner.ECDSASignerCheckResult result = signer.check();
         Assert.assertTrue(result.wasSuccessful());
@@ -76,7 +76,7 @@ public class ECDSAHSMSignerTest {
 
     @Test
     public void checkNoClient() throws HSMClientException {
-        when(providerMock.getClient()).thenThrow(new HSMUnsupportedVersionException("sasasa"));
+        when(providerMock.getSigningClient()).thenThrow(new HSMUnsupportedVersionException("sasasa"));
 
         ECDSASigner.ECDSASignerCheckResult result = signer.check();
         Assert.assertFalse(result.wasSuccessful());
@@ -86,7 +86,7 @@ public class ECDSAHSMSignerTest {
 
     @Test
     public void checkErrorGatheringPublicKeys() throws HSMClientException {
-        when(providerMock.getClient()).thenReturn(clientMock);
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getPublicKey("hsmKeyA")).thenThrow(new HSMAuthException("key a exception"));
         when(clientMock.getPublicKey("hsmKeyC")).thenThrow(new HSMAuthException("key c exception"));
 
@@ -104,7 +104,7 @@ public class ECDSAHSMSignerTest {
     @Test
     public void getPublicKey() throws HSMClientException, SignerException {
         ECKey key = new ECKey();
-        when(providerMock.getClient()).thenReturn(clientMock);
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getPublicKey("hsmKeyA")).thenReturn(key.getPubKey());
 
         ECPublicKey result = signer.getPublicKey(new KeyId("keyA"));
@@ -123,12 +123,12 @@ public class ECDSAHSMSignerTest {
             Assert.assertTrue(e.getMessage().contains("No mapped HSM key id found"));
         }
 
-        verify(providerMock, never()).getClient();
+        verify(providerMock, never()).getSigningClient();
     }
 
     @Test
     public void getPublicKeyNoClient() throws HSMClientException {
-        when(providerMock.getClient()).thenThrow(new HSMUnsupportedVersionException("not supported"));
+        when(providerMock.getSigningClient()).thenThrow(new HSMUnsupportedVersionException("not supported"));
 
         try {
             signer.getPublicKey(new KeyId("keyA"));
@@ -137,12 +137,12 @@ public class ECDSAHSMSignerTest {
             Assert.assertTrue(e.getCause() instanceof HSMUnsupportedVersionException);
         }
 
-        verify(providerMock, times(1)).getClient();
+        verify(providerMock, times(1)).getSigningClient();
     }
 
     @Test
     public void getPublicKeyClientError() throws HSMClientException {
-        when(providerMock.getClient()).thenReturn(clientMock);
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getPublicKey("hsmKeyB")).thenThrow(new HSMAuthException("not-valid"));
 
         try {
@@ -152,7 +152,7 @@ public class ECDSAHSMSignerTest {
             Assert.assertTrue(e.getCause() instanceof HSMAuthException);
         }
 
-        verify(providerMock, times(1)).getClient();
+        verify(providerMock, times(1)).getSigningClient();
         verify(clientMock, times(1)).getPublicKey("hsmKeyB");
     }
 
@@ -162,63 +162,63 @@ public class ECDSAHSMSignerTest {
         ECKey.ECDSASignature ethSignatureMock = mock(ECKey.ECDSASignature.class);
         when(signatureMock.toEthSignature()).thenReturn(ethSignatureMock);
         ECKey key = new ECKey();
-        when(providerMock.getClient()).thenReturn(clientMock);
-        when(clientMock.sign("hsmKeyA", new SignerMessageVersion1( Hex.decode("aabbcc")))).thenReturn(signatureMock);
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
+        when(clientMock.sign("hsmKeyA", new SignerMessageV1( Hex.decode("aabbcc")))).thenReturn(signatureMock);
 
-        ECKey.ECDSASignature result = signer.sign(new KeyId("keyA"), new SignerMessageVersion1(Hex.decode("aabbcc")));
+        ECKey.ECDSASignature result = signer.sign(new KeyId("keyA"), new SignerMessageV1(Hex.decode("aabbcc")));
 
         Assert.assertSame(ethSignatureMock, result);
 
-        verify(clientMock, times(1)).sign("hsmKeyA", new SignerMessageVersion1(Hex.decode("aabbcc")));
+        verify(clientMock, times(1)).sign("hsmKeyA", new SignerMessageV1(Hex.decode("aabbcc")));
     }
 
     @Test
     public void signNoMapping() throws HSMClientException, SignerException {
         try {
-            signer.sign(new KeyId("a-random-id"), new SignerMessageVersion1(Hex.decode("00112233")));
+            signer.sign(new KeyId("a-random-id"), new SignerMessageV1(Hex.decode("00112233")));
             Assert.fail();
         } catch (SignerException e) {
             Assert.assertTrue(e.getMessage().contains("No mapped HSM key id found"));
         }
 
-        verify(providerMock, never()).getClient();
+        verify(providerMock, never()).getSigningClient();
     }
 
     @Test
     public void signNoClient() throws HSMClientException, SignerException {
-        when(providerMock.getClient()).thenThrow(new HSMUnsupportedVersionException("not-supported"));
+        when(providerMock.getSigningClient()).thenThrow(new HSMUnsupportedVersionException("not-supported"));
 
         try {
-            signer.sign(new KeyId("keyA"), new SignerMessageVersion1(Hex.decode("0011223344")));
+            signer.sign(new KeyId("keyA"), new SignerMessageV1(Hex.decode("0011223344")));
             Assert.fail();
         } catch (SignerException e) {
             Assert.assertTrue(e.getCause() instanceof HSMUnsupportedVersionException);
         }
 
-        verify(providerMock, times(1)).getClient();
+        verify(providerMock, times(1)).getSigningClient();
     }
 
     @Test
     public void signClientError() throws HSMClientException, SignerException {
-        when(providerMock.getClient()).thenReturn(clientMock);
-        when(clientMock.sign("hsmKeyB", new SignerMessageVersion1(Hex.decode("445566")))).thenThrow(new HSMAuthException("not-valid"));
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
+        when(clientMock.sign("hsmKeyB", new SignerMessageV1(Hex.decode("445566")))).thenThrow(new HSMAuthException("not-valid"));
 
         try {
-            signer.sign(new KeyId("keyB"), new SignerMessageVersion1(Hex.decode("445566")));
+            signer.sign(new KeyId("keyB"), new SignerMessageV1(Hex.decode("445566")));
             Assert.fail();
         } catch (SignerException e) {
             Assert.assertTrue(e.getCause() instanceof HSMAuthException);
         }
 
-        verify(providerMock, times(1)).getClient();
-        verify(clientMock, times(1)).sign("hsmKeyB", new SignerMessageVersion1(Hex.decode("445566")));
+        verify(providerMock, times(1)).getSigningClient();
+        verify(clientMock, times(1)).sign("hsmKeyB", new SignerMessageV1(Hex.decode("445566")));
     }
 
     @Test
     public void getVersionForKeyIdOk() throws HSMClientException, SignerException {
         KeyId key = new KeyId("keyA");
         int version = 1;
-        when(providerMock.getClient()).thenReturn(clientMock);
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenReturn(version);
 
         Assert.assertEquals(signer.getVersionForKeyId(key), version);
@@ -228,7 +228,7 @@ public class ECDSAHSMSignerTest {
     public void getVersionForKeyId_HSMClientException() throws HSMClientException {
         KeyId key = new KeyId("keyA");
         int version = 3;
-        when(providerMock.getClient()).thenReturn(clientMock);
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenThrow( new HSMUnsupportedVersionException("Test: getVersionForKeyId_HSMClientException"));
 
         try {
@@ -246,7 +246,7 @@ public class ECDSAHSMSignerTest {
     public void getVersionForKeyId_SignerException() throws HSMClientException, SignerException {
         KeyId key = new KeyId("keyAB");
         int version = 3;
-        when(providerMock.getClient()).thenReturn(clientMock);
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenReturn( version);
 
         try {
@@ -261,14 +261,14 @@ public class ECDSAHSMSignerTest {
 
     @Test
     public void getClient_ok() throws HSMClientException {
-        when(providerMock.getClient()).thenReturn(clientMock);
+        when(providerMock.getSigningClient()).thenReturn(clientMock);
 
         Assert.assertEquals(clientMock, signer.getClient());
     }
 
     @Test(expected = HSMDeviceException.class)
     public void getClient_fails_if_cant_get_client() throws HSMClientException {
-        when(providerMock.getClient()).thenThrow(new HSMDeviceException("test", -666));
+        when(providerMock.getSigningClient()).thenThrow(new HSMDeviceException("test", -666));
 
         signer.getClient();
     }

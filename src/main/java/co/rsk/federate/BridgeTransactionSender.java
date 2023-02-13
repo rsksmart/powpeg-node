@@ -8,7 +8,7 @@ import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.gas.GasPriceProviderFactory;
 import co.rsk.federate.gas.IGasPriceProvider;
 import co.rsk.federate.signing.ECDSASigner;
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import co.rsk.federate.signing.hsm.SignerException;
 import org.ethereum.core.*;
 import org.ethereum.crypto.ECKey;
@@ -108,7 +108,7 @@ public class BridgeTransactionSender {
                         config.getNetworkConstants().getChainId(),
                         functionArgs);
                 try {
-                    SignerMessageVersion1 messageToSign = new SignerMessageVersion1(rskTx.getRawHash().getBytes());
+                    SignerMessageV1 messageToSign = new SignerMessageV1(rskTx.getRawHash().getBytes());
                     ECKey.ECDSASignature txSignature = signer.sign(FedNodeRunner.RSK_KEY_ID, messageToSign);
                     rskTx.setSignature(txSignature);
                     LOGGER.debug("[tx={} | nonce={} | method={}] Submit to Bridge", rskTx.getHash(), nonce, function.name);

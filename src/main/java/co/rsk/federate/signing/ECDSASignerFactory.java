@@ -22,7 +22,7 @@ import co.rsk.federate.config.SignerConfig;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
-import co.rsk.federate.signing.hsm.client.HSMClientProvider;
+import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
 
 import java.net.InetSocketAddress;
 
@@ -61,8 +61,8 @@ public class ECDSASignerFactory {
                 SocketBasedJsonRpcClientProvider socketRpcClientProvider = new SocketBasedJsonRpcClientProvider(hsmAddress);
                 socketRpcClientProvider.setSocketTimeout(socketTimeout);
                 HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(socketRpcClientProvider, maxAttempts, intervalBetweenAttempts);
-                HSMClientProvider hsmClientProvider = new HSMClientProvider(hsmClientProtocol, config.getId());
-                ECDSAHSMSigner signer = new ECDSAHSMSigner(hsmClientProvider);
+                HSMSigningClientProvider hsmSigningClientProvider = new HSMSigningClientProvider(hsmClientProtocol, config.getId());
+                ECDSAHSMSigner signer = new ECDSAHSMSigner(hsmSigningClientProvider);
 
                 // Add the key mapping
                 String hsmKeyId = config.getConfig().getString("keyId");

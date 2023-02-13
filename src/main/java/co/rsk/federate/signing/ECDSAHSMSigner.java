@@ -22,9 +22,8 @@ import co.rsk.federate.UnrecoverableErrorEventListener;
 import co.rsk.federate.signing.hsm.HSMChangedVersionException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
-import co.rsk.federate.signing.hsm.client.HSMClient;
-import co.rsk.federate.signing.hsm.client.HSMClientProvider;
+import co.rsk.federate.signing.hsm.client.HSMSigningClient;
+import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
 import co.rsk.federate.signing.hsm.client.HSMSignature;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import org.ethereum.crypto.ECKey;
@@ -49,12 +48,12 @@ public class ECDSAHSMSigner implements ECDSASigner {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ECDSAHSMSigner.class);
 
-    private final HSMClientProvider clientProvider;
+    private final HSMSigningClientProvider clientProvider;
     private final Map<KeyId, String> keyIdMapping;
-    private HSMClient client;
+    private HSMSigningClient client;
     private List<UnrecoverableErrorEventListener> listeners;
 
-    public ECDSAHSMSigner(HSMClientProvider clientProvider) {
+    public ECDSAHSMSigner(HSMSigningClientProvider clientProvider) {
         this.clientProvider = clientProvider;
         this.keyIdMapping = new HashMap<>();
         this.listeners = new ArrayList<>();
@@ -140,14 +139,14 @@ public class ECDSAHSMSigner implements ECDSASigner {
         }
     }
 
-    public HSMClient getClient() throws HSMClientException {
+    public HSMSigningClient getClient() throws HSMClientException {
         this.ensureHsmClient();
         return this.client;
     }
 
     private void ensureHsmClient() throws HSMClientException {
         if (client == null) {
-            client = clientProvider.getClient();
+            client = clientProvider.getSigningClient();
         }
     }
 
@@ -169,6 +168,6 @@ public class ECDSAHSMSigner implements ECDSASigner {
     }
 
     private interface SignerCall<T> {
-        T invoke(HSMClient client) throws HSMClientException;
+        T invoke(HSMSigningClient client) throws HSMClientException;
     }
 }

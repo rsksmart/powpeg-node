@@ -19,16 +19,15 @@
 package co.rsk.federate.util;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.federate.FedNodeRunner;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
 import co.rsk.federate.signing.*;
-import co.rsk.federate.signing.hsm.client.HSMClient;
+import co.rsk.federate.signing.hsm.client.HSMSigningClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
-import co.rsk.federate.signing.hsm.client.HSMClientProvider;
+import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
 import co.rsk.federate.signing.hsm.client.HSMSignature;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import org.ethereum.crypto.ECKey;
 import org.bouncycastle.util.encoders.Hex;
 
@@ -54,7 +53,7 @@ public class HSMChecker {
             final String MESSAGE = "aabbccddeeff";
             final byte[] MESSAGE_BYTES = Hex.decode(MESSAGE);
             final Sha256Hash MESSAGE_HASH = Sha256Hash.of(MESSAGE_BYTES);
-            final SignerMessage messageObject = new SignerMessageVersion1(new byte[0]);
+            final SignerMessage messageObject = new SignerMessageV1(new byte[0]);
 
             String host = "127.0.0.1"; //NOSONAR
             int port = 9999;
@@ -69,8 +68,8 @@ public class HSMChecker {
             SocketBasedJsonRpcClientProvider jsonRpcClientProvider = SocketBasedJsonRpcClientProvider.fromHostPort(host, port);
             jsonRpcClientProvider.setSocketTimeout(ECDSASignerFactory.DEFAULT_SOCKET_TIMEOUT);
             HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProvider, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-            HSMClientProvider hsmClientProvider = new HSMClientProvider(hsmClientProtocol, "");
-            HSMClient client = hsmClientProvider.getClient();
+            HSMSigningClientProvider hsmSigningClientProvider = new HSMSigningClientProvider(hsmClientProtocol, "");
+            HSMSigningClient client = hsmSigningClientProvider.getSigningClient();
             System.out.printf("Connected. Testing.\n");
 
             for (int k = 0; k < KEY_IDS.length; k++) {
@@ -96,7 +95,7 @@ public class HSMChecker {
                 for (int i = 0; i < 10; i++) {
                     byte[] randomMessage = new byte[randomInRange(10, 20)];
                     new Random().nextBytes(randomMessage);
-                    SignerMessage randomMessageHash = new SignerMessageVersion1(randomMessage);
+                    SignerMessage randomMessageHash = new SignerMessageV1(randomMessage);
                     long startTime = System.currentTimeMillis();
                     ECKey hsmPublicKeyBis = getPublicKey(client, keyId);
 
@@ -112,7 +111,7 @@ public class HSMChecker {
                     hsmSignature = client.sign(keyId, randomMessageHash);
                     signature = hsmSignature.toEthSignature();
                     System.out.printf("elapsed time:%dms ... ",System.currentTimeMillis() - startTime);
-                    signatureValid = hsmPublicKey.verify(((SignerMessageVersion1)randomMessageHash).getBytes(), signature);
+                    signatureValid = hsmPublicKey.verify(((SignerMessageV1)randomMessageHash).getBytes(), signature);
 
                     if (!signatureValid) {
                         System.out.printf("Signature of message %s invalid for public key %s\n", Hex.toHexString(randomMessage), Hex.toHexString(hsmPublicKeyBis.getPubKey()));
@@ -147,7 +146,7 @@ public class HSMChecker {
         }
     }
 
-    private static ECKey getPublicKey(HSMClient client, String keyId) throws HSMClientException {
+    private static ECKey getPublicKey(HSMSigningClient client, String keyId) throws HSMClientException {
         final byte[] hsmPublicKeyBytes = client.getPublicKey(keyId);
         return ECKey.fromPublicOnly(hsmPublicKeyBytes);
     }

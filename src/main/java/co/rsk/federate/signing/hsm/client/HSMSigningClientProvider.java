@@ -32,36 +32,36 @@ import org.slf4j.LoggerFactory;
  *
  * @author Ariel Mendelzon
  */
-public class HSMClientProvider {
+public class HSMSigningClientProvider {
     private static final int MIN_SUPPORTED_VERSION = 1;
     private static final int MAX_SUPPORTED_VERSION = 3;
-    private static final Logger logger = LoggerFactory.getLogger(HSMClientProvider.class);
+    private static final Logger logger = LoggerFactory.getLogger(HSMSigningClientProvider.class);
 
     private final HSMClientProtocol hsmClientProtocol;
     private final String keyId;
 
-    public HSMClientProvider(HSMClientProtocol protocol, String keyId) {
+    public HSMSigningClientProvider(HSMClientProtocol protocol, String keyId) {
         this.hsmClientProtocol = protocol;
         this.keyId = keyId;
     }
 
-    public HSMClient getClient() throws HSMClientException {
+    public HSMSigningClient getSigningClient() throws HSMClientException {
         int version = this.hsmClientProtocol.getVersion();
-        HSMClient client;
+        HSMSigningClient client;
         logger.debug("[getClient] version: {}, keyId: {}", version, keyId);
         switch (version) {
             case 1:
-                client = new HSMClientVersion1(this.hsmClientProtocol);
+                client = new HSMSigningClientV1(this.hsmClientProtocol);
                 break;
             case 2:
             case 3:
                 switch (keyId) {
                     case "BTC":
-                        client = new HSMClientVersion2BTC(this.hsmClientProtocol, version);
+                        client = new PowHSMSigningClientBtc(this.hsmClientProtocol, version);
                         break;
                     case "RSK":
                     case "MST":
-                        client = new HSMClientVersion2RskMst(this.hsmClientProtocol, version);
+                        client = new PowHSMSigningClientRskMst(this.hsmClientProtocol, version);
                         break;
                     default:
                         String message = String.format("Unsupported key id %s", keyId);
