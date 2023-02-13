@@ -35,7 +35,7 @@ import java.util.List;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SignerMessageVersion2Test {
+public class PowHSMSignerMessageTest {
 
     @Test
     public void equality() {
@@ -61,9 +61,9 @@ public class SignerMessageVersion2Test {
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.wrap("0000000000000000000000000000000000000000000000000000000000000001");
 
-        SignerMessage m1 = new SignerMessageVersion2(btcTx1, inputIndex, txReceipt, receiptMerkleProof, sigHash);
-        SignerMessage m2 = new SignerMessageVersion2(btcTx1, inputIndex, txReceipt, receiptMerkleProof, sigHash);
-        SignerMessage m3 = new SignerMessageVersion2(btcTx2, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage m1 = new PowHSMSignerMessage(btcTx1, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage m2 = new PowHSMSignerMessage(btcTx1, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage m3 = new PowHSMSignerMessage(btcTx2, inputIndex, txReceipt, receiptMerkleProof, sigHash);
 
         Assert.assertEquals(m1, m2);
         Assert.assertNotSame(m1, m2);
@@ -88,9 +88,9 @@ public class SignerMessageVersion2Test {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new SignerMessageVersion2(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
 
-        String txSerialized = ((SignerMessageVersion2) message).getBtcTransactionSerialized();
+        String txSerialized = ((PowHSMSignerMessage) message).getBtcTransactionSerialized();
 
         Assert.assertEquals(Hex.toHexString(btcTx.bitcoinSerialize()), txSerialized);
         Assert.assertNotSame(btcTx.bitcoinSerialize(), txSerialized);
@@ -110,9 +110,9 @@ public class SignerMessageVersion2Test {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new SignerMessageVersion2(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
 
-        Assert.assertEquals(inputIndex, ((SignerMessageVersion2) message).getInputIndex());
+        Assert.assertEquals(inputIndex, ((PowHSMSignerMessage) message).getInputIndex());
     }
 
     @Test
@@ -129,9 +129,9 @@ public class SignerMessageVersion2Test {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new SignerMessageVersion2(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
 
-        String receipt = ((SignerMessageVersion2) message).getTransactionReceipt();
+        String receipt = ((PowHSMSignerMessage) message).getTransactionReceipt();
 
         Assert.assertEquals(Hex.toHexString(txReceipt.getEncoded()), receipt);
     }
@@ -151,14 +151,14 @@ public class SignerMessageVersion2Test {
         receiptMerkleProof.add(new Trie());
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new SignerMessageVersion2(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
 
         String[] encodedReceipts = new String[receiptMerkleProof.size()];
         for (int i=0; i<encodedReceipts.length; i++) {
             encodedReceipts[i] = Hex.toHexString(receiptMerkleProof.get(i).toMessage());
         }
 
-        String[] receipts = ((SignerMessageVersion2) message).getReceiptMerkleProof();
+        String[] receipts = ((PowHSMSignerMessage) message).getReceiptMerkleProof();
 
         Assert.assertArrayEquals(encodedReceipts, receipts);
         Assert.assertNotSame(encodedReceipts, receipts);
@@ -178,8 +178,8 @@ public class SignerMessageVersion2Test {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.wrap("0000000000000000000000000000000000000000000000000000000000000001");
-        SignerMessage message = new SignerMessageVersion2(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
 
-        Assert.assertEquals(sigHash, ((SignerMessageVersion2) message).getSigHash());
+        Assert.assertEquals(sigHash, ((PowHSMSignerMessage) message).getSigHash());
     }
 }

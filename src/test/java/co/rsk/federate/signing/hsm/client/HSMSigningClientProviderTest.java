@@ -26,27 +26,27 @@ import org.junit.Test;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class HSMClientProviderTest {
+public class HSMSigningClientProviderTest {
 
     @Test
     public void getClientV1() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "");
+        HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "");
         when(protocol.getVersion()).thenReturn(1);
 
-        HSMClient client = clientProvider.getClient();
+        HSMSigningClient client = clientProvider.getSigningClient();
 
-        Assert.assertTrue(client instanceof HSMClientVersion1);
+        Assert.assertTrue(client instanceof HSMSigningClientV1);
     }
 
     @Test
     public void getClientV2BTC() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "BTC");
+        HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "BTC");
         when(protocol.getVersion()).thenReturn(2);
-        HSMClient client = clientProvider.getClient();
+        HSMSigningClient client = clientProvider.getSigningClient();
 
-        Assert.assertTrue(client instanceof HSMClientVersion2BTC);
+        Assert.assertTrue(client instanceof PowHSMSigningClientBtc);
     }
 
     @Test
@@ -54,10 +54,10 @@ public class HSMClientProviderTest {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(2);
 
-        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "RSK");
-        HSMClient client = clientProvider.getClient();
+        HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "RSK");
+        HSMSigningClient client = clientProvider.getSigningClient();
 
-        Assert.assertTrue(client instanceof HSMClientVersion2RskMst);
+        Assert.assertTrue(client instanceof PowHSMSigningClientRskMst);
     }
 
     @Test
@@ -65,10 +65,10 @@ public class HSMClientProviderTest {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(2);
 
-        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "MST");
-        HSMClient client = clientProvider.getClient();
+        HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "MST");
+        HSMSigningClient client = clientProvider.getSigningClient();
 
-        Assert.assertTrue(client instanceof HSMClientVersion2RskMst);
+        Assert.assertTrue(client instanceof PowHSMSigningClientRskMst);
     }
 
     @Test
@@ -76,10 +76,10 @@ public class HSMClientProviderTest {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(3);
 
-        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "BTC");
-        HSMClient client = clientProvider.getClient();
+        HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "BTC");
+        HSMSigningClient client = clientProvider.getSigningClient();
 
-        Assert.assertTrue(client instanceof HSMClientVersion2BTC);
+        Assert.assertTrue(client instanceof PowHSMSigningClientBtc);
     }
 
     @Test
@@ -87,10 +87,10 @@ public class HSMClientProviderTest {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(3);
 
-        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "RSK");
-        HSMClient client = clientProvider.getClient();
+        HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "RSK");
+        HSMSigningClient client = clientProvider.getSigningClient();
 
-        Assert.assertTrue(client instanceof HSMClientVersion2RskMst);
+        Assert.assertTrue(client instanceof PowHSMSigningClientRskMst);
     }
 
     @Test
@@ -98,26 +98,26 @@ public class HSMClientProviderTest {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(3);
 
-        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "MST");
-        HSMClient client = clientProvider.getClient();
+        HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "MST");
+        HSMSigningClient client = clientProvider.getSigningClient();
 
-        Assert.assertTrue(client instanceof HSMClientVersion2RskMst);
+        Assert.assertTrue(client instanceof PowHSMSigningClientRskMst);
     }
 
     @Test(expected = HSMUnsupportedVersionException.class)
     public void getClientUnsupportedVersion() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "BTC");
+        HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "BTC");
         when(protocol.getVersion()).thenReturn(999);
 
-        clientProvider.getClient();
+        clientProvider.getSigningClient();
     }
 
     @Test(expected = HSMUnsupportedTypeException.class)
     public void getClientUnsupportedType() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "XYZ");
+        HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "XYZ");
         when(protocol.getVersion()).thenReturn(2);
-        clientProvider.getClient();
+        clientProvider.getSigningClient();
     }
 }
