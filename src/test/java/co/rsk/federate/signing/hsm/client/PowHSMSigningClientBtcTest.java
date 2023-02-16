@@ -516,7 +516,7 @@ public class PowHSMSigningClientBtcTest {
         HSM2State hsm2State = client.getHSMPointer();
         Assert.assertEquals(expectedBestBlockHash, hsm2State.getBestBlockHash());
         Assert.assertEquals(expectedAncestorBlockHash, hsm2State.getAncestorBlockHash());
-        Assert.assertEquals(false, hsm2State.isInProgress());
+        Assert.assertFalse(hsm2State.isInProgress());
     }
 
     @Test( expected = HSMInvalidResponseException.class )
@@ -548,6 +548,11 @@ public class PowHSMSigningClientBtcTest {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
 
         client.resetAdvanceBlockchain();
+
+        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(jsonRpcClientMock, times(1)).send(captor.capture());
+        List<JsonNode> capturedArguments = captor.getAllValues();
+        Assert.assertEquals("resetAdvanceBlockchain", capturedArguments.get(0).get("command").asText());
     }
 
     // Reset can return only generic errors.

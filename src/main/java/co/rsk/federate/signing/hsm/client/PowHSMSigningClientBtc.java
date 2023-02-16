@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class PowHSMSigningClientBtc extends PowHSMSigningClient implements HSMBookkeepingClient {
-    private final Logger logger = LoggerFactory.getLogger(PowHSMSigningClientBtc.class);
+    private static final Logger logger = LoggerFactory.getLogger(PowHSMSigningClientBtc.class);
 
     private int maxChunkSize = 10;  // DEFAULT VALUE
     private boolean isStopped = false;
@@ -60,9 +60,9 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient implements HSMBo
         return messageToSend;
     }
 
-    public boolean verifySigHash(Sha256Hash sigHash, String keyId, HSMSignature HSMSignatureReturned) throws HSMClientException {
+    public boolean verifySigHash(Sha256Hash sigHash, String keyId, HSMSignature signatureReturned) throws HSMClientException {
         ECKey eckey = ECKey.fromPublicOnly(getPublicKey(keyId));
-        return eckey.verify(sigHash.getBytes(), HSMSignatureReturned.toEthSignature());
+        return eckey.verify(sigHash.getBytes(), signatureReturned.toEthSignature());
     }
 
     @VisibleForTesting
@@ -89,7 +89,7 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient implements HSMBo
             }
             int start = i;
 
-            int end = start + maxChunkSize; // 1;
+            int end = start + maxChunkSize;
             if (end > payload.length) {
                 end = payload.length;
             }
@@ -104,13 +104,10 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient implements HSMBo
         String actualMethod,
         boolean keepPreviousChunkLastItem
     ) throws HSMClientException {
-        if (isStopped) {
+        if (isStopped || blockHeaders == null || blockHeaders.isEmpty()) {
             return;
         }
         // If HSM has an advanceBlockchain in progress, advanceAncestorBlock or a new advanceBlockchain can't be call.
-        if (blockHeaders == null || blockHeaders.isEmpty()) {
-            return;
-        }
         if (getHSMPointer().isInProgress()) {
             logger.trace(
                     "[{}] HSM is already updating its state. Not going to proceed with this request",
@@ -195,7 +192,7 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient implements HSMBo
         JsonNode updating = state.get(UPDATING_FIELD);
 
         this.hsmClientProtocol.validatePresenceOf(updating, INPROGRESS_FIELD);
-        Boolean inProgress = updating.get(INPROGRESS_FIELD).asBoolean();
+        boolean inProgress = updating.get(INPROGRESS_FIELD).asBoolean();
         String bestBlockHash = state.get(BEST_BLOCK_FIELD).asText();
         String ancestorBlockHash = state.get(ANCESTOR_BLOCK_FIELD).asText();
 

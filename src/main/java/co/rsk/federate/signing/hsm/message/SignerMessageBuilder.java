@@ -23,7 +23,6 @@ public abstract class SignerMessageBuilder {
         List<ScriptChunk> chunks = inputScript.getChunks();
         byte[] program = chunks.get(chunks.size() - 1).data;
         Script redeemScript = new Script(program);
-        Sha256Hash sigHash = unsignedBtcTx.hashForSignature(inputIndex, redeemScript, BtcTransaction.SigHash.ALL, false);
-        return sigHash;
+        return unsignedBtcTx.hashForSignature(inputIndex, redeemScript, BtcTransaction.SigHash.ALL, false);
     }
 }
