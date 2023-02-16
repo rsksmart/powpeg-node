@@ -10,7 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test class for HSM2SignerConfig.
+ * Test class for PowHSMBookkeepingConfig.
  *
  * @author kelvin.isievwore
  */
@@ -46,5 +46,11 @@ public class PowHSMBookkeepingConfigTest {
         when(signerConfigMock.getConfig()).thenReturn(configMock);
         powHsmBookkeepingConfig = new PowHSMBookkeepingConfig(signerConfigMock, NetworkParameters.ID_REGTEST);
         Assert.assertEquals(PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST, powHsmBookkeepingConfig.getDifficultyCap());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetDifficultyCapForInvalidNetwork() {
+        when(signerConfigMock.getConfig()).thenReturn(configMock);
+        new PowHSMBookkeepingConfig(signerConfigMock, NetworkParameters.ID_UNITTESTNET);
     }
 }
