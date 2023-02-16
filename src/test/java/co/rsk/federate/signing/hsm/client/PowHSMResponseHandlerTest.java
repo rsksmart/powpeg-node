@@ -252,6 +252,6 @@ public class PowHSMResponseHandlerTest {
 
     private void checkValidateResponseMethodWithValidErrorCode(int errorCode) throws HSMClientException {
         ObjectNode response = buildResponse(errorCode);
-        Assert.assertTrue(responseHandler.validateResponse("a-random-command-name", response) == errorCode);
+        Assert.assertEquals(responseHandler.validateResponse("a-random-command-name", response), errorCode);
     }
 }

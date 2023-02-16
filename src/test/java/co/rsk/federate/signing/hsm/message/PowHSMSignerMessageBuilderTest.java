@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
 public class PowHSMSignerMessageBuilderTest {
 
     @Test
-    public void createHSMVersion2Message() throws HSMReleaseCreationInformationException, SignerMessageBuilderException {
+    public void createHSMVersion2Message() throws SignerMessageBuilderException {
         //Arrange
         ReceiptStore receiptStore = mock(ReceiptStore.class);
 
@@ -48,12 +48,12 @@ public class PowHSMSignerMessageBuilderTest {
 
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getHash()).thenReturn(Keccak256.ZERO_HASH);
-        byte[] trieRoot = BlockHashesHelper.getTxTrieRoot(Arrays.asList(rskTx), true);
+        byte[] trieRoot = BlockHashesHelper.getTxTrieRoot(Collections.singletonList(rskTx), true);
         when(blockHeader.getTxTrieRoot()).thenReturn(trieRoot);
 
-        Block block = new Block(blockHeader, Arrays.asList(rskTx), Collections.emptyList(), true, true);
+        Block block = new Block(blockHeader, Collections.singletonList(rskTx), Collections.emptyList(), true, true);
 
-        when(receiptStore.get(eq(rskTxHash.getBytes()), eq(Keccak256.ZERO_HASH.getBytes()))).thenReturn(Optional.of(txInfo));
+        when(receiptStore.get(rskTxHash.getBytes(), Keccak256.ZERO_HASH.getBytes())).thenReturn(Optional.of(txInfo));
 
         BridgeRegTestConstants bridgeConstants = BridgeRegTestConstants.getInstance();
         Federation federation = bridgeConstants.getGenesisFederation();
@@ -100,7 +100,7 @@ public class PowHSMSignerMessageBuilderTest {
         when(rskTx.getHash()).thenReturn(Keccak256.ZERO_HASH);
         Block block = TestUtils.mockBlock(1);
         when(block.getHash()).thenReturn(Keccak256.ZERO_HASH);
-        when(block.getTransactionsList()).thenReturn(Arrays.asList(rskTx));
+        when(block.getTransactionsList()).thenReturn(Collections.singletonList(rskTx));
         TransactionReceipt transactionReceipt = mock(TransactionReceipt.class);
         when(transactionReceipt.getTransaction()).thenReturn(rskTx);
         ReceiptStore receiptStore = mock(ReceiptStore.class);

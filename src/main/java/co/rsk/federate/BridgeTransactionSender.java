@@ -117,7 +117,7 @@ public class BridgeTransactionSender {
                     LOGGER.error("[tx={} | nonce={} | method={}] Could not sign RSK tx", rskTx.getHash(), nonce, function.name, e);
                 }
             } else {
-                LOGGER.warn("[method={} | required={} | current={}] Not enough balance. Required: {}, Balance: {}", function.name, txCost, federatorRskBalance);
+                LOGGER.warn("[method={} | required={} | balance={}] Not enough balance.", function.name, txCost, federatorRskBalance);
             }
 
         }

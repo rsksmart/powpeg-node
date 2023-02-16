@@ -18,9 +18,6 @@
 
 package co.rsk.federate.signing.hsm.client;
 
-import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.message.SignerMessage;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,17 +32,11 @@ public abstract class HSMSigningClientBase implements HSMSigningClient {
     // Local caching of public keys
     protected Map<String, byte[]> publicKeys;
 
-    public HSMSigningClientBase(HSMClientProtocol protocol, int version) {
+    protected HSMSigningClientBase(HSMClientProtocol protocol, int version) {
         this.hsmClientProtocol = protocol;
         this.version = version;
         publicKeys = new HashMap<>();
     }
-
-    @Override
-    public abstract byte[] getPublicKey(String keyId) throws HSMClientException;
-
-    @Override
-    public abstract HSMSignature sign(String keyId, SignerMessage message) throws HSMClientException;
 
     @Override
     public final int getVersion() {
