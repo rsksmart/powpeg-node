@@ -11,7 +11,6 @@ public class SignerMessageBuilderV1 extends SignerMessageBuilder {
 
     public SignerMessage buildMessageForIndex(int inputIndex) {
         Sha256Hash sigHash = getSigHashByInputIndex(inputIndex);
-        SignerMessage messageToSign = new SignerMessageV1(sigHash.getBytes());
-        return messageToSign;
+        return new SignerMessageV1(sigHash.getBytes());
     }
 }

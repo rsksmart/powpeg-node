@@ -9,15 +9,18 @@ package co.rsk.federate.config;
  */
 
 import co.rsk.bitcoinj.core.NetworkParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 
 public class PowHSMBookkeepingConfig {
 
+    private static final Logger logger = LoggerFactory.getLogger(PowHSMBookkeepingConfig.class);
     public static final BigInteger DIFFICULTY_CAP_MAINNET = new BigInteger("7000000000000000000000");
     public static final BigInteger DIFFICULTY_CAP_TESTNET = BigInteger.valueOf(1000000000000000L);
     public static final BigInteger DIFFICULTY_CAP_REGTEST = BigInteger.valueOf(20);
-    private BigInteger difficultyCap;
+    private final BigInteger difficultyCap;
     private BigInteger difficultyTarget = BigInteger.valueOf(3);
     private int maxAmountBlockHeaders = 7;
     private long informerInterval = 2_000;
@@ -51,6 +54,10 @@ public class PowHSMBookkeepingConfig {
             case NetworkParameters.ID_REGTEST:
                 this.difficultyCap = DIFFICULTY_CAP_REGTEST;
                 break;
+            default:
+                String message = "Invalid network specified for the Bookkeeping Config: " + networkParameter;
+                logger.error(message);
+                throw new IllegalArgumentException(message);
         }
     }
 
