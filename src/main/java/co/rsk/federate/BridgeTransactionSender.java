@@ -118,13 +118,12 @@ public class BridgeTransactionSender {
                 }
             } else {
                 LOGGER.warn(
-                    "[method={}] Not enough balance. Required: {}, Balance: {}",
-                    function.name,
-                    txCost,
-                    federatorRskBalance
+                        "[method={}] Not enough balance. Required: {}, Balance: {}",
+                        function.name,
+                        txCost,
+                        federatorRskBalance
                 );
             }
-
         }
     }
 
