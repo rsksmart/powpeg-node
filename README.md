@@ -51,14 +51,7 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.351-b10, mixed mode)
 
 ### Bitcoind
 
-To install version `0.18.0`
-
-```bash
-curl -O https://bitcoin.org/bin/bitcoin-core-0.18.0/bitcoin-0.18.0-osx64.tar.gz
-tar -zxf bitcoin-0.18.0-osx64.tar.gz
-sudo mkdir -p /usr/local/bin
-sudo cp bitcoin-0.18.0/bin/bitcoin* /usr/local/bin/.
-```
+To install version `24.0.1` follow instructions listed [here](https://bitcoincore.org/en/releases/24.0.1/)
 
 To validate it run `bitcoind -daemon`.
 
