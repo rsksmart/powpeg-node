@@ -11,7 +11,7 @@ This node is used by Rootstock PowPeg signatories to interact with the Bridge co
 ## Software Requirements
 
 1. Java JDK 1.8
-2. Bitcoin Core daemon (bitcoind) 0.17v or 0.18v
+2. Bitcoin Core daemon (bitcoind) 24.0.1
 3. A Java compatible IDE. Recommended [IntelliJ IDEA](https://www.jetbrains.com/idea/download) as this guide covers the setup with it
 
 
