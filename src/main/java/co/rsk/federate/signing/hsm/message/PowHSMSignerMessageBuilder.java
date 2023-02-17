@@ -11,8 +11,8 @@ import org.ethereum.db.ReceiptStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SignerMessageBuilderVersion2 extends SignerMessageBuilder {
-    private static final Logger logger = LoggerFactory.getLogger(SignerMessageBuilderVersion2.class);
+public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
+    private static final Logger logger = LoggerFactory.getLogger(PowHSMSignerMessageBuilder.class);
     private final ReceiptStore receiptStore;
     private final TransactionReceipt txReceipt;
     private final Block rskBlock;
@@ -20,7 +20,7 @@ public class SignerMessageBuilderVersion2 extends SignerMessageBuilder {
     private List<Trie> receiptMerkleProof;
     private boolean envelopeCreated;
 
-    public SignerMessageBuilderVersion2(
+    public PowHSMSignerMessageBuilder(
         ReceiptStore receiptStore,
         ReleaseCreationInformation releaseCreationInformation) {
         super(releaseCreationInformation.getBtcTransaction());
@@ -54,7 +54,7 @@ public class SignerMessageBuilderVersion2 extends SignerMessageBuilder {
 
         Sha256Hash sigHash = getSigHashByInputIndex(inputIndex);
 
-        SignerMessage messageToSign = new SignerMessageVersion2(
+        SignerMessage messageToSign = new PowHSMSignerMessage(
                 unsignedBtcTx,
                 inputIndex,
                 txReceipt,

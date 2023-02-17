@@ -1,7 +1,7 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.config.HSM2SignerConfig;
+import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
@@ -39,22 +39,22 @@ public class HSMBookkeepingService {
             BlockStore blockStore,
             HSMBookkeepingClient hsmBookkeepingClient,
             NodeBlockProcessor nodeBlockProcessor,
-            HSM2SignerConfig hsm2Config,
+            PowHSMBookkeepingConfig bookkeepingConfig,
             int hsmVersion
     ) {
         this(
                 blockStore,
                 hsmBookkeepingClient,
                 new ConfirmedBlockHeadersProvider(
-                        hsm2Config.getDifficultyTarget(),
-                        hsm2Config.getMaxAmountBlockHeaders(),
+                        bookkeepingConfig.getDifficultyTarget(),
+                        bookkeepingConfig.getMaxAmountBlockHeaders(),
                         blockStore,
-                        hsm2Config.getDifficultyCap(),
+                        bookkeepingConfig.getDifficultyCap(),
                         hsmVersion
                 ),
                 nodeBlockProcessor,
-                hsm2Config.getInformerInterval(),
-                hsm2Config
+                bookkeepingConfig.getInformerInterval(),
+                bookkeepingConfig
         );
     }
 
@@ -64,7 +64,7 @@ public class HSMBookkeepingService {
             ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider,
             NodeBlockProcessor nodeBlockProcessor,
             long advanceBlockchainTimeInterval,
-            HSM2SignerConfig hsm2Config
+            PowHSMBookkeepingConfig bookkeepingConfig
     ) {
         this.blockStore = blockStore;
         this.hsmBookkeepingClient = hsmBookkeepingClient;
@@ -72,7 +72,7 @@ public class HSMBookkeepingService {
         this.advanceBlockchainTimeInterval = advanceBlockchainTimeInterval;
         this.listeners = new ArrayList<>();
         this.nodeBlockProcessor = nodeBlockProcessor;
-        this.stopBookkeepingScheduler = hsm2Config.isStopBookkeepingScheduler();
+        this.stopBookkeepingScheduler = bookkeepingConfig.isStopBookkeepingScheduler();
     }
 
     public void addListener(HSMBookeepingServiceListener listener) {

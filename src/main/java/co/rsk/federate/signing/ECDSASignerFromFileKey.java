@@ -21,7 +21,7 @@ package co.rsk.federate.signing;
 import co.rsk.federate.UnrecoverableErrorEventListener;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import co.rsk.federate.signing.keyfile.KeyFileChecker;
 import co.rsk.federate.signing.keyfile.KeyFileHandler;
 import org.ethereum.crypto.ECKey;
@@ -105,7 +105,7 @@ public class ECDSASignerFromFileKey implements ECDSASigner {
         }
 
         // Sign and return the wrapped signature.
-        return getPrivateKey().sign(((SignerMessageVersion1)message).getBytes());
+        return getPrivateKey().sign(((SignerMessageV1)message).getBytes());
     }
 
     @Override

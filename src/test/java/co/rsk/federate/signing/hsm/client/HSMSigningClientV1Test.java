@@ -23,7 +23,7 @@ import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
@@ -35,11 +35,11 @@ import java.util.Arrays;
 
 import static org.mockito.Mockito.*;
 
-public class HSMClientVersion1Test {
+public class HSMSigningClientV1Test {
     private JsonRpcClientProvider jsonRpcClientProviderMock;
     private HSMClientProtocol hsmClientProtocol;
     private JsonRpcClient jsonRpcClientMock;
-    private HSMClientVersion1 client;
+    private HSMSigningClientV1 client;
     private final static int VERSION = 1;
 
     @Before
@@ -47,7 +47,7 @@ public class HSMClientVersion1Test {
         jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        client = new HSMClientVersion1(hsmClientProtocol);
+        client = new HSMSigningClientV1(hsmClientProtocol);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
@@ -191,7 +191,7 @@ public class HSMClientVersion1Test {
         response.set("signature", signatureResponse);
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
-        HSMSignature signature = client.sign("a-key-id", new SignerMessageVersion1(Hex.decode("bbccddee")));
+        HSMSignature signature = client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
 
         Assert.assertTrue(Arrays.equals(Hex.decode("223344"), signature.getR()));
         Assert.assertTrue(Arrays.equals(Hex.decode("55667788"), signature.getS()));
@@ -219,7 +219,7 @@ public class HSMClientVersion1Test {
         response.set("signature", signatureResponse);
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
-        HSMSignature signature = client.sign("a-key-id", new SignerMessageVersion1(Hex.decode("bbccddee")));
+        HSMSignature signature = client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
 
         Assert.assertTrue(Arrays.equals(Hex.decode("223344"), signature.getR()));
         Assert.assertTrue(Arrays.equals(Hex.decode("55667788"), signature.getS()));
@@ -240,7 +240,7 @@ public class HSMClientVersion1Test {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
 
         try {
-            client.sign("a-key-id", new SignerMessageVersion1(Hex.decode("bbccddee")));
+            client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
             Assert.fail();
         } catch (HSMClientException e) {
             Assert.assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
@@ -256,7 +256,7 @@ public class HSMClientVersion1Test {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
 
         try {
-            client.sign("a-key-id", new SignerMessageVersion1(Hex.decode("bbccddee")));
+            client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
             Assert.fail();
         } catch (HSMClientException e) {
             Assert.assertTrue(e.getMessage().contains("HSM Device returned exception"));
@@ -274,7 +274,7 @@ public class HSMClientVersion1Test {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
 
         try {
-            client.sign("a-key-id", new SignerMessageVersion1(Hex.decode("bbccddee")));
+            client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
             Assert.fail();
         } catch (HSMClientException e) {
             Assert.assertTrue(e.getMessage().contains("Expected 'signature' field to be present"));
@@ -291,7 +291,7 @@ public class HSMClientVersion1Test {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
 
         try {
-            client.sign("a-key-id", new SignerMessageVersion1(Hex.decode("bbccddee")));
+            client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
             Assert.fail();
         } catch (HSMClientException e) {
             Assert.assertTrue(e.getMessage().contains("Expected 'r' field to be present"));
@@ -310,7 +310,7 @@ public class HSMClientVersion1Test {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
 
         try {
-            client.sign("a-key-id", new SignerMessageVersion1(Hex.decode("bbccddee")));
+            client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
             Assert.fail();
         } catch (HSMClientException e) {
             Assert.assertTrue(e.getMessage().contains("Expected 's' field to be present"));

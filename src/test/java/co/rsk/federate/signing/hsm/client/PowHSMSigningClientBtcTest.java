@@ -9,7 +9,7 @@ import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.hsm.*;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.federate.signing.hsm.message.HSM2State;
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion2;
+import co.rsk.federate.signing.hsm.message.PowHSMSignerMessage;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,11 +29,11 @@ import java.util.List;
 
 import static org.mockito.Mockito.*;
 
-public class HSMClientVersion2BTCTest {
+public class PowHSMSigningClientBtcTest {
     private JsonRpcClientProvider jsonRpcClientProviderMock;
     private HSMClientProtocol hsmClientProtocol;
     private JsonRpcClient jsonRpcClientMock;
-    private HSMClientVersion2BTC client;
+    private PowHSMSigningClientBtc client;
     private final static int VERSION = 2;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -44,7 +44,7 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
 
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        client = new HSMClientVersion2BTC(hsmClientProtocol, VERSION);
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, VERSION);
         client.setMaxChunkSizeToHsm(1_000);
     }
 
@@ -55,7 +55,7 @@ public class HSMClientVersion2BTCTest {
         publicKeyResponse.put("pubKey", "001122334455");
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
 
-        SignerMessageVersion2 messageForSignature = buildMessageForIndexTesting(0);
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
 
         ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
         ObjectNode response = buildSignResponse("223344", "55667788", 0);
@@ -73,7 +73,7 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void signNoErrorCode() throws Exception {
-        SignerMessageVersion2 messageForSignature = buildMessageForIndexTesting(0);
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
 
         ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
 
@@ -92,7 +92,7 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void signNonZeroErrorCode() throws Exception {
-        SignerMessageVersion2 messageForSignature = buildMessageForIndexTesting(0);
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
 
         ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
 
@@ -111,7 +111,7 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void signNoSignature() throws Exception {
-        SignerMessageVersion2 messageForSignature = buildMessageForIndexTesting(0);
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
 
         ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
         ObjectNode response = buildResponse(0);
@@ -128,7 +128,7 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void signNoR() throws Exception {
-        SignerMessageVersion2 messageForSignature = buildMessageForIndexTesting(0);
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
 
         ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
         ObjectNode response = buildResponse(0);
@@ -146,7 +146,7 @@ public class HSMClientVersion2BTCTest {
 
     @Test
     public void signNoS() throws Exception {
-        SignerMessageVersion2 messageForSignature = buildMessageForIndexTesting(0);
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
 
         ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
         ObjectNode response = buildResponse(0);
@@ -443,7 +443,7 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientProvider.acquire()).thenReturn(jsonRpcClient);
 
         HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProvider, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol, 3);
+        PowHSMSigningClientBtc client = new PowHSMSigningClientBtc(hsmClientProtocol, 3);
         client.setMaxChunkSizeToHsm(2);
 
         when(jsonRpcClient.send(any(JsonNode.class))).thenReturn(buildResponse(0));
@@ -491,7 +491,7 @@ public class HSMClientVersion2BTCTest {
         when(jsonRpcClientProvider.acquire()).thenReturn(jsonRpcClient);
 
         HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProvider, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol, 3);
+        PowHSMSigningClientBtc client = new PowHSMSigningClientBtc(hsmClientProtocol, 3);
         client.setMaxChunkSizeToHsm(1_000);
 
         when(jsonRpcClient.send(any(JsonNode.class))).thenReturn(buildResponse(0));
@@ -609,7 +609,7 @@ public class HSMClientVersion2BTCTest {
         return state;
     }
 
-    private ObjectNode buildSignRequest(SignerMessageVersion2 messageForRequest) {
+    private ObjectNode buildSignRequest(PowHSMSignerMessage messageForRequest) {
         // Message child
         ObjectNode message = objectMapper.createObjectNode();
         message.put("tx", messageForRequest.getBtcTransactionSerialized());
@@ -642,8 +642,8 @@ public class HSMClientVersion2BTCTest {
         return response;
     }
 
-    private SignerMessageVersion2 buildMessageForIndexTesting(int inputIndex){
-        SignerMessageVersion2 messageForSignature = mock(SignerMessageVersion2.class);
+    private PowHSMSignerMessage buildMessageForIndexTesting(int inputIndex){
+        PowHSMSignerMessage messageForSignature = mock(PowHSMSignerMessage.class);
         when(messageForSignature.getInputIndex()).thenReturn(inputIndex);
         when(messageForSignature.getBtcTransactionSerialized()).thenReturn("aaaa");
         when(messageForSignature.getTransactionReceipt()).thenReturn("cccc");

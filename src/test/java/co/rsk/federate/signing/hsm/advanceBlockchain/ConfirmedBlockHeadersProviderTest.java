@@ -1,7 +1,7 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.config.HSM2SignerConfig;
+import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.signing.utils.TestUtils;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
@@ -20,7 +20,7 @@ public class ConfirmedBlockHeadersProviderTest {
 
     private final int HSM_VERSION_2 = 2;
     private final int HSM_VERSION_3 = 3;
-    private final BigInteger difficultyCapRegTest = HSM2SignerConfig.DIFFICULTY_CAP_REGTEST;
+    private final BigInteger difficultyCapRegTest = PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST;
 
     @Test
     public void getConfirmedBlockHeaders_Ok() {

@@ -28,7 +28,7 @@ import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
 import co.rsk.federate.config.FedNodeSystemProperties;
-import co.rsk.federate.config.HSM2SignerConfig;
+import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.config.SignerConfig;
 import co.rsk.federate.io.*;
 import co.rsk.federate.log.BtcLogMonitor;
@@ -161,16 +161,16 @@ public class FedNodeRunner implements NodeRunner {
                     if (keyId == BTC_KEY_ID) {
                         try {
                             bridgeConstants = this.config.getNetworkConstants().getBridgeConstants();
-                            HSM2SignerConfig hsm2Config = new HSM2SignerConfig(config.signerConfig(keyId.getId()), bridgeConstants.getBtcParamsString());
+                            PowHSMBookkeepingConfig bookkeepingConfig = new PowHSMBookkeepingConfig(config.signerConfig(keyId.getId()), bridgeConstants.getBtcParamsString());
 
                             ECDSAHSMSigner ecdsahsmSigner = (ECDSAHSMSigner)createdSigner;
                             hsmBookkeepingClient = (HSMBookkeepingClient)(ecdsahsmSigner.getClient());
-                            hsmBookkeepingClient.setMaxChunkSizeToHsm(hsm2Config.getMaxChunkSizeToHsm());
+                            hsmBookkeepingClient.setMaxChunkSizeToHsm(bookkeepingConfig.getMaxChunkSizeToHsm());
                             hsmBookkeepingService = new HSMBookkeepingService(
                                     fedNodeContext.getBlockStore(),
                                     hsmBookkeepingClient,
                                     fedNodeContext.getNodeBlockProcessor(),
-                                    hsm2Config,
+                                    bookkeepingConfig,
                                     ecdsahsmSigner.getVersionForKeyId(keyId)
                             );
                         } catch(ClassCastException | HSMClientException e) {

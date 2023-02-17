@@ -29,7 +29,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
-public class SignerMessageBuilderVersion2Test {
+public class PowHSMSignerMessageBuilderTest {
 
     @Test
     public void createHSMVersion2Message() throws HSMReleaseCreationInformationException, SignerMessageBuilderException {
@@ -64,7 +64,7 @@ public class SignerMessageBuilderVersion2Test {
         //ReleaseCreationInformation
 
         //Act
-        SignerMessageBuilderVersion2 sigMessVersion2 = new SignerMessageBuilderVersion2(
+        PowHSMSignerMessageBuilder sigMessVersion2 = new PowHSMSignerMessageBuilder(
             receiptStore,
             new ReleaseCreationInformation(
                 block,
@@ -74,8 +74,8 @@ public class SignerMessageBuilderVersion2Test {
                 rskTxHash
             )
         );
-        SignerMessageVersion2 message = (SignerMessageVersion2) sigMessVersion2.buildMessageForIndex(inputIndex);
-        SignerMessageVersion2 message2 = (SignerMessageVersion2) sigMessVersion2.buildMessageForIndex(inputIndex);
+        PowHSMSignerMessage message = (PowHSMSignerMessage) sigMessVersion2.buildMessageForIndex(inputIndex);
+        PowHSMSignerMessage message2 = (PowHSMSignerMessage) sigMessVersion2.buildMessageForIndex(inputIndex);
 
         //Assert
         List<Trie> receiptMerkleProof = BlockHashesHelper.calculateReceiptsTrieRootFor(block, receiptStore, rskTxHash);
@@ -113,7 +113,7 @@ public class SignerMessageBuilderVersion2Test {
             mock(BtcTransaction.class),
             rskTx.getHash()
         );
-        SignerMessageBuilderVersion2 sigMessVersion2 = new SignerMessageBuilderVersion2(
+        PowHSMSignerMessageBuilder sigMessVersion2 = new PowHSMSignerMessageBuilder(
             receiptStore,
             releaseCreationInformation
         );

@@ -18,7 +18,7 @@
 
 package co.rsk.federate.signing;
 
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
 import org.junit.Assert;
@@ -77,9 +77,9 @@ public class ECDSACompositeSignerTest {
         when(signer2.canSignWith(new KeyId("a-key"))).thenReturn(true);
 
         ECKey.ECDSASignature mockedSignature = mock(ECKey.ECDSASignature.class);
-        when(signer2.sign(new KeyId("a-key"), new SignerMessageVersion1(Hex.decode("aabbccdd")))).thenReturn(mockedSignature);
+        when(signer2.sign(new KeyId("a-key"), new SignerMessageV1(Hex.decode("aabbccdd")))).thenReturn(mockedSignature);
 
-        ECKey.ECDSASignature result = signer.sign(new KeyId("a-key"), new SignerMessageVersion1(Hex.decode("aabbccdd")));
+        ECKey.ECDSASignature result = signer.sign(new KeyId("a-key"), new SignerMessageV1(Hex.decode("aabbccdd")));
 
         verify(signer1, never()).sign(any(), any());
         Assert.assertSame(mockedSignature, result);
@@ -90,7 +90,7 @@ public class ECDSACompositeSignerTest {
         try {
             when(signer1.canSignWith(new KeyId("another-key"))).thenReturn(false);
             when(signer2.canSignWith(new KeyId("another-key"))).thenReturn(false);
-            signer.sign(new KeyId("another-id"), new SignerMessageVersion1(Hex.decode("aabbcc")));
+            signer.sign(new KeyId("another-id"), new SignerMessageV1(Hex.decode("aabbcc")));
             Assert.fail();
         } catch (Exception e) {}
     }
