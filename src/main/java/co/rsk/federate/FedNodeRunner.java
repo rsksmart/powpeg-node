@@ -154,7 +154,7 @@ public class FedNodeRunner implements NodeRunner {
      * Then build a composite signer with those.
      */
     private ECDSASigner buildSigner() {
-        ECDSACompositeSigner signer = new ECDSACompositeSigner();
+        ECDSACompositeSigner compositeSigner = new ECDSACompositeSigner();
 
         Stream.of(BTC_KEY_ID, RSK_KEY_ID, MST_KEY_ID).forEach(keyId -> {
             try {
@@ -176,7 +176,7 @@ public class FedNodeRunner implements NodeRunner {
                             LOGGER.warn("BTC signer not configured to use HSM 2. Consider upgrading it!");
                         }
                     }
-                    signer.addSigner(createdSigner);
+                compositeSigner.addSigner(createdSigner);
             } catch (SignerException e) {
                 LOGGER.error("Error trying to build signer with key id {}. Detail: {}", keyId, e.getMessage());
             } catch (Exception e) {
@@ -187,7 +187,7 @@ public class FedNodeRunner implements NodeRunner {
 
         LOGGER.debug("Signers created");
 
-        return signer;
+        return compositeSigner;
     }
 
     /**
@@ -373,7 +373,7 @@ public class FedNodeRunner implements NodeRunner {
         File pegDirectory = new File(this.btcToRskClientFileStorage.getInfo().getPegDirectoryPath());
         Kit kit = new Kit(btcContext, pegDirectory, "BtcToRskClient");
 
-        BitcoinWrapper bitcoinWrapper = new BitcoinWrapperImpl(
+        BitcoinWrapper wrapper = new BitcoinWrapperImpl(
             btcContext,
             bridgeConstants,
             btcLockSenderProvider,
@@ -381,9 +381,9 @@ public class FedNodeRunner implements NodeRunner {
             federatorSupport,
             kit
         );
-        bitcoinWrapper.setup(federatorSupport.getBitcoinPeerAddresses());
-        bitcoinWrapper.start();
+        wrapper.setup(federatorSupport.getBitcoinPeerAddresses());
+        wrapper.start();
 
-        return bitcoinWrapper;
+        return wrapper;
     }
 }
