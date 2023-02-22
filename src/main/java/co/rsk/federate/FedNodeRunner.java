@@ -113,6 +113,7 @@ public class FedNodeRunner implements NodeRunner {
         this.rskLogMonitor = rskLogMonitor;
         this.fullNodeRunner = fullNodeRunner;
         this.config = config;
+        this.bridgeConstants = config.getNetworkConstants().getBridgeConstants();
         this.fedNodeContext = fedNodeContext;
     }
 
@@ -202,7 +203,6 @@ public class FedNodeRunner implements NodeRunner {
 
     private boolean checkFederateRequirements() {
         if (config.isFederatorEnabled()) {
-            BridgeConstants bridgeConstants = config.getNetworkConstants().getBridgeConstants();
             int defaultPort = bridgeConstants.getBtcParams().getPort();
             List<String> peers = config.bitcoinPeerAddresses();
 
@@ -218,7 +218,6 @@ public class FedNodeRunner implements NodeRunner {
         if (config.isFederatorEnabled()) {
             // Setup a federation watcher to trigger starts and stops of the
             // btc to rsk client upon federation changes
-            bridgeConstants = this.config.getNetworkConstants().getBridgeConstants();
             FederationProvider federationProvider = new FederationProviderFromFederatorSupport(
                 federatorSupport,
                 bridgeConstants
