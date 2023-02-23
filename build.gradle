@@ -70,7 +70,7 @@ ext {
     logbackVersion = '1.2.11'
     junitVersion = '4.13.2'
     mockitoVersion = '4.6.1'
-    rskjcoreVersion = '4.3.0-SNAPSHOT'
+    rskjcoreVersion = '4.3.0-HOP'
 }
 
 dependencies {
