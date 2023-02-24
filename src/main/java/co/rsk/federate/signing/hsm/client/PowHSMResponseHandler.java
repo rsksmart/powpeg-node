@@ -30,6 +30,8 @@ public class PowHSMResponseHandler extends HSMResponseHandlerBase {
     private static final int HSM_POW_VALIDATION_ERROR_CODE = -202;
     private static final int HSM_TIP_MISMATCH_ERROR_CODE = -203;
     private static final int HSM_INVALID_OR_NOT_ENOUGH_INPUT_BLOCKS_ERROR_CODE = -204;
+    private static final int HSM_INVALID_BROTHERS_ERROR_CODE = -205;
+    private static final int HSM_INVALID_USER_DEFINED_VALUE_ERROR_CODE = -301;
     private static final int HSM_FORMAT_ERROR_CODE = -901;
     private static final int HSM_INVALID_REQUEST_ERROR_CODE = -902;
     private static final int HSM_COMMAND_UNKNOWN_ERROR_CODE = -903;
@@ -59,6 +61,10 @@ public class PowHSMResponseHandler extends HSMResponseHandlerBase {
                 throw new HSMBlockchainBookkeepingRelatedException(formatErrorMessage("HSM indicates Tip mismatch. '%s'. %s", methodName, response));
             case HSM_INVALID_OR_NOT_ENOUGH_INPUT_BLOCKS_ERROR_CODE:
                 throw new HSMBlockchainBookkeepingRelatedException(formatErrorMessage("HSM indicates Invalid or not enough input blocks. '%s'. %s", methodName, response));
+            case HSM_INVALID_BROTHERS_ERROR_CODE:
+                throw new HSMBlockchainBookkeepingRelatedException(formatErrorMessage("HSM received some invalid brothers. '%s'. %s", methodName, response));
+            case HSM_INVALID_USER_DEFINED_VALUE_ERROR_CODE:
+                throw new HSMInvalidUserDefinedValueException(formatErrorMessage("HSM received an invalid user-defined value. '%s'. %s", methodName, response));
             case HSM_REJECTED_KEY_ERROR_CODE:
                 throw new HSMAuthException(formatErrorMessage("HSM rejected provided key id. '%s'. %s", methodName, response));
             case HSM_FORMAT_ERROR_CODE:
