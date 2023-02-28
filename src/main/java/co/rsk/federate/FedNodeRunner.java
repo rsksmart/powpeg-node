@@ -143,6 +143,13 @@ public class FedNodeRunner implements NodeRunner {
         BtcECKey btcPublicKey = signer.getPublicKey(BTC_KEY_ID).toBtcKey();
         ECKey rskPublicKey = signer.getPublicKey(RSK_KEY_ID).toEthKey();
         ECKey mstKey = signer.getPublicKey(MST_KEY_ID).toEthKey();
+        LOGGER.info(
+            "[configureFederatorSupport] BTC public key: {}. RSK public key: {}. MST public key: {}",
+            btcPublicKey,
+            rskPublicKey,
+            mstKey
+        );
+
         this.member = new FederationMember(btcPublicKey, rskPublicKey, mstKey);
         federatorSupport.setMember(this.member);
         federatorSupport.setSigner(signer);
