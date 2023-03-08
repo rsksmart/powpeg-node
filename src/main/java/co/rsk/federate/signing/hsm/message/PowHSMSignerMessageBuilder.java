@@ -54,14 +54,12 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
 
         Sha256Hash sigHash = getSigHashByInputIndex(inputIndex);
 
-        SignerMessage messageToSign = new PowHSMSignerMessage(
+        return new PowHSMSignerMessage(
                 unsignedBtcTx,
                 inputIndex,
                 txReceipt,
                 receiptMerkleProof,
                 sigHash
         );
-
-        return messageToSign;
     }
 }
