@@ -5,7 +5,7 @@ import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.federate.signing.hsm.message.HSM2State;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 
-public interface HSMBookkeepingClient extends HSMSigningClient {
+public interface HSMBookkeepingClient {
     void updateAncestorBlock(UpdateAncestorBlockMessage updateAncestorBlockMessage) throws HSMClientException;
 
     void advanceBlockchain(AdvanceBlockchainMessage advanceBlockchainMessage) throws HSMClientException;
