@@ -34,7 +34,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -113,9 +113,9 @@ public class ECDSASignerFactoryTest {
 
     @Test
     public void buildFromConfigUnknown() throws SignerException {
+        Config configMock = mockConfig("a-random-type");
+        SignerConfig signerConfig = new SignerConfig("a-random-id", configMock);
         try {
-            Config configMock = mockConfig("a-random-type");
-            SignerConfig signerConfig = new SignerConfig("a-random-id", configMock);
             factory.buildFromConfig(signerConfig);
             Assert.fail();
         } catch (RuntimeException e) {
@@ -126,7 +126,7 @@ public class ECDSASignerFactoryTest {
     private Config mockConfig(String type) {
         Config configMock = mock(Config.class);
         when(configMock.getString("type")).thenReturn(type);
-        when(configMock.withoutPath(any())).thenReturn(configMock);
+        when(configMock.withoutPath(anyString())).thenReturn(configMock);
         return configMock;
     }
 }
