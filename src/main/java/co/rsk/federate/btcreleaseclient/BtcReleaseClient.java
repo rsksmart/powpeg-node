@@ -21,7 +21,7 @@ import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
@@ -69,7 +69,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Manages signing and broadcasting release txs
+ * Manages signing and broadcasting pegouts
  * @author Oscar Guindzberg
  */
 public class BtcReleaseClient {
@@ -191,7 +191,7 @@ public class BtcReleaseClient {
             boolean isStorageSynced = storageSynchronizer.isSynced();
             if (hasBetterBlockToSync || !isStorageSynced) {
                 logger.trace(
-                    "[onBestBlock] Node is not ready to process releases. hasBetterBlockToSync: {} isStorageSynced: {}",
+                    "[onBestBlock] Node is not ready to process pegouts. hasBetterBlockToSync: {} isStorageSynced: {}",
                     hasBetterBlockToSync,
                     isStorageSynced
                 );
@@ -204,7 +204,7 @@ public class BtcReleaseClient {
             storageSynchronizer.processBlock(block, receipts);
 
             // Delegate processing to our own method
-            logger.trace("[onBestBlock] Got {} releases", stateForFederator.getRskTxsWaitingForSignatures().entrySet().size());
+            logger.trace("[onBestBlock] Got {} pegouts", stateForFederator.getRskTxsWaitingForSignatures().entrySet().size());
             if (isPegoutEnabled) {
                 processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
             }
@@ -215,22 +215,22 @@ public class BtcReleaseClient {
             if (!isPegoutEnabled || nodeBlockProcessor.hasBetterBlockToSync()) {
                 return;
             }
-            // BTC-release events must be processed on an every-single-block basis,
-            // since otherwise we could be missing release transactions potentially mined
+            // Pegout must be processed on an every-single-block basis,
+            // since otherwise we could be missing pegout potentially mined
             // on what originally were side-chains and then turned into best-chains.
             Stream<LogInfo> transactionLogs = receipts.stream().map(TransactionReceipt::getLogInfoList).flatMap(Collection::stream);
             Stream<LogInfo> bridgeLogs = transactionLogs.filter(info -> Arrays.equals(info.getAddress(), PrecompiledContracts.BRIDGE_ADDR.getBytes()));
 
             boolean solidityFormatIsActive = activationConfig.isActive(ConsensusRule.RSKIP146, block.getNumber());
-            Stream<LogInfo> releaseBtcLogs = bridgeLogs.filter(info -> solidityFormatIsActive ?
+            Stream<LogInfo> pegoutLogs = bridgeLogs.filter(info -> solidityFormatIsActive ?
                     SINGLE_RELEASE_BTC_TOPIC_SOLIDITY.equals(info.getTopics().get(0)) :
                     SINGLE_RELEASE_BTC_TOPIC_RLP.equals(info.getTopics()));
 
-            Stream<BtcTransaction> btcTransactionsToRelease = releaseBtcLogs.map(info -> solidityFormatIsActive ?
+            Stream<BtcTransaction> btcTransactionsToRelease = pegoutLogs.map(info -> solidityFormatIsActive ?
                     convertToBtcTxFromSolidityData(info.getData()) :
                     convertToBtcTxFromRLPData(info.getData()));
 
-            btcTransactionsToRelease.forEach(BtcReleaseClient.this::onBtcRelease);
+            btcTransactionsToRelease.forEach(BtcReleaseClient.this::onBroadcastingSignedPegout);
         }
 
         private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
@@ -245,72 +245,72 @@ public class BtcReleaseClient {
         }
     }
 
-    protected void processReleases(Set<Map.Entry<Keccak256, BtcTransaction>> releases) {
+    protected void processReleases(Set<Map.Entry<Keccak256, BtcTransaction>> pegouts) {
         try {
-            logger.debug("[processReleases] Starting process with {} releases", releases.size());
+            logger.debug("[processReleases] Starting process with {} pegouts", pegouts.size());
             KeyId keyId = FedNodeRunner.BTC_KEY_ID;
             int version = signer.getVersionForKeyId(keyId);
-            // Get release information and store it in a new list
-            List<ReleaseCreationInformation> releasesReadyToSign = new ArrayList<>();
-            for (Map.Entry<Keccak256, BtcTransaction> release : releases) {
-                BtcTransaction releaseTx = release.getValue();
-                tryGetReleaseInformation(version, release.getKey(), releaseTx)
-                    .ifPresent(releasesReadyToSign::add);
+            // Get pegout information and store it in a new list
+            List<PegoutCreationInformation> pegoutsReadyToSign = new ArrayList<>();
+            for (Map.Entry<Keccak256, BtcTransaction> pegout : pegouts) {
+                BtcTransaction pegoutBtcTx = pegout.getValue();
+                tryGetReleaseInformation(version, pegout.getKey(), pegoutBtcTx)
+                    .ifPresent(pegoutsReadyToSign::add);
             }
-            logger.debug("[processReleases] Going to sign {} releases", releasesReadyToSign.size());
-            // TODO: Sorting and then looping again is not efficient but we are making a compromise on performance here as we don't have that many release txs
+            logger.debug("[processReleases] Going to sign {} pegouts", pegoutsReadyToSign.size());
+            // TODO: Sorting and then looping again is not efficient but we are making a compromise on performance here as we don't have that many pegouts
             // Sort descending
-            releasesReadyToSign.sort((a, b) -> (int) (b.getBlock().getNumber() - a.getBlock().getNumber()));
+            pegoutsReadyToSign.sort((a, b) -> (int) (b.getPegoutCreationRskBlock().getNumber() - a.getPegoutCreationRskBlock().getNumber()));
             // Sign only the first element
-            if (releasesReadyToSign.size() > 0) {
-                signRelease(version, releasesReadyToSign.get(0));
+            if (!pegoutsReadyToSign.isEmpty()) {
+                signConfirmedPegout(version, pegoutsReadyToSign.get(0));
             }
         } catch (Exception e) {
-            logger.error("[processReleases] There was an error trying to process releases", e);
+            logger.error("[processReleases] There was an error trying to process pegouts", e);
         }
-        logger.trace("[processReleases] Finished processing releases");
+        logger.trace("[processReleases] Finished processing pegouts");
     }
 
-    protected Optional<ReleaseCreationInformation> tryGetReleaseInformation(
+    protected Optional<PegoutCreationInformation> tryGetReleaseInformation(
         int signerVersion,
-        Keccak256 rskTxHash,
-        BtcTransaction releaseTx
+        Keccak256 pegoutConfirmationRskTxHash,
+        BtcTransaction pegoutBtcTx
     ) {
         try {
             // Discard transactions this fed already signed or cannot be signed by the observed federations
-            logger.trace("[tryGetReleaseInformation] Validating tx {} can be signed by observed federations and " +
-                    "that it is not already signed by current fed", releaseTx.getHash());
-            validateTxCanBeSigned(releaseTx);
+            logger.trace("[tryGetReleaseInformation] Validating if pegout btcTxHash {} can be signed by observed federations and " +
+                    "that it is not already signed by current fed", pegoutBtcTx.getHash());
+            validateConfirmedPegoutCanBeSigned(pegoutBtcTx);
 
-            // IMPORTANT: As per the current behaviour of the bridge, no release tx should have inputs to be signed
+            // IMPORTANT: As per the current behaviour of the bridge, no pegout should have inputs to be signed
             // by different federations. Taking this into account, when removing the signatures from the tx new
             // scriptSigs are created that all spend from the same federation
-            logger.trace("[tryGetReleaseInformation] Removing possible signatures from tx {}", releaseTx.getHash());
-            Federation spendingFed = getSpendingFederation(releaseTx);
-            removeSignaturesFromTransaction(releaseTx, spendingFed);
-            logger.trace("[tryGetReleaseInformation] Tx hash without signatures {}", releaseTx.getHash());
+            logger.trace("[tryGetReleaseInformation] Removing possible signatures from pegout btcTxHash {}", pegoutBtcTx.getHash());
+            Federation spendingFed = getSpendingFederation(pegoutBtcTx);
+            removeSignaturesFromPegoutBtxTx(pegoutBtcTx, spendingFed);
+            logger.trace("[tryGetReleaseInformation] pegout btcTxHash without signatures {}", pegoutBtcTx.getHash());
 
-            logger.trace("[tryGetReleaseInformation] Is tx in storage? {}", storageAccessor.hasBtcTxHash(releaseTx.getHash()));
-            // Try to get the rskTxHash from the map in memory
-            Keccak256 actualRskTxHash = storageAccessor.hasBtcTxHash(releaseTx.getHash()) ?
-                storageAccessor.getRskTxHash(releaseTx.getHash()) :
-                rskTxHash;
+            logger.trace("[tryGetReleaseInformation] Is tx in storage? {}", storageAccessor.hasBtcTxHash(pegoutBtcTx.getHash()));
+            // Try to get the pegoutCreationRskTxHash from the map in memory, and if not found then use pegoutConfirmationRskTxHash
+            Keccak256 pegoutCreationRskTxHash = storageAccessor.hasBtcTxHash(pegoutBtcTx.getHash()) ?
+                storageAccessor.getRskTxHash(pegoutBtcTx.getHash()) :
+                pegoutConfirmationRskTxHash;
 
-            logger.debug("[tryGetReleaseInformation] Going to lookup tx to sign {}", actualRskTxHash);
+            logger.debug("[tryGetReleaseInformation] Going to lookup pegoutCreationRskTxHash {} to sign", pegoutCreationRskTxHash);
 
             // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
             // -- Get Real Block where release_requested was emmited
-            logger.trace("[tryGetReleaseInformation] Getting release information");
-            return Optional.of(releaseCreationInformationGetter.getTxInfoToSign(
+            logger.trace("[tryGetReleaseInformation] Getting pegout information");
+            return Optional.of(releaseCreationInformationGetter.getPegoutCreationInformationToSign(
                 signerVersion,
-                actualRskTxHash,
-                releaseTx,
-                rskTxHash
+                pegoutCreationRskTxHash,
+                pegoutBtcTx,
+                pegoutConfirmationRskTxHash
             ));
         } catch (HSMReleaseCreationInformationException | FederationCantSignException e) {
             String message = String.format(
-                "[tryGetReleaseInformation] There was an error trying to process release for BTC tx %s",
-                releaseTx.getHash()
+                "[tryGetReleaseInformation] There was an error trying to process pegout with btcTxHash %s",
+                pegoutBtcTx.getHash()
             );
             logger.error(message, e);
         } catch (FederatorAlreadySignedException e) {
@@ -319,20 +319,20 @@ public class BtcReleaseClient {
         return Optional.empty();
     }
 
-    protected void validateTxCanBeSigned(BtcTransaction btcTx) throws FederatorAlreadySignedException, FederationCantSignException {
+    protected void validateConfirmedPegoutCanBeSigned(BtcTransaction pegoutBtcTx) throws FederatorAlreadySignedException, FederationCantSignException {
         try {
             KeyId keyId = FedNodeRunner.BTC_KEY_ID;
             BtcECKey federatorPublicKey = signer.getPublicKey(keyId).toBtcKey();
-            logger.trace("[validateTxCanBeSigned] Federator public key {}", federatorPublicKey);
+            logger.trace("[validateConfirmedPegoutCanBeSigned] Federator public key {}", federatorPublicKey);
 
-            for (int inputIndex = 0; inputIndex < btcTx.getInputs().size(); inputIndex++) {
-                TransactionInput txIn = btcTx.getInput(inputIndex);
+            for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
+                TransactionInput txIn = pegoutBtcTx.getInput(inputIndex);
                 Script redeemScript = getRedeemScriptFromInput(txIn);
                 Script standardRedeemScript = extractStandardRedeemScript(redeemScript);
 
                 // Check if input is not already signed by the current federator
-                logger.trace("[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator", inputIndex);
-                co.rsk.bitcoinj.core.Sha256Hash sigHash = btcTx.hashForSignature(
+                logger.trace("[validateConfirmedPegoutCanBeSigned] Checking if the input {} is not already signed by the current federator", inputIndex);
+                co.rsk.bitcoinj.core.Sha256Hash sigHash = pegoutBtcTx.hashForSignature(
                         inputIndex,
                         redeemScript,
                         BtcTransaction.SigHash.ALL,
@@ -340,8 +340,8 @@ public class BtcReleaseClient {
                 );
                 if (BridgeUtils.isInputSignedByThisFederator(federatorPublicKey, sigHash, txIn)) {
                     String message = String.format(
-                            "Btc tx %s input %d already signed by current federator with public key %s",
-                            btcTx.getHashAsString(),
+                            "PegoutBtcTxHash %s input %d already signed by current federator with public key %s",
+                            pegoutBtcTx.getHashAsString(),
                             inputIndex,
                             federatorPublicKey
                     );
@@ -349,69 +349,69 @@ public class BtcReleaseClient {
                 }
 
                 // Check if any of the observed federations can sign the tx
-                logger.trace("[validateTxCanBeSigned] Checking if any of the observed federations can sign the tx input {}", inputIndex);
+                logger.trace("[validateConfirmedPegoutCanBeSigned] Checking if any of the observed federations can sign the pegout btc tx input {}", inputIndex);
                 observedFederations.stream()
-                        .forEach(f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
+                        .forEach(f -> logger.trace("[validateConfirmedPegoutCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
                 List<Federation> spendingFedFilter = observedFederations.stream()
                         .filter(f -> f.getStandardRedeemScript().equals(standardRedeemScript)).collect(Collectors.toList());
-                logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
+                logger.debug("[validateConfirmedPegoutCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
                 if (spendingFedFilter.isEmpty()) {
                     String message = String.format(
-                            "Transaction %s can't be signed by any of the observed federations",
-                            btcTx.getHash()
+                            "PegoutBtcTxHash %s can't be signed by any of the observed federations",
+                            pegoutBtcTx.getHash()
                     );
                     throw new FederationCantSignException(message);
                 }
             }
         } catch (SignerException e) {
-            String message = String.format("[validateTxCanBeSigned] Error validating tx %s, " +
-                    "failed to get current federator public key", btcTx.getHashAsString());
+            String message = String.format("[validateConfirmedPegoutCanBeSigned] Error validating pegoutBtcTxHash %s, " +
+                    "failed to get current federator public key", pegoutBtcTx.getHashAsString());
             logger.error(message, e);
         }
     }
 
-    protected void signRelease(int signerVersion, ReleaseCreationInformation releaseCreationInformation) {
+    protected void signConfirmedPegout(int signerVersion, PegoutCreationInformation pegoutCreationInformation) {
         try {
-            logger.debug("[signRelease] HSM signer version {}", signerVersion);
-            logger.debug("[signRelease] Going to sign tx {}", releaseCreationInformation.getInformingRskTxHash());
-            logger.trace("[signRelease] Enforce signer requirements");
-            releaseRequirementsEnforcer.enforce(signerVersion, releaseCreationInformation);
+            logger.debug("[signConfirmedPegout] HSM signer version {}", signerVersion);
+            logger.debug("[signConfirmedPegout] Going to sign pegout with creationRskTxHash: {}", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
+            logger.trace("[signConfirmedPegout] Enforce signer requirements");
+            releaseRequirementsEnforcer.enforce(signerVersion, pegoutCreationInformation);
             SignerMessageBuilder messageBuilder = signerMessageBuilderFactory.buildFromConfig(
                 signerVersion,
-                releaseCreationInformation
+                pegoutCreationInformation
             );
             co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(bridgeConstants.getBtcParams()));
             List<byte[]> signatures = new ArrayList<>();
-            for (int inputIndex = 0; inputIndex < releaseCreationInformation.getBtcTransaction().getInputs().size(); inputIndex++) {
+            for (int inputIndex = 0; inputIndex < pegoutCreationInformation.getPegoutBtcTx().getInputs().size(); inputIndex++) {
                 SignerMessage messageToSign = messageBuilder.buildMessageForIndex(inputIndex);
-                logger.trace("[signRelease] Message to sign: {}", messageToSign.getClass());
+                logger.trace("[signConfirmedPegout] Message to sign: {}", messageToSign.getClass());
                 ECKey.ECDSASignature ethSig = signer.sign(FedNodeRunner.BTC_KEY_ID, messageToSign);
-                logger.debug("[signRelease] Message successfully signed");
+                logger.debug("[signConfirmedPegout] Message successfully signed");
                 BtcECKey.ECDSASignature sig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
                 signatures.add(sig.encodeToDER());
             }
 
-            logger.info("[signRelease] Signed Tx {}", releaseCreationInformation.getInformingRskTxHash());
-            federatorSupport.addSignature(signatures, releaseCreationInformation.getInformingRskTxHash().getBytes());
+            logger.info("[signConfirmedPegout] Signed pegoutRskTxHash {}", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
+            federatorSupport.addSignature(signatures, pegoutCreationInformation.getPegoutConfirmationRskTxHash().getBytes());
         } catch (SignerException e) {
-            String message = String.format("Error signing Tx %s", releaseCreationInformation.getInformingRskTxHash());
+            String message = String.format("Error signing pegoutRskTxHash %s", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
             logger.error(message, e);
-            panicProcessor.panic("btcrelease", message);
+            panicProcessor.panic("pegoutbtctx", message);
         } catch (HSMClientException | SignerMessageBuilderException | ReleaseRequirementsEnforcerException e) {
-            logger.error("[signRelease] {}", e.getMessage());
-            panicProcessor.panic("btcrelease", e.getMessage());
+            logger.error("[signConfirmedPegout] {}", e.getMessage());
+            panicProcessor.panic("pegoutbtctx", e.getMessage());
         } catch (Exception e) {
             String message = String.format(
-                "[signRelease] There was an error trying to sign release for BTC tx %s",
-                releaseCreationInformation.getBtcTransaction().getHash()
+                "[signRelease] There was an error trying to sign pegout with btcTxHash: %s",
+                pegoutCreationInformation.getPegoutBtcTx().getHash()
             );
             logger.error(message, e);
-            panicProcessor.panic("btcrelease", e.getMessage());
+            panicProcessor.panic("pegoutbtctx", e.getMessage());
         }
     }
 
     // Executed when a tx is ready for broadcasting
-    public void onBtcRelease(BtcTransaction signedBtcTx) {
+    public void onBroadcastingSignedPegout(BtcTransaction signedBtcTx) {
         NetworkParameters btcParams = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
         org.bitcoinj.core.Context.propagate(new org.bitcoinj.core.Context(btcParams));
         // broadcast signedBtcTx to the btc network
@@ -425,24 +425,24 @@ public class BtcReleaseClient {
             } else if (ScriptPattern.isP2PKH(txo.getScriptPubKey())) {
                 destination = LegacyAddress.fromPubKeyHash(btcParams, ScriptPattern.extractHashFromP2PKH(txo.getScriptPubKey()));
             }
-            logger.info("Broadcasted {} to {} in tx {}", txo.getValue(), destination, signedBtcTx2.getTxId());
+            logger.info("[onBroadcastingSignedPegout] Broadcasted {} to {} in pegoutBtcTxId {}", txo.getValue(), destination, signedBtcTx2.getTxId());
         });
     }
 
     /*
-    Received tx inputs are replaced by base inputs without signatures that spend from the given federation.
-    This way the tx has the same hash as the one registered in release_requested event topics.
+    Received pegoutBtcTx inputs are replaced by base inputs without signatures that spend from the given federation.
+    This way the pegoutBtcTx has the same hash as the one registered in release_requested event topics.
      */
-    protected void removeSignaturesFromTransaction(BtcTransaction tx, Federation spendingFed) {
-        for (int inputIndex = 0; inputIndex < tx.getInputs().size(); inputIndex++) {
+    protected void removeSignaturesFromPegoutBtxTx(BtcTransaction pegoutBtcTx, Federation spendingFed) {
+        for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
             //Get redeem script for current input
-            TransactionInput txInput = tx.getInput(inputIndex);
+            TransactionInput txInput = pegoutBtcTx.getInput(inputIndex);
             Script inputRedeemScript = getRedeemScriptFromInput(txInput);
-            logger.trace("[removeSignaturesFromTransaction] input {} scriptSig {}", inputIndex, tx.getInput(inputIndex).getScriptSig());
-            logger.trace("[removeSignaturesFromTransaction] input {} redeem script {}", inputIndex, inputRedeemScript);
+            logger.trace("[removeSignaturesFromPegoutBtxTx] input {} scriptSig {}", inputIndex, pegoutBtcTx.getInput(inputIndex).getScriptSig());
+            logger.trace("[removeSignaturesFromPegoutBtxTx] input {} redeem script {}", inputIndex, inputRedeemScript);
 
             txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed, inputRedeemScript));
-            logger.debug("[removeSignaturesFromTransaction] Updated input {} scriptSig with base input script that " +
+            logger.debug("[removeSignaturesFromPegoutBtxTx] Updated input {} scriptSig with base input script that " +
                     "spends from the federation {}", inputIndex, spendingFed.getAddress());
         }
     }

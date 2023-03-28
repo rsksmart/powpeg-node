@@ -1,6 +1,6 @@
 package co.rsk.federate.signing.hsm.requirements;
 
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +13,7 @@ public class ReleaseRequirementsEnforcer {
         this.ancestorBlockUpdater = ancestorBlockUpdater;
     }
 
-    public void enforce(int version, ReleaseCreationInformation releaseCreationInformation)
+    public void enforce(int version, PegoutCreationInformation pegoutCreationInformation)
         throws ReleaseRequirementsEnforcerException {
         switch (version) {
             case 1:
@@ -22,7 +22,7 @@ public class ReleaseRequirementsEnforcer {
             case 2:
                 logger.trace("[enforce] Version 2 requires ancestor in position. ENFORCING");
                 try {
-                    ancestorBlockUpdater.ensureAncestorBlockInPosition(releaseCreationInformation.getBlock());
+                    ancestorBlockUpdater.ensureAncestorBlockInPosition(pegoutCreationInformation.getPegoutCreationRskBlock());
                     return;
                 } catch (Exception e) {
                     String message = "error trying to enforce ancestor";

@@ -6,9 +6,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.junit.Test;
 
 public class ReleaseRequirementsEnforcerTest {
@@ -19,7 +18,7 @@ public class ReleaseRequirementsEnforcerTest {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
 
-        enforcer.enforce(1, mock(ReleaseCreationInformation.class));
+        enforcer.enforce(1, mock(PegoutCreationInformation.class));
 
         verify(ancestorBlockUpdater, never()).ensureAncestorBlockInPosition(any());
     }
@@ -30,7 +29,7 @@ public class ReleaseRequirementsEnforcerTest {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
 
-        enforcer.enforce(2, mock(ReleaseCreationInformation.class));
+        enforcer.enforce(2, mock(PegoutCreationInformation.class));
 
         verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
     }
@@ -42,7 +41,7 @@ public class ReleaseRequirementsEnforcerTest {
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
 
-        enforcer.enforce(2, mock(ReleaseCreationInformation.class));
+        enforcer.enforce(2, mock(PegoutCreationInformation.class));
     }
 
 
@@ -53,6 +52,6 @@ public class ReleaseRequirementsEnforcerTest {
             mock(AncestorBlockUpdater.class)
         );
 
-        enforcer.enforce(3, mock(ReleaseCreationInformation.class));
+        enforcer.enforce(3, mock(PegoutCreationInformation.class));
     }
 }

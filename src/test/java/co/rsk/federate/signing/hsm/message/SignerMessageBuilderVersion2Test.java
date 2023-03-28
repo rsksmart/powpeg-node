@@ -66,7 +66,7 @@ public class SignerMessageBuilderVersion2Test {
         //Act
         SignerMessageBuilderVersion2 sigMessVersion2 = new SignerMessageBuilderVersion2(
             receiptStore,
-            new ReleaseCreationInformation(
+            new PegoutCreationInformation(
                 block,
                 txReceipt,
                 rskTxHash,
@@ -106,7 +106,7 @@ public class SignerMessageBuilderVersion2Test {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.get(any(byte[].class), any(byte[].class))).thenReturn(Optional.empty());
 
-        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+        PegoutCreationInformation pegoutCreationInformation = new PegoutCreationInformation(
             block,
             transactionReceipt,
             rskTx.getHash(),
@@ -115,7 +115,7 @@ public class SignerMessageBuilderVersion2Test {
         );
         SignerMessageBuilderVersion2 sigMessVersion2 = new SignerMessageBuilderVersion2(
             receiptStore,
-            releaseCreationInformation
+            pegoutCreationInformation
         );
         sigMessVersion2.buildMessageForIndex(0);
     }

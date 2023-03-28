@@ -39,103 +39,103 @@ public class ReleaseCreationInformationGetter {
     }
 
     /* Use this method if the originating rsk tx hash and the informing rsk tx hash match */
-    public ReleaseCreationInformation getTxInfoToSign(
+    public PegoutCreationInformation getPegoutCreationInformationToSign(
         int version,
         Keccak256 rskTxHash,
         BtcTransaction btcTransaction
     ) throws HSMReleaseCreationInformationException {
-        return getTxInfoToSign(version, rskTxHash, btcTransaction, rskTxHash);
+        return getPegoutCreationInformationToSign(version, rskTxHash, btcTransaction, rskTxHash);
     }
 
-    public ReleaseCreationInformation getTxInfoToSign(
+    public PegoutCreationInformation getPegoutCreationInformationToSign(
         int version,
-        Keccak256 rskTxHash,
-        BtcTransaction btcTransaction,
-        Keccak256 informingRskTxHash
+        Keccak256 pegoutCreationRskTxHash,
+        BtcTransaction pegoutBtcTx,
+        Keccak256 pegoutConfirmationRskTxHash
     ) throws HSMReleaseCreationInformationException {
         switch (version) {
             case 1:
-                return getBaseReleaseCreationInformation(rskTxHash, btcTransaction, informingRskTxHash);
+                return getPegoutCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
             case 2:
-                return getTxInfoToSignVersion2(rskTxHash, btcTransaction, informingRskTxHash);
+                return getPegoutCreationInformationV2(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
             default:
                 throw new HSMReleaseCreationInformationException("Unsupported version " + version);
         }
     }
 
-    protected ReleaseCreationInformation getBaseReleaseCreationInformation(
-        Keccak256 rskTxHash,
-        BtcTransaction btcTransaction,
-        Keccak256 informingRskTxHash
+    protected PegoutCreationInformation getPegoutCreationInformation(
+        Keccak256 pegoutCreationRskTxHash,
+        BtcTransaction pegoutBtcTx,
+        Keccak256 pegoutConfirmationRskTxHash
     ) throws HSMReleaseCreationInformationException {
-        TransactionInfo transactionInfo = receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore).orElse(null);
+        TransactionInfo transactionInfo = receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore).orElse(null);
         if (transactionInfo == null) {
             String message = String.format(
-                "Transaction hash %s could not be found in best chain",
-                rskTxHash
+                "pegoutCreationRskTxHash %s could not be found in best chain",
+                pegoutCreationRskTxHash
             );
-            logger.error("[getTxInfoToSign] {}", message);
+            logger.error("[getPegoutCreationInformationToSign] {}", message);
             throw new HSMReleaseCreationInformationException(message);
         }
         TransactionReceipt transactionReceipt = transactionInfo.getReceipt();
         Block block = blockStore.getBlockByHash(transactionInfo.getBlockHash());
 
-        return new ReleaseCreationInformation(
+        return new PegoutCreationInformation(
             block,
             transactionReceipt,
-            rskTxHash,
-            btcTransaction,
-            informingRskTxHash
+            pegoutCreationRskTxHash,
+            pegoutBtcTx,
+            pegoutConfirmationRskTxHash
         );
     }
 
-    protected ReleaseCreationInformation getTxInfoToSignVersion2(
-        Keccak256 rskTxHash,
-        BtcTransaction btcTransaction,
-        Keccak256 informingRskTxHash
+    protected PegoutCreationInformation getPegoutCreationInformationV2(
+        Keccak256 pegoutCreationRskTxHash,
+        BtcTransaction pegoutBtcTx,
+        Keccak256 pegoutConfirmationRskTxHash
     ) throws HSMReleaseCreationInformationException {
         try {
-            ReleaseCreationInformation baseReleaseCreationInformation =
-                getBaseReleaseCreationInformation(rskTxHash, btcTransaction, informingRskTxHash);
-            Block block = baseReleaseCreationInformation.getBlock();
-            TransactionReceipt transactionReceipt = baseReleaseCreationInformation.getTransactionReceipt();
+            PegoutCreationInformation basePegoutCreationInformation =
+                getPegoutCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
+            Block block = basePegoutCreationInformation.getPegoutCreationRskBlock();
+            TransactionReceipt transactionReceipt = basePegoutCreationInformation.getTransactionReceipt();
 
-            // Get transaction from the block, searching by tx hash, and set it in the tx receipt
-            logger.trace("[getTxInfoToSign] Searching for transaction {} in block {} ({})", rskTxHash, block.getHash(), block.getNumber());
+            // Get transaction from the block, searching by pegoutCreationRskTxHash, and set it in the tx receipt
+            logger.trace("[getPegoutCreationInformationToSign] Searching for pegoutCreationRskTxHash {} in block {} ({})", pegoutCreationRskTxHash, block.getHash(), block.getNumber());
             List<Transaction> transactions = block.getTransactionsList().stream()
-                .filter(t -> t.getHash().equals(rskTxHash))
+                .filter(t -> t.getHash().equals(pegoutCreationRskTxHash))
                 .collect(Collectors.toList());
-            logger.trace("[getTxInfoToSign] Transactions found {}", transactions.size());
+            logger.trace("[getPegoutCreationInformationToSign] Transactions found {}", transactions.size());
             if(transactions.size() != 1) {
                 String message = String.format(
-                    "Transaction hash %s could not be found in block %s or more than 1 result obtained. Filter size: %d",
-                    rskTxHash,
+                    "pegoutCreationRskTxHash %s could not be found in block %s or more than 1 result obtained. Filter size: %d",
+                    pegoutCreationRskTxHash,
                     block.getHash().toHexString(),
                     transactions.size()
                 );
-                logger.error("[getTxInfoToSign] {}", message);
+                logger.error("[getPegoutCreationInformationToSign] {}", message);
                 throw new HSMReleaseCreationInformationException(message);
             }
             Transaction transaction = transactions.get(0);
             transactionReceipt.setTransaction(transaction);
 
-            return searchEventInFollowingBlocks(block.getNumber(), btcTransaction, rskTxHash, informingRskTxHash);
+            return searchEventInFollowingBlocks(block.getNumber(), pegoutBtcTx, pegoutCreationRskTxHash, pegoutConfirmationRskTxHash);
         } catch (Exception e) {
             throw new HSMReleaseCreationInformationException("Unhandled exception occured", e);
         }
     }
 
-    private ReleaseCreationInformation searchEventInFollowingBlocks(
+    private PegoutCreationInformation searchEventInFollowingBlocks(
         long blockNumber,
-        BtcTransaction btcTransaction,
-        Keccak256 rskTxHash,
-        Keccak256 informingRskTxHash
+        BtcTransaction pegoutBtcTx,
+        Keccak256 pegoutCreationRskTxHash,
+        Keccak256 pegoutConfirmationRskTxHash
     ) throws HSMReleaseCreationInformationException {
         Block block = blockStore.getChainBlockByNumber(blockNumber);
         // If the block cannot be found by its number, the event cannot be searched further.
         if (block == null) {
             throw new HSMReleaseCreationInformationException(
-                    String.format("[searchEventInFollowingBlocks] Block not found. Transaction hash: [%s]", rskTxHash)
+                    String.format("[searchEventInFollowingBlocks] Block not found. pegoutCreationRskTxHash: [%s]", pegoutCreationRskTxHash)
             );
         }
 
@@ -148,8 +148,8 @@ public class ReleaseCreationInformationGetter {
             TransactionInfo transactionInfo = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore).orElse(null);
             TransactionReceipt transactionReceipt = transactionInfo.getReceipt();
             transactionReceipt.setTransaction(transaction);
-            Optional<ReleaseCreationInformation> optionalReleaseCreationInformation =
-                getInformationFromEvent(block, transactionReceipt, btcTransaction, rskTxHash, informingRskTxHash);
+            Optional<PegoutCreationInformation> optionalReleaseCreationInformation =
+                getPegoutCreationInformationFromEvent(block, transactionReceipt, pegoutBtcTx, pegoutCreationRskTxHash, pegoutConfirmationRskTxHash);
             if (optionalReleaseCreationInformation.isPresent()) {
                 return optionalReleaseCreationInformation.get();
             }
@@ -158,23 +158,23 @@ public class ReleaseCreationInformationGetter {
         // If the block being checked is the last block, and was not found, then the event does not exist.
         if (block.getNumber() == (blockStore.getBestBlock().getNumber())) {
             throw new HSMReleaseCreationInformationException(
-                    String.format("[searchEventInFollowingBlocks] Event not found. Transaction hash: [%s]", rskTxHash)
+                    String.format("[searchEventInFollowingBlocks] Event not found. pegoutCreationRskTxHash: [%s]", pegoutCreationRskTxHash)
             );
         }
         // If the event was not found in this block, the next block is requested and the same search is performed.
-        return searchEventInFollowingBlocks(blockNumber + 1, btcTransaction, rskTxHash, informingRskTxHash);
+        return searchEventInFollowingBlocks(blockNumber + 1, pegoutBtcTx, pegoutCreationRskTxHash, pegoutConfirmationRskTxHash);
     }
 
-    private Optional<ReleaseCreationInformation> getInformationFromEvent(
+    private Optional<PegoutCreationInformation> getPegoutCreationInformationFromEvent(
         Block block,
         TransactionReceipt transactionReceipt,
-        BtcTransaction btcTransaction,
-        Keccak256 releaseRskTxHash,
-        Keccak256 informingRskTxHash
+        BtcTransaction pegoutBtcTx,
+        Keccak256 pegoutCreationRskTxHash,
+        Keccak256 pegoutConfirmationRskTxHash
     ) {
         boolean hasLogs = !transactionReceipt.getLogInfoList().isEmpty();
         logger.trace(
-            "[getInformationFromEvent] tx ({}) in block ({} - {}). has logs? {}",
+            "[getPegoutCreationInformationFromEvent] pegoutCreationRskTxHash ({}) in block ({} - {}). has logs? {}",
             transactionReceipt.getTransaction().getHash(),
             block.getNumber(),
             block.getHash(),
@@ -185,19 +185,19 @@ public class ReleaseCreationInformationGetter {
             for (LogInfo logInfo : logs) {
                 // You should check that the event is Release and contains the hash of the transaction.
                 boolean hasReleaseRequestEvent = Arrays.equals(logInfo.getTopics().get(0).getData(), releaseRequestedSignatureTopic);
-                if (hasReleaseRequestEvent && (Arrays.equals(logInfo.getTopics().get(2).getData(), btcTransaction.getHash().getBytes()))) {
+                if (hasReleaseRequestEvent && (Arrays.equals(logInfo.getTopics().get(2).getData(), pegoutBtcTx.getHash().getBytes()))) {
                     logger.debug(
                         "[getInformationFromEvent] Found transaction {} and block {}",
                         transactionReceipt.getTransaction().getHash(),
                         block.getHash()
                     );
                     return Optional.of(
-                        new ReleaseCreationInformation(
+                        new PegoutCreationInformation(
                             block,
                             transactionReceipt,
-                            releaseRskTxHash,
-                            btcTransaction,
-                            informingRskTxHash
+                            pegoutCreationRskTxHash,
+                            pegoutBtcTx,
+                            pegoutConfirmationRskTxHash
                         )
                     );
                 }

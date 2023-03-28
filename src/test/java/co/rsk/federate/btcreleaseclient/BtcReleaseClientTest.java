@@ -42,7 +42,7 @@ import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
@@ -214,7 +214,7 @@ public class BtcReleaseClientTest {
         SignerMessageBuilder messageBuilder = new SignerMessageBuilderVersion1(releaseTx);
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
         when(signerMessageBuilderFactory.buildFromConfig(ArgumentMatchers.anyInt(), ArgumentMatchers
-            .any(ReleaseCreationInformation.class)))
+            .any(PegoutCreationInformation.class)))
             .thenReturn(messageBuilder);
 
         BtcReleaseClient client = new BtcReleaseClient(
@@ -227,7 +227,7 @@ public class BtcReleaseClientTest {
         Keccak256 rskTxHash = Keccak256.ZERO_HASH;
 
         Block block = mock(Block.class);
-        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+        PegoutCreationInformation pegoutCreationInformation = new PegoutCreationInformation(
             block,
             mock(TransactionReceipt.class),
             rskTxHash,
@@ -235,12 +235,12 @@ public class BtcReleaseClientTest {
             rskTxHash
         );
         ReleaseCreationInformationGetter releaseCreationInformationGetter = mock(ReleaseCreationInformationGetter.class);
-        when(releaseCreationInformationGetter.getTxInfoToSign(
+        when(releaseCreationInformationGetter.getPegoutCreationInformationToSign(
             anyInt(),
             any(),
             any(),
             any()
-        )).thenReturn(releaseCreationInformation);
+        )).thenReturn(pegoutCreationInformation);
 
         client.setup(
             signer,
@@ -662,7 +662,7 @@ public class BtcReleaseClientTest {
         client.start(federation);
 
         // Act
-        client.validateTxCanBeSigned(releaseTx);
+        client.validateConfirmedPegoutCanBeSigned(releaseTx);
     }
 
     @Test(expected = FederationCantSignException.class)
@@ -700,7 +700,7 @@ public class BtcReleaseClientTest {
         );
 
         // Act
-        client.validateTxCanBeSigned(releaseTx);
+        client.validateConfirmedPegoutCanBeSigned(releaseTx);
     }
 
     @Test
@@ -751,7 +751,7 @@ public class BtcReleaseClientTest {
         Sha256Hash signedTxHash = releaseTx.getHash();
 
         // Act
-        client.removeSignaturesFromTransaction(releaseTx, federation);
+        client.removeSignaturesFromPegoutBtxTx(releaseTx, federation);
         Sha256Hash removedSignaturesTxHash = releaseTx.getHash();
 
         // Assert
@@ -844,7 +844,7 @@ public class BtcReleaseClientTest {
         client.start(federation);
 
         // Act
-        client.validateTxCanBeSigned(releaseTx);
+        client.validateConfirmedPegoutCanBeSigned(releaseTx);
     }
 
     private void test_extractStandardRedeemScript(
@@ -966,13 +966,13 @@ public class BtcReleaseClientTest {
         when(block.getNumber()).thenReturn(1L);
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter = mock(ReleaseCreationInformationGetter.class);
-        doReturn(new ReleaseCreationInformation(
+        doReturn(new PegoutCreationInformation(
             block,
             mock(TransactionReceipt.class),
             rskTxHash,
             new BtcTransaction(bridgeConstants.getBtcParams()),
             otherRskTxHash
-        )).when(releaseCreationInformationGetter).getTxInfoToSign(anyInt(), any(), any(), any());
+        )).when(releaseCreationInformationGetter).getPegoutCreationInformationToSign(anyInt(), any(), any(), any());
 
         ReleaseRequirementsEnforcer releaseRequirementsEnforcer = mock(ReleaseRequirementsEnforcer.class);
         doNothing().when(releaseRequirementsEnforcer).enforce(anyInt(), any());
@@ -1014,7 +1014,7 @@ public class BtcReleaseClientTest {
         ethereumImpl.addBestBlockWithReceipts(mock(Block.class), new ArrayList<>());
 
         // Verify the rsk tx hash was updated
-        verify(releaseCreationInformationGetter, times(1)).getTxInfoToSign(
+        verify(releaseCreationInformationGetter, times(1)).getPegoutCreationInformationToSign(
             anyInt(),
             eq(shouldHaveDataInFile ? rskTxHash: otherRskTxHash),
             any(),
