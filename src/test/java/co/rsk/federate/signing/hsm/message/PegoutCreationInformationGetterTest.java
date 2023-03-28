@@ -27,7 +27,7 @@ import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
 import org.junit.jupiter.api.Test;
 
-class ReleaseCreationInformationGetterTest {
+class PegoutCreationInformationGetterTest {
 
     @Test
     void createGetTxInfoToSign_returnOK() throws HSMReleaseCreationInformationException {
@@ -90,16 +90,16 @@ class ReleaseCreationInformationGetterTest {
                                                Block block,
                                                TransactionReceipt transactionReceipt,
                                                int hsmVersion) throws HSMReleaseCreationInformationException {
-        ReleaseCreationInformation releaseCreationInformation = information.getTxInfoToSign(
+        PegoutCreationInformation pegoutCreationInformation = information.getTxInfoToSign(
             hsmVersion,
             rskTxHash,
             btcTransaction
         );
 
         assertEquals(releaseCreationInformation.getBlock(), block);
-        assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
-        assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
-        assertEquals(btcTransaction, releaseCreationInformation.getBtcTransaction());
+        assertEquals(transactionReceipt, pegoutCreationInformation.getTransactionReceipt());
+        assertEquals(rskTxHash, pegoutCreationInformation.getReleaseRskTxHash());
+        assertEquals(btcTransaction, pegoutCreationInformation.getBtcTransaction());
     }
 
     @Test
@@ -169,12 +169,12 @@ class ReleaseCreationInformationGetterTest {
             receiptStore,
             blockStore
         );
-        ReleaseCreationInformation releaseCreationInformation = information.getTxInfoToSign(2, rskTxHash, btcTransaction);
+        PegoutCreationInformation pegoutCreationInformation = information.getPegoutCreationInformationToSign(2, rskTxHash, btcTransaction);
 
-        assertEquals(secondBlock, releaseCreationInformation.getBlock());
-        assertEquals(transactionReceiptInSecondBlock, releaseCreationInformation.getTransactionReceipt());
-        assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
-        assertEquals(btcTransaction, releaseCreationInformation.getBtcTransaction());
+        Assert.assertEquals(secondBlock, pegoutCreationInformation.getPegoutCreationRskBlock());
+        Assert.assertEquals(transactionReceiptInSecondBlock, pegoutCreationInformation.getTransactionReceipt());
+        Assert.assertEquals(rskTxHash, pegoutCreationInformation.getPegoutCreationRskTxHash());
+        Assert.assertEquals(btcTransaction, pegoutCreationInformation.getPegoutBtcTx());
 
     }
 
@@ -207,7 +207,7 @@ class ReleaseCreationInformationGetterTest {
             blockStore
         );
 
-        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getTxInfoToSign(
+        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getPegoutCreationInformationToSign(
             2,
             rskTxHash,
             btcTransaction
@@ -248,7 +248,7 @@ class ReleaseCreationInformationGetterTest {
             blockStore
         );
 
-        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getTxInfoToSign(
+        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getPegoutCreationInformationToSign(
             2,
             rskTxHash,
             btcTransaction

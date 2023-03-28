@@ -1,6 +1,6 @@
 package co.rsk.federate.signing.hsm.requirements;
 
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +13,7 @@ public class ReleaseRequirementsEnforcer {
         this.ancestorBlockUpdater = ancestorBlockUpdater;
     }
 
-    public void enforce(int version, ReleaseCreationInformation releaseCreationInformation)
+    public void enforce(int version, PegoutCreationInformation pegoutCreationInformation)
         throws ReleaseRequirementsEnforcerException {
         if (version == 1) {
             logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");

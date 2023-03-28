@@ -8,7 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +28,7 @@ class ReleaseRequirementsEnforcerTest {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
 
-        enforcer.enforce(1, mock(ReleaseCreationInformation.class));
+        enforcer.enforce(1, mock(PegoutCreationInformation.class));
 
         verify(ancestorBlockUpdater, never()).ensureAncestorBlockInPosition(any());
     }
@@ -49,7 +49,7 @@ class ReleaseRequirementsEnforcerTest {
     }
 
     void test_enforce_version(AncestorBlockUpdater ancestorBlockUpdater, ReleaseRequirementsEnforcer enforcer, int version) throws Exception {
-        enforcer.enforce(version, mock(ReleaseCreationInformation.class));
+        enforcer.enforce(version, mock(PegoutCreationInformation.class));
 
         verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
     }
@@ -60,13 +60,13 @@ class ReleaseRequirementsEnforcerTest {
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
 
-        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(2, mock(ReleaseCreationInformation.class)));
+        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(2, mock(PegoutCreationInformation.class)));
     }
 
     @Test
     void enforce_invalid_version() {
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(mock(AncestorBlockUpdater.class));
 
-        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(-5, mock(ReleaseCreationInformation.class)));
+        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(-5, mock(PegoutCreationInformation.class)));
     }
 }

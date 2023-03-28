@@ -71,7 +71,7 @@ class SignerMessageBuilderFactoryTest {
         );
         SignerMessageBuilder messageBuilder = factory.buildFromConfig(
             version,
-            new ReleaseCreationInformation(
+            new PegoutCreationInformation(
                 block,
                 mock(TransactionReceipt.class),
                 Keccak256.ZERO_HASH,
