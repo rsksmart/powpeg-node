@@ -370,6 +370,7 @@ public class BtcReleaseClient {
     }
 
     protected void signConfirmedPegout(int signerVersion, PegoutCreationInformation pegoutCreationInformation) {
+        final String topic = "pegoutbtctx";
         try {
             logger.debug("[signConfirmedPegout] HSM signer version {}", signerVersion);
             logger.debug("[signConfirmedPegout] Going to sign pegout with creationRskTxHash: {}", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
@@ -395,17 +396,17 @@ public class BtcReleaseClient {
         } catch (SignerException e) {
             String message = String.format("Error signing pegoutRskTxHash %s", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
             logger.error(message, e);
-            panicProcessor.panic("pegoutbtctx", message);
+            panicProcessor.panic(topic, message);
         } catch (HSMClientException | SignerMessageBuilderException | ReleaseRequirementsEnforcerException e) {
             logger.error("[signConfirmedPegout] {}", e.getMessage());
-            panicProcessor.panic("pegoutbtctx", e.getMessage());
+            panicProcessor.panic(topic, e.getMessage());
         } catch (Exception e) {
             String message = String.format(
                 "[signRelease] There was an error trying to sign pegout with btcTxHash: %s",
                 pegoutCreationInformation.getPegoutBtcTx().getHash()
             );
             logger.error(message, e);
-            panicProcessor.panic("pegoutbtctx", e.getMessage());
+            panicProcessor.panic(topic, e.getMessage());
         }
     }
 
