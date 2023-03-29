@@ -4,34 +4,34 @@ import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReleaseRequirementsEnforcer {
-    private static final Logger logger = LoggerFactory.getLogger(ReleaseRequirementsEnforcer.class);
+public class PegoutRequirementsEnforcer {
+    private static final Logger logger = LoggerFactory.getLogger(PegoutRequirementsEnforcer.class);
 
     private final AncestorBlockUpdater ancestorBlockUpdater;
 
-    public ReleaseRequirementsEnforcer(AncestorBlockUpdater ancestorBlockUpdater) {
+    public PegoutRequirementsEnforcer(AncestorBlockUpdater ancestorBlockUpdater) {
         this.ancestorBlockUpdater = ancestorBlockUpdater;
     }
 
     public void enforce(int version, PegoutCreationInformation pegoutCreationInformation)
-        throws ReleaseRequirementsEnforcerException {
+        throws PegoutRequirementsEnforcerException {
         if (version == 1) {
-            logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
+            logger.trace("[enforce] Version 1 doesn't have pegout requirements to enforce");
         } else if (version >= 2) {
             logger.trace("[enforce] Version 2+ requires ancestor in position. ENFORCING");
             enforceReleaseRequirements(releaseCreationInformation);
         } else {
-            throw new ReleaseRequirementsEnforcerException("Unsupported version " + version);
+            throw new PegoutRequirementsEnforcerException("Unsupported version " + version);
         }
     }
 
-    private void enforceReleaseRequirements(ReleaseCreationInformation releaseCreationInformation) throws ReleaseRequirementsEnforcerException {
+    private void enforceReleaseRequirements(PegoutCreationInformation pegoutCreationInformation) throws ReleaseRequirementsEnforcerException {
         try {
-            ancestorBlockUpdater.ensureAncestorBlockInPosition(releaseCreationInformation.getBlock());
+            ancestorBlockUpdater.ensureAncestorBlockInPosition(pegoutCreationInformation.getBlock());
         } catch (Exception e) {
             String message = "error trying to enforce ancestor";
             logger.error("[enforce]" + message, e);
-            throw new ReleaseRequirementsEnforcerException(message, e);
+            throw new PegoutRequirementsEnforcerException(message, e);
         }
     }
 }

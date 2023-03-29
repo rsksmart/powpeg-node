@@ -12,7 +12,7 @@ import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class ReleaseRequirementsEnforcerTest {
+class PegoutRequirementsEnforcerTest {
 
     private AncestorBlockUpdater ancestorBlockUpdater;
     private ReleaseRequirementsEnforcer enforcer;
@@ -26,7 +26,7 @@ class ReleaseRequirementsEnforcerTest {
     @Test
     void enforce_does_nothing_if_version_one() throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(ancestorBlockUpdater);
 
         enforcer.enforce(1, mock(PegoutCreationInformation.class));
 
@@ -58,15 +58,15 @@ class ReleaseRequirementsEnforcerTest {
     void enforce_version_two_updater_fails() throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(ancestorBlockUpdater);
 
         assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(2, mock(PegoutCreationInformation.class)));
     }
 
     @Test
     void enforce_invalid_version() {
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(mock(AncestorBlockUpdater.class));
+        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(mock(AncestorBlockUpdater.class));
 
-        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(-5, mock(PegoutCreationInformation.class)));
+        assertThrows(PegoutRequirementsEnforcer.class, () -> enforcer.enforce(-5, mock(PegoutCreationInformation.class)));
     }
 }

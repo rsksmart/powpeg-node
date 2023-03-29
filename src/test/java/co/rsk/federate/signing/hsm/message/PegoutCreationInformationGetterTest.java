@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 class PegoutCreationInformationGetterTest {
 
     @Test
-    void createGetTxInfoToSign_returnOK() throws HSMReleaseCreationInformationException {
+    void createGetTxInfoToSign_returnOK() throws HSMPegoutCreationInformationException {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
@@ -103,7 +103,7 @@ class PegoutCreationInformationGetterTest {
     }
 
     @Test
-    void createGetTxInfoToSign_returnOK_SecondBlock() throws HSMReleaseCreationInformationException {
+    void createGetTxInfoToSign_returnOK_SecondBlock() throws HSMPegoutCreationInformationException {
         // The event that is searched is not found in the first block but in the next block obtained.
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
