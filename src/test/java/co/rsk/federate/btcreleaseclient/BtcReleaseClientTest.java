@@ -255,7 +255,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(PegoutRequirementsEnforcer.class),
+            mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
         );
@@ -364,7 +364,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(PegoutRequirementsEnforcer.class),
+            mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             storageSynchronizer
         );
@@ -413,7 +413,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(PegoutRequirementsEnforcer.class),
+            mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
         );
@@ -459,7 +459,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(PegoutRequirementsEnforcer.class),
+            mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
         );
@@ -656,7 +656,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(PegoutRequirementsEnforcer.class),
+            mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
         );
@@ -695,7 +695,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(PegoutRequirementsEnforcer.class),
+            mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
         );
@@ -795,7 +795,7 @@ class BtcReleaseClientTest {
     @Test
     void sets_rsk_tx_hash_with_file_data()
         throws BtcReleaseClientException, SignerException,
-                   HSMPegoutCreationInformationException, PegoutRequirementsEnforcerException,
+                   HSMPegoutCreationInformationException, PegoutSigningRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
         testUsageOfStorageWhenSigning(true);
     }
@@ -803,7 +803,7 @@ class BtcReleaseClientTest {
     @Test
     void sets_default_rsk_tx_hash_if_no_file_data()
         throws BtcReleaseClientException, SignerException,
-                   HSMPegoutCreationInformationException, PegoutRequirementsEnforcerException,
+                   HSMPegoutCreationInformationException, PegoutSigningRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
         testUsageOfStorageWhenSigning(false);
     }
@@ -830,7 +830,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(PegoutRequirementsEnforcer.class),
+            mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
         );
@@ -912,7 +912,7 @@ class BtcReleaseClientTest {
 
     private void testUsageOfStorageWhenSigning(boolean shouldHaveDataInFile)
         throws BtcReleaseClientException, SignerException,
-                   HSMPegoutCreationInformationException, PegoutRequirementsEnforcerException,
+                   HSMPegoutCreationInformationException, PegoutSigningRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
         FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
         when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
@@ -967,8 +967,8 @@ class BtcReleaseClientTest {
             otherRskTxHash
         )).when(releaseCreationInformationGetter).getPegoutCreationInformationToSign(anyInt(), any(), any(), any());
 
-        PegoutRequirementsEnforcer pegoutRequirementsEnforcer = mock(PegoutRequirementsEnforcer.class);
-        doNothing().when(pegoutRequirementsEnforcer).enforce(anyInt(), any());
+        PegoutSigningRequirementsEnforcer pegoutSigningRequirementsEnforcer = mock(PegoutSigningRequirementsEnforcer.class);
+        doNothing().when(pegoutSigningRequirementsEnforcer).enforce(anyInt(), any());
 
         SignerMessageBuilder signerMessageBuilder = mock(SignerMessageBuilder.class);
         when(signerMessageBuilder.buildMessageForIndex(anyInt())).thenReturn(mock(SignerMessage.class));
@@ -996,7 +996,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            pegoutRequirementsEnforcer,
+            pegoutSigningRequirementsEnforcer,
             accessor,
             synchronizer
         );

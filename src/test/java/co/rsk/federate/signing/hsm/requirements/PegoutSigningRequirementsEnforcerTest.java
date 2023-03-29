@@ -12,7 +12,7 @@ import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class PegoutRequirementsEnforcerTest {
+class PegoutSigningRequirementsEnforcerTest {
 
     private AncestorBlockUpdater ancestorBlockUpdater;
     private ReleaseRequirementsEnforcer enforcer;
@@ -26,7 +26,7 @@ class PegoutRequirementsEnforcerTest {
     @Test
     void enforce_does_nothing_if_version_one() throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
-        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(ancestorBlockUpdater);
+        PegoutSigningRequirementsEnforcer enforcer = new PegoutSigningRequirementsEnforcer(ancestorBlockUpdater);
 
         enforcer.enforce(1, mock(PegoutCreationInformation.class));
 
@@ -58,7 +58,7 @@ class PegoutRequirementsEnforcerTest {
     void enforce_version_two_updater_fails() throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
-        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(ancestorBlockUpdater);
+        PegoutSigningRequirementsEnforcer enforcer = new PegoutSigningRequirementsEnforcer(ancestorBlockUpdater);
 
         assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(2, mock(PegoutCreationInformation.class)));
     }
@@ -67,6 +67,6 @@ class PegoutRequirementsEnforcerTest {
     void enforce_invalid_version() {
         PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(mock(AncestorBlockUpdater.class));
 
-        assertThrows(PegoutRequirementsEnforcer.class, () -> enforcer.enforce(-5, mock(PegoutCreationInformation.class)));
+        assertThrows(PegoutSigningRequirementsEnforcer.class, () -> enforcer.enforce(-5, mock(PegoutCreationInformation.class)));
     }
 }
