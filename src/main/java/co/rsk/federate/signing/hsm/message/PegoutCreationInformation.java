@@ -17,7 +17,7 @@ public class PegoutCreationInformation {
      *
      * @param pegoutCreationRskBlock                 The rsk block where the BTC transaction was created
      * @param transactionReceipt    The rsk transaction receipt where the btc transaction was created
-     * @param pegoutCreationRskTxHash      The rsk transaction hash where the pegout was requested
+     * @param pegoutCreationRskTxHash      The rsk transaction hash where the pegout was created
      * @param pegoutBtcTx        The BTC transaction to sign
      **/
     public PegoutCreationInformation(
@@ -33,7 +33,7 @@ public class PegoutCreationInformation {
      *
      * @param pegoutCreationRskBlock                 The rsk block where the BTC transaction was created
      * @param transactionReceipt    The rsk transaction receipt where the btc transaction was created
-     * @param pegoutCreationRskTxHash      The rsk transaction hash where the pegout was requested
+     * @param pegoutCreationRskTxHash      The rsk transaction hash where the pegout was created
      * @param pegoutBtcTx        The BTC transaction to sign
      * @param pegoutConfirmationRskTxHash  The rsk transaction hash where the pegout was confirmed to be signed
      **/

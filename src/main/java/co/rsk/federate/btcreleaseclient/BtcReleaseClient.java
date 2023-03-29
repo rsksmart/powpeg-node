@@ -20,15 +20,15 @@ import co.rsk.federate.signing.FederatorAlreadySignedException;
 import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
+import co.rsk.federate.signing.hsm.message.HSMPegoutCreationInformationException;
 import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
-import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
-import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
+import co.rsk.federate.signing.hsm.requirements.PegoutRequirementsEnforcer;
+import co.rsk.federate.signing.hsm.requirements.PegoutRequirementsEnforcerException;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.Bridge;
@@ -94,7 +94,7 @@ public class BtcReleaseClient {
     private SignerMessageBuilderFactory signerMessageBuilderFactory;
 
     private ReleaseCreationInformationGetter releaseCreationInformationGetter;
-    private ReleaseRequirementsEnforcer releaseRequirementsEnforcer;
+    private PegoutRequirementsEnforcer pegoutRequirementsEnforcer;
 
     private BtcReleaseClientStorageAccessor storageAccessor;
     private BtcReleaseClientStorageSynchronizer storageSynchronizer;
@@ -120,7 +120,7 @@ public class BtcReleaseClient {
         ActivationConfig activationConfig,
         SignerMessageBuilderFactory signerMessageBuilderFactory,
         ReleaseCreationInformationGetter releaseCreationInformationGetter,
-        ReleaseRequirementsEnforcer releaseRequirementsEnforcer,
+        PegoutRequirementsEnforcer pegoutRequirementsEnforcer,
         BtcReleaseClientStorageAccessor storageAccessor,
         BtcReleaseClientStorageSynchronizer storageSynchronizer
     ) throws BtcReleaseClientException {
@@ -145,7 +145,7 @@ public class BtcReleaseClient {
         blockListener = new BtcReleaseEthereumListener();
         this.signerMessageBuilderFactory = signerMessageBuilderFactory;
         this.releaseCreationInformationGetter = releaseCreationInformationGetter;
-        this.releaseRequirementsEnforcer = releaseRequirementsEnforcer;
+        this.pegoutRequirementsEnforcer = pegoutRequirementsEnforcer;
 
         this.storageAccessor = storageAccessor;
         this.storageSynchronizer = storageSynchronizer;
@@ -307,7 +307,7 @@ public class BtcReleaseClient {
                 pegoutBtcTx,
                 pegoutConfirmationRskTxHash
             ));
-        } catch (HSMReleaseCreationInformationException | FederationCantSignException e) {
+        } catch (HSMPegoutCreationInformationException | FederationCantSignException e) {
             String message = String.format(
                 "[tryGetReleaseInformation] There was an error trying to process pegout with btcTxHash %s",
                 pegoutBtcTx.getHash()
@@ -376,7 +376,7 @@ public class BtcReleaseClient {
             logger.debug("[signConfirmedPegout] HSM signer version {}", signerVersion);
             logger.debug("[signConfirmedPegout] Going to sign pegout with creationRskTxHash: {}", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
             logger.trace("[signConfirmedPegout] Enforce signer requirements");
-            releaseRequirementsEnforcer.enforce(signerVersion, pegoutCreationInformation);
+            pegoutRequirementsEnforcer.enforce(signerVersion, pegoutCreationInformation);
             SignerMessageBuilder messageBuilder = signerMessageBuilderFactory.buildFromConfig(
                 signerVersion,
                 pegoutCreationInformation
@@ -398,7 +398,7 @@ public class BtcReleaseClient {
             String message = String.format("Error signing pegoutRskTxHash %s", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
             logger.error(message, e);
             panicProcessor.panic(topic, message);
-        } catch (HSMClientException | SignerMessageBuilderException | ReleaseRequirementsEnforcerException e) {
+        } catch (HSMClientException | SignerMessageBuilderException | PegoutRequirementsEnforcerException e) {
             logger.error("[signConfirmedPegout] {}", e.getMessage());
             panicProcessor.panic(topic, e.getMessage());
         } catch (Exception e) {

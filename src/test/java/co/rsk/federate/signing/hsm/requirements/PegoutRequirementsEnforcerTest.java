@@ -10,13 +10,13 @@ import static org.mockito.Mockito.verify;
 import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.junit.Test;
 
-public class ReleaseRequirementsEnforcerTest {
+public class PegoutRequirementsEnforcerTest {
 
     @Test
     public void enforce_does_nothing_if_version_one()
         throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(ancestorBlockUpdater);
 
         enforcer.enforce(1, mock(PegoutCreationInformation.class));
 
@@ -27,28 +27,28 @@ public class ReleaseRequirementsEnforcerTest {
     public void enforce_version_two_ok()
         throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(ancestorBlockUpdater);
 
         enforcer.enforce(2, mock(PegoutCreationInformation.class));
 
         verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
     }
 
-    @Test(expected = ReleaseRequirementsEnforcerException.class)
+    @Test(expected = PegoutRequirementsEnforcerException.class)
     public void enforce_version_two_updater_fails()
         throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(ancestorBlockUpdater);
 
         enforcer.enforce(2, mock(PegoutCreationInformation.class));
     }
 
 
-    @Test(expected = ReleaseRequirementsEnforcerException.class)
+    @Test(expected = PegoutRequirementsEnforcerException.class)
     public void enforce_invalid_version()
         throws Exception {
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(
+        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(
             mock(AncestorBlockUpdater.class)
         );
 

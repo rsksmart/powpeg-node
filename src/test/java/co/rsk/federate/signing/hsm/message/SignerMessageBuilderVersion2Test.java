@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
 public class SignerMessageBuilderVersion2Test {
 
     @Test
-    public void createHSMVersion2Message() throws HSMReleaseCreationInformationException, SignerMessageBuilderException {
+    public void createHSMVersion2Message() throws HSMPegoutCreationInformationException, SignerMessageBuilderException {
         //Arrange
         ReceiptStore receiptStore = mock(ReceiptStore.class);
 

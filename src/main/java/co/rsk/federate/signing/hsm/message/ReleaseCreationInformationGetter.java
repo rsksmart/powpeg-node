@@ -43,7 +43,7 @@ public class ReleaseCreationInformationGetter {
         int version,
         Keccak256 rskTxHash,
         BtcTransaction btcTransaction
-    ) throws HSMReleaseCreationInformationException {
+    ) throws HSMPegoutCreationInformationException {
         return getPegoutCreationInformationToSign(version, rskTxHash, btcTransaction, rskTxHash);
     }
 
@@ -52,14 +52,14 @@ public class ReleaseCreationInformationGetter {
         Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutConfirmationRskTxHash
-    ) throws HSMReleaseCreationInformationException {
+    ) throws HSMPegoutCreationInformationException {
         switch (version) {
             case 1:
                 return getPegoutCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
             case 2:
                 return getPegoutCreationInformationV2(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
             default:
-                throw new HSMReleaseCreationInformationException("Unsupported version " + version);
+                throw new HSMPegoutCreationInformationException("Unsupported version " + version);
         }
     }
 
@@ -67,7 +67,7 @@ public class ReleaseCreationInformationGetter {
         Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutConfirmationRskTxHash
-    ) throws HSMReleaseCreationInformationException {
+    ) throws HSMPegoutCreationInformationException {
         TransactionInfo transactionInfo = receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore).orElse(null);
         if (transactionInfo == null) {
             String message = String.format(
@@ -75,7 +75,7 @@ public class ReleaseCreationInformationGetter {
                 pegoutCreationRskTxHash
             );
             logger.error("[getPegoutCreationInformationToSign] {}", message);
-            throw new HSMReleaseCreationInformationException(message);
+            throw new HSMPegoutCreationInformationException(message);
         }
         TransactionReceipt transactionReceipt = transactionInfo.getReceipt();
         Block block = blockStore.getBlockByHash(transactionInfo.getBlockHash());
@@ -93,7 +93,7 @@ public class ReleaseCreationInformationGetter {
         Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutConfirmationRskTxHash
-    ) throws HSMReleaseCreationInformationException {
+    ) throws HSMPegoutCreationInformationException {
         try {
             PegoutCreationInformation basePegoutCreationInformation =
                 getPegoutCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
@@ -114,14 +114,14 @@ public class ReleaseCreationInformationGetter {
                     transactions.size()
                 );
                 logger.error("[getPegoutCreationInformationToSign] {}", message);
-                throw new HSMReleaseCreationInformationException(message);
+                throw new HSMPegoutCreationInformationException(message);
             }
             Transaction transaction = transactions.get(0);
             transactionReceipt.setTransaction(transaction);
 
             return searchEventInFollowingBlocks(block.getNumber(), pegoutBtcTx, pegoutCreationRskTxHash, pegoutConfirmationRskTxHash);
         } catch (Exception e) {
-            throw new HSMReleaseCreationInformationException("Unhandled exception occured", e);
+            throw new HSMPegoutCreationInformationException("Unhandled exception occured", e);
         }
     }
 
@@ -130,11 +130,11 @@ public class ReleaseCreationInformationGetter {
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutCreationRskTxHash,
         Keccak256 pegoutConfirmationRskTxHash
-    ) throws HSMReleaseCreationInformationException {
+    ) throws HSMPegoutCreationInformationException {
         Block block = blockStore.getChainBlockByNumber(blockNumber);
         // If the block cannot be found by its number, the event cannot be searched further.
         if (block == null) {
-            throw new HSMReleaseCreationInformationException(
+            throw new HSMPegoutCreationInformationException(
                     String.format("[searchEventInFollowingBlocks] Block not found. pegoutCreationRskTxHash: [%s]", pegoutCreationRskTxHash)
             );
         }
@@ -148,16 +148,16 @@ public class ReleaseCreationInformationGetter {
             TransactionInfo transactionInfo = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore).orElse(null);
             TransactionReceipt transactionReceipt = transactionInfo.getReceipt();
             transactionReceipt.setTransaction(transaction);
-            Optional<PegoutCreationInformation> optionalReleaseCreationInformation =
+            Optional<PegoutCreationInformation> optionalPegoutCreationInformation =
                 getPegoutCreationInformationFromEvent(block, transactionReceipt, pegoutBtcTx, pegoutCreationRskTxHash, pegoutConfirmationRskTxHash);
-            if (optionalReleaseCreationInformation.isPresent()) {
-                return optionalReleaseCreationInformation.get();
+            if (optionalPegoutCreationInformation.isPresent()) {
+                return optionalPegoutCreationInformation.get();
             }
 
         }
         // If the block being checked is the last block, and was not found, then the event does not exist.
         if (block.getNumber() == (blockStore.getBestBlock().getNumber())) {
-            throw new HSMReleaseCreationInformationException(
+            throw new HSMPegoutCreationInformationException(
                     String.format("[searchEventInFollowingBlocks] Event not found. pegoutCreationRskTxHash: [%s]", pegoutCreationRskTxHash)
             );
         }
