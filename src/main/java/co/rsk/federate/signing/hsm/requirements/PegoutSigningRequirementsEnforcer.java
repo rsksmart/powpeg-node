@@ -4,17 +4,17 @@ import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PegoutRequirementsEnforcer {
-    private static final Logger logger = LoggerFactory.getLogger(PegoutRequirementsEnforcer.class);
+public class PegoutSigningRequirementsEnforcer {
+    private static final Logger logger = LoggerFactory.getLogger(PegoutSigningRequirementsEnforcer.class);
 
     private final AncestorBlockUpdater ancestorBlockUpdater;
 
-    public PegoutRequirementsEnforcer(AncestorBlockUpdater ancestorBlockUpdater) {
+    public PegoutSigningRequirementsEnforcer(AncestorBlockUpdater ancestorBlockUpdater) {
         this.ancestorBlockUpdater = ancestorBlockUpdater;
     }
 
     public void enforce(int version, PegoutCreationInformation pegoutCreationInformation)
-        throws PegoutRequirementsEnforcerException {
+        throws PegoutSigningRequirementsEnforcerException {
         switch (version) {
             case 1:
                 logger.trace("[enforce] Version 1 doesn't have pegout requirements to enforce");
@@ -27,10 +27,10 @@ public class PegoutRequirementsEnforcer {
                 } catch (Exception e) {
                     String message = "error trying to enforce ancestor";
                     logger.error("[enforce]" + message, e);
-                    throw new PegoutRequirementsEnforcerException(message, e);
+                    throw new PegoutSigningRequirementsEnforcerException(message, e);
                 }
             default:
-                throw new PegoutRequirementsEnforcerException("Unsupported version " + version);
+                throw new PegoutSigningRequirementsEnforcerException("Unsupported version " + version);
         }
     }
 
