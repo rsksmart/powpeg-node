@@ -16,15 +16,15 @@ public class SignerMessageBuilderFactory {
 
     public SignerMessageBuilder buildFromConfig(
         int version,
-        ReleaseCreationInformation releaseCreationInformation
+        PegoutCreationInformation pegoutCreationInformation
     ) throws HSMUnsupportedVersionException {
         SignerMessageBuilder messageBuilder;
         switch (version) {
             case 1:
-                messageBuilder = new SignerMessageBuilderVersion1(releaseCreationInformation.getBtcTransaction());
+                messageBuilder = new SignerMessageBuilderVersion1(pegoutCreationInformation.getPegoutBtcTx());
                 break;
             case 2:
-                messageBuilder = new SignerMessageBuilderVersion2(receiptStore, releaseCreationInformation);
+                messageBuilder = new SignerMessageBuilderVersion2(receiptStore, pegoutCreationInformation);
                 break;
             default:
                 String message = String.format("Unsupported HSM signer version: %d", version);

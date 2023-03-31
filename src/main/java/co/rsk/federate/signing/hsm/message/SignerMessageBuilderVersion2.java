@@ -22,11 +22,11 @@ public class SignerMessageBuilderVersion2 extends SignerMessageBuilder {
 
     public SignerMessageBuilderVersion2(
         ReceiptStore receiptStore,
-        ReleaseCreationInformation releaseCreationInformation) {
-        super(releaseCreationInformation.getBtcTransaction());
+        PegoutCreationInformation pegoutCreationInformation) {
+        super(pegoutCreationInformation.getPegoutBtcTx());
 
-        this.txReceipt = releaseCreationInformation.getTransactionReceipt();
-        this.rskBlock = releaseCreationInformation.getBlock();
+        this.txReceipt = pegoutCreationInformation.getTransactionReceipt();
+        this.rskBlock = pegoutCreationInformation.getPegoutCreationRskBlock();
         this.receiptStore = receiptStore;
         this.envelopeCreated = false;
     }

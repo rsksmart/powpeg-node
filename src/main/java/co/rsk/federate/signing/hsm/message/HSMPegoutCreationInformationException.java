@@ -5,11 +5,11 @@ package co.rsk.federate.signing.hsm.message;
  *
  * @author Pamela Gonzalezt
  */
-public class HSMReleaseCreationInformationException extends Exception {
-    public HSMReleaseCreationInformationException(String message) {
+public class HSMPegoutCreationInformationException extends Exception {
+    public HSMPegoutCreationInformationException(String message) {
         super(message);
     }
-    public HSMReleaseCreationInformationException(String message, Throwable e) {
+    public HSMPegoutCreationInformationException(String message, Throwable e) {
         super(message, e);
     }
 }
