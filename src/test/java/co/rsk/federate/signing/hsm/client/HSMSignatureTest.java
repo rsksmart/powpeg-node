@@ -18,8 +18,8 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import co.rsk.federate.signing.utils.TestUtils;
 import org.ethereum.crypto.ECKey;
-import org.ethereum.crypto.HashUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,7 +32,7 @@ public class HSMSignatureTest {
     @Before
     public void createSignature() {
         key = new ECKey();
-        hash = HashUtil.randomHash();
+        hash = TestUtils.randomHash();
         signature = key.sign(hash);
     }
 

@@ -11,7 +11,7 @@ This node is used by Rootstock PowPeg signatories to interact with the Bridge co
 ## Software Requirements
 
 1. Java JDK 1.8
-2. Bitcoin Core daemon (bitcoind) 0.17v or 0.18v
+2. Bitcoin Core daemon (bitcoind) 24.0.1
 3. A Java compatible IDE. Recommended [IntelliJ IDEA](https://www.jetbrains.com/idea/download) as this guide covers the setup with it
 
 
@@ -51,14 +51,7 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.351-b10, mixed mode)
 
 ### Bitcoind
 
-To install version `0.18.0`
-
-```bash
-curl -O https://bitcoin.org/bin/bitcoin-core-0.18.0/bitcoin-0.18.0-osx64.tar.gz
-tar -zxf bitcoin-0.18.0-osx64.tar.gz
-sudo mkdir -p /usr/local/bin
-sudo cp bitcoin-0.18.0/bin/bitcoin* /usr/local/bin/.
-```
+To install version `24.0.1` follow instructions listed [here](https://bitcoincore.org/en/releases/24.0.1/)
 
 To validate it run `bitcoind -daemon`.
 
