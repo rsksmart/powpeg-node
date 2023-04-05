@@ -39,7 +39,8 @@ public class HSMBookkeepingService {
             BlockStore blockStore,
             HSMBookkeepingClient hsmBookkeepingClient,
             NodeBlockProcessor nodeBlockProcessor,
-            HSM2SignerConfig hsm2Config
+            HSM2SignerConfig hsm2Config,
+            int hsmVersion
     ) {
         this(
                 blockStore,
@@ -47,7 +48,9 @@ public class HSMBookkeepingService {
                 new ConfirmedBlockHeadersProvider(
                         hsm2Config.getDifficultyTarget(),
                         hsm2Config.getMaxAmountBlockHeaders(),
-                        blockStore
+                        blockStore,
+                        hsm2Config.getDifficultyCap(),
+                        hsmVersion
                 ),
                 nodeBlockProcessor,
                 hsm2Config.getInformerInterval(),
@@ -88,7 +91,7 @@ public class HSMBookkeepingService {
         }
 
         try {
-            if (hsmBookkeepingClient.getHSMPointer().getInProgressState())  {
+            if (hsmBookkeepingClient.getHSMPointer().isInProgress())  {
                 // HSM status is inconsistent from a previous run, if the status is in progress, reset HSM must be done.
                 hsmBookkeepingClient.resetAdvanceBlockchain();
             }

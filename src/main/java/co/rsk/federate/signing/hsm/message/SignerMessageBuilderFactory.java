@@ -24,6 +24,7 @@ public class SignerMessageBuilderFactory {
                 messageBuilder = new SignerMessageBuilderVersion1(releaseCreationInformation.getBtcTransaction());
                 break;
             case 2:
+            case 3:
                 messageBuilder = new SignerMessageBuilderVersion2(receiptStore, releaseCreationInformation);
                 break;
             default:

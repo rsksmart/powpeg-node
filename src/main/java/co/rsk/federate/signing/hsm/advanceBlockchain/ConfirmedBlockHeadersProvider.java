@@ -14,18 +14,23 @@ import java.util.List;
 public class ConfirmedBlockHeadersProvider {
     private static final Logger logger = LoggerFactory.getLogger(ConfirmedBlockHeadersProvider.class);
 
-    private BigInteger minimumAccumulatedDifficulty;
+    private final BigInteger minimumAccumulatedDifficulty;
     private final int maximumElementsToSendHSM;
-    private BlockStore blockStore;
+    private final BlockStore blockStore;
+    private final int hsmVersion;
+    private final BigInteger difficultyCap;
 
     public ConfirmedBlockHeadersProvider(
-            BigInteger minimumAccumulatedDifficulty,
-            int maximumElementsToSendHSM,
-            BlockStore blockStore
-    ) {
+        BigInteger minimumAccumulatedDifficulty,
+        int maximumElementsToSendHSM,
+        BlockStore blockStore,
+        BigInteger difficultyCap,
+        int hsmVersion) {
         this.blockStore = blockStore;
         this.minimumAccumulatedDifficulty = minimumAccumulatedDifficulty;
         this.maximumElementsToSendHSM = maximumElementsToSendHSM;
+        this.difficultyCap = difficultyCap;
+        this.hsmVersion = hsmVersion;
     }
 
     public List<BlockHeader> getConfirmedBlockHeaders(Keccak256 startingPoint) {
@@ -44,12 +49,12 @@ public class ConfirmedBlockHeadersProvider {
         Block blockToProcess = blockStore.getChainBlockByNumber(initialBlock.getNumber() + 1);
         while (blockToProcess != null && confirmedBlockHeaders.size() < maximumElementsToSendHSM) {
             potentialConfirmed.add(blockToProcess.getHeader());
-            accumulatedDifficulty = accumulatedDifficulty.add(blockToProcess.getDifficulty().asBigInteger());
+            accumulatedDifficulty = accumulatedDifficulty.add(hsmVersion >= 3 ? difficultyCap.min(blockToProcess.getDifficulty().asBigInteger()) : blockToProcess.getDifficulty().asBigInteger());
             if (accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0) {
-                // The first block was confirmed. Add it to confirm, substract its difficulty from the accumulated and from the potentials list
+                // The first block was confirmed. Add it to confirm, subtract its difficulty from the accumulated and from the potentials list
                 BlockHeader confirmedBlockHeader = potentialConfirmed.get(0);
                 confirmedBlockHeaders.add(confirmedBlockHeader);
-                accumulatedDifficulty = accumulatedDifficulty.subtract(confirmedBlockHeader.getDifficulty().asBigInteger());
+                accumulatedDifficulty = accumulatedDifficulty.subtract(hsmVersion >= 3 ? difficultyCap.min(confirmedBlockHeader.getDifficulty().asBigInteger()) : confirmedBlockHeader.getDifficulty().asBigInteger());
                 potentialConfirmed.remove(confirmedBlockHeader);
                 lastIndexToConfirmBlock = potentialConfirmed.size();
             }

@@ -15,10 +15,7 @@ import org.ethereum.vm.PrecompiledContracts;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.mockito.Mockito.*;
 
@@ -56,7 +53,7 @@ public class ReleaseCreationInformationGetterTest {
         Block block = mock(Block.class);
         when(block.getNumber()).thenReturn(666L);
         when(block.getHash()).thenReturn(blockHash);
-        when(block.getTransactionsList()).thenReturn(Arrays.asList(transaction));
+        when(block.getTransactionsList()).thenReturn(Collections.singletonList(transaction));
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
@@ -69,9 +66,21 @@ public class ReleaseCreationInformationGetterTest {
                 receiptStore,
                 blockStore
         );
+        // HSM V2
+        createGetTxInfoToSign_returnOK(information, rskTxHash, btcTransaction, block, transactionReceipt, 2);
 
+        // HSM V3
+        createGetTxInfoToSign_returnOK(information, rskTxHash, btcTransaction, block, transactionReceipt, 3);
+    }
+
+    private void createGetTxInfoToSign_returnOK(ReleaseCreationInformationGetter information,
+                                               Keccak256 rskTxHash,
+                                               BtcTransaction btcTransaction,
+                                               Block block,
+                                               TransactionReceipt transactionReceipt,
+                                               int hsmVersion) throws HSMReleaseCreationInformationException {
         ReleaseCreationInformation releaseCreationInformation =
-            information.getTxInfoToSign(2, rskTxHash, btcTransaction);
+            information.getTxInfoToSign(hsmVersion, rskTxHash, btcTransaction);
 
         Assert.assertEquals(releaseCreationInformation.getBlock(), block);
         Assert.assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
@@ -99,7 +108,7 @@ public class ReleaseCreationInformationGetterTest {
 
         Block block = mock(Block.class);
         when(block.getHash()).thenReturn(blockHash);
-        when(block.getTransactionsList()).thenReturn(Arrays.asList(transaction));
+        when(block.getTransactionsList()).thenReturn(Collections.singletonList(transaction));
 
         // 2nd block
         Keccak256 secondBlockHash = TestUtils.createHash(5);
@@ -132,7 +141,7 @@ public class ReleaseCreationInformationGetterTest {
 
         Block secondBlock = mock(Block.class);
         when(secondBlock.getHash()).thenReturn(secondBlockHash);
-        when(secondBlock.getTransactionsList()).thenReturn(Arrays.asList(transactionInSecondBlock));
+        when(secondBlock.getTransactionsList()).thenReturn(Collections.singletonList(transactionInSecondBlock));
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
@@ -207,7 +216,7 @@ public class ReleaseCreationInformationGetterTest {
 
         Block block = mock(Block.class);
         when(block.getHash()).thenReturn(blockHash);
-        when(block.getTransactionsList()).thenReturn(Arrays.asList(transaction));
+        when(block.getTransactionsList()).thenReturn(Collections.singletonList(transaction));
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);

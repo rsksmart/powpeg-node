@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  */
 public class HSMClientProvider {
     private static final int MIN_SUPPORTED_VERSION = 1;
-    private static final int MAX_SUPPORTED_VERSION = 2;
+    private static final int MAX_SUPPORTED_VERSION = 3;
     private static final Logger logger = LoggerFactory.getLogger(HSMClientProvider.class);
 
     private final HSMClientProtocol hsmClientProtocol;
@@ -54,13 +54,14 @@ public class HSMClientProvider {
                 client = new HSMClientVersion1(this.hsmClientProtocol);
                 break;
             case 2:
+            case 3:
                 switch (keyId) {
                     case "BTC":
-                        client = new HSMClientVersion2BTC(this.hsmClientProtocol);
+                        client = new HSMClientVersion2BTC(this.hsmClientProtocol, version);
                         break;
                     case "RSK":
                     case "MST":
-                        client = new HSMClientVersion2RskMst(this.hsmClientProtocol);
+                        client = new HSMClientVersion2RskMst(this.hsmClientProtocol, version);
                         break;
                     default:
                         String message = String.format("Unsupported key id %s", keyId);
