@@ -21,7 +21,7 @@ public class HSM2State {
         return this.ancestorBlockHash;
     }
 
-    public boolean getInProgressState() {
+    public boolean isInProgress() {
         return inProgress;
     }
 }
