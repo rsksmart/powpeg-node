@@ -23,7 +23,6 @@ import org.bitcoinj.core.*;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
-import org.ethereum.core.Blockchain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,21 +153,46 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     public void updateBridge() {
+        if (federation == null) {
+            logger.warn("[updateBridge] updateBridge skipped because no Federation is associated to this BtcToRskClient");
+        }
+        if (nodeBlockProcessor.hasBetterBlockToSync()) {
+            logger.warn("[updateBridge] updateBridge skipped because the node is syncing blocks");
+            return;
+        }
+        logger.debug("[updateBridge] Updating bridge");
+
+        // Call receiveHeaders
         try {
-            if (federation == null) {
-                logger.warn("updateBridge skipped because no Federation is associated to this BtcToRskClient");
-            }
-            if (!nodeBlockProcessor.hasBetterBlockToSync()) {
-                logger.debug("Updating bridge");
-                int numberOfBlocksSent = updateBridgeBtcBlockchain();
-                logger.debug("Updated bridge blockchain with {} blocks", numberOfBlocksSent);
-                logger.debug("Updating transactions and sending update");
-                updateBridgeBtcCoinbaseTransactions();
-                updateBridgeBtcTransactions();
-                federatorSupport.sendUpdateCollections();
-            } else {
-                logger.warn("updateBridge skipped because the node is syncing blocks");
-            }
+            int numberOfBlocksSent = updateBridgeBtcBlockchain();
+            logger.debug("[updateBridge] Updated bridge blockchain with {} blocks", numberOfBlocksSent);
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            panicProcessor.panic("btclock", e.getMessage());
+        }
+
+        // Call registerBtcCoinbaseTransaction
+        try {
+            logger.debug("[updateBridge] Updating transactions and sending update");
+            updateBridgeBtcCoinbaseTransactions();
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            panicProcessor.panic("btclock", e.getMessage());
+        }
+
+        // Call registerBtcTransaction
+        try {
+            logger.debug("[updateBridge] Updating transactions and sending update");
+            updateBridgeBtcTransactions();
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            panicProcessor.panic("btclock", e.getMessage());
+        }
+
+        // Call updateCollections
+        try {
+            logger.debug("[updateBridge] Sending updateCollections");
+            federatorSupport.sendUpdateCollections();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             panicProcessor.panic("btclock", e.getMessage());
@@ -284,7 +308,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBestBlockChainHeight();
         int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
         if (federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight) {
-            logger.debug("BTC blockchain height - Federator : {}, Bridge : {}.", bitcoinWrapper.getBestChainHeight(), bridgeBtcBlockchainBestChainHeight);
+            logger.debug(
+                "[updateBridgeBtcBlockchain] BTC blockchain height - Federator : {}, Bridge : {}.",
+                bitcoinWrapper.getBestChainHeight(),
+                bridgeBtcBlockchainBestChainHeight
+            );
             // Federator's blockchain has more blocks than bridge's blockchain - go and try to
             // update the bridge with the latest.
 
@@ -300,7 +328,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
             checkNotNull(commonAncestor, "No best chain block found");
 
-            logger.debug("Matched block {}.", commonAncestor.getHeader().getHash());
+            logger.debug(
+                "[updateBridgeBtcBlockchain] Matched block {}.",
+                commonAncestor.getHeader().getHash()
+            );
 
             // We found a common ancestor. Send receiveHeaders with the blocks it is missing.
             StoredBlock current = bitcoinWrapper.getChainHead();
@@ -310,19 +341,29 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 current = bitcoinWrapper.getBlock(current.getHeader().getPrevBlockHash());
             }
             if (headersToSendToBridge.isEmpty()) {
-                logger.debug("Bridge was just updated, no new blocks to send, matchedBlock: {}.", commonAncestor.getHeader().getHash());
+                logger.debug(
+                    "[updateBridgeBtcBlockchain] Bridge was just updated, no new blocks to send, matchedBlock: {}.",
+                    commonAncestor.getHeader().getHash()
+                );
                 return 0;
             }
             headersToSendToBridge = Lists.reverse(headersToSendToBridge);
-            logger.debug("Headers missing in the bridge {}.", headersToSendToBridge.size());
+            logger.debug(
+                "[updateBridgeBtcBlockchain] Headers missing in the bridge {}.",
+                headersToSendToBridge.size()
+            );
             int to = Math.min(amountOfHeadersToSend, headersToSendToBridge.size());
             List<Block> headersToSendToBridgeSubList = headersToSendToBridge.subList(0, to);
             federatorSupport.sendReceiveHeaders(headersToSendToBridgeSubList.toArray(new Block[]{}));
 
             this.markCoinbasesAsReadyToBeInformed(headersToSendToBridgeSubList);
 
-            logger.debug("Invoked receiveHeaders with {} blocks. First {}, Last {}.", headersToSendToBridgeSubList.size(),
-                    headersToSendToBridgeSubList.get(0).getHash(), headersToSendToBridgeSubList.get(headersToSendToBridgeSubList.size()-1).getHash());
+            logger.debug(
+                "[updateBridgeBtcBlockchain] Invoked receiveHeaders with {} blocks. First {}, Last {}.",
+                headersToSendToBridgeSubList.size(),
+                headersToSendToBridgeSubList.get(0).getHash(),
+                headersToSendToBridgeSubList.get(headersToSendToBridgeSubList.size()-1).getHash()
+            );
             return headersToSendToBridgeSubList.size();
         }
 
@@ -428,7 +469,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     public void updateBridgeBtcTransactions() throws BlockStoreException {
         logger.debug("[updateBridgeBtcTransactions] Updating btc transactions");
-        Map<Sha256Hash, Transaction> federatorWalletTxMap = bitcoinWrapper.getTransactionMap(bridgeConstants.getBtc2RskMinimumAcceptableConfirmations());
+        Map<Sha256Hash, Transaction> federatorWalletTxMap = bitcoinWrapper.getTransactionMap(
+            bridgeConstants.getBtc2RskMinimumAcceptableConfirmations()
+        );
         int numberOfTxsSent = 0;
         Set<Sha256Hash> txsToSendToRskHashes = this.fileData.getTransactionProofs().keySet();
         logger.debug("[updateBridgeBtcTransactions] Tx count: {}", txsToSendToRskHashes.size());
@@ -556,29 +599,39 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
      * Gets the first ready to be informed coinbase transaction and informs it
      */
     public void updateBridgeBtcCoinbaseTransactions() {
-        Optional<CoinbaseInformation> coinbaseInformationReadyToInform = fileData.getCoinbaseInformationMap().values().stream()
-                .filter(CoinbaseInformation::isReadyToInform).findFirst();
+        Optional<CoinbaseInformation> coinbaseInformationReadyToInform = fileData.getCoinbaseInformationMap()
+            .values()
+            .stream()
+            .filter(CoinbaseInformation::isReadyToInform)
+            .findFirst();
 
         if (!coinbaseInformationReadyToInform.isPresent()) {
-            logger.debug("no coinbase transaction to inform");
+            logger.debug("[updateBridgeBtcCoinbaseTransactions] no coinbase transaction to inform");
             return;
         }
 
         CoinbaseInformation coinbaseInformation = coinbaseInformationReadyToInform.get();
-        logger.debug("coinbase transaction {} ready to be informed for block {}", coinbaseInformation.getCoinbaseTransaction().getTxId(), coinbaseInformation.getBlockHash());
+        logger.debug(
+            "[updateBridgeBtcCoinbaseTransactions] coinbase transaction {} ready to be informed for block {}",
+            coinbaseInformation.getCoinbaseTransaction().getTxId(),
+            coinbaseInformation.getBlockHash()
+        );
 
         long bestBlockNumber = federatorSupport.getRskBestChainHeight();
         if (activationConfig.isActive(ConsensusRule.RSKIP143, bestBlockNumber)) {
             if (!federatorSupport.hasBlockCoinbaseInformed(coinbaseInformation.getBlockHash())) {
-                logger.debug("informing coinbase transaction {}", coinbaseInformation.getCoinbaseTransaction().getTxId());
+                logger.debug(
+                    "[updateBridgeBtcCoinbaseTransactions] informing coinbase transaction {}",
+                    coinbaseInformation.getCoinbaseTransaction().getTxId()
+                );
                 federatorSupport.sendRegisterCoinbaseTransaction(coinbaseInformation);
             } else {
-                logger.debug("coinbase transaction already informed, removing from map");
+                logger.debug("[updateBridgeBtcCoinbaseTransactions] coinbase transaction already informed, removing from map");
                 // Remove the coinbase from the map
                 fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
             }
         } else {
-            logger.debug("RSKIP-143 is not active. Can't send coinbase transactions.");
+            logger.debug("[updateBridgeBtcCoinbaseTransactions] RSKIP-143 is not active. Can't send coinbase transactions.");
             // Remove the coinbase from the map
             fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
         }
