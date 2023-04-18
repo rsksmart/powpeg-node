@@ -4,10 +4,10 @@ import co.rsk.federate.config.SignerConfig;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
+import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
 import org.junit.Assert;
 import org.junit.Test;
-import org.powermock.reflect.Whitebox;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -41,26 +41,26 @@ public class HSMClientProtocolFactoryTest {
         HSMClientProtocol protocol = HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
 
         // Provider chain
-        JsonRpcClientProvider jsonRpcClientProvider = (JsonRpcClientProvider) Whitebox.getInternalState(protocol, "clientProvider");
+        JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(protocol, "clientProvider");
         Assert.assertEquals(SocketBasedJsonRpcClientProvider.class, jsonRpcClientProvider.getClass());
 
         // Host - Port
-        SocketAddress address = (SocketAddress) Whitebox.getInternalState(jsonRpcClientProvider, "address");
+        SocketAddress address = TestUtils.getInternalState(jsonRpcClientProvider, "address");
         Assert.assertEquals(InetSocketAddress.class, address.getClass());
         InetSocketAddress inetAddress = (InetSocketAddress) address;
         Assert.assertEquals("localhost", inetAddress.getHostName());
         Assert.assertEquals(9999, inetAddress.getPort());
 
         // Timeout
-        int timeout = (int) Whitebox.getInternalState(jsonRpcClientProvider, HSMClientProtocolFactory.SOCKET_TIMEOUT);
+        int timeout = TestUtils.getInternalState(jsonRpcClientProvider, HSMClientProtocolFactory.SOCKET_TIMEOUT);
         Assert.assertEquals(5000, timeout);
 
         // Attempts
-        int attempts = (int) Whitebox.getInternalState(protocol, "maxConnectionAttempts");
+        int attempts = TestUtils.getInternalState(protocol, "maxConnectionAttempts");
         Assert.assertEquals(3, attempts);
 
         // Interval
-        int interval = (int) Whitebox.getInternalState(protocol, "waitTimeForReconnection");
+        int interval = TestUtils.getInternalState(protocol, "waitTimeForReconnection");
         Assert.assertEquals(3000, interval);
     }
 
@@ -77,26 +77,26 @@ public class HSMClientProtocolFactoryTest {
         HSMClientProtocol protocol = HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
 
         // Provider chain
-        JsonRpcClientProvider jsonRpcClientProvider = (JsonRpcClientProvider) Whitebox.getInternalState(protocol, "clientProvider");
+        JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(protocol, "clientProvider");
         Assert.assertEquals(SocketBasedJsonRpcClientProvider.class, jsonRpcClientProvider.getClass());
 
         // Host - Port
-        SocketAddress address = (SocketAddress) Whitebox.getInternalState(jsonRpcClientProvider, "address");
+        SocketAddress address = TestUtils.getInternalState(jsonRpcClientProvider, "address");
         Assert.assertEquals(InetSocketAddress.class, address.getClass());
         InetSocketAddress inetAddress = (InetSocketAddress) address;
         Assert.assertEquals("localhost", inetAddress.getHostName());
         Assert.assertEquals(9999, inetAddress.getPort());
 
         // Timeout
-        int timeout = (int) Whitebox.getInternalState(jsonRpcClientProvider, HSMClientProtocolFactory.SOCKET_TIMEOUT);
+        int timeout = TestUtils.getInternalState(jsonRpcClientProvider, HSMClientProtocolFactory.SOCKET_TIMEOUT);
         Assert.assertEquals(HSMClientProtocolFactory.DEFAULT_SOCKET_TIMEOUT, timeout);
 
         // Attempts
-        int attempts = (int) Whitebox.getInternalState(protocol, "maxConnectionAttempts");
+        int attempts = TestUtils.getInternalState(protocol, "maxConnectionAttempts");
         Assert.assertEquals(HSMClientProtocolFactory.DEFAULT_ATTEMPTS, attempts);
 
         // Interval
-        int interval = (int) Whitebox.getInternalState(protocol, "waitTimeForReconnection");
+        int interval = TestUtils.getInternalState(protocol, "waitTimeForReconnection");
         Assert.assertEquals(HSMClientProtocolFactory.DEFAULT_INTERVAL, interval);
     }
 
