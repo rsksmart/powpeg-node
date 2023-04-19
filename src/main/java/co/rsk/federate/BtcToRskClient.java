@@ -295,9 +295,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             try {
                 this.btcToRskClientFileStorage.write(this.fileData);
             } catch (IOException e) {
-                    logger.error(e.getMessage(), e);
-                    panicProcessor.panic("btclock", e.getMessage());
-                }
+                logger.error(e.getMessage(), e);
+                panicProcessor.panic("btclock", e.getMessage());
+            }
         }
     }
 
@@ -467,7 +467,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         return matchedBlock;
     }
 
-    public void updateBridgeBtcTransactions() throws BlockStoreException {
+    protected void updateBridgeBtcTransactions() throws BlockStoreException {
         logger.debug("[updateBridgeBtcTransactions] Updating btc transactions");
         Map<Sha256Hash, Transaction> federatorWalletTxMap = bitcoinWrapper.getTransactionMap(
             bridgeConstants.getBtc2RskMinimumAcceptableConfirmations()
@@ -485,112 +485,143 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         );
 
         for (Sha256Hash txHash : txsToSendToRskHashes) {
-            Transaction tx = federatorWalletTxMap.get(txHash);
-            logger.debug("[updateBridgeBtcTransactions] Evaluating Btc Tx {}", txHash);
-            if (tx == null) {
-                logger.debug("[updateBridgeBtcTransactions] Btc tx {} was not found in wallet or is not yet confirmed.", txHash);
-                // Don't remove it as we still have to wait for its confirmations.
-                continue;
-            }
-            logger.debug("[updateBridgeBtcTransactions] Got Btc Tx {} (wtxid:{})", tx.getTxId(), tx.getWTxId());
-            BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
-
-            if (btcTx.getValueSentToMe(federationWallet).isZero()) {
-                // Remove the tx from the set to be sent to the Bridge since it's not processable
-                txsToSendToRskHashes.remove(txHash);
-
-                logger.warn(
-                    "[updateBridgeBtcTransactions] Transaction hash {} does not have any output to the current federation {}",
-                    btcTx.getHash(true),
-                    federation.getAddress()
-                );
-                continue;
-            }
-
-            long bestBlockNumber = federatorSupport.getRskBestChainHeight();
-            PeginInformation peginInformation = new PeginInformation(
-                btcLockSenderProvider,
-                peginInstructionsProvider,
-                activationConfig.forBlock(bestBlockNumber)
-            );
             try {
-                peginInformation.parse(btcTx);
-            } catch (PeginInstructionsException e) {
-                String message = String.format(
-                    "Could not get peg-in information for tx %s",
-                    btcTx.getHash()
+                Transaction tx = federatorWalletTxMap.get(txHash);
+                logger.debug("[updateBridgeBtcTransactions] Evaluating Btc Tx {}", txHash);
+                if (tx == null) {
+                    logger.debug(
+                        "[updateBridgeBtcTransactions] Btc tx {} was not found in wallet or is not yet confirmed.",
+                        txHash
+                    );
+                    // Don't remove it as we still have to wait for its confirmations.
+                    continue;
+                }
+                logger.debug(
+                    "[updateBridgeBtcTransactions] Got Btc Tx {} (wtxid:{})",
+                    tx.getTxId(),
+                    tx.getWTxId()
                 );
-                logger.warn("[updateBridgeBtcTransactions] {}", message);
-                // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
-                if (peginInformation.getSenderBtcAddress() != null) {
-                    logger.warn("[updateBridgeBtcTransactions] Funds will be refunded to sender.");
-                } else {
+                BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
+
+                if (btcTx.getValueSentToMe(federationWallet).isZero()) {
                     // Remove the tx from the set to be sent to the Bridge since it's not processable
+                    txsToSendToRskHashes.remove(txHash);
+
+                    logger.warn(
+                        "[updateBridgeBtcTransactions] Transaction hash {} does not have any output to the current federation {}",
+                        btcTx.getHash(true),
+                        federation.getAddress()
+                    );
+                    continue;
+                }
+
+                long bestBlockNumber = federatorSupport.getRskBestChainHeight();
+                PeginInformation peginInformation = new PeginInformation(
+                    btcLockSenderProvider,
+                    peginInstructionsProvider,
+                    activationConfig.forBlock(bestBlockNumber)
+                );
+                try {
+                    peginInformation.parse(btcTx);
+                } catch (PeginInstructionsException e) {
+                    String message = String.format(
+                        "Could not get peg-in information for tx %s",
+                        btcTx.getHash()
+                    );
+                    logger.warn("[updateBridgeBtcTransactions] {}", message);
+                    // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
+                    if (peginInformation.getSenderBtcAddress() != null) {
+                        logger.warn("[updateBridgeBtcTransactions] Funds will be refunded to sender.");
+                    } else {
+                        // Remove the tx from the set to be sent to the Bridge since it's not processable
+                        txsToSendToRskHashes.remove(txHash);
+                        continue;
+                    }
+                }
+
+                // Check if the tx can be processed by the Bridge
+                if (!isTxProcessable(btcTx, peginInformation.getSenderBtcAddressType())) {
+                    logger.warn(
+                        "[updateBridgeBtcTransactions] Transaction hash {} contains a type {} that it is not processable.",
+                        btcTx.getHash(true),
+                        peginInformation.getSenderBtcAddressType()
+                    );
                     txsToSendToRskHashes.remove(txHash);
                     continue;
                 }
-            }
 
-            // Check if the tx can be processed by the Bridge
-            if (!isTxProcessable(btcTx, peginInformation.getSenderBtcAddressType())) {
-                logger.warn(
-                    "[updateBridgeBtcTransactions] Transaction hash {} contains a type {} that it is not processable.",
-                    btcTx.getHash(true),
-                    peginInformation.getSenderBtcAddressType()
-                );
-                txsToSendToRskHashes.remove(txHash);
-                continue;
-            }
-
-            // Check if the tx was processed (using the tx hash without witness)
-            if (!federatorSupport.isBtcTxHashAlreadyProcessed(tx.getTxId())) {
-                logger.debug("[updateBridgeBtcTransactions] Btc Tx {} with enough confirmations and not yet processed", tx.getWTxId());
-                synchronized (this) {
-                    List<Proof> proofs = this.fileData.getTransactionProofs().get(txHash);
-                    if (proofs == null || proofs.isEmpty()) {
-                        continue;
-                    }
-
-                    StoredBlock txStoredBlock = findBestChainStoredBlockFor(tx);
-                    int blockHeight = txStoredBlock.getHeight();
-                    PartialMerkleTree pmt = null;
-                    for (Proof proof : proofs) {
-                        if (proof.getBlockHash().equals(txStoredBlock.getHeader().getHash())) {
-                            pmt = proof.getPartialMerkleTree();
-                        }
-                    }
-
-                    federatorSupport.sendRegisterBtcTransaction(tx, blockHeight, pmt);
-                    numberOfTxsSent++;
-
-                    // Sent a maximum of 40 registerBtcTransaction txs per federator
-                    if (numberOfTxsSent >= MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN) {
-                        break;
-                    }
-
-                    logger.debug("[updateBridgeBtcTransactions] Invoked registerBtcTransaction for tx {}", txHash);
-                }
-                // Tx could be null if having less than the desired amount of confirmations,
-                // do not clear in that case since we'd leave a tx without processing
-            } else {
-                logger.debug("[updateBridgeBtcTransactions] Btc Tx {} already processed", tx.getTxId());
-                // Verify if the transaction was processed (using the tx id without witness)
-                Long txProcessedHeight = federatorSupport.getBtcTxHashProcessedHeight(tx.getTxId());
-                Long bestChainHeight = federatorSupport.getRskBestChainHeight();
-
-                // If the bridge says this transaction was processed at height N, and current height
-                // is M, with M - N >= K
-                // with K = BridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()
-                // then remove the transaction from the list
-                if ((bestChainHeight - txProcessedHeight) >= bridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()) {
-                    txsToSendToRskHashes.remove(txHash);
+                // Check if the tx was processed (using the tx hash without witness)
+                if (!federatorSupport.isBtcTxHashAlreadyProcessed(tx.getTxId())) {
                     logger.debug(
-                        "[updateBridgeBtcTransactions] Btc Tx {} was processed at height {}, current height is {}. Tx removed from pending lock list",
-                        txHash,
-                        txProcessedHeight,
-                        bestChainHeight
+                        "[updateBridgeBtcTransactions] Btc Tx {} with enough confirmations and not yet processed",
+                        tx.getWTxId()
                     );
+                    synchronized (this) {
+                        List<Proof> proofs = this.fileData.getTransactionProofs().get(txHash);
+                        if (proofs == null || proofs.isEmpty()) {
+                            continue;
+                        }
+
+                        StoredBlock txStoredBlock = findBestChainStoredBlockFor(tx);
+                        int blockHeight = txStoredBlock.getHeight();
+                        PartialMerkleTree pmt = null;
+                        for (Proof proof : proofs) {
+                            if (proof.getBlockHash().equals(txStoredBlock.getHeader().getHash())) {
+                                pmt = proof.getPartialMerkleTree();
+                            }
+                        }
+
+                        // Make sure the proof was found
+                        if (pmt == null) {
+                            logger.error(
+                                "[updateBridgeBtcTransactions] Could not find proof that the transaction {} belongs to the block {}",
+                                txHash,
+                                txStoredBlock.getHeader().getHash()
+                            );
+                            continue;
+                        }
+
+                        federatorSupport.sendRegisterBtcTransaction(tx, blockHeight, pmt);
+                        numberOfTxsSent++;
+
+                        // Sent a maximum of 40 registerBtcTransaction txs per federator
+                        if (numberOfTxsSent >= MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN) {
+                            break;
+                        }
+
+                        logger.debug(
+                            "[updateBridgeBtcTransactions] Invoked registerBtcTransaction for tx {}",
+                            txHash
+                        );
+                    }
+                    // Tx could be null if having less than the desired amount of confirmations,
+                    // do not clear in that case since we'd leave a tx without processing
+                } else {
+                    logger.debug("[updateBridgeBtcTransactions] Btc Tx {} already processed", tx.getTxId());
+                    // Verify if the transaction was processed (using the tx id without witness)
+                    Long txProcessedHeight = federatorSupport.getBtcTxHashProcessedHeight(tx.getTxId());
+                    Long bestChainHeight = federatorSupport.getRskBestChainHeight();
+
+                    // If the bridge says this transaction was processed at height N, and current height
+                    // is M, with M - N >= K
+                    // with K = BridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()
+                    // then remove the transaction from the list
+                    if ((bestChainHeight - txProcessedHeight) >= bridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()) {
+                        txsToSendToRskHashes.remove(txHash);
+                        logger.debug(
+                            "[updateBridgeBtcTransactions] Btc Tx {} was processed at height {}, current height is {}. Tx removed from pending lock list",
+                            txHash,
+                            txProcessedHeight,
+                            bestChainHeight
+                        );
+                    }
                 }
+            } catch (Exception e) {
+                logger.error(
+                    "[updateBridgeBtcTransactions] An error occurred while informing transaction {} to the Bridge. {}",
+                    txHash,
+                    e.getMessage()
+                );
             }
         }
     }
