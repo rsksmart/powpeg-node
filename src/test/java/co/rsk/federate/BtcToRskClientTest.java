@@ -18,7 +18,6 @@ import co.rsk.federate.mock.SimpleBitcoinWrapper;
 import co.rsk.federate.mock.SimpleBlock;
 import co.rsk.federate.mock.SimpleBtcTransaction;
 import co.rsk.federate.mock.SimpleFederatorSupport;
-import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.Federation;
@@ -927,101 +926,105 @@ public class BtcToRskClientTest {
 
     @Test
     public void updateNoTransaction() throws Exception {
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
-        BtcToRskClient client = createClientWithMocks(bw, fh);
+        BtcToRskClient client = createClientWithMocks(bitcoinWrapper, federatorSupport);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
     public void updateTransactionWithoutProof() throws Exception {
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(createTransaction());
-        bw.setTransactions(txs);
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
 
-        BtcToRskClient client = createClientWithMocks(bw, fh);
+        BtcToRskClient client = createClientWithMocks(bitcoinWrapper, federatorSupport);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
     public void updateTransactionInClientWithoutProofYet() throws Exception {
         Transaction tx = createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
 
-        BtcToRskClient client = createClientWithMocks(bw, fh, mockBlockchain());
+        BtcToRskClient client = createClientWithMocks(bitcoinWrapper, federatorSupport, mockBlockchain());
 
         client.onTransaction(tx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
     public void updateTransactionInClientWithBlockProof() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
+
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        bitcoinWrapper.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         tx.setAppearsInHashes(appears);
 
-        Block block = createBlock(blocks[3].getHeader().getHash(), tx);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
         BtcToRskClient client = btcToRskClientBuilder
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
 
         client.onTransaction(tx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertFalse(tstrbl.isEmpty());
-        Assert.assertEquals(1, tstrbl.size());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertEquals(1, txsSentToRegisterBtcTransaction.size());
 
-        SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction tstrbl0 = tstrbl.get(0);
+        SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
 
-        Assert.assertSame(tx, tstrbl0.tx);
-        Assert.assertEquals(3, tstrbl0.blockHeight);
-        Assert.assertNotNull(tstrbl0.pmt);
+        Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+        Assert.assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
+        Assert.assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
@@ -1044,12 +1047,12 @@ public class BtcToRskClientTest {
 
         Block block = createBlock(blocks[3].getHeader().getHash(), txs.toArray(new Transaction[]{}));
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
@@ -1062,11 +1065,12 @@ public class BtcToRskClientTest {
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertFalse(tstrbl.isEmpty());
-        Assert.assertEquals(BtcToRskClient.MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN, tstrbl.size());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
+        Assert.assertEquals(BtcToRskClient.MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN, txsSentToRegisterBtcTransaction.size());
     }
 
     @Test
@@ -1075,16 +1079,25 @@ public class BtcToRskClientTest {
         // It checks the federator sends to the bridge the Proof of the block in the best chain.
         for (int testNumber = 0; testNumber < 2; testNumber++) {
             SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-            SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
+            SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
             Set<Transaction> txs = new HashSet<>();
             txs.add(tx);
-            bw.setTransactions(txs);
+            bitcoinWrapper.setTransactions(txs);
             StoredBlock[] blocks = createBlockchain(4);
             StoredBlock[] blocksAndForkedBlock = Arrays.copyOf(blocks, 6);
-            Block forkedHeader = new Block(networkParameters, 1, createHash(), createHash(), 1, 1, 1, new ArrayList<Transaction>());
+            Block forkedHeader = new Block(
+                networkParameters,
+                1,
+                createHash(),
+                createHash(),
+                1,
+                1,
+                1,
+                new ArrayList<>()
+            );
             StoredBlock forkedBlock = new StoredBlock(forkedHeader, null, 3);
             blocksAndForkedBlock[5] = forkedBlock;
-            bw.setBlocks(blocksAndForkedBlock);
+            bitcoinWrapper.setBlocks(blocksAndForkedBlock);
             Map<Sha256Hash, Integer> appears = new HashMap<>();
             appears.put(blocks[3].getHeader().getHash(), 1);
             appears.put(forkedBlock.getHeader().getHash(), 1);
@@ -1095,12 +1108,12 @@ public class BtcToRskClientTest {
             // The block in the fork
             Block block2 = createBlock(forkedBlock.getHeader().getHash(), tx);
 
-            SimpleFederatorSupport fh = new SimpleFederatorSupport();
+            SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
             BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
             BtcToRskClient client = btcToRskClientBuilder
-                .withBitcoinWrapper(bw)
-                .withFederatorSupport(fh)
+                .withBitcoinWrapper(bitcoinWrapper)
+                .withFederatorSupport(federatorSupport)
                 .withBridgeConstants(BridgeRegTestConstants.getInstance())
                 .withBtcLockSenderProvider(btcLockSenderProvider)
                 .withFederation(genesisFederation)
@@ -1119,36 +1132,46 @@ public class BtcToRskClientTest {
 
             client.updateBridgeBtcTransactions();
 
-            List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+            List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+                federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-            Assert.assertNotNull(tstrbl);
-            Assert.assertFalse(tstrbl.isEmpty());
-            Assert.assertEquals(1, tstrbl.size());
+            Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+            Assert.assertEquals(1, txsSentToRegisterBtcTransaction.size());
 
-            SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction tstrbl0 = tstrbl.get(0);
+            SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
 
-            Assert.assertSame(tx, tstrbl0.tx);
-            Assert.assertEquals(3, tstrbl0.blockHeight);
-            Assert.assertNotNull(tstrbl0.pmt);
-            Assert.assertEquals(client.generatePMT(block1, tx), tstrbl0.pmt);
+            Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+            Assert.assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
+            Assert.assertNotNull(txSentToRegisterBtcTransaction.pmt);
+            Assert.assertEquals(client.generatePMT(block1, tx), txSentToRegisterBtcTransaction.pmt);
         }
     }
 
     @Test
     public void updateTransactionInClientWithBlockProofInLosingFork() throws Exception {
-        // It checks the federator does not sends a tx to the bridge if it was just included in a block that is not in the best chain.
+        // Checks that the pegnatorie does not send a tx to the bridge
+        // if it was just included in a block that is not in the best chain.
 
         SimpleBtcTransaction tx = (SimpleBtcTransaction)createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
 
-        bw.setTransactions(txs);
+        bitcoinWrapper.setTransactions(txs);
         StoredBlock[] blocks = createBlockchain(4);
         StoredBlock[] blocksAndForkedBlock = Arrays.copyOf(blocks, 6);
-        Block forkedHeader = new Block(networkParameters, 1, createHash(), createHash(), 1, 1, 1, new ArrayList<Transaction>());
+        Block forkedHeader = new Block(
+            networkParameters,
+            1,
+            createHash(),
+            createHash(),
+            1,
+            1,
+            1,
+            new ArrayList<>()
+        );
         StoredBlock forkedBlock = new StoredBlock(forkedHeader, null, 3);
         blocksAndForkedBlock[5] = forkedBlock;
-        bw.setBlocks(blocksAndForkedBlock);
+        bitcoinWrapper.setBlocks(blocksAndForkedBlock);
         Map<Sha256Hash, Integer> appears = new HashMap<>();
 
         appears.put(forkedBlock.getHeader().getHash(), 1);
@@ -1157,9 +1180,9 @@ public class BtcToRskClientTest {
         // The block in the fork
         Block block2 = createBlock(forkedBlock.getHeader().getHash(), tx);
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
-        BtcToRskClient client = createClientWithMocks(bw, fh);
+        BtcToRskClient client = createClientWithMocks(bitcoinWrapper, federatorSupport);
 
         client.onTransaction(tx);
 
@@ -1167,61 +1190,69 @@ public class BtcToRskClientTest {
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
     public void updateTransactionWithNoSenderValid() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
+
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         tx.setAppearsInHashes(appears);
 
-        Block block = createBlock(tx);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
+
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
         BtcToRskClient client = btcToRskClientBuilder
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withFederation(genesisFederation)
             .build();
 
         client.onTransaction(tx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
     public void updateTransactionWithMultisig() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
+
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         tx.setAppearsInHashes(appears);
 
-        Block block = createBlock(tx);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
+
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHMULTISIG);
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
@@ -1232,40 +1263,49 @@ public class BtcToRskClientTest {
 
         BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
 
         client.onTransaction(tx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertFalse(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertEquals(1, txsSentToRegisterBtcTransaction.size());
+
+        SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
+
+        Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+        Assert.assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
+        Assert.assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
     public void updateTransactionWithSegwitCompatible() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
+
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         tx.setAppearsInHashes(appears);
 
-        Block block = createBlock(tx);
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHP2WPKH);
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
@@ -1276,40 +1316,49 @@ public class BtcToRskClientTest {
 
         BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
 
         client.onTransaction(tx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertFalse(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertEquals(1, txsSentToRegisterBtcTransaction.size());
+
+        SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
+
+        Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+        Assert.assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
+        Assert.assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
     public void updateTransactionWithMultisig_before_rskip143() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction)createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
+
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         tx.setAppearsInHashes(appears);
 
-        Block block = createBlock(tx);
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
@@ -1317,17 +1366,24 @@ public class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
         doReturn(false).when(activations).isActive(eq(ConsensusRule.RSKIP143));
 
-        BtcToRskClient client = createClientWithMocks(bw, fh, mockBlockchain(), TxSenderAddressType.P2SHMULTISIG, activationsConfig);
+        BtcToRskClient client = createClientWithMocks(
+            bitcoinWrapper,
+            federatorSupport,
+            mockBlockchain(),
+            TxSenderAddressType.P2SHMULTISIG,
+            activationsConfig
+        );
 
         client.onTransaction(tx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
@@ -1379,23 +1435,24 @@ public class BtcToRskClientTest {
         Transaction releaseTx = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString(), releaseTx1);
 
         // Construct environment
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(releaseTx);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
-        releaseTx.addBlockAppearance(blocks[3].getHeader().getHash(), 1);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), releaseTx);
+        releaseTx.addBlockAppearance(blockWithTx.getHash(), 1);
 
-        Block block = createBlock(releaseTx);
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
         BtcToRskClient client = buildWithFactoryAndSetup(
-            fh,
+            federatorSupport,
             mock(NodeBlockProcessor.class),
             activationsConfig,
-            bw,
+            bitcoinWrapper,
             bridgeConstants,
             getMockedBtcToRskClientFileStorage(),
             new BtcLockSenderProvider(),
@@ -1407,35 +1464,38 @@ public class BtcToRskClientTest {
 
         // Ensure tx is loaded and its proof is also loaded
         client.onTransaction(releaseTx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         // Try to inform tx
         client.updateBridgeBtcTransactions();
 
         // The release tx should be informed
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertFalse(tstrbl.isEmpty());
-        Assert.assertEquals(releaseTx.getTxId(), tstrbl.get(0).tx.getTxId());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
+        Assert.assertEquals(releaseTx.getTxId(), txsSentToRegisterBtcTransaction.get(0).tx.getTxId());
     }
 
     @Test
     public void updateTransactionWithSegwitCompatible_before_rskip143() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createSegwitTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
+
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         tx.setAppearsInHashes(appears);
 
-        Block block = createBlock(tx);
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
@@ -1443,35 +1503,44 @@ public class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
         doReturn(false).when(activations).isActive(eq(ConsensusRule.RSKIP143));
 
-        BtcToRskClient client = createClientWithMocks(bw, fh, mockBlockchain(), TxSenderAddressType.P2SHP2WPKH, activationsConfig);
+        BtcToRskClient client = createClientWithMocks(
+            bitcoinWrapper,
+            federatorSupport,
+            mockBlockchain(),
+            TxSenderAddressType.P2SHP2WPKH,
+            activationsConfig
+        );
 
         client.onTransaction(tx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
     public void updateTransactionWithSenderUnknown_before_rskip170() throws Exception {
-        SimpleBtcTransaction tx = (SimpleBtcTransaction)createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
+        SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
+
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         tx.setAppearsInHashes(appears);
 
-        Block block = createBlock(tx);
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
@@ -1481,40 +1550,44 @@ public class BtcToRskClientTest {
         doReturn(false).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
 
         BtcToRskClient client = createClientWithMocks(
-            bw,
-            fh,
+            bitcoinWrapper,
+            federatorSupport,
             mockBlockchain(),
             TxSenderAddressType.UNKNOWN,
             activationsConfig
         );
 
         client.onTransaction(tx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
     public void updateTransactionWithSenderUnknown_after_rskip170() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
-        StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
-        Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
-        tx.setAppearsInHashes(appears);
+
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
 
         Block block = createBlock(tx);
+        Map<Sha256Hash, Integer> appears = new HashMap<>();
+        appears.put(block.getHash(), 1);
+        tx.setAppearsInHashes(appears);
 
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        StoredBlock[] blocks = createBlockchain(4);
+        blocks[4] = new StoredBlock(block, null, 4); // Replace the last block with the one containing the transaction
+        bitcoinWrapper.setBlocks(blocks);
+
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.UNKNOWN);
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
@@ -1526,8 +1599,8 @@ public class BtcToRskClientTest {
 
         BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
@@ -1538,27 +1611,31 @@ public class BtcToRskClientTest {
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertFalse(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
     public void updateTransaction_peginInformationParsingFails_withoutSenderAddress() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
+
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         tx.setAppearsInHashes(appears);
 
-        Block block = createBlock(tx);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
+
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
@@ -1573,38 +1650,42 @@ public class BtcToRskClientTest {
 
         BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withFederation(genesisFederation)
             .build();
 
         client.onTransaction(tx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertTrue(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
     public void updateTransaction_peginInformationParsingFails_withSenderAddress() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
+
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         tx.setAppearsInHashes(appears);
 
-        Block block = createBlock(tx);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
+
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
@@ -1624,47 +1705,58 @@ public class BtcToRskClientTest {
 
         BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
 
         client.onTransaction(tx);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertFalse(tstrbl.isEmpty());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertEquals(1, txsSentToRegisterBtcTransaction.size());
+
+        SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
+
+        Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+        Assert.assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
+        Assert.assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
     public void updateTransaction_noOutputToCurrentFederation() throws Exception {
         SimpleBtcTransaction txWithoutOutputs = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), false);
         SimpleBtcTransaction txToTheFederation = (SimpleBtcTransaction) createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
+
         Set<Transaction> txs = new HashSet<>();
         txs.add(txWithoutOutputs);
         txs.add(txToTheFederation);
-        bw.setTransactions(txs);
+
         StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
+        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), txWithoutOutputs, txToTheFederation);
+
         Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blocks[3].getHeader().getHash(), 1);
+        appears.put(blockWithTx.getHash(), 1);
         txWithoutOutputs.setAppearsInHashes(appears);
         txToTheFederation.setAppearsInHashes(appears);
 
-        Block block = createBlock(txWithoutOutputs, txToTheFederation);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+        bitcoinWrapper.setBlocks(blocks);
+
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
         BtcToRskClient client = btcToRskClientBuilder
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
@@ -1672,34 +1764,44 @@ public class BtcToRskClientTest {
 
         client.onTransaction(txWithoutOutputs);
         client.onTransaction(txToTheFederation);
-        client.onBlock(block);
+        client.onBlock(blockWithTx);
 
         client.updateBridgeBtcTransactions();
 
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> tstrbl = fh.getTxsSentToRegisterBtcTransaction();
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
 
-        Assert.assertNotNull(tstrbl);
-        Assert.assertEquals(1, tstrbl.size());
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertEquals(1, txsSentToRegisterBtcTransaction.size());
+
+        SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
+
+        Assert.assertSame(txToTheFederation, txSentToRegisterBtcTransaction.tx);
+        Assert.assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
+        Assert.assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
-    public void raiseIfTransactionInClientWithBlockProofNotInBlockchain() throws Exception {
+    public void ignoreTransactionInClientWithBlockProofNotInBlockchain() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
-        Set<Transaction> txs = new HashSet<>();
-        txs.add(tx);
-        bw.setTransactions(txs);
-        StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
         tx.setAppearsInHashes(null);
 
+        Set<Transaction> txs = new HashSet<>();
+        txs.add(tx);
+
+        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
+        bitcoinWrapper.setTransactions(txs);
+
+        StoredBlock[] blocks = createBlockchain(4);
+        bitcoinWrapper.setBlocks(blocks);
+
         Block block = createBlock(tx);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
 
         BtcToRskClient client = btcToRskClientBuilder
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fh)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(BridgeRegTestConstants.getInstance())
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
@@ -1708,12 +1810,13 @@ public class BtcToRskClientTest {
         client.onTransaction(tx);
         client.onBlock(block);
 
-        try {
-            client.updateBridgeBtcTransactions();
-            Assert.fail();
-        } catch (IllegalStateException ex) {
-            Assert.assertEquals("Tx not in the best chain: " + tx.getTxId(), ex.getMessage());
-        }
+        client.updateBridgeBtcTransactions();
+
+        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
+            federatorSupport.getTxsSentToRegisterBtcTransaction();
+
+        Assert.assertNotNull(txsSentToRegisterBtcTransaction);
+        Assert.assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test(expected = Exception.class)
@@ -2156,7 +2259,7 @@ public class BtcToRskClientTest {
         Sha256Hash previousHash = Sha256Hash.wrap("0000000000000000000000000000000000000000000000000000000000000000");
 
         for (int k = 0; k <= height; k++) {
-            Block header = new Block(networkParameters, 1, previousHash, createHash(), 1, 1, 1, new ArrayList<Transaction>());
+            Block header = new Block(networkParameters, 1, previousHash, createHash(), 1, 1, 1, new ArrayList<>());
             StoredBlock block = new StoredBlock(header, null, k);
             blocks[k] = block;
             previousHash = header.getHash();
