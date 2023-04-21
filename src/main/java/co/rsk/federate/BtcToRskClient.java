@@ -301,7 +301,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
     }
 
-    public int updateBridgeBtcBlockchain() throws BlockStoreException, IOException {
+    protected int updateBridgeBtcBlockchain() throws BlockStoreException, IOException {
         long bestBlockNumber = federatorSupport.getRskBestChainHeight();
         boolean useBlockDepth = activationConfig.isActive(ConsensusRule.RSKIP89, bestBlockNumber);
 
@@ -629,7 +629,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     /**
      * Gets the first ready to be informed coinbase transaction and informs it
      */
-    public void updateBridgeBtcCoinbaseTransactions() {
+    protected void updateBridgeBtcCoinbaseTransactions() {
         Optional<CoinbaseInformation> coinbaseInformationReadyToInform = fileData.getCoinbaseInformationMap()
             .values()
             .stream()
