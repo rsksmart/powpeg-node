@@ -467,7 +467,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         return matchedBlock;
     }
 
-    protected void updateBridgeBtcTransactions() throws BlockStoreException {
+    protected void updateBridgeBtcTransactions() {
         logger.debug("[updateBridgeBtcTransactions] Updating btc transactions");
         Map<Sha256Hash, Transaction> federatorWalletTxMap = bitcoinWrapper.getTransactionMap(
             bridgeConstants.getBtc2RskMinimumAcceptableConfirmations()
