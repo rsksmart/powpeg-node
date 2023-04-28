@@ -36,7 +36,8 @@ import static org.mockito.Mockito.*;
 public class HsmBookkeepingClientImplTest {
     private HSMClientProtocol hsmClientProtocol;
     private JsonRpcClient jsonRpcClientMock;
-    private final static int VERSION = 2;
+    private final static int VERSION_TWO = 2;
+    private final static int VERSION_THREE = 3;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private HsmBookkeepingClientImpl hsmBookkeepingClient;
 
@@ -50,7 +51,31 @@ public class HsmBookkeepingClientImplTest {
 
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
 
-        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, VERSION);
+        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, VERSION_TWO);
+    }
+
+    @Test
+    public void test_getVersion_2() throws HSMClientException, JsonRpcException {
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("errorcode", 0);
+        response.put("version", VERSION_TWO);
+
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(response);
+
+        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, VERSION_TWO);
+        Assert.assertEquals(VERSION_TWO, hsmBookkeepingClient.getVersion());
+    }
+
+    @Test
+    public void test_getVersion_3() throws HSMClientException, JsonRpcException {
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("errorcode", 0);
+        response.put("version", VERSION_THREE);
+
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(response);
+
+        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, VERSION_THREE);
+        Assert.assertEquals(VERSION_THREE, hsmBookkeepingClient.getVersion());
     }
 
     @Test
@@ -302,15 +327,14 @@ public class HsmBookkeepingClientImplTest {
 
     @Test
     public void updateAncestorBlock_hsm_version_3() throws HSMClientException, JsonRpcException {
-        final int HSM_VERSION = 3;
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
-        when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", HSM_VERSION)))
+        when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", VERSION_THREE)))
                 .thenReturn(buildResponse(false));
 
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getEncoded(true, false)).thenReturn(new byte[]{});
 
-        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, HSM_VERSION);
+        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, VERSION_THREE);
         hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
         hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
 
@@ -347,15 +371,14 @@ public class HsmBookkeepingClientImplTest {
 
     @Test
     public void advanceBlockchain_with_brothers_ok() throws HSMClientException, JsonRpcException {
-        final int HSM_VERSION = 3;
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
-        when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", HSM_VERSION)))
+        when(jsonRpcClientMock.send(hsmClientProtocol.buildCommand("blockchainState", VERSION_THREE)))
                 .thenReturn(buildResponse(false));
 
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
 
-        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, HSM_VERSION);
+        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, VERSION_THREE);
         hsmBookkeepingClient.setMaxChunkSizeToHsm(3);
         hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
 
@@ -408,7 +431,7 @@ public class HsmBookkeepingClientImplTest {
     public void resetAdvanceBlockchain_Ok() throws Exception {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put("command", "resetAdvanceBlockchain");
-        expectedRequest.put("version", VERSION);
+        expectedRequest.put("version", VERSION_TWO);
 
         ObjectNode response = buildResponse(0);
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
@@ -425,7 +448,7 @@ public class HsmBookkeepingClientImplTest {
     public void resetAdvanceBlockchain_UnknownError() throws Exception {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put("command", "resetAdvanceBlockchain");
-        expectedRequest.put("version", VERSION);
+        expectedRequest.put("version", VERSION_TWO);
 
         ObjectNode response = buildResponse(-906);
 

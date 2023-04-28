@@ -37,6 +37,11 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         hsmClientProtocol.setResponseHandler(new PowHSMResponseHandler());
     }
 
+    @Override
+    public int getVersion() throws HSMClientException {
+        return this.hsmClientProtocol.getVersion();
+    }
+
     protected <T> List<T[]> getChunks(
             T[] payload,
             int maxChunkSize,
