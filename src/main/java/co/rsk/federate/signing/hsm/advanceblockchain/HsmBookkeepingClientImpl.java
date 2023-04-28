@@ -31,9 +31,9 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     private final HSMClientProtocol hsmClientProtocol;
     private final int version;
 
-    public HsmBookkeepingClientImpl(HSMClientProtocol hsmClientProtocol, int version) {
+    public HsmBookkeepingClientImpl(HSMClientProtocol hsmClientProtocol) throws HSMClientException {
         this.hsmClientProtocol = hsmClientProtocol;
-        this.version = version;
+        this.version = hsmClientProtocol.getVersion();;
         hsmClientProtocol.setResponseHandler(new PowHSMResponseHandler());
     }
 

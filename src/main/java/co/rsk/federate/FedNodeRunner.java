@@ -124,7 +124,15 @@ public class FedNodeRunner implements NodeRunner {
     public void run() throws Exception {
         LOGGER.debug("[run] Starting RSK");
         signer = buildSigner();
-        hsmBookkeepingClient = buildBookKeepingClient();
+        SignerConfig signerConfig = this.config.signerConfig(BTC_KEY_ID.getId());
+        if ("hsm".equals(signerConfig.getType())) {
+            PowHSMBookkeepingConfig bookKeepingConfig = new PowHSMBookkeepingConfig(
+                signerConfig,
+                bridgeConstants.getBtcParamsString()
+            );
+            hsmBookkeepingClient = buildBookKeepingClient(signerConfig, bookKeepingConfig);
+            hsmBookkeepingService = buildBookKeepingService(hsmBookkeepingClient, bookKeepingConfig);
+        }
         if(!this.checkFederateRequirements()) {
             LOGGER.error("[run] Error validating Fed-Node Requirements");
             return;
@@ -184,38 +192,24 @@ public class FedNodeRunner implements NodeRunner {
         return compositeSigner;
     }
 
-    private HSMBookkeepingClient buildBookKeepingClient() {
-        SignerConfig signerConfig = this.config.signerConfig(BTC_KEY_ID.getId());
-        if ("hsm".equals(signerConfig.getType())) {
-            try {
-                bridgeConstants = this.config.getNetworkConstants().getBridgeConstants();
-                PowHSMBookkeepingConfig bookKeepingConfig = new PowHSMBookkeepingConfig(
-                        signerConfig,
-                        bridgeConstants.getBtcParamsString()
-                );
-                HSMClientProtocol protocol = HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
-                HSMBookKeepingClientProvider clientProvider = new HSMBookKeepingClientProvider(protocol);
-                HSMBookkeepingClient bookKeepingClient = clientProvider.getHSMBookKeepingClient();
-                bookKeepingClient.setMaxChunkSizeToHsm(bookKeepingConfig.getMaxChunkSizeToHsm());
-                hsmBookkeepingService = buildBookKeepingService(bookKeepingClient, bookKeepingConfig, clientProvider.getVersion());
-                LOGGER.debug("[buildBookKeepingClient] HSMBookkeeping Client built for HSM version: {}", clientProvider.getVersion());
-                return bookKeepingClient;
-            } catch (HSMClientException e) {
-                LOGGER.warn("[buildBookKeepingClient] Error trying to build the book keeping client {}", e.getMessage());
-            }
-        }
-        return null;
+    private HSMBookkeepingClient buildBookKeepingClient(SignerConfig signerConfig, PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+        HSMClientProtocol protocol = HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+        HSMBookKeepingClientProvider clientProvider = new HSMBookKeepingClientProvider();
+        HSMBookkeepingClient bookKeepingClient = clientProvider.getHSMBookKeepingClient(protocol);
+        bookKeepingClient.setMaxChunkSizeToHsm(bookKeepingConfig.getMaxChunkSizeToHsm());
+        LOGGER.info("[buildBookKeepingClient] HSMBookkeeping Client built for HSM version: {}", bookKeepingClient.getVersion());
+        return bookKeepingClient;
     }
 
-    private HSMBookkeepingService buildBookKeepingService(HSMBookkeepingClient bookKeepingClient,
-                                                          PowHSMBookkeepingConfig bookKeepingConfig, int hsmVersion) {
-        return new HSMBookkeepingService(
+    private HSMBookkeepingService buildBookKeepingService(HSMBookkeepingClient bookKeepingClient, PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+        HSMBookkeepingService service = new HSMBookkeepingService(
             fedNodeContext.getBlockStore(),
             bookKeepingClient,
             fedNodeContext.getNodeBlockProcessor(),
-            bookKeepingConfig,
-            hsmVersion
+            bookKeepingConfig
         );
+        LOGGER.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersion());
+        return service;
     }
 
     /**
