@@ -14,14 +14,12 @@ public class HSMBookKeepingClientProvider {
     private static final Logger logger = LoggerFactory.getLogger(HSMBookKeepingClientProvider.class);
     private static final int MIN_SUPPORTED_VERSION = 2;
     private static final int MAX_SUPPORTED_VERSION = 3;
-    private final HSMClientProtocol hsmClientProtocol;
 
-    public HSMBookKeepingClientProvider(HSMClientProtocol protocol) {
-        this.hsmClientProtocol = protocol;
+    public HSMBookKeepingClientProvider() {
     }
 
-    public HSMBookkeepingClient getHSMBookKeepingClient() throws HSMClientException {
-        int version = getVersion();
+    public HSMBookkeepingClient getHSMBookKeepingClient(HSMClientProtocol protocol) throws HSMClientException {
+        int version = protocol.getVersion();
         logger.debug("[getHSMBookKeepingClient] version: {}", version);
         HSMBookkeepingClient bookkeepingClient;
         switch (version) {
@@ -29,7 +27,7 @@ public class HSMBookKeepingClientProvider {
                 throw new HSMUnsupportedVersionException("HSMBookKeepingClient doesn't exist for version %s " + version);
             case 2:
             case 3:
-                bookkeepingClient = new HsmBookkeepingClientImpl(this.hsmClientProtocol, version);
+                bookkeepingClient = new HsmBookkeepingClientImpl(protocol, version);
                 break;
             default:
                 String message = String.format("Unsupported HSM version %d, the node supports versions between %d and %d", version, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION);
@@ -37,9 +35,5 @@ public class HSMBookKeepingClientProvider {
                 throw new HSMUnsupportedVersionException(message);
         }
         return bookkeepingClient;
-    }
-
-    public int getVersion() throws HSMClientException {
-        return this.hsmClientProtocol.getVersion();
     }
 }
