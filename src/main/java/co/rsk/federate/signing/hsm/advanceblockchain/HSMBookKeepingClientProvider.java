@@ -24,10 +24,10 @@ public class HSMBookKeepingClientProvider {
         HSMBookkeepingClient bookkeepingClient;
         switch (version) {
             case 1:
-                throw new HSMUnsupportedVersionException("HSMBookKeepingClient doesn't exist for version %s " + version);
+                throw new HSMUnsupportedVersionException("HSMBookKeepingClient doesn't exist for version 1");
             case 2:
             case 3:
-                bookkeepingClient = new HsmBookkeepingClientImpl(protocol, version);
+                bookkeepingClient = new HsmBookkeepingClientImpl(protocol);
                 break;
             default:
                 String message = String.format("Unsupported HSM version %d, the node supports versions between %d and %d", version, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION);
