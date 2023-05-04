@@ -175,7 +175,7 @@ public class HSMClientProtocolTest {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put("command", command);
         expectedRequest.put("version", version);
-        ObjectNode sendResponse = buildResponse(-666);
+        ObjectNode sendResponse = buildResponse(-904);
         sendResponse.put("error", "Requested version " + version + " but the gateway version is 1");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(sendResponse);
         hsmClientProtocol.setResponseHandler(new HSMResponseHandlerV1());
