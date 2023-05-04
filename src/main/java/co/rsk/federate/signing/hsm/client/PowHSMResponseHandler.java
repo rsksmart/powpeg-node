@@ -23,20 +23,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
 public class PowHSMResponseHandler extends HSMResponseHandlerBase {
-    private static final int HSM_WRONG_AUTH_ERROR_CODE = -101;
-    private static final int HSM_INVALID_MESSAGE_ERROR_CODE = -102;
-    private static final int HSM_REJECTED_KEY_ERROR_CODE = -103;
-    private static final int HSM_CHAINING_MISMATCH_ERROR_CODE = -201;
-    private static final int HSM_POW_VALIDATION_ERROR_CODE = -202;
-    private static final int HSM_TIP_MISMATCH_ERROR_CODE = -203;
-    private static final int HSM_INVALID_OR_NOT_ENOUGH_INPUT_BLOCKS_ERROR_CODE = -204;
-    private static final int HSM_INVALID_BROTHERS_ERROR_CODE = -205;
-    private static final int HSM_INVALID_USER_DEFINED_VALUE_ERROR_CODE = -301;
-    private static final int HSM_FORMAT_ERROR_CODE = -901;
-    private static final int HSM_INVALID_REQUEST_ERROR_CODE = -902;
-    private static final int HSM_COMMAND_UNKNOWN_ERROR_CODE = -903;
-    private static final int HSM_VERSION_CHANGED_ERROR_CODE = -904;
-    private static final int HSM_UNKNOWN_ERROR_CODE = -906;
 
     /**
      * gets a friendly error message given a method name and error code.
@@ -48,7 +34,7 @@ public class PowHSMResponseHandler extends HSMResponseHandlerBase {
     protected void handleErrorResponse(String methodName, int errorCode, JsonNode response) throws HSMClientException {
         super.handleErrorResponse(methodName, errorCode, response);
 
-        switch (errorCode) {
+        switch (HSMResponseCodeEnum.valueOfResponseCode(errorCode)) {
             case HSM_WRONG_AUTH_ERROR_CODE:
                 throw new HSMAuthException(formatErrorMessage("HSM rejected provided auth. '%s'. %s", methodName, response));
             case HSM_INVALID_MESSAGE_ERROR_CODE:
