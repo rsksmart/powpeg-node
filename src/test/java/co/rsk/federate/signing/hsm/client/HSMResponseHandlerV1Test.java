@@ -36,7 +36,7 @@ public class HSMResponseHandlerV1Test {
     @Test(expected = HSMAuthException.class)
     public void validateResponseRejectedKeyError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -1);
+        response.put("errorcode", -103);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -58,14 +58,14 @@ public class HSMResponseHandlerV1Test {
     @Test(expected = HSMChangedVersionException.class)
     public void validateResponseVersionChangedError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -666);
+        response.put("errorcode", -904);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
 
     @Test(expected = HSMAuthException.class)
     public void handleErrorResponseRejectedKey() throws HSMClientException {
-        int errcode = -1;
+        int errcode = -103;
         String method = "version";
         ObjectNode sendResponse = buildResponse(errcode);
 
@@ -90,7 +90,7 @@ public class HSMResponseHandlerV1Test {
 
     @Test(expected = HSMChangedVersionException.class)
     public void handleErrorResponseVersionChanged() throws HSMClientException {
-        int errcode = -666;
+        int errcode = -904;
         String method = "version";
         ObjectNode sendResponse = buildResponse(errcode);
 
