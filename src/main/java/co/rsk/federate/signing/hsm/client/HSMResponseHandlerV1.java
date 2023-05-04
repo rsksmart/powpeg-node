@@ -22,9 +22,6 @@ import co.rsk.federate.signing.hsm.*;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class HSMResponseHandlerV1 extends HSMResponseHandlerBase {
-    private static final int HSM_REJECTED_KEY_ERROR_CODE = -1;
-    private static final int HSM_SERVER_ERROR_CODE = -4;
-    private static final int HSM_VERSION_CHANGED_ERROR_CODE = -666;
 
     /**
      * gets a friendly error message given a method name and error code.
@@ -36,7 +33,7 @@ public class HSMResponseHandlerV1 extends HSMResponseHandlerBase {
     protected void handleErrorResponse(String methodName, int errorCode, JsonNode response) throws HSMClientException {
         super.handleErrorResponse(methodName, errorCode, response);
 
-        switch (errorCode) {
+        switch (HSMResponseCodeEnum.valueOfResponseCode(errorCode)) {
             case HSM_REJECTED_KEY_ERROR_CODE:
                 throw new HSMAuthException(formatErrorMessage("HSM rejected provided key. '%s'. %s", methodName, response));
             case HSM_SERVER_ERROR_CODE:

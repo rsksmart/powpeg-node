@@ -24,7 +24,7 @@ package co.rsk.federate.signing.hsm;
  * @author Jose Dahlquist
  */
 public class HSMDeviceException extends HSMClientException {
-    private Integer errorCode;
+    private final Integer errorCode;
 
     public HSMDeviceException(String message, int errorCode) {
         super(message);
@@ -35,7 +35,8 @@ public class HSMDeviceException extends HSMClientException {
         return errorCode;
     }
 
+    @Override
     public String toString() {
-        return String.format("errorCode: %n. errorMessage: %s", this.getErrorCode(), this.getMessage());
+        return String.format("errorCode: %d. errorMessage: %s", this.getErrorCode(), this.getMessage());
     }
 }
