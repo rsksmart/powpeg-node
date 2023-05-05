@@ -15,9 +15,6 @@ public class HSMBookKeepingClientProvider {
     private static final int MIN_SUPPORTED_VERSION = 2;
     private static final int MAX_SUPPORTED_VERSION = 3;
 
-    public HSMBookKeepingClientProvider() {
-    }
-
     public HSMBookkeepingClient getHSMBookKeepingClient(HSMClientProtocol protocol) throws HSMClientException {
         int version = protocol.getVersion();
         logger.debug("[getHSMBookKeepingClient] version: {}", version);

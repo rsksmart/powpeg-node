@@ -29,11 +29,9 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     private int maxChunkSize = 10;  // DEFAULT VALUE
     private boolean isStopped = false;
     private final HSMClientProtocol hsmClientProtocol;
-    private final int version;
 
-    public HsmBookkeepingClientImpl(HSMClientProtocol hsmClientProtocol) throws HSMClientException {
+    public HsmBookkeepingClientImpl(HSMClientProtocol hsmClientProtocol) {
         this.hsmClientProtocol = hsmClientProtocol;
-        this.version = hsmClientProtocol.getVersion();;
         hsmClientProtocol.setResponseHandler(new PowHSMResponseHandler());
     }
 
@@ -101,10 +99,10 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         for (int i = 0; i < blockHeadersChunks.size(); i++) {
             try {
                 String[] blockHeaderChunk = blockHeadersChunks.get(i);
-                ObjectNode payload = this.hsmClientProtocol.buildCommand(actualMethod, this.version);
+                ObjectNode payload = this.hsmClientProtocol.buildCommand(actualMethod, getVersion());
                 addBlocksToPayload(payload, blockHeaderChunk);
 
-                if (this.version == 3 && "advanceBlockchain".equals(actualMethod)) {
+                if (getVersion() == 3 && "advanceBlockchain".equals(actualMethod)) {
                     addBrothersToPayload(payload, blockHeaderChunk);
                 }
 
@@ -165,7 +163,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         final String UPDATING_FIELD = "updating";
         final String IN_PROGRESS_FIELD = "in_progress";
 
-        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE_METHOD_NAME, this.version);
+        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE_METHOD_NAME, getVersion());
         JsonNode response = this.hsmClientProtocol.send(command);
 
         this.hsmClientProtocol.validatePresenceOf(response, STATE_FIELD);
@@ -190,7 +188,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     public void resetAdvanceBlockchain() throws HSMClientException {
         final String RESET_COMMAND = "resetAdvanceBlockchain";
 
-        ObjectNode command = hsmClientProtocol.buildCommand(RESET_COMMAND, this.version);
+        ObjectNode command = hsmClientProtocol.buildCommand(RESET_COMMAND, getVersion());
         this.hsmClientProtocol.send(command);
 
         logger.trace("[resetAdvanceBlockchain] Sent command to reset Advance Blockchain.");
@@ -214,11 +212,12 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         final String MINIMUM_DIFFICULTY_FIELD = "minimum_difficulty";
         final String NETWORK_FIELD = "network";
 
-        if (this.version < 3) {
-            throw new HSMUnsupportedTypeException("method call not allowed for version {}." + this.version);
+        int version = getVersion();
+        if (version < 3) {
+            throw new HSMUnsupportedTypeException("method call not allowed for version {}." + version);
         }
 
-        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_PARAMETERS_COMMAND, this.version);
+        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_PARAMETERS_COMMAND, version);
         JsonNode response = this.hsmClientProtocol.send(command);
 
         this.hsmClientProtocol.validatePresenceOf(response, PARAMETERS_FIELD);
