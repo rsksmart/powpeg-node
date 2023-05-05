@@ -34,34 +34,34 @@ public class PowHSMResponseHandler extends HSMResponseHandlerBase {
     protected void handleErrorResponse(String methodName, int errorCode, JsonNode response) throws HSMClientException {
         super.handleErrorResponse(methodName, errorCode, response);
 
-        switch (HSMResponseCodeEnum.valueOfResponseCode(errorCode)) {
-            case HSM_WRONG_AUTH_ERROR_CODE:
+        switch (HSMResponseCode.valueOf(errorCode)) {
+            case WRONG_AUTH_ERROR_CODE:
                 throw new HSMAuthException(formatErrorMessage("HSM rejected provided auth. '%s'. %s", methodName, response));
-            case HSM_INVALID_MESSAGE_ERROR_CODE:
+            case INVALID_MESSAGE_ERROR_CODE:
                 throw new HSMInvalidMessageException(formatErrorMessage("HSM received an invalid message '%s'. %s", methodName , response));
-            case HSM_CHAINING_MISMATCH_ERROR_CODE:
+            case CHAINING_MISMATCH_ERROR_CODE:
                 throw new HSMBlockchainBookkeepingRelatedException(formatErrorMessage("HSM indicates Chaining mismatch. '%s'. %s", methodName, response));
-            case HSM_POW_VALIDATION_ERROR_CODE:
+            case POW_VALIDATION_ERROR_CODE:
                 throw new HSMBlockchainBookkeepingRelatedException(formatErrorMessage("HSM indicates PoW validation failed. '%s'. %s", methodName, response));
-            case HSM_TIP_MISMATCH_ERROR_CODE:
+            case TIP_MISMATCH_ERROR_CODE:
                 throw new HSMBlockchainBookkeepingRelatedException(formatErrorMessage("HSM indicates Tip mismatch. '%s'. %s", methodName, response));
-            case HSM_INVALID_OR_NOT_ENOUGH_INPUT_BLOCKS_ERROR_CODE:
+            case INVALID_OR_NOT_ENOUGH_INPUT_BLOCKS_ERROR_CODE:
                 throw new HSMBlockchainBookkeepingRelatedException(formatErrorMessage("HSM indicates Invalid or not enough input blocks. '%s'. %s", methodName, response));
-            case HSM_INVALID_BROTHERS_ERROR_CODE:
+            case INVALID_BROTHERS_ERROR_CODE:
                 throw new HSMBlockchainBookkeepingRelatedException(formatErrorMessage("HSM received some invalid brothers. '%s'. %s", methodName, response));
-            case HSM_INVALID_USER_DEFINED_VALUE_ERROR_CODE:
+            case INVALID_USER_DEFINED_VALUE_ERROR_CODE:
                 throw new HSMInvalidUserDefinedValueException(formatErrorMessage("HSM received an invalid user-defined value. '%s'. %s", methodName, response));
-            case HSM_REJECTED_KEY_ERROR_CODE:
+            case REJECTED_KEY_ERROR_CODE:
                 throw new HSMAuthException(formatErrorMessage("HSM rejected provided key id. '%s'. %s", methodName, response));
-            case HSM_FORMAT_ERROR_CODE:
+            case FORMAT_ERROR_CODE:
                 throw new HSMFormatErrorException(formatErrorMessage("HSM request bad format. '%s'. %s", methodName, response));
-            case HSM_INVALID_REQUEST_ERROR_CODE:
+            case INVALID_REQUEST_ERROR_CODE:
                 throw new HSMInvalidRequestException(formatErrorMessage("HSM invalid request. '%s'. %s", methodName, response));
-            case HSM_COMMAND_UNKNOWN_ERROR_CODE:
+            case COMMAND_UNKNOWN_ERROR_CODE:
                 throw new HSMCommandUnknownException(formatErrorMessage("HSM unknown command received. '%s'. %s", methodName, response));
-            case HSM_VERSION_CHANGED_ERROR_CODE:
+            case VERSION_CHANGED_ERROR_CODE:
                 throw new HSMChangedVersionException(formatErrorMessage("HSM Server version changed. '%s'. %s", methodName, response));
-            case HSM_UNKNOWN_ERROR_CODE:
+            case UNKNOWN_ERROR_CODE:
                 throw new HSMUnknownErrorException(formatErrorMessage("HSM unknown error. '%s'. %s", methodName, response));
             default:
                 throw new HSMDeviceException(String.format("Context: Running method '%s'", methodName), errorCode);

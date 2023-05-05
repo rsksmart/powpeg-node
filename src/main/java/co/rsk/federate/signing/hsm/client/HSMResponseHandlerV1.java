@@ -33,12 +33,12 @@ public class HSMResponseHandlerV1 extends HSMResponseHandlerBase {
     protected void handleErrorResponse(String methodName, int errorCode, JsonNode response) throws HSMClientException {
         super.handleErrorResponse(methodName, errorCode, response);
 
-        switch (HSMResponseCodeEnum.valueOfResponseCode(errorCode)) {
-            case HSM_REJECTED_KEY_ERROR_CODE:
+        switch (HSMResponseCode.valueOf(errorCode)) {
+            case REJECTED_KEY_ERROR_CODE:
                 throw new HSMAuthException(formatErrorMessage("HSM rejected provided key. '%s'. %s", methodName, response));
-            case HSM_SERVER_ERROR_CODE:
+            case SERVER_ERROR_CODE:
                 throw new HSMGatewayException(formatErrorMessage("HSM Server returned exception '%s'. %s", methodName, response));
-            case HSM_VERSION_CHANGED_ERROR_CODE:
+            case VERSION_CHANGED_ERROR_CODE:
                 throw new HSMChangedVersionException(formatErrorMessage("HSM Server version changed. '%s'. %s", methodName, response));
             default:
                 throw new HSMDeviceException(String.format("Context: Running method '%s'", methodName), errorCode);
