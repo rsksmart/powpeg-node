@@ -27,9 +27,8 @@ public enum HSMResponseCode {
     DEVICE_ERROR_CODE_V2(-905),
     UNKNOWN_ERROR_CODE(-906);
 
-    private final int responseCode;
-
     private static final Map<Integer, HSMResponseCode> RESPONSE_CODES = new HashMap<>();
+    private final int responseCode;
 
     static {
         for (HSMResponseCode hsmResponseCode : values()) {
