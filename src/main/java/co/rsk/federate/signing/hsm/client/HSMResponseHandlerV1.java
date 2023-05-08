@@ -25,23 +25,15 @@ public class HSMResponseHandlerV1 extends HSMResponseHandlerBase {
 
     /**
      * gets a friendly error message given a method name and error code.
-     * @param methodName
-     * @param errorCode Should be -1, -2, -4, or -666 as those are the recognized error codes
-     * @return
+     * @param errorCode Should be either -1 or -666 as those are the recognized error codes: <a href="https://github.com/rsksmart/rsk-powhsm/blob/master/docs/protocol-v1.md">Protocol v1</a>
      */
     @Override
     protected void handleErrorResponse(String methodName, int errorCode, JsonNode response) throws HSMClientException {
         super.handleErrorResponse(methodName, errorCode, response);
 
-        switch (HSMResponseCode.valueOf(errorCode)) {
-            case REJECTED_KEY_ERROR_CODE:
-                throw new HSMAuthException(formatErrorMessage("HSM rejected provided key. '%s'. %s", methodName, response));
-            case SERVER_ERROR_CODE:
-                throw new HSMGatewayException(formatErrorMessage("HSM Server returned exception '%s'. %s", methodName, response));
-            case VERSION_CHANGED_ERROR_CODE:
-                throw new HSMChangedVersionException(formatErrorMessage("HSM Server version changed. '%s'. %s", methodName, response));
-            default:
-                throw new HSMDeviceException(String.format("Context: Running method '%s'", methodName), errorCode);
+        if (HSMResponseCode.valueOf(errorCode) == HSMResponseCode.V1_INVALID_VERSION) {
+            throw new HSMChangedVersionException(formatErrorMessage("HSM Server version changed. '%s'. %s", methodName, response));
         }
+        throw new HSMDeviceException(String.format("Context: Running method '%s'", methodName), errorCode);
     }
 }
