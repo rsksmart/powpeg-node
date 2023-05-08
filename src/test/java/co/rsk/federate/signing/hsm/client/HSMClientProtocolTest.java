@@ -25,7 +25,7 @@ import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.hsm.HSMChangedVersionException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
-import co.rsk.federate.signing.hsm.HSMGatewayException;
+import co.rsk.federate.signing.hsm.HSMDeviceException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -163,8 +163,7 @@ public class HSMClientProtocolTest {
             Assert.fail();
         } catch (HSMClientException e) {
             verify(jsonRpcClientProviderMock, times(1)).acquire();
-            Assert.assertTrue(e instanceof HSMGatewayException);
-            Assert.assertTrue(e.getMessage().contains("You should provide 'version' field"));
+            Assert.assertTrue(e instanceof HSMDeviceException);
         }
     }
 
@@ -175,7 +174,7 @@ public class HSMClientProtocolTest {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put("command", command);
         expectedRequest.put("version", version);
-        ObjectNode sendResponse = buildResponse(-904);
+        ObjectNode sendResponse = buildResponse(-666);
         sendResponse.put("error", "Requested version " + version + " but the gateway version is 1");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(sendResponse);
         hsmClientProtocol.setResponseHandler(new HSMResponseHandlerV1());
