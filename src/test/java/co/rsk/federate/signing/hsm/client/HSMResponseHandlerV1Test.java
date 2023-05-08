@@ -18,7 +18,10 @@
 
 package co.rsk.federate.signing.hsm.client;
 
-import co.rsk.federate.signing.hsm.*;
+import co.rsk.federate.signing.hsm.HSMChangedVersionException;
+import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMDeviceException;
+import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Assert;
@@ -33,87 +36,79 @@ public class HSMResponseHandlerV1Test {
         responseHandler = new HSMResponseHandlerV1();
     }
 
-    @Test(expected = HSMAuthException.class)
-    public void validateResponseRejectedKeyError() throws HSMClientException {
-        ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -103);
-
-        responseHandler.validateResponse("a-random-command-name", response);
-    }
-
     @Test
-    public void validateResponseServerError() {
+    public void validateDeviceError() {
         try {
             ObjectNode response = new ObjectMapper().createObjectNode();
-            response.put("errorcode", -4);
+            response.put("errorcode", -2);
             response.put("error", "a-random-error-message");
             responseHandler.validateResponse("a-random-command-name", response);
         } catch (HSMClientException e) {
-            Assert.assertTrue(e instanceof HSMGatewayException);
-            Assert.assertTrue(e.getMessage().contains("HSM Server returned exception"));
+            Assert.assertTrue(e instanceof HSMDeviceNotReadyException);
+            Assert.assertTrue(e.getMessage().contains("HSM Device returned exception"));
             Assert.assertTrue(e.getMessage().contains("a-random-error-message"));
         }
     }
 
-    @Test(expected = HSMChangedVersionException.class)
-    public void validateResponseVersionChangedError() throws HSMClientException {
-        ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -904);
-
-        responseHandler.validateResponse("a-random-command-name", response);
-    }
-
-    @Test(expected = HSMAuthException.class)
-    public void handleErrorResponseRejectedKey() throws HSMClientException {
-        int errcode = -103;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errcode);
-
-        responseHandler.handleErrorResponse(method, errcode, sendResponse);
-    }
-
     @Test
-    public void handleErrorResponseServerError() {
-        int errcode = -4;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errcode);
-        sendResponse.put("error", "a-random-error-message");
-
+    public void validateInvalidVersionError() {
         try {
-            responseHandler.handleErrorResponse(method, errcode, sendResponse);
-            Assert.fail();
+            ObjectNode response = new ObjectMapper().createObjectNode();
+            response.put("errorcode", -666);
+            response.put("error", "a-random-error-message");
+            responseHandler.validateResponse("a-random-command-name", response);
         } catch (HSMClientException e) {
-            Assert.assertTrue(e instanceof HSMGatewayException);
+            Assert.assertTrue(e instanceof HSMChangedVersionException);
+            Assert.assertTrue(e.getMessage().contains("HSM Server version changed."));
             Assert.assertTrue(e.getMessage().contains("a-random-error-message"));
         }
     }
 
-    @Test(expected = HSMChangedVersionException.class)
-    public void handleErrorResponseVersionChanged() throws HSMClientException {
-        int errcode = -904;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errcode);
-
-        responseHandler.handleErrorResponse(method, errcode, sendResponse);
-    }
-
     @Test
-    public void handleErrorResponseUnhandledErrorCode() {
-        int errcode = -99;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errcode);
+    public void validateUnknownError() {
         try {
-            responseHandler.handleErrorResponse(method, errcode, sendResponse);
-            Assert.fail();
+            ObjectNode response = new ObjectMapper().createObjectNode();
+            response.put("errorcode", -999);
+            response.put("error", "a-random-error-message");
+            responseHandler.validateResponse("a-random-command-name", response);
         } catch (HSMClientException e) {
             Assert.assertTrue(e instanceof HSMDeviceException);
-            Assert.assertEquals(Integer.valueOf(errcode), ((HSMDeviceException)e).getErrorCode());
+            Assert.assertTrue(e.getMessage().contains("Invalid HSM response code type"));
         }
     }
 
-    private ObjectNode buildResponse(int errorcode) {
+    @Test(expected = HSMDeviceNotReadyException.class)
+    public void handleDeviceError() throws HSMClientException {
+        int errorCode = -2;
+        String method = "version";
+        ObjectNode sendResponse = buildResponse(errorCode);
+        sendResponse.put("error", "a-random-error-message");
+
+        responseHandler.handleErrorResponse(method, errorCode, sendResponse);
+    }
+
+    @Test(expected = HSMChangedVersionException.class)
+    public void handleInvalidVersion() throws HSMClientException {
+        int errorCode = -666;
+        String method = "version";
+        ObjectNode sendResponse = buildResponse(errorCode);
+
+        responseHandler.handleErrorResponse(method, errorCode, sendResponse);
+    }
+
+    @Test(expected = HSMDeviceException.class)
+    public void handleUnknownError() throws HSMClientException {
+        int errorCode = -999;
+        String method = "version";
+        ObjectNode sendResponse = buildResponse(errorCode);
+        sendResponse.put("error", "a-random-error-message");
+
+        responseHandler.handleErrorResponse(method, errorCode, sendResponse);
+    }
+
+    private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", errorcode);
+        response.put("errorcode", errorCode);
         return response;
     }
 }
