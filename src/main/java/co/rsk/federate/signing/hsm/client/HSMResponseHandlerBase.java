@@ -34,8 +34,8 @@ public class HSMResponseHandlerBase {
     //When a `getVersion` request is sent to HSM a `device error` can occur
     //Since the HSM version is yet undefined we need to handle error codes for both versions at this stage
     protected void handleErrorResponse(String methodName, int errorCode, JsonNode response) throws HSMClientException {
-        HSMResponseCode errorCodeEnum = HSMResponseCode.valueOf(errorCode);
-        if (errorCodeEnum == V1_DEVICE_ERROR || errorCodeEnum == V2_DEVICE_ERROR) {
+        HSMResponseCode responseCode = HSMResponseCode.valueOf(errorCode);
+        if (responseCode == V1_DEVICE_ERROR || responseCode == V2_DEVICE_ERROR) {
             throw new HSMDeviceNotReadyException(formatErrorMessage("HSM Device returned exception '%s'. %s", methodName, response));
         }
     }
