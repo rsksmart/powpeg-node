@@ -25,8 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 
-import static co.rsk.federate.signing.hsm.client.HSMResponseCode.V1_DEVICE_ERROR;
-import static co.rsk.federate.signing.hsm.client.HSMResponseCode.V2_DEVICE_ERROR;
+import static co.rsk.federate.signing.hsm.client.HSMResponseCode.*;
 
 public class HSMResponseHandlerBase {
     protected static final String ERROR_CODE_FIELD = "errorcode";
@@ -67,7 +66,7 @@ public class HSMResponseHandlerBase {
 
     protected List<Integer> getOkErrorCodes() {
         List<Integer> okErrorCodes = new ArrayList<>();
-        okErrorCodes.add(0);
+        okErrorCodes.add(SUCCESS.getResponseCode());
         return okErrorCodes;
     }
 }

@@ -22,6 +22,8 @@ import co.rsk.federate.signing.hsm.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
+import static co.rsk.federate.signing.hsm.client.HSMResponseCode.PARTIAL_SUCCESS;
+
 public class PowHSMResponseHandler extends HSMResponseHandlerBase {
 
     /**
@@ -71,7 +73,7 @@ public class PowHSMResponseHandler extends HSMResponseHandlerBase {
     @Override
     protected List<Integer> getOkErrorCodes() {
         List<Integer> okErrorCodes = super.getOkErrorCodes();
-        okErrorCodes.add(1);
+        okErrorCodes.add(PARTIAL_SUCCESS.getResponseCode());
         return okErrorCodes;
     }
 }
