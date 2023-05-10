@@ -9,6 +9,8 @@ import java.util.Map;
  * Created by Kelvin Isievwore on 04/05/2023.
  */
 public enum HSMResponseCode {
+    SUCCESS(0),
+    PARTIAL_SUCCESS(1),
     V1_DEVICE_ERROR(-2),
     SERVER_ERROR(-4),
     WRONG_AUTH(-101),
@@ -47,5 +49,9 @@ public enum HSMResponseCode {
             throw new HSMDeviceException("Invalid HSM response code type", responseCode);
         }
         return hsmResponseCode;
+    }
+
+    public int getResponseCode() {
+        return responseCode;
     }
 }
