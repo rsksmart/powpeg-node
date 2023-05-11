@@ -8,7 +8,7 @@ import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.hsm.*;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
-import co.rsk.federate.signing.hsm.message.HSM2State;
+import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -380,10 +380,10 @@ public class HsmBookkeepingClientImplTest {
         state.set("updating", updating);
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(state, "state"));
 
-        HSM2State hsm2State = hsmBookkeepingClient.getHSMPointer();
-        Assert.assertEquals(expectedBestBlockHash, hsm2State.getBestBlockHash());
-        Assert.assertEquals(expectedAncestorBlockHash, hsm2State.getAncestorBlockHash());
-        Assert.assertFalse(hsm2State.isInProgress());
+        PowHSMState powHsmState = hsmBookkeepingClient.getHSMPointer();
+        Assert.assertEquals(expectedBestBlockHash, powHsmState.getBestBlockHash());
+        Assert.assertEquals(expectedAncestorBlockHash, powHsmState.getAncestorBlockHash());
+        Assert.assertFalse(powHsmState.isInProgress());
     }
 
     @Test(expected = HSMInvalidResponseException.class)

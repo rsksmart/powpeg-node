@@ -2,7 +2,7 @@ package co.rsk.federate.signing.hsm.requirements;
 
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
-import co.rsk.federate.signing.hsm.message.HSM2State;
+import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,7 +29,7 @@ public class AncestorBlockUpdater {
 
     public void ensureAncestorBlockInPosition(Block targetBlock) throws Exception {
         try {
-            HSM2State hsmPointer = hsmBookkeepingClient.getHSMPointer();
+            PowHSMState hsmPointer = hsmBookkeepingClient.getHSMPointer();
             if (!hsmPointer.getAncestorBlockHash().equals(targetBlock.getHash())) {
                 moveAncestorBlockToPosition(hsmPointer, targetBlock);
                 hsmPointer = hsmBookkeepingClient.getHSMPointer();
@@ -96,7 +96,7 @@ public class AncestorBlockUpdater {
         return payload;
     }
 
-    protected void moveAncestorBlockToPosition(HSM2State currentState, Block targetBlock) throws Exception {
+    protected void moveAncestorBlockToPosition(PowHSMState currentState, Block targetBlock) throws Exception {
         Keccak256 ancestorBlockHash = currentState.getAncestorBlockHash();
         Block ancestor = null;
         if (ancestorBlockHash != Keccak256.ZERO_HASH) {
