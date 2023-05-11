@@ -6,7 +6,7 @@ import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.PowHSMResponseHandler;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
-import co.rsk.federate.signing.hsm.message.HSM2State;
+import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -151,7 +151,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     @Override
-    public HSM2State getHSMPointer() throws HSMClientException {
+    public PowHSMState getHSMPointer() throws HSMClientException {
         final String BLOCKCHAIN_STATE_METHOD_NAME = "blockchainState";
         final String STATE_FIELD = "state";
         final String BEST_BLOCK_FIELD = "best_block";
@@ -177,7 +177,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
         logger.trace("[getHSMPointer] HSM State: BestBlock: {}, ancestor: {}, inProgress:{}", bestBlockHash, ancestorBlockHash, inProgress);
 
-        return new HSM2State(bestBlockHash, ancestorBlockHash, inProgress);
+        return new PowHSMState(bestBlockHash, ancestorBlockHash, inProgress);
     }
 
     @Override
