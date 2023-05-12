@@ -20,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -435,8 +436,8 @@ public class HsmBookkeepingClientImplTest {
 
     @Test
     public void getBlockchainParameters_ok() throws JsonRpcException, HSMClientException {
-        Keccak256 expectedCheckpoint = new Keccak256("0000000000000000000000000000000000000000000000000000000000000001");
-        int expectedMinimumDifficulty = 492567908;
+        Keccak256 expectedCheckpoint = new Keccak256("dcf840b0bb2a8f06bf933ec8afe305fd413f41683d665dc4f7e5dc3da285f70e");
+        BigInteger expectedMinimumDifficulty = new BigInteger("7000000000000000000000");
         String expectedNetwork = "regtest";
 
         ObjectNode parameters = objectMapper.createObjectNode();
