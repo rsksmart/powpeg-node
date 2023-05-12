@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -223,7 +224,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         this.hsmClientProtocol.validatePresenceOf(parameters, NETWORK_FIELD);
 
         String checkpoint = parameters.get(CHECKPOINT_FIELD).asText();
-        int minimumDifficulty = parameters.get(MINIMUM_DIFFICULTY_FIELD).asInt();
+        BigInteger minimumDifficulty = new BigInteger(parameters.get(MINIMUM_DIFFICULTY_FIELD).asText());
         String network = parameters.get(NETWORK_FIELD).asText();
 
         logger.info("[getBlockchainParameters] Checkpoint: {}, Minimum Difficulty: {}, Network: {}", checkpoint, minimumDifficulty, network);
