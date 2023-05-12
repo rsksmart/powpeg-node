@@ -8,7 +8,8 @@ import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.hsm.*;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
-import co.rsk.federate.signing.hsm.message.HSM2State;
+import co.rsk.federate.signing.hsm.message.PowHSMState;
+import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -377,12 +379,12 @@ public class HsmBookkeepingClientImplTest {
         ObjectNode updating = objectMapper.createObjectNode();
         updating.put("in_progress", false);
         state.set("updating", updating);
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(state));
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(state, "state"));
 
-        HSM2State hsm2State = hsmBookkeepingClient.getHSMPointer();
-        Assert.assertEquals(expectedBestBlockHash, hsm2State.getBestBlockHash());
-        Assert.assertEquals(expectedAncestorBlockHash, hsm2State.getAncestorBlockHash());
-        Assert.assertFalse(hsm2State.isInProgress());
+        PowHSMState powHsmState = hsmBookkeepingClient.getHSMPointer();
+        Assert.assertEquals(expectedBestBlockHash, powHsmState.getBestBlockHash());
+        Assert.assertEquals(expectedAncestorBlockHash, powHsmState.getAncestorBlockHash());
+        Assert.assertFalse(powHsmState.isInProgress());
     }
 
     @Test(expected = HSMInvalidResponseException.class)
@@ -390,7 +392,7 @@ public class HsmBookkeepingClientImplTest {
         Keccak256 expectedBestBlockHash = Keccak256.ZERO_HASH;
         ObjectNode state = objectMapper.createObjectNode();
         state.put("best_block", expectedBestBlockHash.toHexString());
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(state));
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(state, "state"));
 
         hsmBookkeepingClient.getHSMPointer();
     }
@@ -432,6 +434,38 @@ public class HsmBookkeepingClientImplTest {
         hsmBookkeepingClient.resetAdvanceBlockchain();
     }
 
+    @Test
+    public void getBlockchainParameters_ok() throws JsonRpcException, HSMClientException {
+        Keccak256 expectedCheckpoint = new Keccak256("dcf840b0bb2a8f06bf933ec8afe305fd413f41683d665dc4f7e5dc3da285f70e");
+        BigInteger expectedMinimumDifficulty = new BigInteger("7000000000000000000000");
+        String expectedNetwork = "regtest";
+
+        ObjectNode parameters = objectMapper.createObjectNode();
+        parameters.put("checkpoint", expectedCheckpoint.toHexString());
+        parameters.put("minimum_difficulty", expectedMinimumDifficulty);
+        parameters.put("network", expectedNetwork);
+
+        ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
+        expectedRequest.put("command", "blockchainParameters");
+        expectedRequest.put("version", 3);
+
+        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildResponse(parameters, "parameters"));
+
+        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, 3);
+
+        PowHSMBlockchainParameters blockchainParameters = hsmBookkeepingClient.getBlockchainParameters();
+
+        Assert.assertEquals(expectedCheckpoint, blockchainParameters.getCheckpoint());
+        Assert.assertEquals(expectedMinimumDifficulty, blockchainParameters.getMinimumDifficulty());
+        Assert.assertEquals(expectedNetwork, blockchainParameters.getNetwork());
+    }
+
+    @Test(expected = HSMUnsupportedTypeException.class)
+    public void getBlockchainParameters_hsm_version_2() throws HSMClientException {
+        hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol, 2);
+        hsmBookkeepingClient.getBlockchainParameters();
+    }
+
     private ObjectNode buildResponse(boolean inProgress) {
         Keccak256 expectedBestBlockHash = Keccak256.ZERO_HASH;
         Keccak256 expectedAncestorBlockHash = Keccak256.ZERO_HASH;
@@ -441,12 +475,12 @@ public class HsmBookkeepingClientImplTest {
         ObjectNode updating = objectMapper.createObjectNode();
         updating.put("in_progress", inProgress);
         state.set("updating", updating);
-        return buildResponse(state);
+        return buildResponse(state, "state");
     }
 
-    private ObjectNode buildResponse(ObjectNode state) {
+    private ObjectNode buildResponse(ObjectNode fieldValue, String fieldName) {
         ObjectNode response = buildResponse(0);
-        response.set("state", state);
+        response.set(fieldName, fieldValue);
         return response;
     }
 

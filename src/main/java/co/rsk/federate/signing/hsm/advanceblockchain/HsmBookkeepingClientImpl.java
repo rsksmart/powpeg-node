@@ -1,11 +1,13 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.PowHSMResponseHandler;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
-import co.rsk.federate.signing.hsm.message.HSM2State;
+import co.rsk.federate.signing.hsm.message.PowHSMState;
+import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +16,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -149,7 +152,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     @Override
-    public HSM2State getHSMPointer() throws HSMClientException {
+    public PowHSMState getHSMPointer() throws HSMClientException {
         final String BLOCKCHAIN_STATE_METHOD_NAME = "blockchainState";
         final String STATE_FIELD = "state";
         final String BEST_BLOCK_FIELD = "best_block";
@@ -175,7 +178,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
         logger.trace("[getHSMPointer] HSM State: BestBlock: {}, ancestor: {}, inProgress:{}", bestBlockHash, ancestorBlockHash, inProgress);
 
-        return new HSM2State(bestBlockHash, ancestorBlockHash, inProgress);
+        return new PowHSMState(bestBlockHash, ancestorBlockHash, inProgress);
     }
 
     @Override
@@ -196,5 +199,35 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     @Override
     public void setStopSending() {
         this.isStopped = true;
+    }
+
+    @Override
+    public PowHSMBlockchainParameters getBlockchainParameters() throws HSMClientException {
+        final String BLOCKCHAIN_PARAMETERS_COMMAND = "blockchainParameters";
+        final String PARAMETERS_FIELD = "parameters";
+        final String CHECKPOINT_FIELD = "checkpoint";
+        final String MINIMUM_DIFFICULTY_FIELD = "minimum_difficulty";
+        final String NETWORK_FIELD = "network";
+
+        if (this.version < 3) {
+            throw new HSMUnsupportedTypeException("method call not allowed for version {}." + this.version);
+        }
+
+        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_PARAMETERS_COMMAND, this.version);
+        JsonNode response = this.hsmClientProtocol.send(command);
+
+        this.hsmClientProtocol.validatePresenceOf(response, PARAMETERS_FIELD);
+        JsonNode parameters = response.get(PARAMETERS_FIELD);
+
+        this.hsmClientProtocol.validatePresenceOf(parameters, CHECKPOINT_FIELD);
+        this.hsmClientProtocol.validatePresenceOf(parameters, MINIMUM_DIFFICULTY_FIELD);
+        this.hsmClientProtocol.validatePresenceOf(parameters, NETWORK_FIELD);
+
+        String checkpoint = parameters.get(CHECKPOINT_FIELD).asText();
+        BigInteger minimumDifficulty = new BigInteger(parameters.get(MINIMUM_DIFFICULTY_FIELD).asText());
+        String network = parameters.get(NETWORK_FIELD).asText();
+
+        logger.info("[getBlockchainParameters] Checkpoint: {}, Minimum Difficulty: {}, Network: {}", checkpoint, minimumDifficulty, network);
+        return new PowHSMBlockchainParameters(checkpoint, minimumDifficulty, network);
     }
 }
