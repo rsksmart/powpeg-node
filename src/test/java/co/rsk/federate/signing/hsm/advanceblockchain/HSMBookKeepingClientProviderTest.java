@@ -22,19 +22,19 @@ public class HSMBookKeepingClientProviderTest {
     @Before
     public void setUp() {
         hsmClientProtocol = mock(HSMClientProtocol.class);
-        hsmBookKeepingClientProvider = new HSMBookKeepingClientProvider(hsmClientProtocol);
+        hsmBookKeepingClientProvider = new HSMBookKeepingClientProvider();
     }
 
     @Test(expected = HSMUnsupportedVersionException.class)
     public void getHSMBookkeepingClient_v1() throws HSMClientException {
         when(hsmClientProtocol.getVersion()).thenReturn(1);
-        hsmBookKeepingClientProvider.getHSMBookKeepingClient();
+        hsmBookKeepingClientProvider.getHSMBookKeepingClient(hsmClientProtocol);
     }
 
     @Test()
     public void getHSMBookkeepingClient_v2() throws HSMClientException {
         when(hsmClientProtocol.getVersion()).thenReturn(2);
-        HSMBookkeepingClient bookkeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient();
+        HSMBookkeepingClient bookkeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(hsmClientProtocol);
 
         Assert.assertTrue(bookkeepingClient instanceof HsmBookkeepingClientImpl);
     }
@@ -42,7 +42,7 @@ public class HSMBookKeepingClientProviderTest {
     @Test()
     public void getHSMBookkeepingClient_v3() throws HSMClientException {
         when(hsmClientProtocol.getVersion()).thenReturn(3);
-        HSMBookkeepingClient bookkeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient();
+        HSMBookkeepingClient bookkeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(hsmClientProtocol);
 
         Assert.assertTrue(bookkeepingClient instanceof HsmBookkeepingClientImpl);
     }
@@ -50,6 +50,6 @@ public class HSMBookKeepingClientProviderTest {
     @Test(expected = HSMUnsupportedVersionException.class)
     public void getHSMBookkeepingClient_unknown_version() throws HSMClientException {
         when(hsmClientProtocol.getVersion()).thenReturn(4);
-        hsmBookKeepingClientProvider.getHSMBookKeepingClient();
+        hsmBookKeepingClientProvider.getHSMBookKeepingClient(hsmClientProtocol);
     }
 }

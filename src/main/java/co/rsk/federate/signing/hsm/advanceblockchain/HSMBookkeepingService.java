@@ -39,9 +39,8 @@ public class HSMBookkeepingService {
             BlockStore blockStore,
             HSMBookkeepingClient hsmBookkeepingClient,
             NodeBlockProcessor nodeBlockProcessor,
-            PowHSMBookkeepingConfig bookkeepingConfig,
-            int hsmVersion
-    ) {
+            PowHSMBookkeepingConfig bookkeepingConfig
+    ) throws HSMClientException {
         this(
                 blockStore,
                 hsmBookkeepingClient,
@@ -50,7 +49,7 @@ public class HSMBookkeepingService {
                         bookkeepingConfig.getMaxAmountBlockHeaders(),
                         blockStore,
                         bookkeepingConfig.getDifficultyCap(),
-                        hsmVersion
+                        hsmBookkeepingClient.getVersion()
                 ),
                 nodeBlockProcessor,
                 bookkeepingConfig.getInformerInterval(),

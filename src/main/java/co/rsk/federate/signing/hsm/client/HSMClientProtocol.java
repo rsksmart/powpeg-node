@@ -80,9 +80,9 @@ public class HSMClientProtocol {
             validateResponse(VERSION_METHOD_NAME, response);
             validatePresenceOf(response, VERSION_FIELD);
 
-            int version = response.get(VERSION_FIELD).asInt();
-            logger.debug("HSM version: {}", version);
-            return version;
+            int hsmVersion = response.get(VERSION_FIELD).asInt();
+            logger.debug("HSM version: {}", hsmVersion);
+            return hsmVersion;
         } catch (RuntimeException e) {
             String message = String.format("Error trying to connect to HSM. Details: '%s. %s'", e.getClass(), e.getMessage());
             logger.error(message, e);
