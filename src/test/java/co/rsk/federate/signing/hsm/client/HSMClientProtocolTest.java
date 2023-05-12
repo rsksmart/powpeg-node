@@ -62,16 +62,8 @@ public class HSMClientProtocolTest {
         expectedRequest.put("command", "version");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(1));
         Assert.assertEquals(1, hsmClientProtocol.getVersion());
-    }
-
-    @Test
-    public void getVersionAlreadyCalledOnce() throws HSMClientException, JsonRpcException {
-        ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put("command", "version");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(2));
         Assert.assertEquals(2, hsmClientProtocol.getVersion());
-        Assert.assertEquals(2, hsmClientProtocol.getVersion());
-        verify(jsonRpcClientMock, times(1)).send(expectedRequest);
     }
 
     @Test

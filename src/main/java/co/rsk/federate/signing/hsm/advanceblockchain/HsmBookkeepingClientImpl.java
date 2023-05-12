@@ -29,6 +29,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     private int maxChunkSize = 10;  // DEFAULT VALUE
     private boolean isStopped = false;
     private final HSMClientProtocol hsmClientProtocol;
+    private Integer hsmVersion;
 
     public HsmBookkeepingClientImpl(HSMClientProtocol hsmClientProtocol) {
         this.hsmClientProtocol = hsmClientProtocol;
@@ -37,7 +38,10 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public int getVersion() throws HSMClientException {
-        return this.hsmClientProtocol.getVersion();
+        if (this.hsmVersion == null) {
+            this.hsmVersion = this.hsmClientProtocol.getVersion();
+        }
+        return this.hsmVersion;
     }
 
     protected <T> List<T[]> getChunks(
