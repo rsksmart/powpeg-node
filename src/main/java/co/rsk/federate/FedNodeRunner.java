@@ -122,7 +122,7 @@ public class FedNodeRunner implements NodeRunner {
         LOGGER.debug("[run] Starting RSK");
         signer = buildSigner();
         SignerConfig signerConfig = this.config.signerConfig(BTC_KEY_ID.getId());
-        if ("hsm".equals(signerConfig.getType())) {
+        if (signerConfig != null && "hsm".equals(signerConfig.getType())) {
             PowHSMBookkeepingConfig bookKeepingConfig = new PowHSMBookkeepingConfig(
                 signerConfig,
                 bridgeConstants.getBtcParamsString()
