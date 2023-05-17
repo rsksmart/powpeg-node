@@ -95,32 +95,21 @@ public class BtcToRskClientTest {
         assertTrue(proofs.isEmpty());
     }
 
-    private BtcToRskClient createClientWithMocks(
-        BitcoinWrapper bw,
-        FederatorSupport fs) throws Exception {
-
-        return createClientWithMocks(
-            bw,
-            fs,
-            TxSenderAddressType.P2PKH,
-            activationConfig,
-            100
-        );
+    private BtcToRskClient createClientWithMocks() throws Exception {
+        return createClientWithMocks(null, null);
     }
 
     private BtcToRskClient createClientWithMocks(
-        BitcoinWrapper bw,
-        FederatorSupport fs,
-        TxSenderAddressType txSenderAddressType,
-        ActivationConfig activationConfig,
-        int amountOfHeadersToSend) throws Exception {
+        BitcoinWrapper bitcoinWrapper,
+        FederatorSupport federatorSupport) throws Exception {
 
-        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(txSenderAddressType);
+        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
+        int amountOfHeadersToSend = 100;
 
         return btcToRskClientBuilder
             .withActivationConfig(activationConfig)
-            .withBitcoinWrapper(bw)
-            .withFederatorSupport(fs)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
             .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
@@ -141,10 +130,6 @@ public class BtcToRskClientTest {
             .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
             .withFederation(genesisFederation)
             .build();
-    }
-
-    private BtcToRskClient createClientWithMocks() throws Exception {
-        return createClientWithMocks(null, null);
     }
 
     @Test
