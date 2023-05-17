@@ -43,6 +43,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
@@ -55,6 +56,7 @@ public class BtcToRskClientTest {
 
     private int nhash = 0;
     private ActivationConfig activationConfig;
+    private BridgeConstants bridgeRegTestConstants;
     private Federation genesisFederation;
     private BtcToRskClientBuilder btcToRskClientBuilder;
 
@@ -64,7 +66,8 @@ public class BtcToRskClientTest {
         when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
         when(activationConfig.isActive(eq(ConsensusRule.RSKIP89), anyLong())).thenReturn(true);
 
-        genesisFederation = BridgeRegTestConstants.getInstance().getGenesisFederation();
+        bridgeRegTestConstants = BridgeRegTestConstants.getInstance();
+        genesisFederation = bridgeRegTestConstants.getGenesisFederation();
         btcToRskClientBuilder = new BtcToRskClientBuilder();
     }
 
@@ -83,7 +86,7 @@ public class BtcToRskClientTest {
         client.onTransaction(tx);
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
 
-        Assert.assertFalse(txs.isEmpty());
+        assertFalse(txs.isEmpty());
         assertEquals(1, txs.size());
 
         List<Proof> proofs = txs.get(tx.getWTxId());
@@ -127,7 +130,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationConfig)
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fs)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .withAmountOfHeadersToSend(amountOfHeadersToSend)
@@ -143,7 +146,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationConfig)
             .withBitcoinWrapper(bw)
             .withFederatorSupport(fs)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
             .withFederation(genesisFederation)
             .build();
@@ -165,7 +168,7 @@ public class BtcToRskClientTest {
 
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
 
-        Assert.assertFalse(txs.isEmpty());
+        assertFalse(txs.isEmpty());
         assertEquals(2, txs.size());
 
         List<Proof> proofs1 = txs.get(tx1.getWTxId());
@@ -192,19 +195,19 @@ public class BtcToRskClientTest {
 
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
 
-        Assert.assertFalse(txs.isEmpty());
+        assertFalse(txs.isEmpty());
         assertEquals(1, txs.size());
 
         assertTrue(txs.get(tx.getWTxId()).isEmpty());
 
         client.onBlock(block);
 
-        Assert.assertFalse(txs.get(tx.getWTxId()).isEmpty());
+        assertFalse(txs.get(tx.getWTxId()).isEmpty());
 
         List<Proof> proofs = txs.get(tx.getWTxId());
 
         assertNotNull(proofs);
-        Assert.assertFalse(proofs.isEmpty());
+        assertFalse(proofs.isEmpty());
         assertEquals(1, proofs.size());
 
         Proof proof = proofs.get(0);
@@ -224,13 +227,13 @@ public class BtcToRskClientTest {
 
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
 
-        Assert.assertFalse(txs.isEmpty());
+        assertFalse(txs.isEmpty());
         assertEquals(1, txs.size());
 
         List<Proof> proofs = txs.get(tx.getWTxId());
 
         assertNotNull(proofs);
-        Assert.assertFalse(proofs.isEmpty());
+        assertFalse(proofs.isEmpty());
         assertEquals(1, proofs.size());
 
         Proof proof = proofs.get(0);
@@ -254,13 +257,13 @@ public class BtcToRskClientTest {
 
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
 
-        Assert.assertFalse(txs.isEmpty());
+        assertFalse(txs.isEmpty());
         assertEquals(1, txs.size());
 
         List<Proof> proofs = txs.get(tx.getTxId());
 
         assertNotNull(proofs);
-        Assert.assertFalse(proofs.isEmpty());
+        assertFalse(proofs.isEmpty());
         assertEquals(1, proofs.size());
 
         Proof proof = proofs.get(0);
@@ -285,13 +288,13 @@ public class BtcToRskClientTest {
 
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
 
-        Assert.assertFalse(txs.isEmpty());
+        assertFalse(txs.isEmpty());
         assertEquals(2, txs.size());
 
         List<Proof> proofs = txs.get(tx.getTxId());
 
         assertNotNull(proofs);
-        Assert.assertFalse(proofs.isEmpty());
+        assertFalse(proofs.isEmpty());
         assertEquals(1, proofs.size());
 
         Proof proof = proofs.get(0);
@@ -302,7 +305,7 @@ public class BtcToRskClientTest {
         proofs = txs.get(tx2.getTxId());
 
         assertNotNull(proofs);
-        Assert.assertFalse(proofs.isEmpty());
+        assertFalse(proofs.isEmpty());
         assertEquals(1, proofs.size());
 
         proof = proofs.get(0);
@@ -326,13 +329,13 @@ public class BtcToRskClientTest {
 
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
 
-        Assert.assertFalse(txs.isEmpty());
+        assertFalse(txs.isEmpty());
         assertEquals(1, txs.size());
 
         List<Proof> proofs = txs.get(tx.getWTxId());
 
         assertNotNull(proofs);
-        Assert.assertFalse(proofs.isEmpty());
+        assertFalse(proofs.isEmpty());
         assertEquals(1, proofs.size());
 
         Proof proof = proofs.get(0);
@@ -356,13 +359,13 @@ public class BtcToRskClientTest {
 
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
 
-        Assert.assertFalse(txs.isEmpty());
+        assertFalse(txs.isEmpty());
         assertEquals(1, txs.size());
 
         List<Proof> proofs = txs.get(tx.getWTxId());
 
         assertNotNull(proofs);
-        Assert.assertFalse(proofs.isEmpty());
+        assertFalse(proofs.isEmpty());
         assertEquals(2, proofs.size());
 
         Proof proof1 = proofs.get(0);
@@ -411,8 +414,8 @@ public class BtcToRskClientTest {
         client.onBlock(block);
 
         verify(btcToRskClientFileStorageMock, never()).write(any());
-        Assert.assertFalse(btcToRskClientFileData.getTransactionProofs().containsKey(block.getHash()));
-        Assert.assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
+        assertFalse(btcToRskClientFileData.getTransactionProofs().containsKey(block.getHash()));
+        assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
     }
 
     @Test
@@ -441,7 +444,7 @@ public class BtcToRskClientTest {
             mock(NodeBlockProcessor.class),
             mockedActivationConfig,
             mock(BitcoinWrapperImpl.class),
-            BridgeRegTestConstants.getInstance(),
+            bridgeRegTestConstants,
             btcToRskClientFileStorageMock,
             mock(BtcLockSenderProvider.class),
             mock(PeginInstructionsProvider.class)
@@ -506,8 +509,8 @@ public class BtcToRskClientTest {
         client.onBlock(block);
 
         verify(btcToRskClientFileStorageMock, never()).write(any());
-        Assert.assertFalse(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
-        Assert.assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
+        assertFalse(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
+        assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
     }
 
     @Test
@@ -533,8 +536,8 @@ public class BtcToRskClientTest {
         client.onBlock(block);
 
         verify(btcToRskClientFileStorageMock, never()).write(any());
-        Assert.assertFalse(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
-        Assert.assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
+        assertFalse(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
+        assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
     }
 
     @Test
@@ -560,8 +563,8 @@ public class BtcToRskClientTest {
         client.onBlock(block);
 
         verify(btcToRskClientFileStorageMock, never()).write(any());
-        Assert.assertFalse(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
-        Assert.assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
+        assertFalse(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
+        assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
     }
 
     @Test
@@ -734,7 +737,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationConfig)
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .withAmountOfHeadersToSend(amountOfHeadersToSend)
@@ -862,7 +865,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationConfig)
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .withAmountOfHeadersToSend(amountOfHeadersToSend)
@@ -905,7 +908,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationConfig)
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .withAmountOfHeadersToSend(amountOfHeadersToSend)
@@ -1011,7 +1014,7 @@ public class BtcToRskClientTest {
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -1070,7 +1073,7 @@ public class BtcToRskClientTest {
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -1144,7 +1147,7 @@ public class BtcToRskClientTest {
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -1218,7 +1221,7 @@ public class BtcToRskClientTest {
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -1276,7 +1279,7 @@ public class BtcToRskClientTest {
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bw)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -1292,7 +1295,7 @@ public class BtcToRskClientTest {
             federatorSupport.getTxsSentToRegisterBtcTransaction();
 
         assertNotNull(txsSentToRegisterBtcTransaction);
-        Assert.assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
+        assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
         assertEquals(BtcToRskClient.MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN, txsSentToRegisterBtcTransaction.size());
     }
 
@@ -1337,7 +1340,7 @@ public class BtcToRskClientTest {
             BtcToRskClient client = btcToRskClientBuilder
                 .withBitcoinWrapper(bitcoinWrapper)
                 .withFederatorSupport(federatorSupport)
-                .withBridgeConstants(BridgeRegTestConstants.getInstance())
+                .withBridgeConstants(bridgeRegTestConstants)
                 .withBtcLockSenderProvider(btcLockSenderProvider)
                 .withFederation(genesisFederation)
                 .build();
@@ -1442,7 +1445,7 @@ public class BtcToRskClientTest {
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withFederation(genesisFederation)
             .build();
 
@@ -1488,7 +1491,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -1541,7 +1544,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -1611,8 +1614,6 @@ public class BtcToRskClientTest {
     @Test
     public void updateTransaction_with_release_before_rskip143() throws Exception {
         co.rsk.bitcoinj.core.NetworkParameters params = RegTestParams.get();
-        BridgeRegTestConstants bridgeConstants = BridgeRegTestConstants.getInstance();
-        Federation federation = bridgeConstants.getGenesisFederation();
         List<BtcECKey> federationPrivateKeys = BridgeRegTestConstants.REGTEST_FEDERATION_PRIVATE_KEYS;
         co.rsk.bitcoinj.core.Address randomAddress =
                 new co.rsk.bitcoinj.core.Address(params, org.bouncycastle.util.encoders.Hex.decode("4a22c3c4cbb31e4d03b15550636762bda0baf85a"));
@@ -1626,22 +1627,22 @@ public class BtcToRskClientTest {
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx1 = new BtcTransaction(params);
         releaseTx1.addOutput(co.rsk.bitcoinj.core.Coin.COIN, randomAddress);
-        releaseTx1.addOutput(co.rsk.bitcoinj.core.Coin.COIN.divide(2), federation.getAddress()); // Change output
+        releaseTx1.addOutput(co.rsk.bitcoinj.core.Coin.COIN.divide(2), genesisFederation.getAddress()); // Change output
         co.rsk.bitcoinj.core.TransactionInput releaseInput1 =
                 new co.rsk.bitcoinj.core.TransactionInput(params, releaseTx1,
                         new byte[]{}, new co.rsk.bitcoinj.core.TransactionOutPoint(params, 0, co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH));
         releaseTx1.addInput(releaseInput1);
 
         // Sign it using the Federation members
-        co.rsk.bitcoinj.script.Script redeemScript = createBaseRedeemScriptThatSpendsFromTheFederation(federation);
-        co.rsk.bitcoinj.script.Script inputScript = createBaseInputScriptThatSpendsFromTheFederation(federation);
+        co.rsk.bitcoinj.script.Script redeemScript = createBaseRedeemScriptThatSpendsFromTheFederation(genesisFederation);
+        co.rsk.bitcoinj.script.Script inputScript = createBaseInputScriptThatSpendsFromTheFederation(genesisFederation);
         releaseInput1.setScriptSig(inputScript);
 
         co.rsk.bitcoinj.core.Sha256Hash sighash = releaseTx1.hashForSignature(0, redeemScript, BtcTransaction.SigHash.ALL, false);
 
-        for (int i = 0; i < federation.getNumberOfSignaturesRequired(); i++) {
+        for (int i = 0; i < genesisFederation.getNumberOfSignaturesRequired(); i++) {
             BtcECKey federatorPrivKey = federationPrivateKeys.get(i);
-            BtcECKey federatorPublicKey = federation.getBtcPublicKeys().get(i);
+            BtcECKey federatorPublicKey = genesisFederation.getBtcPublicKeys().get(i);
 
             BtcECKey.ECDSASignature sig = federatorPrivKey.sign(sighash);
             TransactionSignature txSig = new TransactionSignature(sig, BtcTransaction.SigHash.ALL, false);
@@ -1652,9 +1653,9 @@ public class BtcToRskClientTest {
         releaseInput1.setScriptSig(inputScript);
 
         // Verify it was properly signed
-        assertTrue(BridgeUtils.isPegOutTx(releaseTx1, Collections.singletonList(federation), activations));
+        assertTrue(BridgeUtils.isPegOutTx(releaseTx1, Collections.singletonList(genesisFederation), activations));
 
-        Transaction releaseTx = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString(), releaseTx1);
+        Transaction releaseTx = ThinConverter.toOriginalInstance(bridgeRegTestConstants.getBtcParamsString(), releaseTx1);
 
         // Construct environment
         Set<Transaction> txs = new HashSet<>();
@@ -1675,14 +1676,14 @@ public class BtcToRskClientTest {
             mock(NodeBlockProcessor.class),
             activationsConfig,
             bitcoinWrapper,
-            bridgeConstants,
+            bridgeRegTestConstants,
             getMockedBtcToRskClientFileStorage(),
             new BtcLockSenderProvider(),
             new PeginInstructionsProvider()
         );
 
         // Assign Federation to BtcToRskClient
-        client.start(federation);
+        client.start(genesisFederation);
 
         // Ensure tx is loaded and its proof is also loaded
         client.onTransaction(releaseTx);
@@ -1696,7 +1697,7 @@ public class BtcToRskClientTest {
             federatorSupport.getTxsSentToRegisterBtcTransaction();
 
         assertNotNull(txsSentToRegisterBtcTransaction);
-        Assert.assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
+        assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
         assertEquals(releaseTx.getTxId(), txsSentToRegisterBtcTransaction.get(0).tx.getTxId());
     }
 
@@ -1821,7 +1822,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -1835,7 +1836,7 @@ public class BtcToRskClientTest {
             federatorSupport.getTxsSentToRegisterBtcTransaction();
 
         assertNotNull(txsSentToRegisterBtcTransaction);
-        Assert.assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
+        assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
@@ -1872,7 +1873,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withFederation(genesisFederation)
             .build();
 
@@ -1927,7 +1928,7 @@ public class BtcToRskClientTest {
             .withActivationConfig(activationsConfig)
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -1977,7 +1978,7 @@ public class BtcToRskClientTest {
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -2022,7 +2023,7 @@ public class BtcToRskClientTest {
         BtcToRskClient client = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(BridgeRegTestConstants.getInstance())
+            .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
             .build();
@@ -2142,7 +2143,7 @@ public class BtcToRskClientTest {
             mock(NodeBlockProcessor.class),
             activations,
             mock(BitcoinWrapperImpl.class),
-            BridgeRegTestConstants.getInstance(),
+            bridgeRegTestConstants,
             btcToRskClientFileStorageMock,
             mock(BtcLockSenderProvider.class),
             mock(PeginInstructionsProvider.class)
@@ -2180,7 +2181,7 @@ public class BtcToRskClientTest {
             mock(NodeBlockProcessor.class),
             activations,
             mock(BitcoinWrapperImpl.class),
-            BridgeRegTestConstants.getInstance(),
+            bridgeRegTestConstants,
             btcToRskClientFileStorageMock,
             mock(BtcLockSenderProvider.class),
             mock(PeginInstructionsProvider.class)
@@ -2222,7 +2223,7 @@ public class BtcToRskClientTest {
             mock(NodeBlockProcessor.class),
             activations,
             mock(BitcoinWrapperImpl.class),
-            BridgeRegTestConstants.getInstance(),
+            bridgeRegTestConstants,
             btcToRskClientFileStorageMock,
             mock(BtcLockSenderProvider.class),
             mock(PeginInstructionsProvider.class)
@@ -2267,7 +2268,7 @@ public class BtcToRskClientTest {
             mock(NodeBlockProcessor.class),
             activations,
             mock(BitcoinWrapperImpl.class),
-            BridgeRegTestConstants.getInstance(),
+            bridgeRegTestConstants,
             btcToRskClientFileStorageMock,
             mock(BtcLockSenderProvider.class),
             mock(PeginInstructionsProvider.class)
@@ -2310,7 +2311,7 @@ public class BtcToRskClientTest {
             nodeBlockProcessor,
             activationConfig,
             bitcoinWrapper,
-            BridgeRegTestConstants.getInstance(),
+            bridgeRegTestConstants,
             getMockedBtcToRskClientFileStorage(),
             mock(BtcLockSenderProvider.class),
             mock(PeginInstructionsProvider.class)
@@ -2344,7 +2345,7 @@ public class BtcToRskClientTest {
         when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
         Map<Sha256Hash, Transaction> txsInWallet = new HashMap<>();
         txsInWallet.put(peginTx.getWTxId(), peginTx);
-        when(bitcoinWrapper.getTransactionMap(BridgeRegTestConstants.getInstance().getBtc2RskMinimumAcceptableConfirmations()))
+        when(bitcoinWrapper.getTransactionMap(bridgeRegTestConstants.getBtc2RskMinimumAcceptableConfirmations()))
             .thenReturn(txsInWallet);
 
         List<Proof> proofs = new ArrayList<>();
@@ -2368,7 +2369,7 @@ public class BtcToRskClientTest {
             nodeBlockProcessor,
             activationConfig,
             bitcoinWrapper,
-            BridgeRegTestConstants.getInstance(),
+            bridgeRegTestConstants,
             btcToRskClientFileStorageMock,
             btcLockSenderProvider,
             peginInstructionsProvider
