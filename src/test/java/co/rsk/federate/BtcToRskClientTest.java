@@ -99,19 +99,10 @@ public class BtcToRskClientTest {
         BitcoinWrapper bw,
         FederatorSupport fs) throws Exception {
 
-        return createClientWithMocks(bw, fs, TxSenderAddressType.P2PKH, activationConfig);
-    }
-
-    private BtcToRskClient createClientWithMocks(
-        BitcoinWrapper bw,
-        FederatorSupport fs,
-        TxSenderAddressType txSenderAddressType,
-        ActivationConfig activationConfig) throws Exception {
-
         return createClientWithMocks(
             bw,
             fs,
-            txSenderAddressType,
+            TxSenderAddressType.P2PKH,
             activationConfig,
             100
         );
@@ -1592,12 +1583,18 @@ public class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
         doReturn(false).when(activations).isActive(eq(ConsensusRule.RSKIP143));
 
-        BtcToRskClient client = createClientWithMocks(
-            bitcoinWrapper,
-            federatorSupport,
-            TxSenderAddressType.P2SHMULTISIG,
-            activationsConfig
-        );
+        int amountOfHeadersToSend = 100;
+        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHMULTISIG);
+
+        BtcToRskClient client = btcToRskClientBuilder
+            .withActivationConfig(activationsConfig)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
+            .withBridgeConstants(bridgeRegTestConstants)
+            .withBtcLockSenderProvider(btcLockSenderProvider)
+            .withFederation(genesisFederation)
+            .withAmountOfHeadersToSend(amountOfHeadersToSend)
+            .build();
 
         client.onTransaction(tx);
         client.onBlock(blockWithTx);
@@ -1726,12 +1723,18 @@ public class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
         doReturn(false).when(activations).isActive(eq(ConsensusRule.RSKIP143));
 
-        BtcToRskClient client = createClientWithMocks(
-            bitcoinWrapper,
-            federatorSupport,
-            TxSenderAddressType.P2SHP2WPKH,
-            activationsConfig
-        );
+        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHP2WPKH);
+        int amountOfHeadersToSend = 100;
+
+        BtcToRskClient client = btcToRskClientBuilder
+            .withActivationConfig(activationsConfig)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
+            .withBridgeConstants(bridgeRegTestConstants)
+            .withBtcLockSenderProvider(btcLockSenderProvider)
+            .withFederation(genesisFederation)
+            .withAmountOfHeadersToSend(amountOfHeadersToSend)
+            .build();
 
         client.onTransaction(tx);
         client.onBlock(blockWithTx);
@@ -1771,12 +1774,18 @@ public class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
         doReturn(false).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
 
-        BtcToRskClient client = createClientWithMocks(
-            bitcoinWrapper,
-            federatorSupport,
-            TxSenderAddressType.UNKNOWN,
-            activationsConfig
-        );
+        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.UNKNOWN);
+        int amountOfHeadersToSend = 100;
+
+        BtcToRskClient client = btcToRskClientBuilder
+            .withActivationConfig(activationsConfig)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
+            .withBridgeConstants(bridgeRegTestConstants)
+            .withBtcLockSenderProvider(btcLockSenderProvider)
+            .withFederation(genesisFederation)
+            .withAmountOfHeadersToSend(amountOfHeadersToSend)
+            .build();
 
         client.onTransaction(tx);
         client.onBlock(blockWithTx);
