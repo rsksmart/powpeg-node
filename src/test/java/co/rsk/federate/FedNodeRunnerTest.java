@@ -10,6 +10,7 @@ import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
 import co.rsk.federate.signing.ECDSACompositeSigner;
 import co.rsk.federate.signing.ECDSASigner;
+import co.rsk.federate.signing.ECDSASignerFromFileKey;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.utils.TestUtils;
@@ -42,9 +43,6 @@ public class FedNodeRunnerTest {
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
 
         config = mock(Config.class);
-        when(config.getString("host")).thenReturn("127.0.0.1");
-        when(config.getInt("port")).thenReturn(9999);
-        when(config.getString("keyId")).thenReturn("rsk");
         when(config.getString("path")).thenReturn("reg1.key");
 
         fedNodeRunner = new FedNodeRunner(
