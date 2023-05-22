@@ -38,28 +38,6 @@ public class HSMBookkeepingService {
     public HSMBookkeepingService(
         BlockStore blockStore,
         HSMBookkeepingClient hsmBookkeepingClient,
-        NodeBlockProcessor nodeBlockProcessor,
-        PowHSMBookkeepingConfig bookkeepingConfig
-    ) throws HSMClientException {
-        this(
-                blockStore,
-                hsmBookkeepingClient,
-                new ConfirmedBlockHeadersProvider(
-                    bookkeepingConfig.getDifficultyTarget(),
-                    bookkeepingConfig.getMaxAmountBlockHeaders(),
-                    blockStore,
-                    bookkeepingConfig.getDifficultyCap(),
-                    hsmBookkeepingClient.getVersion()
-                ),
-                nodeBlockProcessor,
-                bookkeepingConfig.getInformerInterval(),
-                bookkeepingConfig
-        );
-    }
-
-    public HSMBookkeepingService(
-        BlockStore blockStore,
-        HSMBookkeepingClient hsmBookkeepingClient,
         ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider,
         NodeBlockProcessor nodeBlockProcessor,
         long advanceBlockchainTimeInterval,
