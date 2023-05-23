@@ -10,14 +10,12 @@ import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.config.BridgeConstants;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.FedNodeRunner;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.FederationCantSignException;
 import co.rsk.federate.signing.FederatorAlreadySignedException;
-import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
@@ -67,6 +65,8 @@ import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
 
 /**
  * Manages signing and broadcasting release txs
@@ -248,8 +248,7 @@ public class BtcReleaseClient {
     protected void processReleases(Set<Map.Entry<Keccak256, BtcTransaction>> releases) {
         try {
             logger.debug("[processReleases] Starting process with {} releases", releases.size());
-            KeyId keyId = FedNodeRunner.BTC_KEY_ID;
-            int version = signer.getVersionForKeyId(keyId);
+            int version = signer.getVersionForKeyId(BTC_KEY_ID.getKeyId());
             // Get release information and store it in a new list
             List<ReleaseCreationInformation> releasesReadyToSign = new ArrayList<>();
             for (Map.Entry<Keccak256, BtcTransaction> release : releases) {
@@ -321,8 +320,7 @@ public class BtcReleaseClient {
 
     protected void validateTxCanBeSigned(BtcTransaction btcTx) throws FederatorAlreadySignedException, FederationCantSignException {
         try {
-            KeyId keyId = FedNodeRunner.BTC_KEY_ID;
-            BtcECKey federatorPublicKey = signer.getPublicKey(keyId).toBtcKey();
+            BtcECKey federatorPublicKey = signer.getPublicKey(BTC_KEY_ID.getKeyId()).toBtcKey();
             logger.trace("[validateTxCanBeSigned] Federator public key {}", federatorPublicKey);
 
             for (int inputIndex = 0; inputIndex < btcTx.getInputs().size(); inputIndex++) {
@@ -385,7 +383,7 @@ public class BtcReleaseClient {
             for (int inputIndex = 0; inputIndex < releaseCreationInformation.getBtcTransaction().getInputs().size(); inputIndex++) {
                 SignerMessage messageToSign = messageBuilder.buildMessageForIndex(inputIndex);
                 logger.trace("[signRelease] Message to sign: {}", messageToSign.getClass());
-                ECKey.ECDSASignature ethSig = signer.sign(FedNodeRunner.BTC_KEY_ID, messageToSign);
+                ECKey.ECDSASignature ethSig = signer.sign(BTC_KEY_ID.getKeyId(), messageToSign);
                 logger.debug("[signRelease] Message successfully signed");
                 BtcECKey.ECDSASignature sig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
                 signatures.add(sig.encodeToDER());

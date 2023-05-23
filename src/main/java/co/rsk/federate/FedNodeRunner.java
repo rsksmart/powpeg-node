@@ -65,18 +65,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static co.rsk.federate.signing.PowPegNodeKeyId.*;
+
 /**
  * Created by mario on 31/03/17.
  */
 
 public class FedNodeRunner implements NodeRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(FedNodeRunner.class);
-
-    // TODO: Consider moving this into somewhere else in the future. Leave here for now.
-    public static final KeyId BTC_KEY_ID = new KeyId("BTC");
-    public static final KeyId RSK_KEY_ID = new KeyId("RSK");
-    public static final KeyId MST_KEY_ID = new KeyId("MST");
-
     private final BtcToRskClient btcToRskClientActive;
     private final BtcToRskClient btcToRskClientRetiring;
     private final BtcReleaseClient btcReleaseClient;
@@ -153,9 +149,9 @@ public class FedNodeRunner implements NodeRunner {
     }
 
     private void configureFederatorSupport() throws SignerException {
-        BtcECKey btcPublicKey = signer.getPublicKey(BTC_KEY_ID).toBtcKey();
-        ECKey rskPublicKey = signer.getPublicKey(RSK_KEY_ID).toEthKey();
-        ECKey mstKey = signer.getPublicKey(MST_KEY_ID).toEthKey();
+        BtcECKey btcPublicKey = signer.getPublicKey(BTC_KEY_ID.getKeyId()).toBtcKey();
+        ECKey rskPublicKey = signer.getPublicKey(RSK_KEY_ID.getKeyId()).toEthKey();
+        ECKey mstKey = signer.getPublicKey(MST_KEY_ID.getKeyId()).toEthKey();
         LOGGER.info(
             "[configureFederatorSupport] BTC public key: {}. RSK public key: {}. MST public key: {}",
             btcPublicKey,
@@ -178,7 +174,7 @@ public class FedNodeRunner implements NodeRunner {
 
         Stream.of(BTC_KEY_ID, RSK_KEY_ID, MST_KEY_ID).forEach(keyId -> {
             try {
-                ECDSASigner createdSigner = buildSignerFromKey(keyId);
+                ECDSASigner createdSigner = buildSignerFromKey(keyId.getKeyId());
                 compositeSigner.addSigner(createdSigner);
             } catch (SignerException e) {
                 LOGGER.error("[buildSigner] Error trying to build signer with key id {}. Detail: {}", keyId, e.getMessage());
@@ -239,7 +235,7 @@ public class FedNodeRunner implements NodeRunner {
 
             Federator federator = new Federator(
                 signer,
-                Arrays.asList(BTC_KEY_ID, RSK_KEY_ID),
+                Arrays.asList(BTC_KEY_ID.getKeyId(), RSK_KEY_ID.getKeyId()),
                 new FederatorPeersChecker(
                     defaultPort,
                     peers,
