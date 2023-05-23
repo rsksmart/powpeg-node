@@ -1,7 +1,6 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceException;
 import co.rsk.federate.signing.hsm.HSMInvalidResponseException;
@@ -25,23 +24,19 @@ import static org.mockito.Mockito.*;
 
 public class HSMBookkeepingServiceTest {
 
-    // Start
     @Test
     public void start_ok() throws InterruptedException, HSMClientException {
-
-        PowHSMBookkeepingConfig mockPowHsmBookkeepingConfig = mock(PowHSMBookkeepingConfig.class);
-        when(mockPowHsmBookkeepingConfig.isStopBookkeepingScheduler()).thenReturn(false);
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mockHsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mockPowHsmBookkeepingConfig
+            mock(BlockStore.class),
+            mockHsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         service.start();
@@ -55,16 +50,14 @@ public class HSMBookkeepingServiceTest {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
-        PowHSMBookkeepingConfig mockPowHsmBookkeepingConfig = mock(PowHSMBookkeepingConfig.class);
-        when(mockPowHsmBookkeepingConfig.isStopBookkeepingScheduler()).thenReturn(false);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mockHsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mockPowHsmBookkeepingConfig
+            mock(BlockStore.class),
+            mockHsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         service.start();
@@ -77,18 +70,16 @@ public class HSMBookkeepingServiceTest {
     }
 
     @Test
-    public void start_with_stopBookkepingConf_True() throws InterruptedException, HSMClientException {
-        PowHSMBookkeepingConfig mockPowHsmBookkeepingConfig = mock(PowHSMBookkeepingConfig.class);
-        when(mockPowHsmBookkeepingConfig.isStopBookkeepingScheduler()).thenReturn(true);
+    public void start_with_stopBookkepingConf_True() throws InterruptedException {
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mock(HSMBookkeepingClient.class),
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mockPowHsmBookkeepingConfig
+            mock(BlockStore.class),
+            mock(HSMBookkeepingClient.class),
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            true
         );
 
         service.addListener(mockListener);
@@ -105,18 +96,15 @@ public class HSMBookkeepingServiceTest {
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
 
-        PowHSMBookkeepingConfig mockPowHsmBookkeepingConfig = mock(PowHSMBookkeepingConfig.class);
-        when(mockPowHsmBookkeepingConfig.isStopBookkeepingScheduler()).thenReturn(false);
-
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mockHsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mockPowHsmBookkeepingConfig
+            mock(BlockStore.class),
+            mockHsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         service.addListener(mockListener);
@@ -136,12 +124,12 @@ public class HSMBookkeepingServiceTest {
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mockHsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mock(PowHSMBookkeepingConfig.class)
+            mock(BlockStore.class),
+            mockHsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         service.addListener(mockListener);
@@ -161,12 +149,12 @@ public class HSMBookkeepingServiceTest {
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mockHsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mock(PowHSMBookkeepingConfig.class)
+            mock(BlockStore.class),
+            mockHsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         service.addListener(mockListener);
@@ -187,12 +175,12 @@ public class HSMBookkeepingServiceTest {
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mockHsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mock(PowHSMBookkeepingConfig.class)
+            mock(BlockStore.class),
+            mockHsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         service.addListener(mockListener);
@@ -212,12 +200,12 @@ public class HSMBookkeepingServiceTest {
 
         // Configuring the Scheduler with 0ms interval throws an IllegalArgumentException
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mockHsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                0,
-                mock(PowHSMBookkeepingConfig.class)
+            mock(BlockStore.class),
+            mockHsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            0,
+            false
         );
 
         HSMBookeepingServiceListener listener = mock(HSMBookeepingServiceListener.class);
@@ -237,16 +225,14 @@ public class HSMBookkeepingServiceTest {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
-        PowHSMBookkeepingConfig mockPowHsmBookkeepingConfig = mock(PowHSMBookkeepingConfig.class);
-        when(mockPowHsmBookkeepingConfig.isStopBookkeepingScheduler()).thenReturn(false);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mockHsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mockPowHsmBookkeepingConfig
+            mock(BlockStore.class),
+            mockHsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         service.start();
@@ -266,12 +252,12 @@ public class HSMBookkeepingServiceTest {
         when(hsmBookkeepingClient.getHSMPointer()).thenReturn(state);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                hsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mock(PowHSMBookkeepingConfig.class)
+            mock(BlockStore.class),
+            hsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         service.stop();
@@ -294,16 +280,13 @@ public class HSMBookkeepingServiceTest {
         HSMBookkeepingClient hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         when(hsmBookkeepingClient.getHSMPointer()).thenThrow(new HSMDeviceException("", 1));
 
-        PowHSMBookkeepingConfig mockPowHsmBookkeepingConfig = mock(PowHSMBookkeepingConfig.class);
-        when(mockPowHsmBookkeepingConfig.isStopBookkeepingScheduler()).thenReturn(false);
-
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                hsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mockPowHsmBookkeepingConfig
+            mock(BlockStore.class),
+            hsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         HSMBookeepingServiceListener listener = mock(HSMBookeepingServiceListener.class);
@@ -320,16 +303,13 @@ public class HSMBookkeepingServiceTest {
         HSMBookkeepingClient hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         when(hsmBookkeepingClient.getHSMPointer()).thenThrow(new HSMDeviceException("", 1));
 
-        PowHSMBookkeepingConfig mockPowHsmBookkeepingConfig = mock(PowHSMBookkeepingConfig.class);
-        when(mockPowHsmBookkeepingConfig.isStopBookkeepingScheduler()).thenReturn(false);
-
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                hsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mockPowHsmBookkeepingConfig
+            mock(BlockStore.class),
+            hsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         HSMBookeepingServiceListener listener = mock(HSMBookeepingServiceListener.class);
@@ -364,12 +344,12 @@ public class HSMBookkeepingServiceTest {
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
-                mockBlockStore,
-                mockHsmBookkeepingClient,
-                mockConfirmedBlockHeadersProvider,
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mock(PowHSMBookkeepingConfig.class)
+            mockBlockStore,
+            mockHsmBookkeepingClient,
+            mockConfirmedBlockHeadersProvider,
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
 
         );
 
@@ -411,7 +391,7 @@ public class HSMBookkeepingServiceTest {
             mockConfirmedBlockHeadersProvider,
             nodeBlockProcessor,
             2_000,
-            mock(PowHSMBookkeepingConfig.class)
+            false
         );
 
         // Delegate execution to different thread to be able to call second inform immediately
@@ -445,12 +425,12 @@ public class HSMBookkeepingServiceTest {
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService hsmBookkeepingService = new HSMBookkeepingService(
-                mockBlockStore,
-                mockHsmBookkeepingClient,
-                mockConfirmedBlockHeadersProvider,
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mock(PowHSMBookkeepingConfig.class)
+            mockBlockStore,
+            mockHsmBookkeepingClient,
+            mockConfirmedBlockHeadersProvider,
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         hsmBookkeepingService.addListener(mockListener);
@@ -468,19 +448,19 @@ public class HSMBookkeepingServiceTest {
     }
 
     @Test
-    public void informConfirmedBlockHeaders_hasBetterBlockToSync_true() throws InterruptedException, HSMClientException {
+    public void informConfirmedBlockHeaders_hasBetterBlockToSync_true() throws InterruptedException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
         NodeBlockProcessor mockNodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(mockNodeBlockProcessor.hasBetterBlockToSync()).thenReturn(true);
 
         HSMBookkeepingService hsmBookkeepingService = new HSMBookkeepingService(
-                mock(BlockStore.class),
-                mockHsmBookkeepingClient,
-                mock(ConfirmedBlockHeadersProvider.class),
-                mockNodeBlockProcessor,
-                2_000,
-                mock(PowHSMBookkeepingConfig.class)
+            mock(BlockStore.class),
+            mockHsmBookkeepingClient,
+            mock(ConfirmedBlockHeadersProvider.class),
+            mockNodeBlockProcessor,
+            2_000,
+            false
         );
 
         hsmBookkeepingService.addListener(mockListener);
@@ -508,12 +488,12 @@ public class HSMBookkeepingServiceTest {
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService hsmBookkeepingService = new HSMBookkeepingService(
-                mockBlockStore,
-                mockHsmBookkeepingClient,
-                mockConfirmedBlockHeadersProvider,
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mock(PowHSMBookkeepingConfig.class)
+            mockBlockStore,
+            mockHsmBookkeepingClient,
+            mockConfirmedBlockHeadersProvider,
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         hsmBookkeepingService.addListener(mockListener);
@@ -548,12 +528,12 @@ public class HSMBookkeepingServiceTest {
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService hsmBookkeepingService = new HSMBookkeepingService(
-                mockBlockStore,
-                mockHsmBookkeepingClient,
-                mockConfirmedBlockHeadersProvider,
-                mock(NodeBlockProcessor.class),
-                2_000,
-                mock(PowHSMBookkeepingConfig.class)
+            mockBlockStore,
+            mockHsmBookkeepingClient,
+            mockConfirmedBlockHeadersProvider,
+            mock(NodeBlockProcessor.class),
+            2_000,
+            false
         );
 
         hsmBookkeepingService.addListener(mockListener);
@@ -563,11 +543,9 @@ public class HSMBookkeepingServiceTest {
         hsmBookkeepingService.informConfirmedBlockHeaders();
 
         // Assert
-        verify(mockConfirmedBlockHeadersProvider,times(1)).getConfirmedBlockHeaders(any());
+        verify(mockConfirmedBlockHeadersProvider, times(1)).getConfirmedBlockHeaders(any());
         verify(mockHsmBookkeepingClient, never()).advanceBlockchain(any(AdvanceBlockchainMessage.class));
         verify(mockBlockStore, times(1)).getBlockByHash(any());
         Mockito.verifyNoInteractions(mockListener);
     }
-
-
 }
