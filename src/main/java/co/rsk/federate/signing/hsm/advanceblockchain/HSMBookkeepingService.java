@@ -41,7 +41,7 @@ public class HSMBookkeepingService {
         ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider,
         NodeBlockProcessor nodeBlockProcessor,
         long advanceBlockchainTimeInterval,
-        PowHSMBookkeepingConfig bookkeepingConfig
+        boolean stopBookkeepingScheduler
     ) {
         this.blockStore = blockStore;
         this.hsmBookkeepingClient = hsmBookkeepingClient;
@@ -49,7 +49,7 @@ public class HSMBookkeepingService {
         this.advanceBlockchainTimeInterval = advanceBlockchainTimeInterval;
         this.listeners = new ArrayList<>();
         this.nodeBlockProcessor = nodeBlockProcessor;
-        this.stopBookkeepingScheduler = bookkeepingConfig.isStopBookkeepingScheduler();
+        this.stopBookkeepingScheduler = stopBookkeepingScheduler;
     }
 
     public void addListener(HSMBookeepingServiceListener listener) {

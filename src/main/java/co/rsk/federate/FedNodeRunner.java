@@ -215,7 +215,7 @@ public class FedNodeRunner implements NodeRunner {
             ),
             fedNodeContext.getNodeBlockProcessor(),
             bookKeepingConfig.getInformerInterval(),
-            bookKeepingConfig
+            bookKeepingConfig.isStopBookkeepingScheduler()
         );
         LOGGER.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersion());
         return service;
