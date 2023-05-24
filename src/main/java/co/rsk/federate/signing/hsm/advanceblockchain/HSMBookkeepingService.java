@@ -1,7 +1,6 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
@@ -38,32 +37,10 @@ public class HSMBookkeepingService {
     public HSMBookkeepingService(
         BlockStore blockStore,
         HSMBookkeepingClient hsmBookkeepingClient,
-        NodeBlockProcessor nodeBlockProcessor,
-        PowHSMBookkeepingConfig bookkeepingConfig
-    ) throws HSMClientException {
-        this(
-                blockStore,
-                hsmBookkeepingClient,
-                new ConfirmedBlockHeadersProvider(
-                    bookkeepingConfig.getDifficultyTarget(),
-                    bookkeepingConfig.getMaxAmountBlockHeaders(),
-                    blockStore,
-                    bookkeepingConfig.getDifficultyCap(),
-                    hsmBookkeepingClient.getVersion()
-                ),
-                nodeBlockProcessor,
-                bookkeepingConfig.getInformerInterval(),
-                bookkeepingConfig
-        );
-    }
-
-    public HSMBookkeepingService(
-        BlockStore blockStore,
-        HSMBookkeepingClient hsmBookkeepingClient,
         ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider,
         NodeBlockProcessor nodeBlockProcessor,
         long advanceBlockchainTimeInterval,
-        PowHSMBookkeepingConfig bookkeepingConfig
+        boolean stopBookkeepingScheduler
     ) {
         this.blockStore = blockStore;
         this.hsmBookkeepingClient = hsmBookkeepingClient;
@@ -71,7 +48,7 @@ public class HSMBookkeepingService {
         this.advanceBlockchainTimeInterval = advanceBlockchainTimeInterval;
         this.listeners = new ArrayList<>();
         this.nodeBlockProcessor = nodeBlockProcessor;
-        this.stopBookkeepingScheduler = bookkeepingConfig.isStopBookkeepingScheduler();
+        this.stopBookkeepingScheduler = stopBookkeepingScheduler;
     }
 
     public void addListener(HSMBookeepingServiceListener listener) {
