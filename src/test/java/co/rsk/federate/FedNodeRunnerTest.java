@@ -101,8 +101,8 @@ public class FedNodeRunnerTest {
         assertEquals(1, signers.get(0).getVersionForKeyId(BTC_KEY_ID.getKeyId()));
         assertEquals(1, signers.get(1).getVersionForKeyId(RSK_KEY_ID.getKeyId()));
         assertEquals(1, signers.get(2).getVersionForKeyId(MST_KEY_ID.getKeyId()));
-        signers.forEach(keyFileSigner -> assertTrue(keyFileSigner instanceof ECDSASignerFromFileKey));
         signers.forEach(keyFileSigner -> {
+            assertTrue(keyFileSigner instanceof ECDSASignerFromFileKey);
             assertTrue(keyFileSigner.check().wasSuccessful());
             assertTrue(keyFileSigner.check().getMessages().isEmpty());
         });
@@ -133,6 +133,8 @@ public class FedNodeRunnerTest {
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
+        assertEquals(1, signers.get(0).getVersionForKeyId(RSK_KEY_ID.getKeyId()));
+        assertEquals(1, signers.get(1).getVersionForKeyId(MST_KEY_ID.getKeyId()));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNull(hsmBookkeepingClient);
@@ -160,6 +162,8 @@ public class FedNodeRunnerTest {
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
+        assertEquals(1, signers.get(0).getVersionForKeyId(BTC_KEY_ID.getKeyId()));
+        assertEquals(1, signers.get(1).getVersionForKeyId(MST_KEY_ID.getKeyId()));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNull(hsmBookkeepingClient);
@@ -187,6 +191,8 @@ public class FedNodeRunnerTest {
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
+        assertEquals(1, signers.get(0).getVersionForKeyId(BTC_KEY_ID.getKeyId()));
+        assertEquals(1, signers.get(1).getVersionForKeyId(RSK_KEY_ID.getKeyId()));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNull(hsmBookkeepingClient);
@@ -214,8 +220,8 @@ public class FedNodeRunnerTest {
         ECDSASigner signer = TestUtils.getInternalState(fedNodeRunner, "signer");
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
-        signers.forEach(keyFileSigner -> assertTrue(keyFileSigner instanceof ECDSASignerFromFileKey));
         signers.forEach(keyFileSigner -> {
+            assertTrue(keyFileSigner instanceof ECDSASignerFromFileKey);
             assertFalse(keyFileSigner.check().wasSuccessful());
             assertTrue(keyFileSigner.check().getMessages().contains("Invalid Key File Name"));
             assertTrue(keyFileSigner.check().getMessages().contains("Invalid key file permissions"));
