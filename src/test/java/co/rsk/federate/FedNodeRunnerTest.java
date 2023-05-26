@@ -11,6 +11,7 @@ import co.rsk.federate.log.RskLogMonitor;
 import co.rsk.federate.signing.ECDSACompositeSigner;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.ECDSASignerFromFileKey;
+import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.utils.TestUtils;
@@ -73,6 +74,7 @@ public class FedNodeRunnerTest {
             mock(RskLogMonitor.class),
             mock(NodeRunner.class),
             fedNodeSystemProperties,
+            mock(HSMBookKeepingClientProvider.class),
             mock(FedNodeContext.class)
         );
     }
