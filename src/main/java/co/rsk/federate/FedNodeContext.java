@@ -26,6 +26,7 @@ import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
 import co.rsk.federate.rpc.Web3FederateImpl;
+import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.solidity.DummySolidityCompiler;
 import org.ethereum.rpc.Web3;
 import org.ethereum.solidity.compiler.SolidityCompiler;
@@ -67,6 +68,7 @@ public class FedNodeContext extends RskContext {
                 new RskLogMonitor(getRsk(), getFederateLogger()),
                 super.buildNodeRunner(),
                 getFedNodeSystemProperties(),
+                new HSMBookKeepingClientProvider(),
                 this
         );
     }
