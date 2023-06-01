@@ -21,7 +21,8 @@ public class ReleaseRequirementsEnforcer {
                 return;
             case 2:
             case 3:
-                logger.trace("[enforce] Version 2 or 3 requires ancestor in position. ENFORCING");
+            case 4:
+                logger.trace("[enforce] Version 2, 3 or 4 requires ancestor in position. ENFORCING");
                 try {
                     ancestorBlockUpdater.ensureAncestorBlockInPosition(releaseCreationInformation.getBlock());
                     return;

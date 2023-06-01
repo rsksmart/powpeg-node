@@ -25,6 +25,7 @@ public class SignerMessageBuilderFactory {
                 break;
             case 2:
             case 3:
+            case 4:
                 messageBuilder = new SignerMessageBuilderVersion2(receiptStore, releaseCreationInformation);
                 break;
             default:

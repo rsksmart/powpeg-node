@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  */
 public class HSMClientProvider {
     private static final int MIN_SUPPORTED_VERSION = 1;
-    private static final int MAX_SUPPORTED_VERSION = 3;
+    private static final int MAX_SUPPORTED_VERSION = 4;
     private static final Logger logger = LoggerFactory.getLogger(HSMClientProvider.class);
 
     private final HSMClientProtocol hsmClientProtocol;
@@ -55,6 +55,7 @@ public class HSMClientProvider {
                 break;
             case 2:
             case 3:
+            case 4:
                 switch (keyId) {
                     case "BTC":
                         client = new HSMClientVersion2BTC(this.hsmClientProtocol, version);
