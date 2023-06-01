@@ -31,7 +31,6 @@ import java.util.List;
 import static org.mockito.Mockito.*;
 
 public class HSMClientVersion2BTCTest {
-    private JsonRpcClientProvider jsonRpcClientProviderMock;
     private HSMClientProtocol hsmClientProtocol;
     private JsonRpcClient jsonRpcClientMock;
     private HSMClientVersion2BTC client;
@@ -40,7 +39,7 @@ public class HSMClientVersion2BTCTest {
 
     @Before
     public void createClient() throws JsonRpcException {
-        jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
+        JsonRpcClientProvider jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
 
@@ -449,6 +448,35 @@ public class HSMClientVersion2BTCTest {
 
         when(jsonRpcClient.send(any(JsonNode.class))).thenReturn(buildResponse(0));
         when(jsonRpcClient.send(hsmClientProtocol.buildCommand("blockchainState", 3)))
+            .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
+
+        BlockHeader blockHeader = mock(BlockHeader.class);
+        when(blockHeader.getEncoded(true, false)).thenReturn(new byte[]{});
+
+        client.updateAncestorBlock(new UpdateAncestorBlockMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
+        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(jsonRpcClient, times(3)).send(captor.capture());
+        List<JsonNode> capturedArguments = captor.getAllValues();
+        Assert.assertEquals("blockchainState", capturedArguments.get(0).get("command").asText());
+        // updateAncestorBlock is called twice because the maxChunkSizeToHsm is 2 and BlockHeaders is 3
+        Assert.assertEquals("updateAncestorBlock", capturedArguments.get(1).get("command").asText());
+        Assert.assertEquals("updateAncestorBlock", capturedArguments.get(2).get("command").asText());
+        Assert.assertTrue(capturedArguments.get(1).has("blocks"));
+        Assert.assertFalse(capturedArguments.get(1).has("brothers"));
+    }
+
+    @Test
+    public void updateAncestorBlock_hsm_version_4() throws HSMClientException, JsonRpcException {
+        JsonRpcClientProvider jsonRpcClientProvider = mock(JsonRpcClientProvider.class);
+        JsonRpcClient jsonRpcClient = mock(JsonRpcClient.class);
+        when(jsonRpcClientProvider.acquire()).thenReturn(jsonRpcClient);
+
+        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProvider, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+        HSMClientVersion2BTC client = new HSMClientVersion2BTC(hsmClientProtocol, 4);
+        client.setMaxChunkSizeToHsm(2);
+
+        when(jsonRpcClient.send(any(JsonNode.class))).thenReturn(buildResponse(0));
+        when(jsonRpcClient.send(hsmClientProtocol.buildCommand("blockchainState", 4)))
             .thenReturn(buildResponse(0, "state", buildStateResponse(false)));
 
         BlockHeader blockHeader = mock(BlockHeader.class);

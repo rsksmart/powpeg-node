@@ -25,7 +25,7 @@ public class SignerMessageBuilderFactoryTest {
 
     @Test(expected = HSMUnsupportedVersionException.class)
     public void buildWithWrongVersion() throws HSMClientException {
-        factory.buildFromConfig(4, mock(ReleaseCreationInformation.class));
+        factory.buildFromConfig(5, mock(ReleaseCreationInformation.class));
     }
 
     @Test
@@ -36,23 +36,22 @@ public class SignerMessageBuilderFactoryTest {
 
     @Test
     public void buildFromConfig_hsm_2_ok() throws HSMClientException {
-        SignerMessageBuilder messageBuilder = factory.buildFromConfig(
-            2,
-            new ReleaseCreationInformation(
-                TestUtils.mockBlock(1),
-                mock(TransactionReceipt.class),
-                Keccak256.ZERO_HASH,
-                mock(BtcTransaction.class),
-                createHash(1)
-            )
-        );
-        assertTrue(messageBuilder instanceof SignerMessageBuilderVersion2);
+        test_buildFromConfig_hsm(2);
     }
 
     @Test
     public void buildFromConfig_hsm_3_ok() throws HSMClientException {
+        test_buildFromConfig_hsm(3);
+    }
+
+    @Test
+    public void buildFromConfig_hsm_4_ok() throws HSMClientException {
+        test_buildFromConfig_hsm(4);
+    }
+
+    public void test_buildFromConfig_hsm(int version) throws HSMUnsupportedVersionException {
         SignerMessageBuilder messageBuilder = factory.buildFromConfig(
-            3,
+            version,
             new ReleaseCreationInformation(
                 TestUtils.mockBlock(1),
                 mock(TransactionReceipt.class),
