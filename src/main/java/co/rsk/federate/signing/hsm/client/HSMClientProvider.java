@@ -56,19 +56,7 @@ public class HSMClientProvider {
             case 2:
             case 3:
             case 4:
-                switch (keyId) {
-                    case "BTC":
-                        client = new HSMClientVersion2BTC(this.hsmClientProtocol, version);
-                        break;
-                    case "RSK":
-                    case "MST":
-                        client = new HSMClientVersion2RskMst(this.hsmClientProtocol, version);
-                        break;
-                    default:
-                        String message = String.format("Unsupported key id %s", keyId);
-                        logger.debug("[getClient] {}", message);
-                        throw new HSMUnsupportedTypeException(message);
-                }
+                client = buildPowHSMClient(version);
                 break;
             default:
                 String message = String.format("Unsupported HSM version %d, the node supports versions between %d and %d", version, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION);
@@ -77,6 +65,24 @@ public class HSMClientProvider {
         }
 
         logger.debug("[getClient] HSM client: {}", client.getClass());
+        return client;
+    }
+
+    private HSMClient buildPowHSMClient(int version) throws HSMUnsupportedTypeException {
+        HSMClient client;
+        switch (keyId) {
+            case "BTC":
+                client = new HSMClientVersion2BTC(this.hsmClientProtocol, version);
+                break;
+            case "RSK":
+            case "MST":
+                client = new HSMClientVersion2RskMst(this.hsmClientProtocol, version);
+                break;
+            default:
+                String message = String.format("Unsupported key id %s", keyId);
+                logger.debug("[getClient] {}", message);
+                throw new HSMUnsupportedTypeException(message);
+        }
         return client;
     }
 }
