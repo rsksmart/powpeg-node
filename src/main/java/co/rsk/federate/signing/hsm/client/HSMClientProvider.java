@@ -49,19 +49,14 @@ public class HSMClientProvider {
         int version = this.hsmClientProtocol.getVersion();
         HSMClient client;
         logger.debug("[getClient] version: {}, keyId: {}", version, keyId);
-        switch (version) {
-            case 1:
-                client = new HSMClientVersion1(this.hsmClientProtocol);
-                break;
-            case 2:
-            case 3:
-            case 4:
-                client = buildPowHSMClient(version);
-                break;
-            default:
-                String message = String.format("Unsupported HSM version %d, the node supports versions between %d and %d", version, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION);
-                logger.debug("[getClient] {}", message);
-                throw new HSMUnsupportedVersionException(message);
+        if (version == 1) {
+            client = new HSMClientVersion1(this.hsmClientProtocol);
+        } else if (version == 2 || version == 3 || version == 4) {
+            client = buildPowHSMClient(version);
+        } else {
+            String message = String.format("Unsupported HSM version %d, the node supports versions between %d and %d", version, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION);
+            logger.debug("[getClient] {}", message);
+            throw new HSMUnsupportedVersionException(message);
         }
 
         logger.debug("[getClient] HSM client: {}", client.getClass());
