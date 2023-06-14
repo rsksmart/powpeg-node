@@ -33,8 +33,6 @@ import org.slf4j.LoggerFactory;
  * @author Ariel Mendelzon
  */
 public class HSMClientProvider {
-    private static final int MIN_SUPPORTED_VERSION = 1;
-    private static final int MAX_SUPPORTED_VERSION = 4;
     private static final Logger logger = LoggerFactory.getLogger(HSMClientProvider.class);
 
     private final HSMClientProtocol hsmClientProtocol;
@@ -51,10 +49,10 @@ public class HSMClientProvider {
         logger.debug("[getClient] version: {}, keyId: {}", version, keyId);
         if (version == 1) {
             client = new HSMClientVersion1(this.hsmClientProtocol);
-        } else if (version == 2 || version == 3 || version == 4) {
+        } else if (version >= 2) {
             client = buildPowHSMClient(version);
         } else {
-            String message = String.format("Unsupported HSM version %d, the node supports versions between %d and %d", version, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION);
+            String message = String.format("Unsupported HSM version %d", version);
             logger.debug("[getClient] {}", message);
             throw new HSMUnsupportedVersionException(message);
         }
