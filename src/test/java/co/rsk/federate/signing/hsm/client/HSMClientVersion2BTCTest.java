@@ -418,14 +418,14 @@ public class HSMClientVersion2BTCTest {
     @Test
     public void updateAncestorBlock_ok() throws HSMClientException, JsonRpcException {
         // hsm version 2
-        test_for_hsm_version(2);
+        test_updateAncestorBlock(2);
         // hsm version 3
-        test_for_hsm_version(3);
+        test_updateAncestorBlock(3);
         // hsm version 4
-        test_for_hsm_version(4);
+        test_updateAncestorBlock(4);
     }
 
-    public void test_for_hsm_version(int hsmVersion) throws HSMClientException, JsonRpcException {
+    public void test_updateAncestorBlock(int hsmVersion) throws HSMClientException, JsonRpcException {
         JsonRpcClientProvider jsonRpcClientProvider = mock(JsonRpcClientProvider.class);
         JsonRpcClient jsonRpcClient = mock(JsonRpcClient.class);
         when(jsonRpcClientProvider.acquire()).thenReturn(jsonRpcClient);

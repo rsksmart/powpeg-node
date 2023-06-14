@@ -141,7 +141,7 @@ public class HSMClientProviderTest {
     public void getClientUnsupportedVersion() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         HSMClientProvider clientProvider = new HSMClientProvider(protocol, "BTC");
-        when(protocol.getVersion()).thenReturn(5);
+        when(protocol.getVersion()).thenReturn(-5);
 
         clientProvider.getClient();
     }
