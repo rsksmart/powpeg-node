@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -366,7 +366,7 @@ public class HSMBookkeepingServiceTest {
         throws HSMClientException, InterruptedException {
         BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
         when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
-        List<BlockHeader> blockHeadersToInform = Arrays.asList(mockBlockHeaderToInform);
+        List<BlockHeader> blockHeadersToInform = Collections.singletonList(mockBlockHeaderToInform);
 
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
@@ -410,7 +410,7 @@ public class HSMBookkeepingServiceTest {
     public void informConfirmedBlockHeaders_Ok() throws InterruptedException, HSMClientException {
         BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
         when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
-        List<BlockHeader> blockHeadersToInform = Arrays.asList(mockBlockHeaderToInform);
+        List<BlockHeader> blockHeadersToInform = Collections.singletonList(mockBlockHeaderToInform);
 
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
@@ -445,6 +445,10 @@ public class HSMBookkeepingServiceTest {
         verify(mockHsmBookkeepingClient, times(1)).advanceBlockchain(any(AdvanceBlockchainMessage.class));
         verify(mockBlockStore, times(2)).getBlockByHash(any());
         Mockito.verifyNoInteractions(mockListener);
+
+        Thread.sleep(150); // delay for next call
+        // getHSMPointer() is called twice for the first call and once for the second call
+        verify(mockHsmBookkeepingClient, times(3)).getHSMPointer();
     }
 
     @Test
