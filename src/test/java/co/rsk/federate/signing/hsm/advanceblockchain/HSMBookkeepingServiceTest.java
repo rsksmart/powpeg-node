@@ -9,6 +9,7 @@ import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
+import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
@@ -511,7 +512,7 @@ public class HSMBookkeepingServiceTest {
         verifyNoMoreInteractions(mockHsmBookkeepingClient);
         verify(mockBlockStore, times(1)).getBlockByHash(any());
         Mockito.verifyNoInteractions(mockConfirmedBlockHeadersProvider);
-        Mockito.verifyNoInteractions(mockListener);
+        verify(mockListener, times(1)).onIrrecoverableError(any());
     }
 
     @Test

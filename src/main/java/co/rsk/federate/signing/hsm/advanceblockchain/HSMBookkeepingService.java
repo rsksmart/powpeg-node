@@ -5,6 +5,7 @@ import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.net.NodeBlockProcessor;
+import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
@@ -114,9 +115,15 @@ public class HSMBookkeepingService {
         return started;
     }
 
-    private Block getHsmBestBlock() throws HSMClientException {
+    private Block getHsmBestBlock() throws HSMClientException, BlockStoreException {
         Keccak256 bestBlockHSMHash = hsmBookkeepingClient.getHSMPointer().getBestBlockHash();
-        return blockStore.getBlockByHash(bestBlockHSMHash.getBytes());
+        Block block = blockStore.getBlockByHash(bestBlockHSMHash.getBytes());
+        if (block == null) {
+            String message = "HSM best block hash doesn't exist in blockStore: " + bestBlockHSMHash;
+            logger.warn("[getHsmBestBlock] {}", message);
+            throw new BlockStoreException(message);
+        }
+        return block;
     }
 
     private void setStopSending() {
@@ -137,11 +144,6 @@ public class HSMBookkeepingService {
         try {
             if (hsmCurrentBestBlock == null) {
                 hsmCurrentBestBlock = getHsmBestBlock();
-                if (hsmCurrentBestBlock == null) {
-                    logger.error("[informConfirmedBlockHeaders] Can't found HSM Best Block in blockStore.");
-                    informing = false;
-                    return;
-                }
             }
             logger.debug(
                 "[informConfirmedBlockHeaders] HSM best block before informing {} (height: {})",
