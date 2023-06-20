@@ -15,18 +15,13 @@ public class ReleaseRequirementsEnforcer {
 
     public void enforce(int version, ReleaseCreationInformation releaseCreationInformation)
         throws ReleaseRequirementsEnforcerException {
-        switch (version) {
-            case 1:
-                logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
-                break;
-            case 2:
-            case 3:
-            case 4:
-                logger.trace("[enforce] Version 2, 3 or 4 requires ancestor in position. ENFORCING");
-                enforceReleaseRequirements(releaseCreationInformation);
-                break;
-            default:
-                throw new ReleaseRequirementsEnforcerException("Unsupported version " + version);
+        if (version == 1) {
+            logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
+        } else if (version >= 2) {
+            logger.trace("[enforce] Version 2+ requires ancestor in position. ENFORCING");
+            enforceReleaseRequirements(releaseCreationInformation);
+        } else {
+            throw new ReleaseRequirementsEnforcerException("Unsupported version " + version);
         }
     }
 

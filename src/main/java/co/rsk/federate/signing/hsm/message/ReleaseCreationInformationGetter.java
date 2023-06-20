@@ -3,10 +3,6 @@ package co.rsk.federate.signing.hsm.message;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.crypto.Keccak256;
 import co.rsk.peg.BridgeEvents;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import org.ethereum.core.Block;
 import org.ethereum.core.CallTransaction;
 import org.ethereum.core.Transaction;
@@ -17,6 +13,11 @@ import org.ethereum.db.TransactionInfo;
 import org.ethereum.vm.LogInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 // First the class tries to find the event associated with the transaction. If it cannot find it, it requests the following
 // events until it is found or until it reaches the last block.
@@ -53,15 +54,12 @@ public class ReleaseCreationInformationGetter {
         BtcTransaction btcTransaction,
         Keccak256 informingRskTxHash
     ) throws HSMReleaseCreationInformationException {
-        switch (version) {
-            case 1:
-                return getBaseReleaseCreationInformation(rskTxHash, btcTransaction, informingRskTxHash);
-            case 2:
-            case 3:
-            case 4:
-                return getTxInfoToSignVersion2(rskTxHash, btcTransaction, informingRskTxHash);
-            default:
-                throw new HSMReleaseCreationInformationException("Unsupported version " + version);
+        if (version == 1) {
+            return getBaseReleaseCreationInformation(rskTxHash, btcTransaction, informingRskTxHash);
+        } else if (version >= 2) {
+            return getTxInfoToSignVersion2(rskTxHash, btcTransaction, informingRskTxHash);
+        } else {
+            throw new HSMReleaseCreationInformationException("Unsupported version " + version);
         }
     }
 

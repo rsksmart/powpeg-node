@@ -19,21 +19,15 @@ public class SignerMessageBuilderFactory {
         ReleaseCreationInformation releaseCreationInformation
     ) throws HSMUnsupportedVersionException {
         SignerMessageBuilder messageBuilder;
-        switch (version) {
-            case 1:
-                messageBuilder = new SignerMessageBuilderVersion1(releaseCreationInformation.getBtcTransaction());
-                break;
-            case 2:
-            case 3:
-            case 4:
-                messageBuilder = new SignerMessageBuilderVersion2(receiptStore, releaseCreationInformation);
-                break;
-            default:
-                String message = String.format("Unsupported HSM signer version: %d", version);
-                logger.debug("[buildFromConfig] {}", message);
-                throw new HSMUnsupportedVersionException(message);
+        if (version == 1) {
+            messageBuilder = new SignerMessageBuilderVersion1(releaseCreationInformation.getBtcTransaction());
+        } else if (version >= 2) {
+            messageBuilder = new SignerMessageBuilderVersion2(receiptStore, releaseCreationInformation);
+        } else {
+            String message = String.format("Unsupported HSM signer version: %d", version);
+            logger.debug("[buildFromConfig] {}", message);
+            throw new HSMUnsupportedVersionException(message);
         }
-
         logger.trace("[buildFromConfig] SignerMessageBuilder built {}", messageBuilder.getClass());
         return messageBuilder;
     }

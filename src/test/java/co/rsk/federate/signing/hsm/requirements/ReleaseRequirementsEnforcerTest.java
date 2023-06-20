@@ -62,6 +62,6 @@ public class ReleaseRequirementsEnforcerTest {
     public void enforce_invalid_version() throws Exception {
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(mock(AncestorBlockUpdater.class));
 
-        enforcer.enforce(5, mock(ReleaseCreationInformation.class));
+        enforcer.enforce(-5, mock(ReleaseCreationInformation.class));
     }
 }

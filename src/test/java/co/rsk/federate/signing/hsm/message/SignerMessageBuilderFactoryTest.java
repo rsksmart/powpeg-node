@@ -25,7 +25,7 @@ public class SignerMessageBuilderFactoryTest {
 
     @Test(expected = HSMUnsupportedVersionException.class)
     public void buildWithWrongVersion() throws HSMClientException {
-        factory.buildFromConfig(5, mock(ReleaseCreationInformation.class));
+        factory.buildFromConfig(-5, mock(ReleaseCreationInformation.class));
     }
 
     @Test
