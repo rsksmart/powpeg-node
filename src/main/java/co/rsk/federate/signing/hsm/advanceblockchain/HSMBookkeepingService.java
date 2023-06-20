@@ -1,7 +1,7 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.signing.hsm.BlockStoreException;
+import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
@@ -114,13 +114,13 @@ public class HSMBookkeepingService {
         return started;
     }
 
-    private Block getHsmBestBlock() throws HSMClientException, BlockStoreException {
+    private Block getHsmBestBlock() throws HSMClientException {
         Keccak256 bestBlockHSMHash = hsmBookkeepingClient.getHSMPointer().getBestBlockHash();
         Block block = blockStore.getBlockByHash(bestBlockHSMHash.getBytes());
         if (block == null) {
             String message = "HSM best block hash doesn't exist in blockStore: " + bestBlockHSMHash;
             logger.warn("[getHsmBestBlock] {}", message);
-            throw new BlockStoreException(message);
+            throw new HSMBlockchainBookkeepingRelatedException(message);
         }
         return block;
     }
