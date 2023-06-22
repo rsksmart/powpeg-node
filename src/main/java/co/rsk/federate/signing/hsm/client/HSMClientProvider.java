@@ -33,8 +33,6 @@ import org.slf4j.LoggerFactory;
  * @author Ariel Mendelzon
  */
 public class HSMClientProvider {
-    private static final int MIN_SUPPORTED_VERSION = 1;
-    private static final int MAX_SUPPORTED_VERSION = 3;
     private static final Logger logger = LoggerFactory.getLogger(HSMClientProvider.class);
 
     private final HSMClientProtocol hsmClientProtocol;
@@ -49,33 +47,35 @@ public class HSMClientProvider {
         int version = this.hsmClientProtocol.getVersion();
         HSMClient client;
         logger.debug("[getClient] version: {}, keyId: {}", version, keyId);
-        switch (version) {
-            case 1:
-                client = new HSMClientVersion1(this.hsmClientProtocol);
-                break;
-            case 2:
-            case 3:
-                switch (keyId) {
-                    case "BTC":
-                        client = new HSMClientVersion2BTC(this.hsmClientProtocol, version);
-                        break;
-                    case "RSK":
-                    case "MST":
-                        client = new HSMClientVersion2RskMst(this.hsmClientProtocol, version);
-                        break;
-                    default:
-                        String message = String.format("Unsupported key id %s", keyId);
-                        logger.debug("[getClient] {}", message);
-                        throw new HSMUnsupportedTypeException(message);
-                }
-                break;
-            default:
-                String message = String.format("Unsupported HSM version %d, the node supports versions between %d and %d", version, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION);
-                logger.debug("[getClient] {}", message);
-                throw new HSMUnsupportedVersionException(message);
+        if (version == 1) {
+            client = new HSMClientVersion1(this.hsmClientProtocol);
+        } else if (version >= 2) {
+            client = buildPowHSMClient(version);
+        } else {
+            String message = String.format("Unsupported HSM version %d", version);
+            logger.debug("[getClient] {}", message);
+            throw new HSMUnsupportedVersionException(message);
         }
 
         logger.debug("[getClient] HSM client: {}", client.getClass());
+        return client;
+    }
+
+    private HSMClient buildPowHSMClient(int version) throws HSMUnsupportedTypeException {
+        HSMClient client;
+        switch (keyId) {
+            case "BTC":
+                client = new HSMClientVersion2BTC(this.hsmClientProtocol, version);
+                break;
+            case "RSK":
+            case "MST":
+                client = new HSMClientVersion2RskMst(this.hsmClientProtocol, version);
+                break;
+            default:
+                String message = String.format("Unsupported key id %s", keyId);
+                logger.debug("[getClient] {}", message);
+                throw new HSMUnsupportedTypeException(message);
+        }
         return client;
     }
 }

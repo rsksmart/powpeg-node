@@ -104,11 +104,44 @@ public class HSMClientProviderTest {
         Assert.assertTrue(client instanceof HSMClientVersion2RskMst);
     }
 
+    @Test
+    public void getClientV4BTC() throws Exception {
+        HSMClientProtocol protocol = mock(HSMClientProtocol.class);
+        when(protocol.getVersion()).thenReturn(4);
+
+        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "BTC");
+        HSMClient client = clientProvider.getClient();
+
+        Assert.assertTrue(client instanceof HSMClientVersion2BTC);
+    }
+
+    @Test
+    public void getClientV4RSK() throws Exception {
+        HSMClientProtocol protocol = mock(HSMClientProtocol.class);
+        when(protocol.getVersion()).thenReturn(4);
+
+        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "RSK");
+        HSMClient client = clientProvider.getClient();
+
+        Assert.assertTrue(client instanceof HSMClientVersion2RskMst);
+    }
+
+    @Test
+    public void getClientV4MST() throws Exception {
+        HSMClientProtocol protocol = mock(HSMClientProtocol.class);
+        when(protocol.getVersion()).thenReturn(4);
+
+        HSMClientProvider clientProvider = new HSMClientProvider(protocol, "MST");
+        HSMClient client = clientProvider.getClient();
+
+        Assert.assertTrue(client instanceof HSMClientVersion2RskMst);
+    }
+
     @Test(expected = HSMUnsupportedVersionException.class)
     public void getClientUnsupportedVersion() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         HSMClientProvider clientProvider = new HSMClientProvider(protocol, "BTC");
-        when(protocol.getVersion()).thenReturn(999);
+        when(protocol.getVersion()).thenReturn(-5);
 
         clientProvider.getClient();
     }

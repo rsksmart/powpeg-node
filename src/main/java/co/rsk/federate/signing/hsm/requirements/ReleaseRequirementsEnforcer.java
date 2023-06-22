@@ -15,24 +15,23 @@ public class ReleaseRequirementsEnforcer {
 
     public void enforce(int version, ReleaseCreationInformation releaseCreationInformation)
         throws ReleaseRequirementsEnforcerException {
-        switch (version) {
-            case 1:
-                logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
-                return;
-            case 2:
-            case 3:
-                logger.trace("[enforce] Version 2 or 3 requires ancestor in position. ENFORCING");
-                try {
-                    ancestorBlockUpdater.ensureAncestorBlockInPosition(releaseCreationInformation.getBlock());
-                    return;
-                } catch (Exception e) {
-                    String message = "error trying to enforce ancestor";
-                    logger.error("[enforce]" + message, e);
-                    throw new ReleaseRequirementsEnforcerException(message, e);
-                }
-            default:
-                throw new ReleaseRequirementsEnforcerException("Unsupported version " + version);
+        if (version == 1) {
+            logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
+        } else if (version >= 2) {
+            logger.trace("[enforce] Version 2+ requires ancestor in position. ENFORCING");
+            enforceReleaseRequirements(releaseCreationInformation);
+        } else {
+            throw new ReleaseRequirementsEnforcerException("Unsupported version " + version);
         }
     }
 
+    private void enforceReleaseRequirements(ReleaseCreationInformation releaseCreationInformation) throws ReleaseRequirementsEnforcerException {
+        try {
+            ancestorBlockUpdater.ensureAncestorBlockInPosition(releaseCreationInformation.getBlock());
+        } catch (Exception e) {
+            String message = "error trying to enforce ancestor";
+            logger.error("[enforce]" + message, e);
+            throw new ReleaseRequirementsEnforcerException(message, e);
+        }
+    }
 }
