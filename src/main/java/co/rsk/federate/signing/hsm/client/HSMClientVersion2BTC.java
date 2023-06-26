@@ -137,11 +137,11 @@ public class HSMClientVersion2BTC extends HSMClientVersion2 implements HSMBookke
                     blocksFieldData.add(blockHeader);
                 }
                 payload.set(BLOCKS_FIELD, blocksFieldData);
-                if (this.version == 3 && actualMethod.equals("advanceBlockchain")) {
+                if (this.version >= 3 && actualMethod.equals("advanceBlockchain")) {
                     ArrayNode brothersFieldData = new ObjectMapper().createArrayNode();
                     for (String blockHeader : blockHeaderChunk) {
-                        // TODO: This is currently sending empty arrays as brothers to the HSM V3 for compatibility with V2
-                        //  This should be changed to sending the actual brothers when HSM V3 is fully implemented
+                        // TODO: This is currently sending empty arrays as brothers to the HSM V3, V4 for compatibility with V2
+                        //  This should be changed to sending the actual brothers when HSM V3, V4 is fully implemented
                         brothersFieldData.add(new ObjectMapper().createArrayNode());
                     }
                     payload.set(BROTHERS_FIELD, brothersFieldData);

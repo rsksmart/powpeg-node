@@ -1,20 +1,25 @@
 package co.rsk.federate.signing.hsm.requirements;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import org.junit.Before;
 import org.junit.Test;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class ReleaseRequirementsEnforcerTest {
 
+    private AncestorBlockUpdater ancestorBlockUpdater;
+    private ReleaseRequirementsEnforcer enforcer;
+
+    @Before
+    public void setup() {
+        ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
+        enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+    }
+
     @Test
-    public void enforce_does_nothing_if_version_one()
-        throws Exception {
+    public void enforce_does_nothing_if_version_one() throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
 
@@ -24,19 +29,28 @@ public class ReleaseRequirementsEnforcerTest {
     }
 
     @Test
-    public void enforce_version_two_ok()
-        throws Exception {
-        AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+    public void enforce_version_two_ok() throws Exception {
+        test_enforce_version(ancestorBlockUpdater, enforcer, 2);
+    }
 
-        enforcer.enforce(2, mock(ReleaseCreationInformation.class));
+    @Test
+    public void enforce_version_three_ok() throws Exception {
+        test_enforce_version(ancestorBlockUpdater, enforcer, 3);
+    }
+
+    @Test
+    public void enforce_version_four_ok() throws Exception {
+        test_enforce_version(ancestorBlockUpdater, enforcer, 4);
+    }
+
+    public void test_enforce_version(AncestorBlockUpdater ancestorBlockUpdater, ReleaseRequirementsEnforcer enforcer, int version) throws Exception {
+        enforcer.enforce(version, mock(ReleaseCreationInformation.class));
 
         verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
     }
 
     @Test(expected = ReleaseRequirementsEnforcerException.class)
-    public void enforce_version_two_updater_fails()
-        throws Exception {
+    public void enforce_version_two_updater_fails() throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
@@ -44,24 +58,10 @@ public class ReleaseRequirementsEnforcerTest {
         enforcer.enforce(2, mock(ReleaseCreationInformation.class));
     }
 
-    @Test
-    public void enforce_version_three_ok()
-        throws Exception {
-        AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
-
-        enforcer.enforce(3, mock(ReleaseCreationInformation.class));
-
-        verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
-    }
-
     @Test(expected = ReleaseRequirementsEnforcerException.class)
-    public void enforce_invalid_version()
-        throws Exception {
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(
-            mock(AncestorBlockUpdater.class)
-        );
+    public void enforce_invalid_version() throws Exception {
+        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(mock(AncestorBlockUpdater.class));
 
-        enforcer.enforce(4, mock(ReleaseCreationInformation.class));
+        enforcer.enforce(-5, mock(ReleaseCreationInformation.class));
     }
 }

@@ -71,6 +71,9 @@ public class ReleaseCreationInformationGetterTest {
 
         // HSM V3
         createGetTxInfoToSign_returnOK(information, rskTxHash, btcTransaction, block, transactionReceipt, 3);
+
+        // HSM V4
+        createGetTxInfoToSign_returnOK(information, rskTxHash, btcTransaction, block, transactionReceipt, 4);
     }
 
     private void createGetTxInfoToSign_returnOK(ReleaseCreationInformationGetter information,
