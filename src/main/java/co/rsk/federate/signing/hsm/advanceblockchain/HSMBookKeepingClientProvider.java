@@ -12,24 +12,19 @@ import org.slf4j.LoggerFactory;
  */
 public class HSMBookKeepingClientProvider {
     private static final Logger logger = LoggerFactory.getLogger(HSMBookKeepingClientProvider.class);
-    private static final int MIN_SUPPORTED_VERSION = 2;
-    private static final int MAX_SUPPORTED_VERSION = 3;
 
     public HSMBookkeepingClient getHSMBookKeepingClient(HSMClientProtocol protocol) throws HSMClientException {
         int version = protocol.getVersion();
         logger.debug("[getHSMBookKeepingClient] version: {}", version);
         HSMBookkeepingClient bookkeepingClient;
-        switch (version) {
-            case 1:
-                throw new HSMUnsupportedVersionException("HSMBookKeepingClient doesn't exist for version 1");
-            case 2:
-            case 3:
-                bookkeepingClient = new HsmBookkeepingClientImpl(protocol);
-                break;
-            default:
-                String message = String.format("Unsupported HSM version %d, the node supports versions between %d and %d", version, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION);
-                logger.debug("[getHSMBookKeepingClient] {}", message);
-                throw new HSMUnsupportedVersionException(message);
+        if (version == 1) {
+            throw new HSMUnsupportedVersionException("HSMBookKeepingClient doesn't exist for version 1");
+        } else if (version >= 2) {
+            bookkeepingClient = new HsmBookkeepingClientImpl(protocol);
+        } else {
+            String message = String.format("Unsupported HSM version %d ", version);
+            logger.debug("[getHSMBookKeepingClient] {}", message);
+            throw new HSMUnsupportedVersionException(message);
         }
         return bookkeepingClient;
     }
