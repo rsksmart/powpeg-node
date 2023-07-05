@@ -130,8 +130,12 @@ public class FedNodeRunner implements NodeRunner {
                 signerConfig,
                 bridgeConstants.getBtcParamsString()
             );
-            hsmBookkeepingClient = buildBookKeepingClient(signerConfig, bookKeepingConfig);
-            hsmBookkeepingService = buildBookKeepingService(hsmBookkeepingClient, bookKeepingConfig);
+            try {
+                hsmBookkeepingClient = buildBookKeepingClient(signerConfig, bookKeepingConfig);
+                hsmBookkeepingService = buildBookKeepingService(hsmBookkeepingClient, bookKeepingConfig);
+            } catch (HSMClientException e) {
+                LOGGER.warn("[run] BTC signer not configured to use HSM v2+. Consider upgrading it! %d", e);
+            }
         }
         if(!this.checkFederateRequirements()) {
             LOGGER.error("[run] Error validating Fed-Node Requirements");

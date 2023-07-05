@@ -13,6 +13,7 @@ import co.rsk.federate.signing.ECDSAHSMSigner;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.ECDSASignerFromFileKey;
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
@@ -115,6 +116,55 @@ public class FedNodeRunnerTest {
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNotNull(hsmBookkeepingService);
+    }
+
+    @Test
+    public void test_with_hsm_v1_config() throws Exception {
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig();
+        SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
+        SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
+        when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
+        when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
+        when(fedNodeSystemProperties.signerConfig(MST_KEY_ID.getId())).thenReturn(mstSignerConfig);
+
+        HSMBookKeepingClientProvider hsmBookKeepingClientProvider = mock(HSMBookKeepingClientProvider.class);
+        HSMBookkeepingClient hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
+        when(hsmBookkeepingClient.getVersion()).thenReturn(1);
+        when(hsmBookKeepingClientProvider.getHSMBookKeepingClient(any())).thenThrow(HSMUnsupportedVersionException.class);
+
+        fedNodeRunner = new FedNodeRunner(
+            mock(BtcToRskClient.class),
+            mock(BtcToRskClient.class),
+            mock(BtcReleaseClient.class),
+            mock(FederationWatcher.class),
+            mock(FederatorSupport.class),
+            mock(FederateLogger.class),
+            mock(RskLogMonitor.class),
+            mock(NodeRunner.class),
+            fedNodeSystemProperties,
+            hsmBookKeepingClientProvider,
+            mock(FedNodeContext.class)
+        );
+
+        fedNodeRunner.run();
+
+        ECDSASigner signer = TestUtils.getInternalState(fedNodeRunner, "signer");
+        assertNotNull(signer);
+        assertTrue(signer.canSignWith(BTC_KEY_ID.getKeyId()));
+        assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
+        assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
+
+        assertTrue(signer instanceof ECDSACompositeSigner);
+        ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
+        List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
+        assertEquals(3, signers.size());
+        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNull(bookkeepingClient);
+
+        HSMBookkeepingService bookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
+        assertNull(bookkeepingService);
     }
 
     @Test
