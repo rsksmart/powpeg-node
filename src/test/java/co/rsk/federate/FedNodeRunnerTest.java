@@ -29,6 +29,7 @@ import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
+import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
 import java.io.File;
@@ -88,6 +89,7 @@ public class FedNodeRunnerTest {
             mock(RskLogMonitor.class),
             mock(NodeRunner.class),
             fedNodeSystemProperties,
+            mock(HSMClientProtocolFactory.class),
             hsmBookKeepingClientProvider,
             mock(FedNodeContext.class)
         );
@@ -147,6 +149,7 @@ public class FedNodeRunnerTest {
             mock(RskLogMonitor.class),
             mock(NodeRunner.class),
             fedNodeSystemProperties,
+            mock(HSMClientProtocolFactory.class),
             hsmBookKeepingClientProvider,
             mock(FedNodeContext.class)
         );

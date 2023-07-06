@@ -68,6 +68,7 @@ public class FedNodeContext extends RskContext {
             new RskLogMonitor(getRsk(), getFederateLogger()),
             super.buildNodeRunner(),
             getFedNodeSystemProperties(),
+            new HSMClientProtocolFactory(),
             new HSMBookKeepingClientProvider(),
             this
         );
@@ -174,7 +175,8 @@ public class FedNodeContext extends RskContext {
                 getBlockchain(),
                 getTransactionPool(),
                 getReversibleTransactionExecutor(),
-                getFedNodeSystemProperties());
+                getFedNodeSystemProperties()
+            );
             federatorSupport = new FederatorSupport(
                 getBlockchain(),
                 getFedNodeSystemProperties(),

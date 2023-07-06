@@ -18,9 +18,7 @@ public class HSMClientProtocolFactory {
     public static final int DEFAULT_ATTEMPTS = 2;
     public static final int DEFAULT_INTERVAL = 1000;
 
-    private HSMClientProtocolFactory() {}
-
-    public static HSMClientProtocol buildHSMClientProtocolFromConfig(SignerConfig config) throws HSMUnsupportedTypeException {
+    public HSMClientProtocol buildHSMClientProtocolFromConfig(SignerConfig config) throws HSMUnsupportedTypeException {
         if (!HSM_CONFIG_TYPE.equalsIgnoreCase(config.getType())) {
             throw new HSMUnsupportedTypeException("Config type must be HSM");
         }

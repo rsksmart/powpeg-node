@@ -83,15 +83,16 @@ public class FedNodeRunner implements NodeRunner {
     private final NodeRunner fullNodeRunner;
     private final FedNodeSystemProperties config;
     private final FedNodeContext fedNodeContext;
+    private final BridgeConstants bridgeConstants;
+    private final HSMClientProtocolFactory hsmClientProtocolFactory;
+    private final HSMBookKeepingClientProvider hsmBookKeepingClientProvider;
 
-    private BridgeConstants bridgeConstants;
     private BitcoinWrapper bitcoinWrapper;
     private BtcToRskClientFileStorage btcToRskClientFileStorage;
     private FederationMember member;
     private ECDSASigner signer;
     private HSMBookkeepingClient hsmBookkeepingClient;
     private HSMBookkeepingService hsmBookkeepingService;
-    private final HSMBookKeepingClientProvider hsmBookKeepingClientProvider;
 
     public FedNodeRunner(
         BtcToRskClient btcToRskClientActive,
@@ -103,6 +104,7 @@ public class FedNodeRunner implements NodeRunner {
         RskLogMonitor rskLogMonitor,
         NodeRunner fullNodeRunner,
         FedNodeSystemProperties config,
+        HSMClientProtocolFactory hsmClientProtocolFactory,
         HSMBookKeepingClientProvider hsmBookKeepingClientProvider,
         FedNodeContext fedNodeContext
     ) {
@@ -116,6 +118,7 @@ public class FedNodeRunner implements NodeRunner {
         this.fullNodeRunner = fullNodeRunner;
         this.config = config;
         this.bridgeConstants = config.getNetworkConstants().getBridgeConstants();
+        this.hsmClientProtocolFactory = hsmClientProtocolFactory;
         this.hsmBookKeepingClientProvider = hsmBookKeepingClientProvider;
         this.fedNodeContext = fedNodeContext;
     }
@@ -197,7 +200,7 @@ public class FedNodeRunner implements NodeRunner {
     }
 
     private HSMBookkeepingClient buildBookKeepingClient(SignerConfig signerConfig, PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
-        HSMClientProtocol protocol = HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+        HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
         HSMBookkeepingClient bookKeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(protocol);
         bookKeepingClient.setMaxChunkSizeToHsm(bookKeepingConfig.getMaxChunkSizeToHsm());
         LOGGER.info("[buildBookKeepingClient] HSMBookkeeping Client built for HSM version: {}", bookKeepingClient.getVersion());

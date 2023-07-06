@@ -7,6 +7,7 @@ import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.net.InetSocketAddress;
@@ -18,11 +19,18 @@ import static org.mockito.Mockito.when;
 
 public class HSMClientProtocolFactoryTest {
 
+    private HSMClientProtocolFactory hsmClientProtocolFactory;
+
+    @Before
+    public void setUp() {
+        hsmClientProtocolFactory = new HSMClientProtocolFactory();
+    }
+
     @Test(expected = HSMUnsupportedTypeException.class)
     public void buildHSMProtocolFromUnknownConfig() throws HSMUnsupportedTypeException {
         Config configMock = mockConfig("random-type");
         SignerConfig signerConfig = new SignerConfig("random-id", configMock);
-        HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+        hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
     }
 
     @Test
@@ -38,7 +46,7 @@ public class HSMClientProtocolFactoryTest {
         when(configMock.getInt(HSMClientProtocolFactory.INTERVAL_BETWEEN_ATTEMPTS)).thenReturn(3000);
 
         SignerConfig signerConfig = new SignerConfig("BTC", configMock);
-        HSMClientProtocol protocol = HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+        HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
 
         // Provider chain
         JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(protocol, "clientProvider");
@@ -74,7 +82,7 @@ public class HSMClientProtocolFactoryTest {
         when(configMock.hasPath(HSMClientProtocolFactory.INTERVAL_BETWEEN_ATTEMPTS)).thenReturn(false);
 
         SignerConfig signerConfig = new SignerConfig("BTC", configMock);
-        HSMClientProtocol protocol = HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+        HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
 
         // Provider chain
         JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(protocol, "clientProvider");

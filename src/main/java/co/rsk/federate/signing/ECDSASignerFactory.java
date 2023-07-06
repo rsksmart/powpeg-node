@@ -50,9 +50,8 @@ public class ECDSASignerFactory {
                         config.getConfig().getString("path")
                 );
             case "hsm":
-
                 try {
-                    HSMClientProtocol hsmClientProtocol = HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(config);
+                    HSMClientProtocol hsmClientProtocol = new HSMClientProtocolFactory().buildHSMClientProtocolFromConfig(config);
                     HSMSigningClientProvider hsmSigningClientProvider = new HSMSigningClientProvider(hsmClientProtocol, config.getId());
                     ECDSAHSMSigner signer = new ECDSAHSMSigner(hsmSigningClientProvider);
                     // Add the key mapping
