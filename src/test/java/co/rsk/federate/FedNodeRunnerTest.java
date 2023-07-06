@@ -25,10 +25,10 @@ import co.rsk.federate.signing.ECDSAHSMSigner;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.ECDSASignerFromFileKey;
 import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
+import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
@@ -74,10 +74,16 @@ public class FedNodeRunnerTest {
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
 
-        HSMBookKeepingClientProvider hsmBookKeepingClientProvider = mock(HSMBookKeepingClientProvider.class);
+        int hsmVersion = 3;
+        HSMClientProtocol protocol = mock(HSMClientProtocol.class);
+        when(protocol.getVersion()).thenReturn(3);
+        HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
+        when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
+
         HSMBookkeepingClient hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
+        when(hsmBookkeepingClient.getVersion()).thenReturn(hsmVersion);
+        HSMBookKeepingClientProvider hsmBookKeepingClientProvider = mock(HSMBookKeepingClientProvider.class);
         when(hsmBookKeepingClientProvider.getHSMBookKeepingClient(any())).thenReturn(hsmBookkeepingClient);
-        when(hsmBookkeepingClient.getVersion()).thenReturn(3);
 
         fedNodeRunner = new FedNodeRunner(
             mock(BtcToRskClient.class),
@@ -89,7 +95,7 @@ public class FedNodeRunnerTest {
             mock(RskLogMonitor.class),
             mock(NodeRunner.class),
             fedNodeSystemProperties,
-            mock(HSMClientProtocolFactory.class),
+            hsmClientProtocolFactory,
             hsmBookKeepingClientProvider,
             mock(FedNodeContext.class)
         );
@@ -134,10 +140,10 @@ public class FedNodeRunnerTest {
         when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
         when(fedNodeSystemProperties.signerConfig(MST_KEY_ID.getId())).thenReturn(mstSignerConfig);
 
-        HSMBookKeepingClientProvider hsmBookKeepingClientProvider = mock(HSMBookKeepingClientProvider.class);
-        HSMBookkeepingClient hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
-        when(hsmBookkeepingClient.getVersion()).thenReturn(1);
-        when(hsmBookKeepingClientProvider.getHSMBookKeepingClient(any())).thenThrow(HSMUnsupportedVersionException.class);
+        HSMClientProtocol protocol = mock(HSMClientProtocol.class);
+        when(protocol.getVersion()).thenReturn(1);
+        HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
+        when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
         fedNodeRunner = new FedNodeRunner(
             mock(BtcToRskClient.class),
@@ -149,8 +155,8 @@ public class FedNodeRunnerTest {
             mock(RskLogMonitor.class),
             mock(NodeRunner.class),
             fedNodeSystemProperties,
-            mock(HSMClientProtocolFactory.class),
-            hsmBookKeepingClientProvider,
+            hsmClientProtocolFactory,
+            mock(HSMBookKeepingClientProvider.class),
             mock(FedNodeContext.class)
         );
 

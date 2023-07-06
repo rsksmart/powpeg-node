@@ -133,11 +133,17 @@ public class FedNodeRunner implements NodeRunner {
                 signerConfig,
                 bridgeConstants.getBtcParamsString()
             );
-            try {
-                hsmBookkeepingClient = buildBookKeepingClient(signerConfig, bookKeepingConfig);
-                hsmBookkeepingService = buildBookKeepingService(hsmBookkeepingClient, bookKeepingConfig);
-            } catch (HSMClientException e) {
-                LOGGER.warn("[run] BTC signer not configured to use HSM v2+. Consider upgrading it! %d", e);
+
+            HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+            int hsmVersion = protocol.getVersion();
+            LOGGER.debug("[run] Using HSM version {}", hsmVersion);
+
+            if (hsmVersion >= 2) {
+                hsmBookkeepingClient = buildBookKeepingClient(protocol, bookKeepingConfig);
+                hsmBookkeepingService = buildBookKeepingService(
+                    hsmBookkeepingClient,
+                    bookKeepingConfig
+                );
             }
         }
         if(!this.checkFederateRequirements()) {
@@ -199,15 +205,20 @@ public class FedNodeRunner implements NodeRunner {
         return compositeSigner;
     }
 
-    private HSMBookkeepingClient buildBookKeepingClient(SignerConfig signerConfig, PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
-        HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+    private HSMBookkeepingClient buildBookKeepingClient(
+        HSMClientProtocol protocol,
+        PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+
         HSMBookkeepingClient bookKeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(protocol);
         bookKeepingClient.setMaxChunkSizeToHsm(bookKeepingConfig.getMaxChunkSizeToHsm());
-        LOGGER.info("[buildBookKeepingClient] HSMBookkeeping Client built for HSM version: {}", bookKeepingClient.getVersion());
+        LOGGER.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersion());
         return bookKeepingClient;
     }
 
-    private HSMBookkeepingService buildBookKeepingService(HSMBookkeepingClient bookKeepingClient, PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+    private HSMBookkeepingService buildBookKeepingService(
+        HSMBookkeepingClient bookKeepingClient,
+        PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+
         HSMBookkeepingService service = new HSMBookkeepingService(
             fedNodeContext.getBlockStore(),
             bookKeepingClient,
