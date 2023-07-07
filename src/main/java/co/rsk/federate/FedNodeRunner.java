@@ -83,15 +83,16 @@ public class FedNodeRunner implements NodeRunner {
     private final NodeRunner fullNodeRunner;
     private final FedNodeSystemProperties config;
     private final FedNodeContext fedNodeContext;
+    private final BridgeConstants bridgeConstants;
+    private final HSMClientProtocolFactory hsmClientProtocolFactory;
+    private final HSMBookKeepingClientProvider hsmBookKeepingClientProvider;
 
-    private BridgeConstants bridgeConstants;
     private BitcoinWrapper bitcoinWrapper;
     private BtcToRskClientFileStorage btcToRskClientFileStorage;
     private FederationMember member;
     private ECDSASigner signer;
     private HSMBookkeepingClient hsmBookkeepingClient;
     private HSMBookkeepingService hsmBookkeepingService;
-    private final HSMBookKeepingClientProvider hsmBookKeepingClientProvider;
 
     public FedNodeRunner(
         BtcToRskClient btcToRskClientActive,
@@ -103,6 +104,7 @@ public class FedNodeRunner implements NodeRunner {
         RskLogMonitor rskLogMonitor,
         NodeRunner fullNodeRunner,
         FedNodeSystemProperties config,
+        HSMClientProtocolFactory hsmClientProtocolFactory,
         HSMBookKeepingClientProvider hsmBookKeepingClientProvider,
         FedNodeContext fedNodeContext
     ) {
@@ -116,6 +118,7 @@ public class FedNodeRunner implements NodeRunner {
         this.fullNodeRunner = fullNodeRunner;
         this.config = config;
         this.bridgeConstants = config.getNetworkConstants().getBridgeConstants();
+        this.hsmClientProtocolFactory = hsmClientProtocolFactory;
         this.hsmBookKeepingClientProvider = hsmBookKeepingClientProvider;
         this.fedNodeContext = fedNodeContext;
     }
@@ -130,8 +133,18 @@ public class FedNodeRunner implements NodeRunner {
                 signerConfig,
                 bridgeConstants.getBtcParamsString()
             );
-            hsmBookkeepingClient = buildBookKeepingClient(signerConfig, bookKeepingConfig);
-            hsmBookkeepingService = buildBookKeepingService(hsmBookkeepingClient, bookKeepingConfig);
+
+            HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+            int hsmVersion = protocol.getVersion();
+            LOGGER.debug("[run] Using HSM version {}", hsmVersion);
+
+            if (hsmVersion >= 2) {
+                hsmBookkeepingClient = buildBookKeepingClient(protocol, bookKeepingConfig);
+                hsmBookkeepingService = buildBookKeepingService(
+                    hsmBookkeepingClient,
+                    bookKeepingConfig
+                );
+            }
         }
         if(!this.checkFederateRequirements()) {
             LOGGER.error("[run] Error validating Fed-Node Requirements");
@@ -192,15 +205,20 @@ public class FedNodeRunner implements NodeRunner {
         return compositeSigner;
     }
 
-    private HSMBookkeepingClient buildBookKeepingClient(SignerConfig signerConfig, PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
-        HSMClientProtocol protocol = HSMClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+    private HSMBookkeepingClient buildBookKeepingClient(
+        HSMClientProtocol protocol,
+        PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+
         HSMBookkeepingClient bookKeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(protocol);
         bookKeepingClient.setMaxChunkSizeToHsm(bookKeepingConfig.getMaxChunkSizeToHsm());
-        LOGGER.info("[buildBookKeepingClient] HSMBookkeeping Client built for HSM version: {}", bookKeepingClient.getVersion());
+        LOGGER.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersion());
         return bookKeepingClient;
     }
 
-    private HSMBookkeepingService buildBookKeepingService(HSMBookkeepingClient bookKeepingClient, PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+    private HSMBookkeepingService buildBookKeepingService(
+        HSMBookkeepingClient bookKeepingClient,
+        PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+
         HSMBookkeepingService service = new HSMBookkeepingService(
             fedNodeContext.getBlockStore(),
             bookKeepingClient,
