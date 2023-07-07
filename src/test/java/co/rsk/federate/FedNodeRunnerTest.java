@@ -76,7 +76,7 @@ public class FedNodeRunnerTest {
 
         int hsmVersion = 3;
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersion()).thenReturn(3);
+        when(protocol.getVersion()).thenReturn(hsmVersion);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
         when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
