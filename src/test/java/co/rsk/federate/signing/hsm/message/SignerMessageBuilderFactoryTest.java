@@ -31,7 +31,7 @@ public class SignerMessageBuilderFactoryTest {
     @Test
     public void buildFromHSMVersion1() throws HSMClientException {
         SignerMessageBuilder sigMessVersion1 = factory.buildFromConfig(1, mock(ReleaseCreationInformation.class));
-        assertTrue(sigMessVersion1 instanceof SignerMessageBuilderVersion1);
+        assertTrue(sigMessVersion1 instanceof SignerMessageBuilderV1);
     }
 
     @Test
@@ -60,6 +60,6 @@ public class SignerMessageBuilderFactoryTest {
                 createHash(1)
             )
         );
-        assertTrue(messageBuilder instanceof SignerMessageBuilderVersion2);
+        assertTrue(messageBuilder instanceof PowHSMSignerMessageBuilder);
     }
 }

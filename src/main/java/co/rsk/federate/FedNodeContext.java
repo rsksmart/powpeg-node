@@ -26,12 +26,13 @@ import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
 import co.rsk.federate.rpc.Web3FederateImpl;
+import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
+import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
 import co.rsk.federate.solidity.DummySolidityCompiler;
+import java.util.concurrent.TimeUnit;
 import org.ethereum.rpc.Web3;
 import org.ethereum.solidity.compiler.SolidityCompiler;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Creates the federate node initial object graph.
@@ -53,21 +54,23 @@ public class FedNodeContext extends RskContext {
     @Override
     public NodeRunner buildNodeRunner() {
         return new FedNodeRunner(
-                getBtcToRskClientActive(),
-                getBtcToRskClientRetiring(),
-                new BtcReleaseClient(
-                        getRsk(),
-                        getFederatorSupport(),
-                        getFedNodeSystemProperties(),
-                        getNodeBlockProcessor()
-                ),
-                getFederationWatcher(),
+            getBtcToRskClientActive(),
+            getBtcToRskClientRetiring(),
+            new BtcReleaseClient(
+                getRsk(),
                 getFederatorSupport(),
-                getFederateLogger(),
-                new RskLogMonitor(getRsk(), getFederateLogger()),
-                super.buildNodeRunner(),
                 getFedNodeSystemProperties(),
-                this
+                getNodeBlockProcessor()
+            ),
+            getFederationWatcher(),
+            getFederatorSupport(),
+            getFederateLogger(),
+            new RskLogMonitor(getRsk(), getFederateLogger()),
+            super.buildNodeRunner(),
+            getFedNodeSystemProperties(),
+            new HSMClientProtocolFactory(),
+            new HSMBookKeepingClientProvider(),
+            this
         );
     }
 
@@ -79,35 +82,36 @@ public class FedNodeContext extends RskContext {
     @Override
     public Web3 buildWeb3() {
         return new Web3FederateImpl(
-                getRsk(),
-                getBlockchain(),
-                getRskSystemProperties(),
-                getMinerClient(),
-                getMinerServer(),
-                getPersonalModule(),
-                getEthModule(),
-                getEvmModule(),
-                getTxPoolModule(),
-                getMnrModule(),
-                getDebugModule(),
-                getTraceModule(),
-                getRskModule(),
-                getBtcToRskClientActive(),
-                getBtcToRskClientRetiring(),
-                getChannelManager(),
-                getPeerScoringManager(),
-                getNetworkStateExporter(),
-                getBlockStore(),
-                getReceiptStore(),
-                getPeerServer(),
-                getNodeBlockProcessor(),
-                getHashRateCalculator(),
-                getConfigCapabilities(),
-                getBuildInfo(),
-                getBlocksBloomStore(),
-                getWeb3InformationRetriever(),
-                getSyncProcessor(),
-                getBlockTxSignatureCache());
+            getRsk(),
+            getBlockchain(),
+            getRskSystemProperties(),
+            getMinerClient(),
+            getMinerServer(),
+            getPersonalModule(),
+            getEthModule(),
+            getEvmModule(),
+            getTxPoolModule(),
+            getMnrModule(),
+            getDebugModule(),
+            getTraceModule(),
+            getRskModule(),
+            getBtcToRskClientActive(),
+            getBtcToRskClientRetiring(),
+            getChannelManager(),
+            getPeerScoringManager(),
+            getNetworkStateExporter(),
+            getBlockStore(),
+            getReceiptStore(),
+            getPeerServer(),
+            getNodeBlockProcessor(),
+            getHashRateCalculator(),
+            getConfigCapabilities(),
+            getBuildInfo(),
+            getBlocksBloomStore(),
+            getWeb3InformationRetriever(),
+            getSyncProcessor(),
+            getBlockTxSignatureCache()
+        );
     }
 
     @Override
@@ -134,8 +138,8 @@ public class FedNodeContext extends RskContext {
     private BtcToRskClient.Factory getBtcToRskClientFactory() {
         if (btcToRskClientFactory == null) {
             btcToRskClientFactory = new BtcToRskClient.Factory(
-                    getFederatorSupport(),
-                    getNodeBlockProcessor()
+                getFederatorSupport(),
+                getNodeBlockProcessor()
             );
         }
 
@@ -153,11 +157,11 @@ public class FedNodeContext extends RskContext {
     private FederateLogger getFederateLogger() {
         if (federateLogger == null) {
             federateLogger = new FederateLogger(
-                    getFederatorSupport(),
-                    System::currentTimeMillis,
-                    () -> LoggerFactory.getLogger(FederateLogger.class),
-                    TimeUnit.MINUTES.toMillis(1),
-                    6
+                getFederatorSupport(),
+                System::currentTimeMillis,
+                () -> LoggerFactory.getLogger(FederateLogger.class),
+                TimeUnit.MINUTES.toMillis(1),
+                6
             );
         }
 
@@ -167,15 +171,16 @@ public class FedNodeContext extends RskContext {
     private FederatorSupport getFederatorSupport() {
         if (federatorSupport == null) {
             BridgeTransactionSender bridgeTransactionSender = new BridgeTransactionSender(
-                    getRsk(),
-                    getBlockchain(),
-                    getTransactionPool(),
-                    getReversibleTransactionExecutor(),
-                    getFedNodeSystemProperties());
+                getRsk(),
+                getBlockchain(),
+                getTransactionPool(),
+                getReversibleTransactionExecutor(),
+                getFedNodeSystemProperties()
+            );
             federatorSupport = new FederatorSupport(
-                    getBlockchain(),
-                    getFedNodeSystemProperties(),
-                    bridgeTransactionSender
+                getBlockchain(),
+                getFedNodeSystemProperties(),
+                bridgeTransactionSender
             );
         }
 

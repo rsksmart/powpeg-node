@@ -19,12 +19,12 @@
 package co.rsk.federate.signing;
 
 import co.rsk.federate.config.SignerConfig;
-import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
-import co.rsk.federate.signing.hsm.client.HSMClientProvider;
-
-import java.net.InetSocketAddress;
+import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
+import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Builds signers given configuration
@@ -32,6 +32,7 @@ import java.net.InetSocketAddress;
  * @author Ariel Mendelzon
  */
 public class ECDSASignerFactory {
+    private static final Logger logger = LoggerFactory.getLogger(ECDSASignerFactory.class);
     public static final int DEFAULT_SOCKET_TIMEOUT = 10_000;
     public static final int DEFAULT_ATTEMPTS = 2;
     public static final int DEFAULT_INTERVAL = 1000;
@@ -41,6 +42,7 @@ public class ECDSASignerFactory {
             throw new SignerException("'signers' entry not found in config file.");
         }
         String type = config.getType();
+        logger.debug("[buildFromConfig] SignerConfig type {}", type);
         switch (type) {
             case "keyFile":
                 return new ECDSASignerFromFileKey(
@@ -48,27 +50,19 @@ public class ECDSASignerFactory {
                         config.getConfig().getString("path")
                 );
             case "hsm":
-                // Gather host and port
-                String host = config.getConfig().getString("host");
-                int port = config.getConfig().getInt("port");
-                InetSocketAddress hsmAddress = new InetSocketAddress(host, port);
-
-                int socketTimeout = config.getConfig().hasPath("socketTimeout") ? config.getConfig().getInt("socketTimeout") : DEFAULT_SOCKET_TIMEOUT;
-                int maxAttempts = config.getConfig().hasPath("maxAttempts") ? config.getConfig().getInt("maxAttempts") : DEFAULT_ATTEMPTS;
-                int intervalBetweenAttempts = config.getConfig().hasPath("intervalBetweenAttempts") ? config.getConfig().getInt("intervalBetweenAttempts") : DEFAULT_INTERVAL;
-
-                // Build the signer
-                SocketBasedJsonRpcClientProvider socketRpcClientProvider = new SocketBasedJsonRpcClientProvider(hsmAddress);
-                socketRpcClientProvider.setSocketTimeout(socketTimeout);
-                HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(socketRpcClientProvider, maxAttempts, intervalBetweenAttempts);
-                HSMClientProvider hsmClientProvider = new HSMClientProvider(hsmClientProtocol, config.getId());
-                ECDSAHSMSigner signer = new ECDSAHSMSigner(hsmClientProvider);
-
-                // Add the key mapping
-                String hsmKeyId = config.getConfig().getString("keyId");
-                signer.addKeyMapping(new KeyId(config.getId()), hsmKeyId);
-
-                return signer;
+                try {
+                    HSMClientProtocol hsmClientProtocol = new HSMClientProtocolFactory().buildHSMClientProtocolFromConfig(config);
+                    HSMSigningClientProvider hsmSigningClientProvider = new HSMSigningClientProvider(hsmClientProtocol, config.getId());
+                    ECDSAHSMSigner signer = new ECDSAHSMSigner(hsmSigningClientProvider);
+                    // Add the key mapping
+                    String hsmKeyId = config.getConfig().getString("keyId");
+                    signer.addKeyMapping(new KeyId(config.getId()), hsmKeyId);
+                    return signer;
+                } catch (Exception e) {
+                    String message = "Something went wrong while trying to build HSM Signer";
+                    logger.debug("[buildFromConfig] {} - {}", message, e.getMessage());
+                    throw new RuntimeException(e.getMessage());
+                }
             default:
                 throw new RuntimeException(String.format("Unsupported signer type: %s", type));
         }

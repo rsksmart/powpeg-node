@@ -25,15 +25,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 
+import static co.rsk.federate.signing.hsm.client.HSMResponseCode.*;
+
 public class HSMResponseHandlerBase {
     protected static final String ERROR_CODE_FIELD = "errorcode";
-    private static final int HSM_DEVICE_ERROR_CODE_V1 = -2;
-    private static final int HSM_DEVICE_ERROR_CODE_V2 = -905;
 
     //When a `getVersion` request is sent to HSM a `device error` can occur
     //Since the HSM version is yet undefined we need to handle error codes for both versions at this stage
     protected void handleErrorResponse(String methodName, int errorCode, JsonNode response) throws HSMClientException {
-        if (errorCode == HSM_DEVICE_ERROR_CODE_V1 || errorCode == HSM_DEVICE_ERROR_CODE_V2) {
+        HSMResponseCode responseCode = HSMResponseCode.valueOf(errorCode);
+        if (responseCode == V1_DEVICE_ERROR || responseCode == V2_DEVICE_ERROR) {
             throw new HSMDeviceNotReadyException(formatErrorMessage("HSM Device returned exception '%s'. %s", methodName, response));
         }
     }
@@ -65,7 +66,7 @@ public class HSMResponseHandlerBase {
 
     protected List<Integer> getOkErrorCodes() {
         List<Integer> okErrorCodes = new ArrayList<>();
-        okErrorCodes.add(0);
+        okErrorCodes.add(SUCCESS.getResponseCode());
         return okErrorCodes;
     }
 }

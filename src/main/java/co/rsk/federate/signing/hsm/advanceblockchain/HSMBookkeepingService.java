@@ -1,7 +1,6 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.config.HSM2SignerConfig;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
@@ -36,35 +35,12 @@ public class HSMBookkeepingService {
     private boolean informing;
 
     public HSMBookkeepingService(
-            BlockStore blockStore,
-            HSMBookkeepingClient hsmBookkeepingClient,
-            NodeBlockProcessor nodeBlockProcessor,
-            HSM2SignerConfig hsm2Config,
-            int hsmVersion
-    ) {
-        this(
-                blockStore,
-                hsmBookkeepingClient,
-                new ConfirmedBlockHeadersProvider(
-                        hsm2Config.getDifficultyTarget(),
-                        hsm2Config.getMaxAmountBlockHeaders(),
-                        blockStore,
-                        hsm2Config.getDifficultyCap(),
-                        hsmVersion
-                ),
-                nodeBlockProcessor,
-                hsm2Config.getInformerInterval(),
-                hsm2Config
-        );
-    }
-
-    public HSMBookkeepingService(
-            BlockStore blockStore,
-            HSMBookkeepingClient hsmBookkeepingClient,
-            ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider,
-            NodeBlockProcessor nodeBlockProcessor,
-            long advanceBlockchainTimeInterval,
-            HSM2SignerConfig hsm2Config
+        BlockStore blockStore,
+        HSMBookkeepingClient hsmBookkeepingClient,
+        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider,
+        NodeBlockProcessor nodeBlockProcessor,
+        long advanceBlockchainTimeInterval,
+        boolean stopBookkeepingScheduler
     ) {
         this.blockStore = blockStore;
         this.hsmBookkeepingClient = hsmBookkeepingClient;
@@ -72,7 +48,7 @@ public class HSMBookkeepingService {
         this.advanceBlockchainTimeInterval = advanceBlockchainTimeInterval;
         this.listeners = new ArrayList<>();
         this.nodeBlockProcessor = nodeBlockProcessor;
-        this.stopBookkeepingScheduler = hsm2Config.isStopBookkeepingScheduler();
+        this.stopBookkeepingScheduler = stopBookkeepingScheduler;
     }
 
     public void addListener(HSMBookeepingServiceListener listener) {
@@ -107,10 +83,10 @@ public class HSMBookkeepingService {
         try {
             updateAdvanceBlockchain = Executors.newSingleThreadScheduledExecutor();
             updateAdvanceBlockchain.scheduleAtFixedRate(
-                    this::informConfirmedBlockHeaders,
-                    advanceBlockchainTimeInterval,
-                    advanceBlockchainTimeInterval,
-                    TimeUnit.MILLISECONDS
+                this::informConfirmedBlockHeaders,
+                advanceBlockchainTimeInterval,
+                advanceBlockchainTimeInterval,
+                TimeUnit.MILLISECONDS
             );
         } catch (Exception exception) {
             logger.error("[start] Error starting HSMBookkeepingService", exception);
@@ -165,9 +141,9 @@ public class HSMBookkeepingService {
                 return;
             }
             logger.debug(
-                    "[informConfirmedBlockHeaders] HSM best block before informing {} (height: {})",
-                    hsmCurrentBestBlock.getHash(),
-                    hsmCurrentBestBlock.getNumber()
+                "[informConfirmedBlockHeaders] HSM best block before informing {} (height: {})",
+                hsmCurrentBestBlock.getHash(),
+                hsmCurrentBestBlock.getNumber()
             );
 
             List<BlockHeader> blockHeaders = this.confirmedBlockHeadersProvider.getConfirmedBlockHeaders(hsmCurrentBestBlock.getHash());
@@ -178,17 +154,17 @@ public class HSMBookkeepingService {
                 return;
             }
             logger.debug(
-                    "[informConfirmedBlockHeaders] Going to inform {} block headers. From {} to {}",
-                    blockHeaders.size(),
-                    blockHeaders.get(0).getHash(),
-                    blockHeaders.get(blockHeaders.size() - 1).getHash()
+                "[informConfirmedBlockHeaders] Going to inform {} block headers. From {} to {}",
+                blockHeaders.size(),
+                blockHeaders.get(0).getHash(),
+                blockHeaders.get(blockHeaders.size() - 1).getHash()
             );
             hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders));
             hsmCurrentBestBlock = getHsmBestBlock();
             logger.debug(
-                    "[informConfirmedBlockHeaders] HSM best block after informing {} (height: {})",
-                    hsmCurrentBestBlock.getHash(),
-                    hsmCurrentBestBlock.getNumber()
+                "[informConfirmedBlockHeaders] HSM best block after informing {} (height: {})",
+                hsmCurrentBestBlock.getHash(),
+                hsmCurrentBestBlock.getNumber()
             );
             // TODO: contact BtcReleaseClient to let it try to sign transactions now
         } catch (Exception exception) {

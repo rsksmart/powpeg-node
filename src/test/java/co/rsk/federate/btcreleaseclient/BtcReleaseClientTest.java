@@ -1,5 +1,6 @@
 package co.rsk.federate.btcreleaseclient;
 
+import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -30,7 +31,6 @@ import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.config.BridgeConstants;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.FedNodeRunner;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.mock.SimpleEthereumImpl;
@@ -48,7 +48,7 @@ import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageBuilderV1;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.federate.signing.utils.TestUtils;
@@ -204,14 +204,14 @@ public class BtcReleaseClientTest {
         ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        when(signer.getPublicKey(FedNodeRunner.BTC_KEY_ID)).thenReturn(signerPublicKey);
-        when(signer.getVersionForKeyId(FedNodeRunner.BTC_KEY_ID)).thenReturn(1);
-        when(signer.sign(eq(FedNodeRunner.BTC_KEY_ID), ArgumentMatchers.any())).thenReturn(ethSig);
+        when(signer.getPublicKey(BTC_KEY_ID.getKeyId())).thenReturn(signerPublicKey);
+        when(signer.getVersionForKeyId(BTC_KEY_ID.getKeyId())).thenReturn(1);
+        when(signer.sign(eq(BTC_KEY_ID.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
 
         FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
         when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
 
-        SignerMessageBuilder messageBuilder = new SignerMessageBuilderVersion1(releaseTx);
+        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx);
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
         when(signerMessageBuilderFactory.buildFromConfig(ArgumentMatchers.anyInt(), ArgumentMatchers
             .any(ReleaseCreationInformation.class)))
@@ -261,7 +261,7 @@ public class BtcReleaseClientTest {
 
         // Assert
         Mockito.verify(signer, Mockito.times(amountOfInputs))
-            .sign(eq(FedNodeRunner.BTC_KEY_ID), any(SignerMessage.class));
+            .sign(eq(BTC_KEY_ID.getKeyId()), any(SignerMessage.class));
     }
 
     @Test
@@ -301,7 +301,7 @@ public class BtcReleaseClientTest {
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        doReturn(signerPublicKey).when(signer).getPublicKey(FedNodeRunner.BTC_KEY_ID);
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC_KEY_ID.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ethSig).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 

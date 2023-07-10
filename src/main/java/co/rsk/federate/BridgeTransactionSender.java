@@ -8,7 +8,7 @@ import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.gas.GasPriceProviderFactory;
 import co.rsk.federate.gas.IGasPriceProvider;
 import co.rsk.federate.signing.ECDSASigner;
-import co.rsk.federate.signing.hsm.message.SignerMessageVersion1;
+import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import co.rsk.federate.signing.hsm.SignerException;
 import org.ethereum.core.*;
 import org.ethereum.crypto.ECKey;
@@ -19,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
+
+import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
 
 public class BridgeTransactionSender {
 
@@ -108,8 +110,8 @@ public class BridgeTransactionSender {
                         config.getNetworkConstants().getChainId(),
                         functionArgs);
                 try {
-                    SignerMessageVersion1 messageToSign = new SignerMessageVersion1(rskTx.getRawHash().getBytes());
-                    ECKey.ECDSASignature txSignature = signer.sign(FedNodeRunner.RSK_KEY_ID, messageToSign);
+                    SignerMessageV1 messageToSign = new SignerMessageV1(rskTx.getRawHash().getBytes());
+                    ECKey.ECDSASignature txSignature = signer.sign(RSK_KEY_ID.getKeyId(), messageToSign);
                     rskTx.setSignature(txSignature);
                     LOGGER.debug("[tx={} | nonce={} | method={}] Submit to Bridge", rskTx.getHash(), nonce, function.name);
                     ethereum.submitTransaction(rskTx);
@@ -118,13 +120,12 @@ public class BridgeTransactionSender {
                 }
             } else {
                 LOGGER.warn(
-                    "[method={}] Not enough balance. Required: {}, Balance: {}",
-                    function.name,
-                    txCost,
-                    federatorRskBalance
+                        "[method={}] Not enough balance. Required: {}, Balance: {}",
+                        function.name,
+                        txCost,
+                        federatorRskBalance
                 );
             }
-
         }
     }
 

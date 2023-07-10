@@ -28,7 +28,7 @@ import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
 import co.rsk.federate.config.FedNodeSystemProperties;
-import co.rsk.federate.config.HSM2SignerConfig;
+import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.config.SignerConfig;
 import co.rsk.federate.io.*;
 import co.rsk.federate.log.BtcLogMonitor;
@@ -37,8 +37,12 @@ import co.rsk.federate.log.RskLogMonitor;
 import co.rsk.federate.signing.*;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
+import co.rsk.federate.signing.hsm.advanceblockchain.ConfirmedBlockHeadersProvider;
+import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
+import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
+import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
 import co.rsk.federate.signing.hsm.requirements.AncestorBlockUpdater;
@@ -61,18 +65,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static co.rsk.federate.signing.PowPegNodeKeyId.*;
+
 /**
  * Created by mario on 31/03/17.
  */
 
 public class FedNodeRunner implements NodeRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(FedNodeRunner.class);
-
-    // TODO: Consider moving this into somewhere else in the future. Leave here for now.
-    public static final KeyId BTC_KEY_ID = new KeyId("BTC");
-    public static final KeyId RSK_KEY_ID = new KeyId("RSK");
-    public static final KeyId MST_KEY_ID = new KeyId("MST");
-
     private final BtcToRskClient btcToRskClientActive;
     private final BtcToRskClient btcToRskClientRetiring;
     private final BtcReleaseClient btcReleaseClient;
@@ -83,8 +83,10 @@ public class FedNodeRunner implements NodeRunner {
     private final NodeRunner fullNodeRunner;
     private final FedNodeSystemProperties config;
     private final FedNodeContext fedNodeContext;
+    private final BridgeConstants bridgeConstants;
+    private final HSMClientProtocolFactory hsmClientProtocolFactory;
+    private final HSMBookKeepingClientProvider hsmBookKeepingClientProvider;
 
-    private BridgeConstants bridgeConstants;
     private BitcoinWrapper bitcoinWrapper;
     private BtcToRskClientFileStorage btcToRskClientFileStorage;
     private FederationMember member;
@@ -102,6 +104,8 @@ public class FedNodeRunner implements NodeRunner {
         RskLogMonitor rskLogMonitor,
         NodeRunner fullNodeRunner,
         FedNodeSystemProperties config,
+        HSMClientProtocolFactory hsmClientProtocolFactory,
+        HSMBookKeepingClientProvider hsmBookKeepingClientProvider,
         FedNodeContext fedNodeContext
     ) {
         this.btcToRskClientActive = btcToRskClientActive;
@@ -114,6 +118,8 @@ public class FedNodeRunner implements NodeRunner {
         this.fullNodeRunner = fullNodeRunner;
         this.config = config;
         this.bridgeConstants = config.getNetworkConstants().getBridgeConstants();
+        this.hsmClientProtocolFactory = hsmClientProtocolFactory;
+        this.hsmBookKeepingClientProvider = hsmBookKeepingClientProvider;
         this.fedNodeContext = fedNodeContext;
     }
 
@@ -121,6 +127,25 @@ public class FedNodeRunner implements NodeRunner {
     public void run() throws Exception {
         LOGGER.debug("[run] Starting RSK");
         signer = buildSigner();
+        SignerConfig signerConfig = this.config.signerConfig(BTC_KEY_ID.getId());
+        if (signerConfig != null && "hsm".equals(signerConfig.getType())) {
+            PowHSMBookkeepingConfig bookKeepingConfig = new PowHSMBookkeepingConfig(
+                signerConfig,
+                bridgeConstants.getBtcParamsString()
+            );
+
+            HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+            int hsmVersion = protocol.getVersion();
+            LOGGER.debug("[run] Using HSM version {}", hsmVersion);
+
+            if (hsmVersion >= 2) {
+                hsmBookkeepingClient = buildBookKeepingClient(protocol, bookKeepingConfig);
+                hsmBookkeepingService = buildBookKeepingService(
+                    hsmBookkeepingClient,
+                    bookKeepingConfig
+                );
+            }
+        }
         if(!this.checkFederateRequirements()) {
             LOGGER.error("[run] Error validating Fed-Node Requirements");
             return;
@@ -140,9 +165,9 @@ public class FedNodeRunner implements NodeRunner {
     }
 
     private void configureFederatorSupport() throws SignerException {
-        BtcECKey btcPublicKey = signer.getPublicKey(BTC_KEY_ID).toBtcKey();
-        ECKey rskPublicKey = signer.getPublicKey(RSK_KEY_ID).toEthKey();
-        ECKey mstKey = signer.getPublicKey(MST_KEY_ID).toEthKey();
+        BtcECKey btcPublicKey = signer.getPublicKey(BTC_KEY_ID.getKeyId()).toBtcKey();
+        ECKey rskPublicKey = signer.getPublicKey(RSK_KEY_ID.getKeyId()).toEthKey();
+        ECKey mstKey = signer.getPublicKey(MST_KEY_ID.getKeyId()).toEthKey();
         LOGGER.info(
             "[configureFederatorSupport] BTC public key: {}. RSK public key: {}. MST public key: {}",
             btcPublicKey,
@@ -165,29 +190,7 @@ public class FedNodeRunner implements NodeRunner {
 
         Stream.of(BTC_KEY_ID, RSK_KEY_ID, MST_KEY_ID).forEach(keyId -> {
             try {
-                ECDSASigner createdSigner = buildSignerFromKey(keyId);
-                if (keyId == BTC_KEY_ID) {
-                    try {
-                        bridgeConstants = this.config.getNetworkConstants().getBridgeConstants();
-                        HSM2SignerConfig hsm2Config = new HSM2SignerConfig(
-                            config.signerConfig(keyId.getId()),
-                            bridgeConstants.getBtcParamsString()
-                        );
-
-                        ECDSAHSMSigner ecdsahsmSigner = (ECDSAHSMSigner)createdSigner;
-                        hsmBookkeepingClient = (HSMBookkeepingClient) ecdsahsmSigner.getClient();
-                        hsmBookkeepingClient.setMaxChunkSizeToHsm(hsm2Config.getMaxChunkSizeToHsm());
-                        hsmBookkeepingService = new HSMBookkeepingService(
-                            fedNodeContext.getBlockStore(),
-                            hsmBookkeepingClient,
-                            fedNodeContext.getNodeBlockProcessor(),
-                            hsm2Config,
-                            ecdsahsmSigner.getVersionForKeyId(keyId)
-                        );
-                    } catch(ClassCastException | HSMClientException e) {
-                        LOGGER.warn("[buildSigner] BTC signer not configured to use HSM 2. Consider upgrading it!");
-                    }
-                }
+                ECDSASigner createdSigner = buildSignerFromKey(keyId.getKeyId());
                 compositeSigner.addSigner(createdSigner);
             } catch (SignerException e) {
                 LOGGER.error("[buildSigner] Error trying to build signer with key id {}. Detail: {}", keyId, e.getMessage());
@@ -200,6 +203,38 @@ public class FedNodeRunner implements NodeRunner {
         LOGGER.debug("[buildSigner] Signers created");
 
         return compositeSigner;
+    }
+
+    private HSMBookkeepingClient buildBookKeepingClient(
+        HSMClientProtocol protocol,
+        PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+
+        HSMBookkeepingClient bookKeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(protocol);
+        bookKeepingClient.setMaxChunkSizeToHsm(bookKeepingConfig.getMaxChunkSizeToHsm());
+        LOGGER.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersion());
+        return bookKeepingClient;
+    }
+
+    private HSMBookkeepingService buildBookKeepingService(
+        HSMBookkeepingClient bookKeepingClient,
+        PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+
+        HSMBookkeepingService service = new HSMBookkeepingService(
+            fedNodeContext.getBlockStore(),
+            bookKeepingClient,
+            new ConfirmedBlockHeadersProvider(
+                bookKeepingConfig.getDifficultyTarget(),
+                bookKeepingConfig.getMaxAmountBlockHeaders(),
+                fedNodeContext.getBlockStore(),
+                bookKeepingConfig.getDifficultyCap(),
+                hsmBookkeepingClient.getVersion()
+            ),
+            fedNodeContext.getNodeBlockProcessor(),
+            bookKeepingConfig.getInformerInterval(),
+            bookKeepingConfig.isStopBookkeepingScheduler()
+        );
+        LOGGER.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersion());
+        return service;
     }
 
     /**
@@ -220,7 +255,7 @@ public class FedNodeRunner implements NodeRunner {
 
             Federator federator = new Federator(
                 signer,
-                Arrays.asList(BTC_KEY_ID, RSK_KEY_ID),
+                Arrays.asList(BTC_KEY_ID.getKeyId(), RSK_KEY_ID.getKeyId()),
                 new FederatorPeersChecker(
                     defaultPort,
                     peers,
