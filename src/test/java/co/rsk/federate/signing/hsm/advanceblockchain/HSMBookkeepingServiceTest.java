@@ -511,7 +511,7 @@ public class HSMBookkeepingServiceTest {
         verifyNoMoreInteractions(mockHsmBookkeepingClient);
         verify(mockBlockStore, times(1)).getBlockByHash(any());
         Mockito.verifyNoInteractions(mockConfirmedBlockHeadersProvider);
-        verify(mockListener, times(1)).onIrrecoverableError(any());
+        verifyNoInteractions(mockListener);
     }
 
     @Test

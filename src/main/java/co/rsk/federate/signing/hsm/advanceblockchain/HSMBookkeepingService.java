@@ -142,7 +142,13 @@ public class HSMBookkeepingService {
         logger.info("Starting HSM bookkeeping process");
         try {
             if (hsmCurrentBestBlock == null) {
-                hsmCurrentBestBlock = getHsmBestBlock();
+                try {
+                    hsmCurrentBestBlock = getHsmBestBlock();
+                } catch (HSMBlockchainBookkeepingRelatedException e) {
+                    logger.error("[informConfirmedBlockHeaders] {}", e.getMessage());
+                    informing = false;
+                    return;
+                }
             }
             logger.debug(
                 "[informConfirmedBlockHeaders] HSM best block before informing {} (height: {})",
