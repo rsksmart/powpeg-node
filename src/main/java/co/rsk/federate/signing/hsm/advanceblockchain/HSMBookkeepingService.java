@@ -1,22 +1,21 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.net.NodeBlockProcessor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import java.util.List;
 
 public class HSMBookkeepingService {
     private static final Logger logger = LoggerFactory.getLogger(HSMBookkeepingService.class);
@@ -116,7 +115,13 @@ public class HSMBookkeepingService {
 
     private Block getHsmBestBlock() throws HSMClientException {
         Keccak256 bestBlockHSMHash = hsmBookkeepingClient.getHSMPointer().getBestBlockHash();
-        return blockStore.getBlockByHash(bestBlockHSMHash.getBytes());
+        Block block = blockStore.getBlockByHash(bestBlockHSMHash.getBytes());
+        if (block == null) {
+            String message = "HSM best block hash doesn't exist in blockStore: " + bestBlockHSMHash;
+            logger.warn("[getHsmBestBlock] {}", message);
+            throw new HSMBlockchainBookkeepingRelatedException(message);
+        }
+        return block;
     }
 
     private void setStopSending() {
@@ -135,11 +140,8 @@ public class HSMBookkeepingService {
         informing = true;
         logger.info("Starting HSM bookkeeping process");
         try {
-            hsmCurrentBestBlock = getHsmBestBlock();
             if (hsmCurrentBestBlock == null) {
-                logger.error("[informConfirmedBlockHeaders] Can't found HSM Best Block in blockStore.");
-                informing = false;
-                return;
+                hsmCurrentBestBlock = getHsmBestBlock();
             }
             logger.debug(
                 "[informConfirmedBlockHeaders] HSM best block before informing {} (height: {})",
