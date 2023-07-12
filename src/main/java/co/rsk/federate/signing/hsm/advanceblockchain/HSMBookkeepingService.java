@@ -6,17 +6,16 @@ import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.net.NodeBlockProcessor;
-import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
-import org.ethereum.db.BlockStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.ethereum.core.Block;
+import org.ethereum.core.BlockHeader;
+import org.ethereum.db.BlockStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HSMBookkeepingService {
     private static final Logger logger = LoggerFactory.getLogger(HSMBookkeepingService.class);
