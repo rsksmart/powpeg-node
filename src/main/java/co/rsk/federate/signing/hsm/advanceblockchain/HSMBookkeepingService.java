@@ -78,7 +78,7 @@ public class HSMBookkeepingService {
         }
 
         started = true;
-        logger.info("Start HSMBookkeepingService");
+        logger.info("[start] Start HSMBookkeepingService");
 
         try {
             updateAdvanceBlockchain = Executors.newSingleThreadScheduledExecutor();
@@ -100,7 +100,7 @@ public class HSMBookkeepingService {
             return;
         }
         this.setStopSending();
-        logger.info("Stop HSMBookkeepingService");;
+        logger.info("[stop] Stop HSMBookkeepingService");;
         // TODO: IS THIS TRULY CALLED AND IF SO, IS IT STOPPING THE SCHEDULED TASKS?
         if (updateAdvanceBlockchain != null) {
             updateAdvanceBlockchain.shutdown();
@@ -130,24 +130,18 @@ public class HSMBookkeepingService {
 
     protected void informConfirmedBlockHeaders() {
         if (informing) {
-            logger.info("Tried to start HSM bookkeeping process but a previous one is still running :(");
+            logger.info("[informConfirmedBlockHeaders] Tried to start HSM bookkeeping process but a previous one is still running :(");
             return;
         }
         if (nodeBlockProcessor.hasBetterBlockToSync()) {
-            logger.info("Tried to start HSM bookkeeping process but node is still syncing");
+            logger.info("[informConfirmedBlockHeaders] Tried to start HSM bookkeeping process but node is still syncing");
             return;
         }
         informing = true;
-        logger.info("Starting HSM bookkeeping process");
+        logger.info("[informConfirmedBlockHeaders] Starting HSM bookkeeping process");
         try {
             if (hsmCurrentBestBlock == null) {
-                try {
-                    hsmCurrentBestBlock = getHsmBestBlock();
-                } catch (HSMBlockchainBookkeepingRelatedException e) {
-                    logger.error("[informConfirmedBlockHeaders] {}", e.getMessage());
-                    informing = false;
-                    return;
-                }
+                hsmCurrentBestBlock = getHsmBestBlock();
             }
             logger.debug(
                 "[informConfirmedBlockHeaders] HSM best block before informing {} (height: {})",
@@ -158,7 +152,7 @@ public class HSMBookkeepingService {
             List<BlockHeader> blockHeaders = this.confirmedBlockHeadersProvider.getConfirmedBlockHeaders(hsmCurrentBestBlock.getHash());
             if (blockHeaders.isEmpty()) {
                 logger.debug("[informConfirmedBlockHeaders] No new block headers to inform");
-                logger.info("Finished HSM bookkeeping process");
+                logger.info("[informConfirmedBlockHeaders] Finished HSM bookkeeping process");
                 informing = false;
                 return;
             }
@@ -176,11 +170,13 @@ public class HSMBookkeepingService {
                 hsmCurrentBestBlock.getNumber()
             );
             // TODO: contact BtcReleaseClient to let it try to sign transactions now
+        } catch (HSMBlockchainBookkeepingRelatedException e) {
+            logger.error("[informConfirmedBlockHeaders] {}", e.getMessage());
         } catch (Exception exception) {
             logger.error("[informConfirmedBlockHeaders] Something went wrong trying to inform blocks.", exception);
             this.listeners.forEach(l -> l.onIrrecoverableError(exception));
         }
         informing = false;
-        logger.info("Finished HSM bookkeeping process");
+        logger.info("[informConfirmedBlockHeaders] Finished HSM bookkeeping process");
     }
 }
