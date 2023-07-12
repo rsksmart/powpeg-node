@@ -30,6 +30,7 @@ public class HSMBookkeepingService {
     private final boolean stopBookkeepingScheduler;
 
     private ScheduledExecutorService updateAdvanceBlockchain;
+    private Block hsmCurrentBestBlock;
 
     private boolean started;
     private boolean informing;
@@ -134,7 +135,7 @@ public class HSMBookkeepingService {
         informing = true;
         logger.info("Starting HSM bookkeeping process");
         try {
-            Block hsmCurrentBestBlock = getHsmBestBlock();
+            hsmCurrentBestBlock = getHsmBestBlock();
             if (hsmCurrentBestBlock == null) {
                 logger.error("[informConfirmedBlockHeaders] Can't found HSM Best Block in blockStore.");
                 informing = false;
