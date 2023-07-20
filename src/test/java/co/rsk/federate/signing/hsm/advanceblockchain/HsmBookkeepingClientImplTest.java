@@ -336,7 +336,7 @@ public class HsmBookkeepingClientImplTest {
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
 
-        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
+        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader), Collections.emptyList()));
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(3)).send(captor.capture());
@@ -358,7 +358,7 @@ public class HsmBookkeepingClientImplTest {
         when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(3);
-        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
+        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader), Collections.emptyList()));
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(3)).send(captor.capture());

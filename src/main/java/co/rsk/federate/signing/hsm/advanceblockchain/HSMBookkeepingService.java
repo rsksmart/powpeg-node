@@ -7,6 +7,7 @@ import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.net.NodeBlockProcessor;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -162,7 +163,7 @@ public class HSMBookkeepingService {
                 blockHeaders.get(0).getHash(),
                 blockHeaders.get(blockHeaders.size() - 1).getHash()
             );
-            hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders));
+            hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders, Collections.emptyList()));
             hsmCurrentBestBlock = getHsmBestBlock();
             logger.debug(
                 "[informConfirmedBlockHeaders] HSM best block after informing {} (height: {})",
