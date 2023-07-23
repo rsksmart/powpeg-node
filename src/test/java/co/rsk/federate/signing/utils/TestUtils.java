@@ -44,7 +44,7 @@ public class TestUtils {
     public static BlockHeader createBlockHeaderMock(int hashValue, long difficultyValue) {
         BlockHeader blockHeader = createBlockHeaderMock(hashValue);
         when(blockHeader.getDifficulty()).thenReturn(new BlockDifficulty(BigInteger.valueOf(difficultyValue)));
-
+        when(blockHeader.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
         return blockHeader;
     }
 
@@ -111,6 +111,7 @@ public class TestUtils {
         when(block.getNumber()).thenReturn(number);
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getHash()).thenReturn(hash);
+        when(blockHeader.getFullEncoded()).thenReturn(hash.getBytes());
         when(block.getHeader()).thenReturn(blockHeader);
         when(block.getDifficulty()).thenReturn(new BlockDifficulty(BigInteger.valueOf(difficultyValue)));
 

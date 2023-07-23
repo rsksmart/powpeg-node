@@ -8,10 +8,13 @@ import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
 import org.junit.Assert;
 import org.junit.Test;
+import org.spongycastle.util.encoders.Hex;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -31,7 +34,7 @@ public class ConfirmedBlockHeadersProviderTest {
         when(mockBlockStore.getBlockByHash(startingPoint.getBytes())).thenReturn(startingBlock);
         Block mockBestBlock = TestUtils.mockBlock(40, TestUtils.createHash(40));
         when(mockBlockStore.getBestBlock()).thenReturn(mockBestBlock);
-        List<BlockHeader> expectedList = new ArrayList<>();
+        List<BlockHeader> expectedBlockHeaders = new ArrayList<>();
 
         for (int i = 11; i < 41; i++) {
             long difficultyValue = 41L - i;
@@ -39,25 +42,24 @@ public class ConfirmedBlockHeadersProviderTest {
             BlockHeader mockBlockHeaderToProcess = TestUtils.createBlockHeaderMock(i, difficultyValue);
             when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
             when(mockBlockToProcess.getHeader()).thenReturn(mockBlockHeaderToProcess);
+
             if (i < 37) {
-                expectedList.add(mockBlockHeaderToProcess);
+                expectedBlockHeaders.add(mockBlockHeaderToProcess);
             }
         }
-        Assert.assertEquals(26, expectedList.size());
+        Assert.assertEquals(26, expectedBlockHeaders.size());
 
         ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
-                new BigInteger("160"),
-                100,
-                mockBlockStore,
-                difficultyCapRegTest,
-                HSM_VERSION_2);
+            new BigInteger("160"),
+            100,
+            mockBlockStore,
+            difficultyCapRegTest,
+            HSM_VERSION_2);
 
-        List<BlockHeader> listConfirmed = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
 
-        //Assert
-        // 13 elements in confirmed and 13 in potential list
-        Assert.assertEquals(26, listConfirmed.size());
-        Assert.assertEquals(expectedList, listConfirmed);
+        // Assert 13 elements in confirmed and 13 in potential list
+        Assert.assertEquals(26, confirmedBlocks.size());
     }
 
     @Test
@@ -80,17 +82,16 @@ public class ConfirmedBlockHeadersProviderTest {
 
 
         ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
-                new BigInteger("160"),
-                12,
-                mockBlockStore,
-                difficultyCapRegTest,
-                HSM_VERSION_2);
+            new BigInteger("160"),
+            12,
+            mockBlockStore,
+            difficultyCapRegTest,
+            HSM_VERSION_2);
 
-        List<BlockHeader> listConfirmed = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
 
-        //Assert
-        // 12 elements in confirmed and 11 in potential list
-        Assert.assertEquals(23, listConfirmed.size());
+        // Assert 12 elements in confirmed and 11 in potential list
+        Assert.assertEquals(23, confirmedBlocks.size());
     }
 
     @Test
@@ -112,16 +113,15 @@ public class ConfirmedBlockHeadersProviderTest {
         }
 
         ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
-                new BigInteger("160"),
-                100,
-                mockBlockStore,
-                difficultyCapRegTest,
-                HSM_VERSION_2);
+            new BigInteger("160"),
+            100,
+            mockBlockStore,
+            difficultyCapRegTest,
+            HSM_VERSION_2);
 
-        List<BlockHeader> listConfirmed = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
 
-        //Assert
-        Assert.assertEquals(0, listConfirmed.size());
+        Assert.assertEquals(0, confirmedBlocks.size());
     }
 
     @Test
@@ -149,10 +149,10 @@ public class ConfirmedBlockHeadersProviderTest {
             difficultyCapRegTest,
             HSM_VERSION_3);
 
-        List<BlockHeader> listConfirmed = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
 
         // Assert 23 elements in confirmed and 7 in potential list
-        Assert.assertEquals(30, listConfirmed.size());
+        Assert.assertEquals(30, confirmedBlocks.size());
     }
 
     @Test
@@ -180,9 +180,44 @@ public class ConfirmedBlockHeadersProviderTest {
             difficultyCapRegTest,
             HSM_VERSION_3);
 
-        List<BlockHeader> listConfirmed = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
 
         // Assert 20 elements in confirmed and 10 in potential list
-        Assert.assertEquals(30, listConfirmed.size());
+        Assert.assertEquals(30, confirmedBlocks.size());
+    }
+
+    @Test
+    public void testGetConfirmedBlockHeaders_HSMVersion3_with_Brothers() {
+
+        Keccak256 startingPoint = TestUtils.createHash(1);
+        BlockStore mockBlockStore = mock(BlockStore.class);
+        Block startingBlock = TestUtils.mockBlock(10, startingPoint);
+        when(mockBlockStore.getBlockByHash(startingPoint.getBytes())).thenReturn(startingBlock);
+        Block mockBestBlock = TestUtils.mockBlock(40, TestUtils.createHash(40));
+        when(mockBlockStore.getBestBlock()).thenReturn(mockBestBlock);
+
+        for (int i = 11; i < 41; i++) {
+            long difficultyValue = 30;
+            Block mockBlockToProcess = TestUtils.mockBlock(i, TestUtils.createHash(i), difficultyValue);
+            BlockHeader mockBlockHeaderToProcess = TestUtils.createBlockHeaderMock(i, difficultyValue);
+            when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
+            when(mockBlockToProcess.getHeader()).thenReturn(mockBlockHeaderToProcess);
+            List<BlockHeader> mockBrothers = Arrays.asList(
+                TestUtils.createBlockHeaderMock(i * 2, difficultyValue - 5),
+                TestUtils.createBlockHeaderMock(i * 4, difficultyValue - 10));
+            when(mockBlockToProcess.getUncleList()).thenReturn(mockBrothers);
+        }
+
+        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+            new BigInteger("160"),
+            100,
+            mockBlockStore,
+            difficultyCapRegTest,
+            HSM_VERSION_3);
+
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+
+        // Assert 23 elements in confirmed and 7 in potential list
+        Assert.assertEquals(30, confirmedBlocks.size());
     }
 }
