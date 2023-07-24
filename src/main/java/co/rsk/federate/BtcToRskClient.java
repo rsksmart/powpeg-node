@@ -201,6 +201,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     @Override
     public void onBlock(Block block) {
+        System.out.println("Hola");
         synchronized (this) {
             logger.debug("onBlock {}", block.getHash());
             PartialMerkleTree tree;
