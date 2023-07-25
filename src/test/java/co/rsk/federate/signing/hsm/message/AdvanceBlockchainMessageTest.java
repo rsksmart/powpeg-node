@@ -64,6 +64,7 @@ public class AdvanceBlockchainMessageTest {
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
 
         Assert.assertEquals(2, message.getBrothers().size());
+
         Assert.assertEquals(Hex.toHexString(blockHeader3.getFullEncoded()), Arrays.stream(message.getBrothers().get(0)).toArray()[0]);
         Assert.assertEquals(Hex.toHexString(blockHeader2.getFullEncoded()), Arrays.stream(message.getBrothers().get(1)).toArray()[0]);
         Assert.assertEquals(Hex.toHexString(blockHeader1.getFullEncoded()), Arrays.stream(message.getBrothers().get(1)).toArray()[1]);
