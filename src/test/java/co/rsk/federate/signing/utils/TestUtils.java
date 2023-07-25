@@ -15,6 +15,8 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,7 +37,7 @@ public class TestUtils {
     public static BlockHeader createBlockHeaderMock(int hashValue) {
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getHash()).thenReturn(TestUtils.createHash(hashValue));
-
+        when(blockHeader.getFullEncoded()).thenReturn(TestUtils.createHash(hashValue).getBytes());
         return blockHeader;
     }
 
@@ -83,8 +85,10 @@ public class TestUtils {
     public static Block mockBlock(long number, Keccak256 hash) {
         Block block = mockBlock(hash);
         when(block.getNumber()).thenReturn(number);
+        when(block.getUncleList()).thenReturn(Collections.emptyList());
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getHash()).thenReturn(hash);
+        when(blockHeader.getFullEncoded()).thenReturn(hash.getBytes());
         when(block.getHeader()).thenReturn(blockHeader);
 
         return block;
@@ -110,6 +114,17 @@ public class TestUtils {
         when(block.getHeader()).thenReturn(blockHeader);
         when(block.getDifficulty()).thenReturn(new BlockDifficulty(BigInteger.valueOf(difficultyValue)));
 
+        return block;
+    }
+
+    public static Block mockBlockWithBrothers(long number, Keccak256 hash, List<BlockHeader> brothers) {
+        Block block = mockBlock(hash);
+        when(block.getNumber()).thenReturn(number);
+        when(block.getUncleList()).thenReturn(brothers);
+        BlockHeader blockHeader = mock(BlockHeader.class);
+        when(blockHeader.getHash()).thenReturn(hash);
+        when(blockHeader.getFullEncoded()).thenReturn(hash.getBytes());
+        when(block.getHeader()).thenReturn(blockHeader);
         return block;
     }
 

@@ -11,9 +11,11 @@ import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
+import co.rsk.federate.signing.utils.TestUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 import org.junit.Assert;
 import org.junit.Before;
@@ -333,10 +335,12 @@ public class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO)))
             .thenReturn(buildResponse(false));
 
-        BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
+        List<Block> blocks = Arrays.asList(
+            TestUtils.mockBlock(1, TestUtils.createHash(1)),
+            TestUtils.mockBlock(2, TestUtils.createHash(2)),
+            TestUtils.mockBlock(3, TestUtils.createHash(3)));
 
-        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader), Collections.emptyList()));
+        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blocks));
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(3)).send(captor.capture());
@@ -354,11 +358,13 @@ public class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
             .thenReturn(buildResponse(false));
 
-        BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
+        List<Block> blocks = Arrays.asList(
+            TestUtils.mockBlock(1, TestUtils.createHash(1)),
+            TestUtils.mockBlock(2, TestUtils.createHash(2)),
+            TestUtils.mockBlock(3, TestUtils.createHash(3)));
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(3);
-        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader), Collections.emptyList()));
+        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blocks));
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(3)).send(captor.capture());
