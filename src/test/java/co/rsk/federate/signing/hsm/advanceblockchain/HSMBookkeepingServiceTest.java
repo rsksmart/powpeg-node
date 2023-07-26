@@ -344,11 +344,10 @@ class HSMBookkeepingServiceTest {
         BlockStore mockBlockStore = mock(BlockStore.class);
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
 
-        List<BlockHeader> blockHeaders = new ArrayList<>();
-        blockHeaders.add(TestUtils.createBlockHeaderMock(1));
+        List<Block> blocks = Collections.singletonList(TestUtils.mockBlock(1));
 
         ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(blockHeaders);
+        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(blocks);
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
@@ -371,10 +370,6 @@ class HSMBookkeepingServiceTest {
 
     @Test
     void informConfirmedBlockHeaders_already_informing() throws HSMClientException, InterruptedException {
-        BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
-        when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
-        List<BlockHeader> blockHeadersToInform = Collections.singletonList(mockBlockHeaderToInform);
-
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -387,8 +382,10 @@ class HSMBookkeepingServiceTest {
         BlockStore mockBlockStore = mock(BlockStore.class);
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
 
+        List<Block> confirmedBlocks = Collections.singletonList(TestUtils.mockBlock(1, TestUtils.createHash(1)));
+
         ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(blockHeadersToInform);
+        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(confirmedBlocks);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
 
@@ -417,7 +414,6 @@ class HSMBookkeepingServiceTest {
     void informConfirmedBlockHeaders_Ok() throws InterruptedException, HSMClientException {
         BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
         when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
-        List<BlockHeader> blockHeadersToInform = Collections.singletonList(mockBlockHeaderToInform);
 
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
@@ -426,8 +422,10 @@ class HSMBookkeepingServiceTest {
         BlockStore mockBlockStore = mock(BlockStore.class);
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
 
+        List<Block> confirmedBlocks = Collections.singletonList(TestUtils.mockBlock(1, TestUtils.createHash(1)));
+
         ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(blockHeadersToInform);
+        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(confirmedBlocks);
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 

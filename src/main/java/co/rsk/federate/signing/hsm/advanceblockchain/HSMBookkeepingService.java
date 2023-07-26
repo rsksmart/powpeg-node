@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
@@ -100,7 +102,7 @@ public class HSMBookkeepingService {
             return;
         }
         this.setStopSending();
-        logger.info("[stop] Stop HSMBookkeepingService");;
+        logger.info("[stop] Stop HSMBookkeepingService");
         // TODO: IS THIS TRULY CALLED AND IF SO, IS IT STOPPING THE SCHEDULED TASKS?
         if (updateAdvanceBlockchain != null) {
             updateAdvanceBlockchain.shutdown();
@@ -149,8 +151,8 @@ public class HSMBookkeepingService {
                 hsmCurrentBestBlock.getNumber()
             );
 
-            List<BlockHeader> blockHeaders = this.confirmedBlockHeadersProvider.getConfirmedBlockHeaders(hsmCurrentBestBlock.getHash());
-            if (blockHeaders.isEmpty()) {
+            List<Block> blocks = this.confirmedBlockHeadersProvider.getConfirmedBlockHeaders(hsmCurrentBestBlock.getHash());
+            if (blocks.isEmpty()) {
                 logger.debug("[informConfirmedBlockHeaders] No new block headers to inform");
                 logger.info("[informConfirmedBlockHeaders] Finished HSM bookkeeping process");
                 informing = false;
@@ -158,10 +160,12 @@ public class HSMBookkeepingService {
             }
             logger.debug(
                 "[informConfirmedBlockHeaders] Going to inform {} block headers. From {} to {}",
-                blockHeaders.size(),
-                blockHeaders.get(0).getHash(),
-                blockHeaders.get(blockHeaders.size() - 1).getHash()
+                blocks.size(),
+                blocks.get(0).getHash(),
+                blocks.get(blocks.size() - 1).getHash()
             );
+            // TODO: Remove next line and pass blocks directly when AdvanceBlockchainMessage is updated
+            List<BlockHeader> blockHeaders = blocks.stream().map(Block::getHeader).collect(Collectors.toList());
             hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders));
             hsmCurrentBestBlock = getHsmBestBlock();
             logger.debug(
