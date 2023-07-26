@@ -33,10 +33,10 @@ public class ConfirmedBlockHeadersProvider {
         this.hsmVersion = hsmVersion;
     }
 
-    public List<BlockHeader> getConfirmedBlockHeaders(Keccak256 startingPoint) {
-        List<BlockHeader> potentialConfirmed = new ArrayList<>();
+    public List<Block> getConfirmedBlockHeaders(Keccak256 startingPoint) {
+        List<Block> potentialBlocks = new ArrayList<>();
+        List<Block> confirmedBlocks = new ArrayList<>();
         BigInteger accumulatedDifficulty = BigInteger.ZERO;
-        List<BlockHeader> confirmedBlockHeaders = new ArrayList<>();
 
         Block initialBlock = blockStore.getBlockByHash(startingPoint.getBytes());
         Block bestBlock = blockStore.getBestBlock();
@@ -52,51 +52,49 @@ public class ConfirmedBlockHeadersProvider {
 
         int lastIndexToConfirmBlock = 0;
         Block blockToProcess = blockStore.getChainBlockByNumber(initialBlock.getNumber() + 1);
-        while (blockToProcess != null && confirmedBlockHeaders.size() < maximumElementsToSendHSM) {
+        while (blockToProcess != null && confirmedBlocks.size() < maximumElementsToSendHSM) {
+            potentialBlocks.add(blockToProcess);
             BigInteger difficultyToConsider = getBlockDifficultyToConsider(blockToProcess.getHeader());
-            potentialConfirmed.add(blockToProcess.getHeader());
             accumulatedDifficulty = accumulatedDifficulty.add(difficultyToConsider);
 
             if (accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0) { // Enough difficulty accumulated
                 logger.trace(
                     "[getConfirmedBlockHeaders] Accumulated enough difficulty {} with {} blocks",
                     accumulatedDifficulty,
-                    potentialConfirmed.size()
+                    potentialBlocks.size()
                 );
 
                 // The first block was confirmed. Add it to confirm, subtract its difficulty from the accumulated and from the potentials list
-                BlockHeader confirmedBlockHeader = potentialConfirmed.get(0);
-                BigInteger confirmedBlockDifficultyToConsider = getBlockDifficultyToConsider(confirmedBlockHeader);
-                confirmedBlockHeaders.add(confirmedBlockHeader);
+                Block confirmedBlock = potentialBlocks.get(0);
+                confirmedBlocks.add(confirmedBlock);
+                BigInteger confirmedBlockDifficultyToConsider = getBlockDifficultyToConsider(confirmedBlock.getHeader());
                 accumulatedDifficulty = accumulatedDifficulty.subtract(confirmedBlockDifficultyToConsider);
-                potentialConfirmed.remove(confirmedBlockHeader);
-                lastIndexToConfirmBlock = potentialConfirmed.size();
+                potentialBlocks.remove(confirmedBlock);
+                lastIndexToConfirmBlock = potentialBlocks.size();
 
-                logger.trace("[getConfirmedBlockHeaders] Confirmed block {}", confirmedBlockHeader.getHash());
+                logger.trace("[getConfirmedBlockHeaders] Confirmed block {}", confirmedBlock.getHash());
             }
 
             blockToProcess = blockStore.getChainBlockByNumber(blockToProcess.getNumber() + 1);
         }
-        logger.debug("[getConfirmedBlockHeaders] Got {} confirmed blocks", confirmedBlockHeaders.size());
-        if (confirmedBlockHeaders.isEmpty()) {
-            return confirmedBlockHeaders;
+        logger.debug("[getConfirmedBlockHeaders] Got {} confirmed blocks", confirmedBlocks.size());
+        if (confirmedBlocks.isEmpty()) {
+            return confirmedBlocks;
         }
         // Adding the proof of the confirmed elements from the potential elements
-        potentialConfirmed = potentialConfirmed.subList(0, lastIndexToConfirmBlock);
-        confirmedBlockHeaders.addAll(potentialConfirmed);
-        logger.debug("[getConfirmedBlockHeaders] Added {} extra blocks as proof", potentialConfirmed.size());
+        potentialBlocks = potentialBlocks.subList(0, lastIndexToConfirmBlock);
+        confirmedBlocks.addAll(potentialBlocks);
+        logger.debug("[getConfirmedBlockHeaders] Added {} extra blocks as proof", potentialBlocks.size());
 
-        return confirmedBlockHeaders;
+        return confirmedBlocks;
     }
 
-    private BigInteger getBlockDifficultyToConsider(BlockHeader block) {
-        BigInteger blockDifficulty = block.getDifficulty().asBigInteger();
-        BigInteger difficultyToConsider = hsmVersion >= 3 ?
-            difficultyCap.min(blockDifficulty) :
-            blockDifficulty;
+    private BigInteger getBlockDifficultyToConsider(BlockHeader blockHeader) {
+        BigInteger blockDifficulty = blockHeader.getDifficulty().asBigInteger();
+        BigInteger difficultyToConsider = hsmVersion >= 3 ? difficultyCap.min(blockDifficulty) : blockDifficulty;
         logger.trace(
             "[getBlockDifficultyToConsider] Block {}, total difficulty {}, considering {}",
-            block.getHash(),
+            blockHeader.getHash(),
             blockDifficulty,
             difficultyToConsider
         );
