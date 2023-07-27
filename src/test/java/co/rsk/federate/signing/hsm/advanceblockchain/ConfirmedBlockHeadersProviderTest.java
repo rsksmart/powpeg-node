@@ -50,7 +50,7 @@ class ConfirmedBlockHeadersProviderTest {
             HSM_VERSION_2
         );
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
 
         //Assert
         // 13 elements in confirmed and 13 in potential list
@@ -83,7 +83,7 @@ class ConfirmedBlockHeadersProviderTest {
             HSM_VERSION_2
         );
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
 
         //Assert 12 elements in confirmed and 11 in potential list
         assertEquals(23, confirmedBlocks.size());
@@ -114,7 +114,7 @@ class ConfirmedBlockHeadersProviderTest {
             HSM_VERSION_2
         );
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
 
         //Assert
         assertEquals(0, confirmedBlocks.size());
@@ -145,7 +145,7 @@ class ConfirmedBlockHeadersProviderTest {
             HSM_VERSION_3
         );
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
 
         // Assert 23 elements in confirmed and 7 in potential list
         assertEquals(30, confirmedBlocks.size());
@@ -176,7 +176,7 @@ class ConfirmedBlockHeadersProviderTest {
             HSM_VERSION_3
         );
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlockHeaders(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
 
         // Assert 20 elements in confirmed and 10 in potential list
         assertEquals(30, confirmedBlocks.size());
