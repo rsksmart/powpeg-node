@@ -151,7 +151,7 @@ public class HSMBookkeepingService {
                 hsmCurrentBestBlock.getNumber()
             );
 
-            List<Block> blocks = this.confirmedBlockHeadersProvider.getConfirmedBlockHeaders(hsmCurrentBestBlock.getHash());
+            List<Block> blocks = this.confirmedBlockHeadersProvider.getConfirmedBlocks(hsmCurrentBestBlock.getHash());
             if (blocks.isEmpty()) {
                 logger.debug("[informConfirmedBlockHeaders] No new block headers to inform");
                 logger.info("[informConfirmedBlockHeaders] Finished HSM bookkeeping process");
@@ -164,7 +164,7 @@ public class HSMBookkeepingService {
                 blocks.get(0).getHash(),
                 blocks.get(blocks.size() - 1).getHash()
             );
-            // TODO: Remove next line and pass blocks directly when AdvanceBlockchainMessage is updated
+            // TODO: Remove next line and pass the blocks directly when AdvanceBlockchainMessage is updated
             List<BlockHeader> blockHeaders = blocks.stream().map(Block::getHeader).collect(Collectors.toList());
             hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders));
             hsmCurrentBestBlock = getHsmBestBlock();
