@@ -346,7 +346,7 @@ public class HSMBookkeepingServiceTest {
         List<Block> blocks = Collections.singletonList(TestUtils.mockBlock(1));
 
         ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(blocks);
+        when(mockConfirmedBlockHeadersProvider.getConfirmedBlocks(any())).thenReturn(blocks);
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
@@ -386,7 +386,7 @@ public class HSMBookkeepingServiceTest {
         List<Block> confirmedBlocks = Collections.singletonList(TestUtils.mockBlock(1, TestUtils.createHash(1)));
 
         ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(confirmedBlocks);
+        when(mockConfirmedBlockHeadersProvider.getConfirmedBlocks(any())).thenReturn(confirmedBlocks);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
 
@@ -426,7 +426,7 @@ public class HSMBookkeepingServiceTest {
         List<Block> confirmedBlocks = Collections.singletonList(TestUtils.mockBlock(1, TestUtils.createHash(1)));
 
         ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(confirmedBlocks);
+        when(mockConfirmedBlockHeadersProvider.getConfirmedBlocks(any())).thenReturn(confirmedBlocks);
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
@@ -533,7 +533,7 @@ public class HSMBookkeepingServiceTest {
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
 
         ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlockHeaders(any())).thenReturn(new ArrayList<>());
+        when(mockConfirmedBlockHeadersProvider.getConfirmedBlocks(any())).thenReturn(new ArrayList<>());
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
@@ -553,7 +553,7 @@ public class HSMBookkeepingServiceTest {
         hsmBookkeepingService.informConfirmedBlockHeaders();
 
         // Assert
-        verify(mockConfirmedBlockHeadersProvider, times(1)).getConfirmedBlockHeaders(any());
+        verify(mockConfirmedBlockHeadersProvider, times(1)).getConfirmedBlocks(any());
         verify(mockHsmBookkeepingClient, never()).advanceBlockchain(any(AdvanceBlockchainMessage.class));
         verify(mockBlockStore, times(1)).getBlockByHash(any());
         Mockito.verifyNoInteractions(mockListener);

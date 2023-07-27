@@ -33,7 +33,7 @@ public class ConfirmedBlockHeadersProvider {
         this.hsmVersion = hsmVersion;
     }
 
-    public List<Block> getConfirmedBlockHeaders(Keccak256 startingPoint) {
+    public List<Block> getConfirmedBlocks(Keccak256 startingPoint) {
         List<Block> potentialBlocks = new ArrayList<>();
         List<Block> confirmedBlocks = new ArrayList<>();
         BigInteger accumulatedDifficulty = BigInteger.ZERO;
