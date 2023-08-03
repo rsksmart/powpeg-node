@@ -2,7 +2,6 @@ package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
 import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +53,7 @@ public class ConfirmedBlockHeadersProvider {
         Block blockToProcess = blockStore.getChainBlockByNumber(initialBlock.getNumber() + 1);
         while (blockToProcess != null && confirmedBlocks.size() < maximumElementsToSendHSM) {
             potentialBlocks.add(blockToProcess);
-            BigInteger difficultyToConsider = getBlockDifficultyToConsider(blockToProcess.getHeader());
+            BigInteger difficultyToConsider = getBlockDifficultyToConsider(blockToProcess);
             accumulatedDifficulty = accumulatedDifficulty.add(difficultyToConsider);
 
             if (accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0) { // Enough difficulty accumulated
@@ -67,7 +66,7 @@ public class ConfirmedBlockHeadersProvider {
                 // The first block was confirmed. Add it to confirm, subtract its difficulty from the accumulated and from the potentials list
                 Block confirmedBlock = potentialBlocks.get(0);
                 confirmedBlocks.add(confirmedBlock);
-                BigInteger confirmedBlockDifficultyToConsider = getBlockDifficultyToConsider(confirmedBlock.getHeader());
+                BigInteger confirmedBlockDifficultyToConsider = getBlockDifficultyToConsider(confirmedBlock);
                 accumulatedDifficulty = accumulatedDifficulty.subtract(confirmedBlockDifficultyToConsider);
                 potentialBlocks.remove(confirmedBlock);
                 lastIndexToConfirmBlock = potentialBlocks.size();
@@ -89,17 +88,23 @@ public class ConfirmedBlockHeadersProvider {
         return confirmedBlocks;
     }
 
-    private BigInteger getBlockDifficultyToConsider(BlockHeader blockHeader) {
-        BigInteger blockDifficulty = blockHeader.getDifficulty().asBigInteger();
-        BigInteger difficultyToConsider = hsmVersion >= 3 ? difficultyCap.min(blockDifficulty) : blockDifficulty;
+    private BigInteger getBlockDifficultyToConsider(Block block) {
+        BigInteger blockDifficulty = block.getDifficulty().asBigInteger();
+        BigInteger difficultyToConsider = blockDifficulty;
+        if (hsmVersion >= 3) {
+            BigInteger unclesDifficulty = block.getUncleList().stream()
+                .map(uncle -> uncle.getDifficulty().asBigInteger())
+                .reduce(BigInteger.ZERO, BigInteger::add);
+            blockDifficulty = blockDifficulty.add(unclesDifficulty);
+            difficultyToConsider = difficultyCap.min(blockDifficulty);
+        }
         logger.trace(
             "[getBlockDifficultyToConsider] Block {}, total difficulty {}, considering {}",
-            blockHeader.getHash(),
+            block.getHash(),
             blockDifficulty,
             difficultyToConsider
         );
 
         return difficultyToConsider;
     }
-
 }
