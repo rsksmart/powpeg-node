@@ -114,6 +114,18 @@ public class TestUtils {
         return block;
     }
 
+    public static Block mockBlockWithBrothers(long number, Keccak256 hash, long difficultyValue, List<BlockHeader> brothers) {
+        Block block = mockBlock(hash);
+        when(block.getNumber()).thenReturn(number);
+        when(block.getUncleList()).thenReturn(brothers);
+        BlockHeader blockHeader = mock(BlockHeader.class);
+        when(blockHeader.getHash()).thenReturn(hash);
+        when(blockHeader.getFullEncoded()).thenReturn(hash.getBytes());
+        when(block.getHeader()).thenReturn(blockHeader);
+        when(block.getDifficulty()).thenReturn(new BlockDifficulty(BigInteger.valueOf(difficultyValue)));
+        return block;
+    }
+
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
 
