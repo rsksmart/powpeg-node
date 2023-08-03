@@ -41,7 +41,7 @@ public class ConfirmedBlockHeadersProvider {
         Block initialBlock = blockStore.getBlockByHash(startingPoint.getBytes());
         Block bestBlock = blockStore.getBestBlock();
         logger.trace(
-            "[getConfirmedBlockHeaders] Initial block height is {} and RSK best block height {}. Using HSM version {}, difficulty target {}, difficulty cap {}, sending max {} elements",
+            "[getConfirmedBlocks] Initial block height is {} and RSK best block height {}. Using HSM version {}, difficulty target {}, difficulty cap {}, sending max {} elements",
             initialBlock.getNumber(),
             bestBlock.getNumber(),
             hsmVersion,
@@ -59,7 +59,7 @@ public class ConfirmedBlockHeadersProvider {
 
             if (accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0) { // Enough difficulty accumulated
                 logger.trace(
-                    "[getConfirmedBlockHeaders] Accumulated enough difficulty {} with {} blocks",
+                    "[getConfirmedBlocks] Accumulated enough difficulty {} with {} blocks",
                     accumulatedDifficulty,
                     potentialBlocks.size()
                 );
@@ -72,19 +72,19 @@ public class ConfirmedBlockHeadersProvider {
                 potentialBlocks.remove(confirmedBlock);
                 lastIndexToConfirmBlock = potentialBlocks.size();
 
-                logger.trace("[getConfirmedBlockHeaders] Confirmed block {}", confirmedBlock.getHash());
+                logger.trace("[getConfirmedBlocks] Confirmed block {}", confirmedBlock.getHash());
             }
 
             blockToProcess = blockStore.getChainBlockByNumber(blockToProcess.getNumber() + 1);
         }
-        logger.debug("[getConfirmedBlockHeaders] Got {} confirmed blocks", confirmedBlocks.size());
+        logger.debug("[getConfirmedBlocks] Got {} confirmed blocks", confirmedBlocks.size());
         if (confirmedBlocks.isEmpty()) {
             return confirmedBlocks;
         }
         // Adding the proof of the confirmed elements from the potential elements
         potentialBlocks = potentialBlocks.subList(0, lastIndexToConfirmBlock);
         confirmedBlocks.addAll(potentialBlocks);
-        logger.debug("[getConfirmedBlockHeaders] Added {} extra blocks as proof", potentialBlocks.size());
+        logger.debug("[getConfirmedBlocks] Added {} extra blocks as proof", potentialBlocks.size());
 
         return confirmedBlocks;
     }

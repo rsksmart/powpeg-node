@@ -23,7 +23,7 @@ public class ConfirmedBlockHeadersProviderTest {
     private final BigInteger difficultyCapRegTest = PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST;
 
     @Test
-    public void getConfirmedBlockHeaders_Ok() {
+    public void getConfirmedBlocks_Ok() {
 
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
@@ -61,7 +61,7 @@ public class ConfirmedBlockHeadersProviderTest {
     }
 
     @Test
-    public void getConfirmedBlockHeaders_MaximumElementsToSend_Ok() {
+    public void getConfirmedBlocks_MaximumElementsToSend_Ok() {
 
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
@@ -92,7 +92,7 @@ public class ConfirmedBlockHeadersProviderTest {
     }
 
     @Test
-    public void getConfirmedBlockHeaders_TooMuchDifficultyExpected_ReturnsEmptyList() {
+    public void getConfirmedBlocks_TooMuchDifficultyExpected_ReturnsEmptyList() {
 
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
@@ -123,7 +123,7 @@ public class ConfirmedBlockHeadersProviderTest {
     }
 
     @Test
-    public void testGetConfirmedBlockHeadersHSMVersion3AboveDifficultyCap() {
+    public void testgetConfirmedBlocksHSMVersion3AboveDifficultyCap() {
 
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
@@ -154,7 +154,7 @@ public class ConfirmedBlockHeadersProviderTest {
     }
 
     @Test
-    public void testGetConfirmedBlockHeadersHSMVersion3BelowDifficultyCap() {
+    public void testgetConfirmedBlocksHSMVersion3BelowDifficultyCap() {
 
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
