@@ -21,7 +21,7 @@ class ConfirmedBlockHeadersProviderTest {
     private final BigInteger difficultyCapRegTest = PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST;
 
     @Test
-    void getConfirmedBlockHeaders_Ok() {
+    void getConfirmedBlocks_Ok() {
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
         Block startingBlock = TestUtils.mockBlock(10, startingPoint);
@@ -59,7 +59,7 @@ class ConfirmedBlockHeadersProviderTest {
     }
 
     @Test
-    void getConfirmedBlockHeaders_MaximumElementsToSend_Ok() {
+    void getConfirmedBlocks_MaximumElementsToSend_Ok() {
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
         Block startingBlock = TestUtils.mockBlock(10, startingPoint);
@@ -90,7 +90,7 @@ class ConfirmedBlockHeadersProviderTest {
     }
 
     @Test
-    void getConfirmedBlockHeaders_TooMuchDifficultyExpected_ReturnsEmptyList() {
+    void getConfirmedBlocks_TooMuchDifficultyExpected_ReturnsEmptyList() {
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
         Block startingBlock = TestUtils.mockBlock(10, startingPoint);
@@ -121,7 +121,7 @@ class ConfirmedBlockHeadersProviderTest {
     }
 
     @Test
-    void testGetConfirmedBlockHeadersHSMVersion3AboveDifficultyCap() {
+    void testgetConfirmedBlocksHSMVersion3AboveDifficultyCap() {
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
         Block startingBlock = TestUtils.mockBlock(10, startingPoint);
@@ -152,7 +152,7 @@ class ConfirmedBlockHeadersProviderTest {
     }
 
     @Test
-    void testGetConfirmedBlockHeadersHSMVersion3BelowDifficultyCap() {
+    void testgetConfirmedBlocksHSMVersion3BelowDifficultyCap() {
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
         Block startingBlock = TestUtils.mockBlock(10, startingPoint);
