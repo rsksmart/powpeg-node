@@ -176,7 +176,7 @@ public class ConfirmedBlockHeadersProviderTest {
     }
 
     @Test
-    public void test_getConfirmedBlocks_considerBrothersDifficultyHSMVersion3() {
+    public void test_getConfirmedBlocks_considerBrothersDifficulty_AboveDifficultyCap() {
 
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
@@ -190,21 +190,86 @@ public class ConfirmedBlockHeadersProviderTest {
             TestUtils.createBlockHeaderMock(2, 10));
 
         for (int i = 11; i < 17; i++) {
-            long difficultyValue = 15;
+            long difficultyValue = 25;
             Block mockBlockToProcess = TestUtils.mockBlockWithBrothers(i, TestUtils.createHash(i), difficultyValue, brothers);
             when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
         }
 
+        // Above Difficulty Cap For HSM 2
         ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+            new BigInteger("160"),
+            100,
+            mockBlockStore,
+            difficultyCapRegTest,
+            HSM_VERSION_2);
+
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+
+        // HSM 2 Doesn't consider brothers difficulty
+        // Assert 0 element in confirmed list
+        Assert.assertEquals(0, confirmedBlocks.size());
+
+        // Below Difficulty Cap For HSM 3
+        confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
             new BigInteger("160"),
             100,
             mockBlockStore,
             BigInteger.valueOf(50),
             HSM_VERSION_3);
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
 
+        // HSM 3 considers brothers difficulty
         // Assert 1 element in confirmed and 5 in potential list
         Assert.assertEquals(6, confirmedBlocks.size());
+    }
+
+    @Test
+    public void test_getConfirmedBlocks_considerBrothersDifficulty_BelowDifficultyCap() {
+
+        Keccak256 startingPoint = TestUtils.createHash(1);
+        BlockStore mockBlockStore = mock(BlockStore.class);
+        Block startingBlock = TestUtils.mockBlock(10, startingPoint);
+        when(mockBlockStore.getBlockByHash(startingPoint.getBytes())).thenReturn(startingBlock);
+        Block mockBestBlock = TestUtils.mockBlock(18, TestUtils.createHash(18));
+        when(mockBlockStore.getBestBlock()).thenReturn(mockBestBlock);
+
+        List<BlockHeader> brothers = Arrays.asList(
+            TestUtils.createBlockHeaderMock(1, 5),
+            TestUtils.createBlockHeaderMock(2, 10));
+
+        for (int i = 11; i < 19; i++) {
+            long difficultyValue = 15;
+            Block mockBlockToProcess = TestUtils.mockBlockWithBrothers(i, TestUtils.createHash(i), difficultyValue, brothers);
+            when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
+        }
+
+        // Below Difficulty Cap For HSM 2
+        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+            new BigInteger("160"),
+            100,
+            mockBlockStore,
+            difficultyCapRegTest,
+            HSM_VERSION_2);
+
+        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+
+        // HSM 2 Doesn't consider brothers difficulty
+        // Assert 0 element in confirmed list
+        Assert.assertEquals(0, confirmedBlocks.size());
+
+        // Above Difficulty Cap For HSM 3
+        confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+            new BigInteger("160"),
+            100,
+            mockBlockStore,
+            difficultyCapRegTest,
+            HSM_VERSION_3);
+
+        confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+
+        // HSM 3 considers brothers difficulty
+        // Assert 1 element in confirmed and 7 in potential list
+        Assert.assertEquals(8, confirmedBlocks.size());
     }
 }
