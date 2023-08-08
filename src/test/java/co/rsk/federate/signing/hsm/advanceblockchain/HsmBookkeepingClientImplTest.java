@@ -25,10 +25,10 @@ import co.rsk.federate.signing.hsm.HSMInvalidResponseException;
 import co.rsk.federate.signing.hsm.HSMUnknownErrorException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
-import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
+import co.rsk.federate.signing.utils.TestUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,14 +65,14 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void test_getVersion_2() throws HSMClientException, JsonRpcException {
+    void getVersion_2() throws HSMClientException, JsonRpcException {
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
 
         assertEquals(VERSION_TWO, hsmBookkeepingClient.getVersion());
     }
 
     @Test
-    void test_getVersion_3() throws HSMClientException, JsonRpcException {
+    void etVersion_3() throws HSMClientException, JsonRpcException {
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
 
         assertEquals(VERSION_THREE, hsmBookkeepingClient.getVersion());
@@ -363,10 +364,12 @@ class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO)))
             .thenReturn(buildResponse(false));
 
-        BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
+        List<Block> blocks = Arrays.asList(
+            TestUtils.mockBlock(1, TestUtils.createHash(1)),
+            TestUtils.mockBlock(2, TestUtils.createHash(2)),
+            TestUtils.mockBlock(3, TestUtils.createHash(3)));
 
-        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
+        hsmBookkeepingClient.advanceBlockchain(blocks);
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(3)).send(captor.capture());
@@ -384,11 +387,17 @@ class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
             .thenReturn(buildResponse(false));
 
-        BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
+        BlockHeader blockHeader1 = TestUtils.createBlockHeaderMock(1);
+        BlockHeader blockHeader2 = TestUtils.createBlockHeaderMock(2);
+        BlockHeader blockHeader3 = TestUtils.createBlockHeaderMock(3);
+
+        List<Block> blocks = Arrays.asList(
+            TestUtils.mockBlockWithBrothers(1, TestUtils.createHash(1), Arrays.asList(blockHeader1, blockHeader2)),
+            TestUtils.mockBlockWithBrothers(2, TestUtils.createHash(2), Collections.emptyList()),
+            TestUtils.mockBlockWithBrothers(3, TestUtils.createHash(3), Collections.singletonList(blockHeader3)));
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(3);
-        hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
+        hsmBookkeepingClient.advanceBlockchain(blocks);
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(3)).send(captor.capture());
@@ -485,7 +494,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getBlockchainParameters_hsm_version_2() throws HSMClientException, JsonRpcException {
+    void getBlockchainParameters_hsm_version_2() throws JsonRpcException {
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
 
         assertThrows(HSMUnsupportedTypeException.class, () -> hsmBookkeepingClient.getBlockchainParameters());
