@@ -1,26 +1,35 @@
 package co.rsk.federate.signing.hsm.message;
 
-import java.util.ArrayList;
+import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
+import org.ethereum.core.Block;
+
+import java.util.Comparator;
 import java.util.List;
-import org.ethereum.core.BlockHeader;
-import org.spongycastle.util.encoders.Hex;
+import java.util.stream.Collectors;
 
 public class AdvanceBlockchainMessage {
-    private final List<String> blockHeaders;
+    private final List<ParsedHeader> parsedHeaders;
 
-    public AdvanceBlockchainMessage(List<BlockHeader> blockHeaders) {
-        this.blockHeaders = new ArrayList<>();
-        // Invert order
-        for (int index = blockHeaders.size() - 1; index >= 0; index--) {
-            this.blockHeaders.add(parseBlockHeader(blockHeaders.get(index)));
-        }
+    public AdvanceBlockchainMessage(List<Block> blocks) {
+        this.parsedHeaders = parseHeadersAndBrothers(blocks);
     }
 
-    private String parseBlockHeader(BlockHeader blockHeader) {
-        return Hex.toHexString(blockHeader.getFullEncoded());
+    private List<ParsedHeader> parseHeadersAndBrothers(List<Block> blocks) {
+        return blocks.stream()
+            .sorted(Comparator.comparingLong(Block::getNumber).reversed()) // sort blocks from latest to oldest
+            .map(block -> new ParsedHeader(block.getHeader(), block.getUncleList()))
+            .collect(Collectors.toList());
     }
 
-    public List<String> getBlockHeaders() {
-        return blockHeaders;
+    public List<String> getParsedBlockHeaders() {
+        return this.parsedHeaders.stream().map(ParsedHeader::getBlockHeader).collect(Collectors.toList());
+    }
+
+    public String[] getParsedBrothers(String blockHeader) throws HSMBlockchainBookkeepingRelatedException {
+        return this.parsedHeaders.stream()
+            .filter(header -> header.getBlockHeader().equals(blockHeader))
+            .findFirst()
+            .map(ParsedHeader::getBrothers)
+            .orElseThrow(() -> new HSMBlockchainBookkeepingRelatedException("Error while trying to get brothers for block header. Could not find header: " + blockHeader));
     }
 }
