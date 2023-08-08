@@ -243,7 +243,7 @@ includeBuild('<ABSOLUTE-PATH-TO-RSKJ-SOURCE-CODE>') {
             if (dependency.requested instanceof ModuleComponentSelector
                     && dependency.requested.group == 'co.rsk'
                     && dependency.requested.module == 'rskj-core'
-                    && dependency.requested.version.endsWith('SNAPSHOT')) {
+                    && (dependency.requested.version.endsWith('SNAPSHOT') || dependency.requested.version.endsWith('RC'))) {
                 def targetProject = project(":${dependency.requested.module}")
                 if (targetProject != null) {
                     println('---- USING LOCAL ' + dependency.requested.displayName +' PROJECT ----')
