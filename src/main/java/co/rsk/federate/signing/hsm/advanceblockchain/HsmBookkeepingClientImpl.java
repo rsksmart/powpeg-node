@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.ethereum.core.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,8 +155,9 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     @Override
-    public void advanceBlockchain(AdvanceBlockchainMessage advanceBlockchainMessage) throws HSMClientException {
-        sendBlockHeadersChunks(advanceBlockchainMessage.getBlockHeaders(), "advanceBlockchain", false);
+    public void advanceBlockchain(List<Block> blocks) throws HSMClientException {
+        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
+        sendBlockHeadersChunks(message.getParsedBlockHeaders(), "advanceBlockchain", false);
     }
 
     @Override

@@ -4,20 +4,17 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
-import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.net.NodeBlockProcessor;
+import org.ethereum.core.Block;
+import org.ethereum.db.BlockStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
-import org.ethereum.db.BlockStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HSMBookkeepingService {
     private static final Logger logger = LoggerFactory.getLogger(HSMBookkeepingService.class);
@@ -164,9 +161,7 @@ public class HSMBookkeepingService {
                 blocks.get(0).getHash(),
                 blocks.get(blocks.size() - 1).getHash()
             );
-            // TODO: Remove next line and pass the blocks directly when AdvanceBlockchainMessage is updated
-            List<BlockHeader> blockHeaders = blocks.stream().map(Block::getHeader).collect(Collectors.toList());
-            hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders));
+            hsmBookkeepingClient.advanceBlockchain(blocks);
             hsmCurrentBestBlock = getHsmBestBlock();
             logger.debug(
                 "[informConfirmedBlockHeaders] HSM best block after informing {} (height: {})",
