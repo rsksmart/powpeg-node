@@ -16,36 +16,25 @@ import java.util.List;
 public class AdvanceBlockchainMessageTest {
 
     @Test
-    public void test_getParsedBlockHeaders_ok() {
+    public void test_getParsedBlockHeaders_ok_sorted() {
+        Keccak256 blockHash1 = TestUtils.createHash(1);
+        Keccak256 blockHash2 = TestUtils.createHash(2);
+        Keccak256 blockHash3 = TestUtils.createHash(3);
+
         BlockHeader blockHeader1 = TestUtils.createBlockHeaderMock(1);
         BlockHeader blockHeader2 = TestUtils.createBlockHeaderMock(2);
         BlockHeader blockHeader4 = TestUtils.createBlockHeaderMock(4);
 
         List<Block> blocks = Arrays.asList(
-            TestUtils.mockBlockWithBrothers(1, TestUtils.createHash(1), Arrays.asList(blockHeader1, blockHeader2)),
-            TestUtils.mockBlockWithBrothers(2, TestUtils.createHash(2), Collections.emptyList()),
-            TestUtils.mockBlockWithBrothers(3, TestUtils.createHash(3), Collections.singletonList(blockHeader4)));
-
-        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
-
-        Assert.assertEquals(3, message.getParsedBlockHeaders().size());
-    }
-
-    @Test
-    public void test_getParsedBlockHeaders_sorted_from_latest_to_oldest() {
-        Keccak256 blockHash1 = TestUtils.createHash(1);
-        Keccak256 blockHash2 = TestUtils.createHash(2);
-        Keccak256 blockHash3 = TestUtils.createHash(3);
-
-        List<Block> blocks = Arrays.asList(
-            TestUtils.mockBlock(1, blockHash1),
-            TestUtils.mockBlock(2, blockHash2),
-            TestUtils.mockBlock(3, blockHash3));
+            TestUtils.mockBlockWithBrothers(1, blockHash1, Arrays.asList(blockHeader1, blockHeader2)),
+            TestUtils.mockBlockWithBrothers(2, blockHash2, Collections.emptyList()),
+            TestUtils.mockBlockWithBrothers(3, blockHash3, Collections.singletonList(blockHeader4)));
 
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
 
         List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
 
+        Assert.assertEquals(3, parsedBlockHeaders.size());
         Assert.assertEquals(Hex.toHexString(blockHash3.getBytes()), parsedBlockHeaders.get(0));
         Assert.assertEquals(Hex.toHexString(blockHash2.getBytes()), parsedBlockHeaders.get(1));
         Assert.assertEquals(Hex.toHexString(blockHash1.getBytes()), parsedBlockHeaders.get(2));
