@@ -392,7 +392,7 @@ public class HsmBookkeepingClientImplTest {
         List<Block> blocks = Arrays.asList(
             new Block(block1Header, Collections.emptyList(), block1Brothers, true, true),
             new Block(block2Header, Collections.emptyList(), block2Brothers, true, true),
-            new Block(block2Header, Collections.emptyList(), block3Brothers, true, true)
+            new Block(block3Header, Collections.emptyList(), block3Brothers, true, true)
         );
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(3);
