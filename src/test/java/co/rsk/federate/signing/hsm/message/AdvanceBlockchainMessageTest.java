@@ -2,78 +2,85 @@ package co.rsk.federate.signing.hsm.message;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
-import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
-import co.rsk.federate.signing.utils.TestUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
+import org.ethereum.core.BlockHeaderBuilder;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.spongycastle.util.encoders.Hex;
 
 class AdvanceBlockchainMessageTest {
 
+    private BlockHeaderBuilder blockHeaderBuilder;
+    private List<Block> blocks;
+
+    @BeforeEach
+    void setUp() {
+        blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
+
+        BlockHeader block1Header = blockHeaderBuilder.setNumber(1).build();
+        BlockHeader block2Header = blockHeaderBuilder.setNumber(2).build();
+        BlockHeader block3Header = blockHeaderBuilder.setNumber(3).build();
+
+        List<BlockHeader> block1Brothers = Arrays.asList(
+            blockHeaderBuilder.setNumber(101).build(),
+            blockHeaderBuilder.setNumber(102).build()
+        );
+        List<BlockHeader> block2Brothers = Collections.emptyList();
+        List<BlockHeader> block3Brothers = Collections.singletonList(
+            blockHeaderBuilder.setNumber(301).build()
+        );
+
+        blocks = Arrays.asList(
+            new Block(block1Header, Collections.emptyList(), block1Brothers, true, true),
+            new Block(block2Header, Collections.emptyList(), block2Brothers, true, true),
+            new Block(block3Header, Collections.emptyList(), block3Brothers, true, true)
+        );
+    }
+
     @Test
     void getParsedBlockHeaders_ok_sorted() {
-        Keccak256 blockHash1 = TestUtils.createHash(1);
-        Keccak256 blockHash2 = TestUtils.createHash(2);
-        Keccak256 blockHash3 = TestUtils.createHash(3);
-
-        BlockHeader blockHeader1 = TestUtils.createBlockHeaderMock(1);
-        BlockHeader blockHeader2 = TestUtils.createBlockHeaderMock(2);
-        BlockHeader blockHeader4 = TestUtils.createBlockHeaderMock(4);
-
-        List<Block> blocks = Arrays.asList(
-            TestUtils.mockBlockWithBrothers(1, blockHash1, Arrays.asList(blockHeader1, blockHeader2)),
-            TestUtils.mockBlockWithBrothers(2, blockHash2, Collections.emptyList()),
-            TestUtils.mockBlockWithBrothers(3, blockHash3, Collections.singletonList(blockHeader4)));
-
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
-
         List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
 
         assertEquals(3, parsedBlockHeaders.size());
-        assertEquals(Hex.toHexString(blockHash3.getBytes()), parsedBlockHeaders.get(0));
-        assertEquals(Hex.toHexString(blockHash2.getBytes()), parsedBlockHeaders.get(1));
-        assertEquals(Hex.toHexString(blockHash1.getBytes()), parsedBlockHeaders.get(2));
+        // Headers should have been parsed in the reverse order
+        assertEquals(Hex.toHexString(blocks.get(2).getHeader().getFullEncoded()), parsedBlockHeaders.get(0));
+        assertEquals(Hex.toHexString(blocks.get(1).getHeader().getFullEncoded()), parsedBlockHeaders.get(1));
+        assertEquals(Hex.toHexString(blocks.get(0).getHeader().getFullEncoded()), parsedBlockHeaders.get(2));
     }
 
     @Test
     void getParsedBrothers_ok() throws HSMBlockchainBookkeepingRelatedException {
-        BlockHeader blockHeader1 = TestUtils.createBlockHeaderMock(1);
-        BlockHeader blockHeader2 = TestUtils.createBlockHeaderMock(2);
-        BlockHeader blockHeader3 = TestUtils.createBlockHeaderMock(3);
-
-        List<Block> blocks = Arrays.asList(
-            TestUtils.mockBlockWithBrothers(1, TestUtils.createHash(1), Arrays.asList(blockHeader1, blockHeader2)),
-            TestUtils.mockBlockWithBrothers(2, TestUtils.createHash(2), Collections.emptyList()),
-            TestUtils.mockBlockWithBrothers(3, TestUtils.createHash(3), Collections.singletonList(blockHeader3)));
-
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
-
         List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
-        assertEquals(1, message.getParsedBrothers(parsedBlockHeaders.get(0)).length);
-        assertEquals(0, message.getParsedBrothers(parsedBlockHeaders.get(1)).length);
-        assertEquals(2, message.getParsedBrothers(parsedBlockHeaders.get(2)).length);
 
-        assertEquals(Hex.toHexString(blockHeader3.getFullEncoded()), message.getParsedBrothers(parsedBlockHeaders.get(0))[0]);
-        assertEquals(Hex.toHexString(blockHeader2.getFullEncoded()), message.getParsedBrothers(parsedBlockHeaders.get(2))[1]);
-        assertEquals(Hex.toHexString(blockHeader1.getFullEncoded()), message.getParsedBrothers(parsedBlockHeaders.get(2))[0]);
+        // Headers should have been parsed in the reverse order
+        String[] block3Brothers = message.getParsedBrothers(parsedBlockHeaders.get(0));
+        assertEquals(blocks.get(2).getUncleList().size(), block3Brothers.length);
+        assertEquals(Hex.toHexString(blocks.get(2).getUncleList().get(0).getFullEncoded()), block3Brothers[0]);
+
+        String[] block2Brothers = message.getParsedBrothers(parsedBlockHeaders.get(1));
+        assertEquals(blocks.get(1).getUncleList().size(), block2Brothers.length);
+
+        String[] block1Brothers = message.getParsedBrothers(parsedBlockHeaders.get(2));
+        assertEquals(blocks.get(0).getUncleList().size(), block1Brothers.length);
+        assertEquals(Hex.toHexString(blocks.get(0).getUncleList().get(0).getFullEncoded()), block1Brothers[0]);
+        assertEquals(Hex.toHexString(blocks.get(0).getUncleList().get(1).getFullEncoded()), block1Brothers[1]);
     }
 
     @Test
-    void getParsedBrothers_invalid_blockHeader() {
-        BlockHeader blockHeader1 = TestUtils.createBlockHeaderMock(1);
-        BlockHeader blockHeader2 = TestUtils.createBlockHeaderMock(2);
-
-        List<Block> blocks = Collections.singletonList(
-            TestUtils.mockBlockWithBrothers(1, TestUtils.createHash(1), Collections.singletonList(blockHeader1)));
-
+    void test_getParsedBrothers_invalid_blockHeader() throws HSMBlockchainBookkeepingRelatedException {
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
+        BlockHeader invalidBlockHeader = blockHeaderBuilder.setNumber(999).build();
 
-        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> message.getParsedBrothers(Hex.toHexString(blockHeader2.getFullEncoded())));
+        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> message.getParsedBrothers(Hex.toHexString(invalidBlockHeader.getFullEncoded())));
     }
 }
