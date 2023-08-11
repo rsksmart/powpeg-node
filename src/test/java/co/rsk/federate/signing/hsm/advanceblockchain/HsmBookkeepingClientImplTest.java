@@ -28,7 +28,6 @@ import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
-import co.rsk.federate.signing.utils.TestUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -37,8 +36,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
+import org.ethereum.core.BlockHeaderBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -52,6 +53,7 @@ class HsmBookkeepingClientImplTest {
     private final static int VERSION_THREE = 3;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private HsmBookkeepingClientImpl hsmBookkeepingClient;
+    private BlockHeaderBuilder blockHeaderBuilder;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -60,8 +62,14 @@ class HsmBookkeepingClientImplTest {
         JsonRpcClientProvider jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
 
-        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(
+            jsonRpcClientProviderMock,
+            ECDSASignerFactory.DEFAULT_ATTEMPTS,
+            ECDSASignerFactory.DEFAULT_INTERVAL
+        );
         hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol);
+
+        blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
     }
 
     @Test
@@ -365,15 +373,17 @@ class HsmBookkeepingClientImplTest {
             .thenReturn(buildResponse(false));
 
         List<Block> blocks = Arrays.asList(
-            TestUtils.mockBlock(1, TestUtils.createHash(1)),
-            TestUtils.mockBlock(2, TestUtils.createHash(2)),
-            TestUtils.mockBlock(3, TestUtils.createHash(3)));
+            Block.createBlockFromHeader(blockHeaderBuilder.setNumber(1).build(), true),
+            Block.createBlockFromHeader(blockHeaderBuilder.setNumber(2).build(), true),
+            Block.createBlockFromHeader(blockHeaderBuilder.setNumber(3).build(), true)
+        );
 
         hsmBookkeepingClient.advanceBlockchain(blocks);
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(3)).send(captor.capture());
         List<JsonNode> capturedArguments = captor.getAllValues();
+
         assertEquals("blockchainState", capturedArguments.get(1).get("command").asText());
         assertEquals("advanceBlockchain", capturedArguments.get(2).get("command").asText());
         assertTrue(capturedArguments.get(2).has("blocks"));
@@ -387,14 +397,24 @@ class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
             .thenReturn(buildResponse(false));
 
-        BlockHeader blockHeader1 = TestUtils.createBlockHeaderMock(1);
-        BlockHeader blockHeader2 = TestUtils.createBlockHeaderMock(2);
-        BlockHeader blockHeader3 = TestUtils.createBlockHeaderMock(3);
+        BlockHeader block1Header = blockHeaderBuilder.setNumber(1).build();
+        BlockHeader block2Header = blockHeaderBuilder.setNumber(2).build();
+        BlockHeader block3Header = blockHeaderBuilder.setNumber(3).build();
+
+        List<BlockHeader> block1Brothers = Arrays.asList(
+            blockHeaderBuilder.setNumber(101).build(),
+            blockHeaderBuilder.setNumber(102).build()
+        );
+        List<BlockHeader> block2Brothers = Collections.emptyList();
+        List<BlockHeader> block3Brothers = Arrays.asList(
+            blockHeaderBuilder.setNumber(301).build()
+        );
 
         List<Block> blocks = Arrays.asList(
-            TestUtils.mockBlockWithBrothers(1, TestUtils.createHash(1), Arrays.asList(blockHeader1, blockHeader2)),
-            TestUtils.mockBlockWithBrothers(2, TestUtils.createHash(2), Collections.emptyList()),
-            TestUtils.mockBlockWithBrothers(3, TestUtils.createHash(3), Collections.singletonList(blockHeader3)));
+            new Block(block1Header, Collections.emptyList(), block1Brothers, true, true),
+            new Block(block2Header, Collections.emptyList(), block2Brothers, true, true),
+            new Block(block2Header, Collections.emptyList(), block3Brothers, true, true)
+        );
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(3);
         hsmBookkeepingClient.advanceBlockchain(blocks);
