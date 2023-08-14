@@ -1,18 +1,17 @@
 package co.rsk.federate.signing.hsm.message;
 
-import co.rsk.federate.signing.utils.TestUtils;
+import static org.mockito.Mockito.mock;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.core.BlockHeaderBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.spongycastle.util.encoders.Hex;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Created by Kelvin Isievwore on 01/08/2023.
@@ -25,11 +24,12 @@ public class ParsedHeaderTest {
 
     @Before
     public void setup() {
-        BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(Mockito.mock(ActivationConfig.class));
-        blockHeader = blockHeaderBuilder.build();
+        BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
+        blockHeader = blockHeaderBuilder.setNumber(1).build();
         brothers = Arrays.asList(
-            TestUtils.createBlockHeaderMock(2),
-            TestUtils.createBlockHeaderMock(3));
+            blockHeaderBuilder.setNumber(101).build(),
+            blockHeaderBuilder.setNumber(102).build()
+        );
         parsedHeader = new ParsedHeader(blockHeader, brothers);
     }
 
