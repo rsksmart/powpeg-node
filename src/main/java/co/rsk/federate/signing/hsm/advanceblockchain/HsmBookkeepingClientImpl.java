@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.ethereum.core.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,9 +46,9 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     protected <T> List<T[]> getChunks(
-            T[] payload,
-            int maxChunkSize,
-            boolean keepPreviousChunkLastItem
+        T[] payload,
+        int maxChunkSize,
+        boolean keepPreviousChunkLastItem
     ) throws IllegalArgumentException {
         if (maxChunkSize <= 0) {
             throw new IllegalArgumentException("maxChunkSize must be bigger than zero");
@@ -77,9 +78,9 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     protected void sendBlockHeadersChunks(
-            List<String> blockHeaders,
-            String actualMethod,
-            boolean keepPreviousChunkLastItem
+        List<String> blockHeaders,
+        String actualMethod,
+        boolean keepPreviousChunkLastItem
     ) throws HSMClientException {
         if (isStopped) {
             return;
@@ -93,9 +94,9 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
             return;
         }
         List<String[]> blockHeadersChunks = getChunks(
-                blockHeaders.toArray(new String[]{}),
-                maxChunkSize,
-                keepPreviousChunkLastItem
+            blockHeaders.toArray(new String[]{}),
+            maxChunkSize,
+            keepPreviousChunkLastItem
         );
 
         logger.trace("[{}] Payload total size: {}", actualMethod, blockHeaders.size());
@@ -117,11 +118,11 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
                 this.hsmClientProtocol.send(payload);
             } catch (HSMClientException e) {
                 logger.warn(
-                        "[sendBlockHeadersChunks] {} failed sending {}/{} chunks. Error: {}",
-                        actualMethod,
-                        i + 1,
-                        blockHeadersChunks.size(),
-                        e.getMessage()
+                    "[sendBlockHeadersChunks] {} failed sending {}/{} chunks. Error: {}",
+                    actualMethod,
+                    i + 1,
+                    blockHeadersChunks.size(),
+                    e.getMessage()
                 );
                 throw e;
             }
@@ -154,8 +155,9 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     @Override
-    public void advanceBlockchain(AdvanceBlockchainMessage advanceBlockchainMessage) throws HSMClientException {
-        sendBlockHeadersChunks(advanceBlockchainMessage.getBlockHeaders(), "advanceBlockchain", false);
+    public void advanceBlockchain(List<Block> blocks) throws HSMClientException {
+        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
+        sendBlockHeadersChunks(message.getParsedBlockHeaders(), "advanceBlockchain", false);
     }
 
     @Override

@@ -16,7 +16,6 @@ import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceException;
 import co.rsk.federate.signing.hsm.HSMInvalidResponseException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
-import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
@@ -378,7 +377,7 @@ public class HSMBookkeepingServiceTest {
         doAnswer(a -> {
             Thread.sleep(1000);
             return null;
-        }).when(mockHsmBookkeepingClient).advanceBlockchain(any(AdvanceBlockchainMessage.class));
+        }).when(mockHsmBookkeepingClient).advanceBlockchain(any());
 
         BlockStore mockBlockStore = mock(BlockStore.class);
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
@@ -408,7 +407,7 @@ public class HSMBookkeepingServiceTest {
 
         // Assert
         verify(nodeBlockProcessor, times(1)).hasBetterBlockToSync();
-        verify(mockHsmBookkeepingClient, times(1)).advanceBlockchain(any(AdvanceBlockchainMessage.class));
+        verify(mockHsmBookkeepingClient, times(1)).advanceBlockchain(any());
     }
 
     @Test
@@ -448,7 +447,7 @@ public class HSMBookkeepingServiceTest {
 
         // Assert
         Assert.assertTrue(hsmBookkeepingService.isStarted());
-        verify(mockHsmBookkeepingClient, times(1)).advanceBlockchain(any(AdvanceBlockchainMessage.class));
+        verify(mockHsmBookkeepingClient, times(1)).advanceBlockchain(any());
         verify(mockBlockStore, times(2)).getBlockByHash(any());
         Mockito.verifyNoInteractions(mockListener);
 
@@ -554,7 +553,7 @@ public class HSMBookkeepingServiceTest {
 
         // Assert
         verify(mockConfirmedBlockHeadersProvider, times(1)).getConfirmedBlocks(any());
-        verify(mockHsmBookkeepingClient, never()).advanceBlockchain(any(AdvanceBlockchainMessage.class));
+        verify(mockHsmBookkeepingClient, never()).advanceBlockchain(any());
         verify(mockBlockStore, times(1)).getBlockByHash(any());
         Mockito.verifyNoInteractions(mockListener);
     }
