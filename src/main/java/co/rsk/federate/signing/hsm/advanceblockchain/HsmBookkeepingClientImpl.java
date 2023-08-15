@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
+import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
@@ -80,55 +81,16 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         return chunks;
     }
 
-    protected void sendBlockHeadersChunks(
-        List<String> blockHeaders,
-        String actualMethod,
-        boolean keepPreviousChunkLastItem
-    ) throws HSMClientException {
+    private void validateHSMStateAndBlockHeaders(List<String> blockHeaders, String methodName) throws HSMClientException {
         if (isStopped) {
-            return;
+            throw new HSMBlockchainBookkeepingRelatedException(String.format("[%s] HSM has been stopped.", methodName));
         }
         if (blockHeaders == null || blockHeaders.isEmpty()) {
-            return;
+            throw new HSMBlockchainBookkeepingRelatedException(String.format("[%s] Block headers is null or empty.", methodName));
         }
         // If HSM has an advanceBlockchain or updateAncestorBlock in progress, then it can't be called.
         if (getHSMPointer().isInProgress()) {
-            logger.trace("[{}] HSM is already updating its state. Not going to proceed with this request", actualMethod);
-            return;
-        }
-        List<String[]> blockHeadersChunks = getChunks(
-            blockHeaders.toArray(new String[]{}),
-            maxChunkSize,
-            keepPreviousChunkLastItem
-        );
-
-        logger.trace("[{}] Payload total size: {}", actualMethod, blockHeaders.size());
-
-        for (int i = 0; i < blockHeadersChunks.size(); i++) {
-            try {
-                String[] blockHeaderChunk = blockHeadersChunks.get(i);
-                ObjectNode payload = this.hsmClientProtocol.buildCommand(actualMethod, getVersion());
-                addBlocksToPayload(payload, blockHeaderChunk);
-
-                if (getVersion() >= 3 && ADVANCE_BLOCKCHAIN.getCommand().equals(actualMethod)) {
-                    addBrothersToPayload(payload, blockHeaderChunk);
-                }
-
-                if (isStopped) {
-                    return;
-                }
-                logger.trace("[{}] chunk {}/{}", actualMethod, i + 1, blockHeadersChunks.size());
-                this.hsmClientProtocol.send(payload);
-            } catch (HSMClientException e) {
-                logger.warn(
-                    "[sendBlockHeadersChunks] {} failed sending {}/{} chunks. Error: {}",
-                    actualMethod,
-                    i + 1,
-                    blockHeadersChunks.size(),
-                    e.getMessage()
-                );
-                throw e;
-            }
+            throw new HSMBlockchainBookkeepingRelatedException(String.format("[%s] HSM is already updating its state. Not going to proceed with this request.", methodName));
         }
     }
 
@@ -140,25 +102,97 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         payload.set(BLOCKS.getFieldName(), blocksFieldData);
     }
 
-    private void addBrothersToPayload(ObjectNode payload, String[] blockHeaderChunk) {
+    private void addBrothersToPayload(ObjectNode payload, List<String[]> brothers) {
         ArrayNode brothersFieldData = new ObjectMapper().createArrayNode();
-        for (String blockHeader : blockHeaderChunk) {
-            // TODO: This is currently sending empty arrays as brothers to the HSM V3 for compatibility with V2
-            //  This should be changed to sending the actual brothers when HSM V3 is fully implemented
-            brothersFieldData.add(new ObjectMapper().createArrayNode());
+        for (String[] brotherArray : brothers) {
+            ArrayNode fieldData = new ObjectMapper().createArrayNode();
+            for (String brother : brotherArray) {
+                fieldData.add(brother);
+            }
+            brothersFieldData.add(fieldData);
         }
         payload.set(BROTHERS.getFieldName(), brothersFieldData);
     }
 
+    private List<String[]> getBrothers(String[] blockHeaderChunk, AdvanceBlockchainMessage message)
+        throws HSMBlockchainBookkeepingRelatedException {
+        List<String[]> brothers = new ArrayList<>();
+        for (String blockHeader : blockHeaderChunk) {
+            brothers.add(message.getParsedBrothers(blockHeader));
+        }
+        return brothers;
+    }
+
     @Override
     public void updateAncestorBlock(UpdateAncestorBlockMessage updateAncestorBlockMessage) throws HSMClientException {
-        sendBlockHeadersChunks(updateAncestorBlockMessage.getData(), UPDATE_ANCESTOR_BLOCK.getCommand(), true);
+        List<String> blockHeaders = updateAncestorBlockMessage.getData();
+        List<String[]> blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, true);
+        int chunkIndex = 0;
+        validateHSMStateAndBlockHeaders(blockHeaders, UPDATE_ANCESTOR_BLOCK.getCommand());
+        try {
+            blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, true);
+
+            logger.trace("[updateAncestorBlock] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
+            for (int i = 0; i < blockHeadersChunks.size(); i++) {
+                String[] blockHeaderChunk = blockHeadersChunks.get(i);
+                ObjectNode payload = this.hsmClientProtocol.buildCommand(UPDATE_ANCESTOR_BLOCK.getCommand(), getVersion());
+                addBlocksToPayload(payload, blockHeaderChunk);
+
+                if (isStopped) {
+                    return;
+                }
+                chunkIndex = i + 1;
+                logger.trace("[updateAncestorBlock] chunk {}/{}", chunkIndex, blockHeadersChunks.size());
+                this.hsmClientProtocol.send(payload);
+            }
+        } catch (HSMClientException e) {
+            logger.warn(
+                "[updateAncestorBlock] failed sending {}/{} chunks. Error: {}",
+                chunkIndex,
+                blockHeadersChunks.size(),
+                e.getMessage()
+            );
+            throw e;
+        }
     }
 
     @Override
     public void advanceBlockchain(List<Block> blocks) throws HSMClientException {
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
-        sendBlockHeadersChunks(message.getParsedBlockHeaders(), ADVANCE_BLOCKCHAIN.getCommand(), false);
+        List<String> blockHeaders = message.getParsedBlockHeaders();
+        List<String[]> blockHeadersChunks = new ArrayList<>();
+        int chunkIndex = 0;
+        validateHSMStateAndBlockHeaders(blockHeaders, ADVANCE_BLOCKCHAIN.getCommand());
+        try {
+            blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, false);
+
+            logger.trace("[advanceBlockchain] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
+            for (int i = 0; i < blockHeadersChunks.size(); i++) {
+                String[] blockHeaderChunk = blockHeadersChunks.get(i);
+                ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), getVersion());
+                addBlocksToPayload(payload, blockHeaderChunk);
+
+                if (getVersion() >= 3) {
+                    List<String[]> brothers = getBrothers(blockHeaderChunk, message);
+                    addBrothersToPayload(payload, brothers);
+                }
+
+                if (isStopped) {
+                    return;
+                }
+                chunkIndex = i + 1;
+                logger.trace("[advanceBlockchain] chunk {}/{}", chunkIndex, blockHeadersChunks.size());
+                this.hsmClientProtocol.send(payload);
+            }
+        } catch (HSMClientException e) {
+            logger.warn(
+                "[advanceBlockchain] failed sending {}/{} chunks. Error: {}",
+                chunkIndex,
+                blockHeadersChunks.size(),
+                e.getMessage()
+            );
+            throw e;
+        }
     }
 
     @Override
