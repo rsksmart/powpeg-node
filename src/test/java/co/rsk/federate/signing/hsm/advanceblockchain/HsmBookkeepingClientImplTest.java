@@ -2,15 +2,12 @@ package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import co.rsk.crypto.Keccak256;
@@ -32,7 +29,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -55,7 +51,7 @@ class HsmBookkeepingClientImplTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private JsonRpcClient jsonRpcClientMock;
     private HsmBookkeepingClientImpl hsmBookkeepingClient;
-    BlockHeaderBuilder blockHeaderBuilder;
+    private BlockHeaderBuilder blockHeaderBuilder;
     private List<Block> blocks;
 
     @BeforeEach
@@ -178,149 +174,23 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void sendBlockHeadersChunks_no_data() throws HSMClientException {
-        hsmBookkeepingClient.sendBlockHeadersChunks(null, "", false);
-        hsmBookkeepingClient.sendBlockHeadersChunks(Collections.emptyList(), "", false);
-        hsmBookkeepingClient.sendBlockHeadersChunks(null, null, false);
-        hsmBookkeepingClient.sendBlockHeadersChunks(Collections.emptyList(), null, false);
-
-        verifyNoInteractions(jsonRpcClientMock);
+    void updateAncestorBlock_when_HSM_is_stopped() {
+        hsmBookkeepingClient.setStopSending(); // stop client/service
+        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(blocks));
     }
 
     @Test
-    void sendBlockHeadersChunks_advanceBlockchainInProgress() throws HSMClientException, JsonRpcException {
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
-        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO)))
+    void updateAncestorBlock_when_blockheaders_is_empty() throws HSMClientException {
+        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(Collections.emptyList()));
+    }
+
+    @Test
+    void updateAncestorBlock_when_HSM_is_updating() throws HSMClientException, JsonRpcException {
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
             .thenReturn(buildResponse(true));
 
-        hsmBookkeepingClient.sendBlockHeadersChunks(Collections.singletonList(""), null, false);
-
-        // once to get the version, second one to verify the blockchain state
-        verify(jsonRpcClientMock, times(2)).send(any(JsonNode.class));
-    }
-
-    @Test
-    void sendBlockHeadersChunks_chunk_fails() throws JsonRpcException {
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
-        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO)))
-            .thenReturn(buildResponse(false));
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(-203));
-
-        hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
-
-        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.sendBlockHeadersChunks(
-            Collections.singletonList(""),
-            null,
-            false
-        ));
-    }
-
-    @Test
-    void sendBlockHeadersChunks_chunk_failsWithExceptionInProtocol() throws JsonRpcException {
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
-        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO))).thenThrow(new JsonRpcException("", new Exception()));
-
-        hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
-
-        assertThrows(Exception.class, () -> hsmBookkeepingClient.sendBlockHeadersChunks(
-            Collections.singletonList(""),
-            null,
-            false
-        ));
-    }
-
-    @Test
-    void sendBlockHeadersChunks_stopped_ok() throws HSMClientException {
-        hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
-        hsmBookkeepingClient.setStopSending(); // stop client/service
-        hsmBookkeepingClient.sendBlockHeadersChunks(Collections.singletonList(""), null, false);
-
-        verifyNoInteractions(jsonRpcClientMock);
-    }
-
-    @Test
-    void sendBlockHeadersChunks_one_chunk_ok() throws JsonRpcException, HSMClientException {
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
-        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO)))
-            .thenReturn(buildResponse(false));
-
-        hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
-        hsmBookkeepingClient.sendBlockHeadersChunks(Collections.singletonList(""), null, false);
-
-        verify(jsonRpcClientMock, times(3)).send(any(JsonNode.class));
-    }
-
-    @Test
-    void sendBlockHeadersChunks_multiple_chunk_ok() throws HSMClientException, JsonRpcException {
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
-        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO)))
-            .thenReturn(buildResponse(false));
-
-        hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
-        // Repeat the same mock multiple times
-        hsmBookkeepingClient.sendBlockHeadersChunks(Arrays.asList("", "", ""), null, false);
-
-        // once to get the version, once to verify state, and 2 times more to send 2 chunks of blockheaders to hsm.
-        verify(jsonRpcClientMock, times(4)).send(any(JsonNode.class));
-    }
-
-    @Test
-    void sendBlockHeadersChunks_keepPreviousChunkLastItem_true() throws JsonRpcException, HSMClientException {
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
-        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO)))
-            .thenReturn(buildResponse(false));
-
-        List<String> blockHeaders = new ArrayList<>(Arrays.asList("a", "b", "c"));
-
-        hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
-        hsmBookkeepingClient.sendBlockHeadersChunks(blockHeaders, "test", true);
-
-        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(jsonRpcClientMock, times(4)).send(captor.capture());
-        List<JsonNode> capturedArguments = captor.getAllValues();
-        assertEquals("blockchainState", capturedArguments.get(1).get("command").asText());
-
-        assertEquals(2, capturedArguments.get(2).get("blocks").size());
-        assertEquals(blockHeaders.get(0), capturedArguments.get(2).get("blocks").get(0).asText());
-        assertEquals(blockHeaders.get(1), capturedArguments.get(2).get("blocks").get(1).asText());
-
-        assertEquals(2, capturedArguments.get(2).get("blocks").size());
-        assertEquals(blockHeaders.get(1), capturedArguments.get(3).get("blocks").get(0).asText());
-        assertEquals(blockHeaders.get(2), capturedArguments.get(3).get("blocks").get(1).asText());
-
-        assertEquals(capturedArguments.get(2).get("blocks").get(1).asText(), capturedArguments.get(3).get("blocks").get(0).asText());
-        verifyNoMoreInteractions(jsonRpcClientMock);
-    }
-
-    @Test
-    void sendBlockHeadersChunks_keepPreviousChunkLastItem_false() throws JsonRpcException, HSMClientException {
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
-        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO)))
-            .thenReturn(buildResponse(false));
-
-        List<String> blockHeaders = new ArrayList<>(Arrays.asList("a", "b", "c"));
-
-        hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
-        hsmBookkeepingClient.sendBlockHeadersChunks(blockHeaders, "test", false);
-
-        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(jsonRpcClientMock, times(4)).send(captor.capture());
-        List<JsonNode> capturedArguments = captor.getAllValues();
-        assertEquals("blockchainState", capturedArguments.get(1).get("command").asText());
-
-        assertEquals(2, capturedArguments.get(2).get("blocks").size());
-        assertEquals(blockHeaders.get(0), capturedArguments.get(2).get("blocks").get(0).asText());
-        assertEquals(blockHeaders.get(1), capturedArguments.get(2).get("blocks").get(1).asText());
-
-        assertEquals(1, capturedArguments.get(3).get("blocks").size());
-        assertEquals(blockHeaders.get(2), capturedArguments.get(3).get("blocks").get(0).asText());
-
-        assertNotEquals(capturedArguments.get(2).get("blocks").get(1).asText(), capturedArguments.get(3).get("blocks").get(0).asText());
-        verifyNoMoreInteractions(jsonRpcClientMock);
+        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(blocks));
     }
 
     @Test
@@ -331,6 +201,27 @@ class HsmBookkeepingClientImplTest {
     @Test
     void updateAncestorBlock_hsm_version_3() throws HSMClientException, JsonRpcException {
         testUpdateAncestorBlock(3);
+    }
+
+
+    @Test
+    void advanceBlockchain_when_HSM_is_stopped() {
+        hsmBookkeepingClient.setStopSending(); // stop client/service
+        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(blocks));
+    }
+
+    @Test
+    void advanceBlockchain_when_blockheaders_is_empty() throws HSMClientException {
+        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(Collections.emptyList()));
+    }
+
+    @Test
+    void advanceBlockchain_when_HSM_is_updating() throws HSMClientException, JsonRpcException {
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
+            .thenReturn(buildResponse(true));
+
+        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(blocks));
     }
 
     @Test
@@ -390,7 +281,14 @@ class HsmBookkeepingClientImplTest {
         assertEquals(Hex.toHexString(blocks.get(1).getHeader().getFullEncoded()), blocksInRequest.get(1).asText());
         assertEquals(Hex.toHexString(blocks.get(0).getHeader().getFullEncoded()), blocksInRequest.get(2).asText());
 
-        // TODO add assertion for brothers once they are sent
+        // Assert block brothers
+        assertEquals(blocks.get(0).getUncleList().size(), brothersInRequest.get(2).size());
+        assertEquals(blocks.get(1).getUncleList().size(), brothersInRequest.get(1).size());
+        assertEquals(blocks.get(2).getUncleList().size(), brothersInRequest.get(0).size());
+
+        assertEquals(Hex.toHexString(blocks.get(0).getUncleList().get(0).getFullEncoded()), brothersInRequest.get(2).get(0).asText());
+        assertEquals(Hex.toHexString(blocks.get(0).getUncleList().get(1).getFullEncoded()), brothersInRequest.get(2).get(1).asText());
+        assertEquals(Hex.toHexString(blocks.get(2).getUncleList().get(0).getFullEncoded()), brothersInRequest.get(0).get(0).asText());
     }
 
     @Test
@@ -577,9 +475,7 @@ class HsmBookkeepingClientImplTest {
             blockHeaderBuilder.setNumber(102).build()
         );
         List<BlockHeader> block2Brothers = Collections.emptyList();
-        List<BlockHeader> block3Brothers = Arrays.asList(
-            blockHeaderBuilder.setNumber(301).build()
-        );
+        List<BlockHeader> block3Brothers = Collections.singletonList(blockHeaderBuilder.setNumber(301).build());
 
         return Arrays.asList(
             new Block(block1Header, Collections.emptyList(), block1Brothers, true, true),
