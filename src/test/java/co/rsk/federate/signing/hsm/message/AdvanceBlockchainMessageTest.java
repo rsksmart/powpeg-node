@@ -1,6 +1,8 @@
 package co.rsk.federate.signing.hsm.message;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -79,7 +81,7 @@ class AdvanceBlockchainMessageTest {
     }
 
     @Test
-    void test_getParsedBrothers_invalid_blockHeader() throws HSMBlockchainBookkeepingRelatedException {
+    void getParsedBrothers_invalid_blockHeader() throws HSMBlockchainBookkeepingRelatedException {
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
         BlockHeader invalidBlockHeader = blockHeaderBuilder.setNumber(999).build();
 
@@ -87,7 +89,7 @@ class AdvanceBlockchainMessageTest {
     }
 
     @Test
-    public void test_getParsedBrothers_sorted_by_hash() throws HSMBlockchainBookkeepingRelatedException {
+    public void getParsedBrothers_sorted_by_hash() throws HSMBlockchainBookkeepingRelatedException {
         BlockHeader block1Header = blockHeaderBuilder.setNumber(1).build();
         BlockHeader block2Header = blockHeaderBuilder.setNumber(2).build();
 
@@ -121,5 +123,63 @@ class AdvanceBlockchainMessageTest {
         for (int i = 0; i < blockBrothers2.length - 1; ++i) {
             assertTrue(blockBrothers2[i].compareTo(blockBrothers2[i + 1]) <= 0);
         }
+    }
+
+    @Test
+    public void getParsedBrothers_with_more_than_10_brothers() throws HSMBlockchainBookkeepingRelatedException {
+        BlockHeader blockHeader1 = blockHeaderBuilder.setNumber(1).build();
+        BlockHeader blockHeader2 = blockHeaderBuilder.setNumber(2).build();
+        BlockHeader blockHeader3 = blockHeaderBuilder.setNumber(3).build();
+
+        List<BlockHeader> block1Brothers = Arrays.asList(
+            blockHeaderBuilder.setNumber(101).build(),
+            blockHeaderBuilder.setNumber(102).build(),
+            blockHeaderBuilder.setNumber(103).build(),
+            blockHeaderBuilder.setNumber(104).build(),
+            blockHeaderBuilder.setNumber(105).build(),
+            blockHeaderBuilder.setNumber(106).build(),
+            blockHeaderBuilder.setNumber(107).build(),
+            blockHeaderBuilder.setNumber(108).build(),
+            blockHeaderBuilder.setNumber(109).build(),
+            blockHeaderBuilder.setNumber(110).build(),
+            blockHeaderBuilder.setNumber(111).build(),
+            blockHeaderBuilder.setNumber(112).build(),
+            blockHeaderBuilder.setNumber(113).build()
+        );
+
+        List<BlockHeader> block2Brothers = Arrays.asList(
+            blockHeaderBuilder.setNumber(201).build(),
+            blockHeaderBuilder.setNumber(202).build(),
+            blockHeaderBuilder.setNumber(203).build(),
+            blockHeaderBuilder.setNumber(204).build()
+        );
+
+        blocks = Arrays.asList(
+            new Block(blockHeader1, Collections.emptyList(), block1Brothers, true, true),
+            new Block(blockHeader2, Collections.emptyList(), block2Brothers, true, true),
+            new Block(blockHeader3, Collections.emptyList(), Collections.emptyList(), true, true)
+        );
+
+        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
+        List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
+
+        int brothersLimitPerBlockHeader = 10;
+        String[] brothers1 = message.getParsedBrothers(parsedBlockHeaders.get(2));
+        assertEquals(brothersLimitPerBlockHeader, brothers1.length);
+        assertNotEquals(blocks.get(0).getUncleList().size(), brothers1.length);
+
+        // filter top 10 from block1Brothers by difficulty value
+        String[] expectedBlock1Brothers = message.filterBrothers(block1Brothers).stream()
+            .map(blockHeader -> Hex.toHexString(blockHeader.getFullEncoded()))
+            .toArray(String[]::new);
+
+        // Assert block1Brothers with brothers1
+        assertArrayEquals(expectedBlock1Brothers, brothers1);
+
+        String[] brothers2 = message.getParsedBrothers(parsedBlockHeaders.get(1));
+        assertEquals(blocks.get(1).getUncleList().size(), brothers2.length);
+
+        String[] brothers3 = message.getParsedBrothers(parsedBlockHeaders.get(0));
+        assertEquals(blocks.get(2).getUncleList().size(), brothers3.length);
     }
 }
