@@ -174,7 +174,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void updateAncestorBlock_when_HSM_is_stopped() {
+    public void updateAncestorBlock_when_HSM_service_is_stopped() {
         hsmBookkeepingClient.setStopSending(); // stop client/service
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(blocks));
     }

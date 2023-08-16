@@ -104,9 +104,9 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     private void addBrothersToPayload(ObjectNode payload, List<String[]> brothers) {
         ArrayNode brothersFieldData = new ObjectMapper().createArrayNode();
-        for (String[] brotherArray : brothers) {
+        for (String[] blockHeaderBrothers : brothers) {
             ArrayNode fieldData = new ObjectMapper().createArrayNode();
-            for (String brother : brotherArray) {
+            for (String brother : blockHeaderBrothers) {
                 fieldData.add(brother);
             }
             brothersFieldData.add(fieldData);
