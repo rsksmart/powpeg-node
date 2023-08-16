@@ -1,12 +1,7 @@
 package co.rsk.federate.signing.hsm.message;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import co.rsk.federate.signing.utils.TestUtils;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
@@ -14,6 +9,14 @@ import org.ethereum.core.BlockHeaderBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.spongycastle.util.encoders.Hex;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class AdvanceBlockchainMessageTest {
 
@@ -81,5 +84,42 @@ public class AdvanceBlockchainMessageTest {
         BlockHeader invalidBlockHeader = blockHeaderBuilder.setNumber(999).build();
 
         message.getParsedBrothers(Hex.toHexString(invalidBlockHeader.getFullEncoded()));
+    }
+
+    @Test
+    public void test_getParsedBrothers_sorted_by_hash() throws HSMBlockchainBookkeepingRelatedException {
+        BlockHeader block1Header = blockHeaderBuilder.setNumber(1).build();
+        BlockHeader block2Header = blockHeaderBuilder.setNumber(2).build();
+
+        List<BlockHeader> block1Brothers = Arrays.asList(
+            TestUtils.createBlockHeaderMock(102),
+            TestUtils.createBlockHeaderMock(105),
+            TestUtils.createBlockHeaderMock(103),
+            TestUtils.createBlockHeaderMock(101),
+            TestUtils.createBlockHeaderMock(104)
+        );
+        List<BlockHeader> block2Brothers = Arrays.asList(
+            TestUtils.createBlockHeaderMock(302),
+            TestUtils.createBlockHeaderMock(301),
+            TestUtils.createBlockHeaderMock(303)
+        );
+
+        List<Block> testBlocks = Arrays.asList(
+            new Block(block1Header, Collections.emptyList(), block1Brothers, true, true),
+            new Block(block2Header, Collections.emptyList(), block2Brothers, true, true)
+        );
+
+        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(testBlocks);
+        List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
+
+        String[] blockBrothers1 = message.getParsedBrothers(parsedBlockHeaders.get(1));
+        for (int i = 0; i < blockBrothers1.length - 1; ++i) {
+            assertTrue(blockBrothers1[i].compareTo(blockBrothers1[i + 1]) <= 0);
+        }
+
+        String[] blockBrothers2 = message.getParsedBrothers(parsedBlockHeaders.get(0));
+        for (int i = 0; i < blockBrothers2.length - 1; ++i) {
+            assertTrue(blockBrothers2[i].compareTo(blockBrothers2[i + 1]) <= 0);
+        }
     }
 }
