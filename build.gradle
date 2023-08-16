@@ -70,7 +70,7 @@ ext {
     logbackVersion = '1.2.11'
     junitVersion = '4.13.2'
     mockitoVersion = '4.6.1'
-    rskjcoreVersion = '5.1.0-RC'
+    rskjcoreVersion = '5.1.0-FINGERROOT'
 }
 
 dependencies {
