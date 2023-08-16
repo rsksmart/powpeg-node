@@ -3,6 +3,7 @@ package co.rsk.federate.signing.hsm.message;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import org.ethereum.core.Block;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,10 +27,12 @@ public class AdvanceBlockchainMessage {
     }
 
     public String[] getParsedBrothers(String blockHeader) throws HSMBlockchainBookkeepingRelatedException {
-        return this.parsedHeaders.stream()
+        String[] parsedBrothers = this.parsedHeaders.stream()
             .filter(header -> header.getBlockHeader().equals(blockHeader))
             .findFirst()
             .map(ParsedHeader::getBrothers)
             .orElseThrow(() -> new HSMBlockchainBookkeepingRelatedException("Error while trying to get brothers for block header. Could not find header: " + blockHeader));
+        Arrays.sort(parsedBrothers);
+        return parsedBrothers;
     }
 }
