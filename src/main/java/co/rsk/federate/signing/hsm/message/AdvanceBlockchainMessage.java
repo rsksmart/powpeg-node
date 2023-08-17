@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class AdvanceBlockchainMessage {
+    public static final int BROTHERS_LIMIT_PER_BLOCK_HEADER = 10;
     private final List<ParsedHeader> parsedHeaders;
 
     public AdvanceBlockchainMessage(List<Block> blocks) {
@@ -37,15 +38,14 @@ public class AdvanceBlockchainMessage {
         return parsedBrothers;
     }
 
-    protected List<BlockHeader> filterBrothers(List<BlockHeader> brothers) {
-        int brothersLimitPerBlockHeader = 10;
-        if (brothers.size() <= brothersLimitPerBlockHeader) {
+    private List<BlockHeader> filterBrothers(List<BlockHeader> brothers) {
+        if (brothers.size() <= BROTHERS_LIMIT_PER_BLOCK_HEADER) {
             return brothers;
         }
         return brothers.stream()
             .sorted((brother1, brother2) ->
                 brother2.getDifficulty().asBigInteger().compareTo(brother1.getDifficulty().asBigInteger()))
-            .limit(brothersLimitPerBlockHeader)
+            .limit(BROTHERS_LIMIT_PER_BLOCK_HEADER)
             .collect(Collectors.toList());
     }
 }
