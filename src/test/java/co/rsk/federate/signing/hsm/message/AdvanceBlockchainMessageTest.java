@@ -1,7 +1,7 @@
 package co.rsk.federate.signing.hsm.message;
 
+import co.rsk.core.BlockDifficulty;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
-import co.rsk.federate.signing.utils.TestUtils;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.spongycastle.util.encoders.Hex;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -91,16 +92,16 @@ public class AdvanceBlockchainMessageTest {
         BlockHeader block2Header = blockHeaderBuilder.setNumber(2).build();
 
         List<BlockHeader> block1Brothers = Arrays.asList(
-            TestUtils.createBlockHeaderMock(102),
-            TestUtils.createBlockHeaderMock(105),
-            TestUtils.createBlockHeaderMock(103),
-            TestUtils.createBlockHeaderMock(101),
-            TestUtils.createBlockHeaderMock(104)
+            blockHeaderBuilder.setNumber(102).build(),
+            blockHeaderBuilder.setNumber(105).build(),
+            blockHeaderBuilder.setNumber(103).build(),
+            blockHeaderBuilder.setNumber(101).build(),
+            blockHeaderBuilder.setNumber(104).build()
         );
         List<BlockHeader> block2Brothers = Arrays.asList(
-            TestUtils.createBlockHeaderMock(302),
-            TestUtils.createBlockHeaderMock(301),
-            TestUtils.createBlockHeaderMock(303)
+            blockHeaderBuilder.setNumber(302).build(),
+            blockHeaderBuilder.setNumber(301).build(),
+            blockHeaderBuilder.setNumber(303).build()
         );
 
         List<Block> testBlocks = Arrays.asList(
@@ -112,13 +113,13 @@ public class AdvanceBlockchainMessageTest {
         List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
 
         String[] blockBrothers1 = message.getParsedBrothers(parsedBlockHeaders.get(1));
-        for (int i = 0; i < blockBrothers1.length - 1; ++i) {
-            assertTrue(blockBrothers1[i].compareTo(blockBrothers1[i + 1]) <= 0);
+        for (int i = 0; i < blockBrothers1.length - 1; i++) {
+            assertTrue(blockBrothers1[i].compareTo(blockBrothers1[i + 1]) < 0);
         }
 
         String[] blockBrothers2 = message.getParsedBrothers(parsedBlockHeaders.get(0));
-        for (int i = 0; i < blockBrothers2.length - 1; ++i) {
-            assertTrue(blockBrothers2[i].compareTo(blockBrothers2[i + 1]) <= 0);
+        for (int i = 0; i < blockBrothers2.length - 1; i++) {
+            assertTrue(blockBrothers2[i].compareTo(blockBrothers2[i + 1]) < 0);
         }
     }
 
@@ -129,26 +130,26 @@ public class AdvanceBlockchainMessageTest {
         BlockHeader blockHeader3 = blockHeaderBuilder.setNumber(3).build();
 
         List<BlockHeader> block1Brothers = Arrays.asList(
-            blockHeaderBuilder.setNumber(101).build(),
-            blockHeaderBuilder.setNumber(102).build(),
-            blockHeaderBuilder.setNumber(103).build(),
-            blockHeaderBuilder.setNumber(104).build(),
-            blockHeaderBuilder.setNumber(105).build(),
-            blockHeaderBuilder.setNumber(106).build(),
-            blockHeaderBuilder.setNumber(107).build(),
-            blockHeaderBuilder.setNumber(108).build(),
-            blockHeaderBuilder.setNumber(109).build(),
-            blockHeaderBuilder.setNumber(110).build(),
-            blockHeaderBuilder.setNumber(111).build(),
-            blockHeaderBuilder.setNumber(112).build(),
-            blockHeaderBuilder.setNumber(113).build()
+            blockHeaderBuilder.setNumber(101).setDifficulty(new BlockDifficulty(BigInteger.valueOf(24))).build(),
+            blockHeaderBuilder.setNumber(102).setDifficulty(new BlockDifficulty(BigInteger.valueOf(42))).build(),
+            blockHeaderBuilder.setNumber(103).setDifficulty(BlockDifficulty.ONE).build(),
+            blockHeaderBuilder.setNumber(104).setDifficulty(new BlockDifficulty(BigInteger.valueOf(27))).build(),
+            blockHeaderBuilder.setNumber(105).setDifficulty(new BlockDifficulty(BigInteger.valueOf(99))).build(),
+            blockHeaderBuilder.setNumber(106).setDifficulty(new BlockDifficulty(BigInteger.valueOf(55))).build(),
+            blockHeaderBuilder.setNumber(107).setDifficulty(new BlockDifficulty(BigInteger.TEN)).build(),
+            blockHeaderBuilder.setNumber(108).setDifficulty(new BlockDifficulty(BigInteger.valueOf(32))).build(),
+            blockHeaderBuilder.setNumber(109).setDifficulty(new BlockDifficulty(BigInteger.valueOf(39))).build(),
+            blockHeaderBuilder.setNumber(110).setDifficulty(new BlockDifficulty(BigInteger.valueOf(65))).build(),
+            blockHeaderBuilder.setNumber(111).setDifficulty(new BlockDifficulty(BigInteger.valueOf(14))).build(),
+            blockHeaderBuilder.setNumber(112).setDifficulty(new BlockDifficulty(BigInteger.valueOf(43))).build(),
+            blockHeaderBuilder.setNumber(113).setDifficulty(new BlockDifficulty(BigInteger.valueOf(80))).build()
         );
 
         List<BlockHeader> block2Brothers = Arrays.asList(
-            blockHeaderBuilder.setNumber(201).build(),
-            blockHeaderBuilder.setNumber(202).build(),
-            blockHeaderBuilder.setNumber(203).build(),
-            blockHeaderBuilder.setNumber(204).build()
+            blockHeaderBuilder.setNumber(201).setDifficulty(new BlockDifficulty(BigInteger.valueOf(20))).build(),
+            blockHeaderBuilder.setNumber(202).setDifficulty(new BlockDifficulty(BigInteger.valueOf(30))).build(),
+            blockHeaderBuilder.setNumber(203).setDifficulty(new BlockDifficulty(BigInteger.valueOf(40))).build(),
+            blockHeaderBuilder.setNumber(204).setDifficulty(new BlockDifficulty(BigInteger.valueOf(50))).build()
         );
 
         blocks = Arrays.asList(
@@ -160,23 +161,43 @@ public class AdvanceBlockchainMessageTest {
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
         List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
 
-        int brothersLimitPerBlockHeader = 10;
         String[] brothers1 = message.getParsedBrothers(parsedBlockHeaders.get(2));
-        assertEquals(brothersLimitPerBlockHeader, brothers1.length);
+        assertEquals(AdvanceBlockchainMessage.BROTHERS_LIMIT_PER_BLOCK_HEADER, brothers1.length);
         assertNotEquals(blocks.get(0).getUncleList().size(), brothers1.length);
 
-        // filter top 10 from block1Brothers by difficulty value
-        String[] expectedBlock1Brothers = message.filterBrothers(block1Brothers).stream()
+        // top 10 from block1Brothers with highest difficulty value
+        List<BlockHeader> expectedBlock1Brothers = Arrays.asList(
+            block1Brothers.get(0),
+            block1Brothers.get(1),
+            block1Brothers.get(3),
+            block1Brothers.get(4),
+            block1Brothers.get(5),
+            block1Brothers.get(7),
+            block1Brothers.get(8),
+            block1Brothers.get(9),
+            block1Brothers.get(11),
+            block1Brothers.get(12)
+        );
+
+        String[] expectedBlock1BrothersFiltered = expectedBlock1Brothers.stream()
             .map(blockHeader -> Hex.toHexString(blockHeader.getFullEncoded()))
             .toArray(String[]::new);
 
-        // Assert block1Brothers with brothers1
-        assertArrayEquals(expectedBlock1Brothers, brothers1);
+        // Assert expectedBlock1BrothersFiltered with brothers1
+        assertTrue(Arrays.asList(expectedBlock1BrothersFiltered).containsAll(Arrays.asList(brothers1)));
 
         String[] brothers2 = message.getParsedBrothers(parsedBlockHeaders.get(1));
-        assertEquals(blocks.get(1).getUncleList().size(), brothers2.length);
+        List<BlockHeader> blockBrothers2 = blocks.get(1).getUncleList();
+        assertEquals(blockBrothers2.size(), brothers2.length);
+        for (int i = 0; i < blockBrothers2.size(); i++) {
+            assertEquals(Hex.toHexString(blockBrothers2.get(i).getFullEncoded()), brothers2[i]);
+        }
 
         String[] brothers3 = message.getParsedBrothers(parsedBlockHeaders.get(0));
-        assertEquals(blocks.get(2).getUncleList().size(), brothers3.length);
+        List<BlockHeader> blockBrothers3 = blocks.get(2).getUncleList();
+        assertEquals(blockBrothers3.size(), brothers3.length);
+        for (int i = 0; i < blockBrothers3.size(); i++) {
+            assertEquals(Hex.toHexString(blockBrothers3.get(i).getFullEncoded()), brothers3[i]);
+        }
     }
 }
