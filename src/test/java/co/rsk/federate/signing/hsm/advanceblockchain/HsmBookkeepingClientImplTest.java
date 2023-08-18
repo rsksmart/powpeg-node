@@ -43,6 +43,7 @@ public class HsmBookkeepingClientImplTest {
     private HsmBookkeepingClientImpl hsmBookkeepingClient;
     private BlockHeaderBuilder blockHeaderBuilder;
     private List<Block> blocks;
+    List<BlockHeader> blockHeaders;
 
     @Before
     public void setUp() throws Exception {
@@ -60,6 +61,7 @@ public class HsmBookkeepingClientImplTest {
 
         blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
         blocks = buildBlocks();
+        blockHeaders = blocks.stream().map(Block::getHeader).collect(Collectors.toList());
     }
 
     @Test
@@ -158,12 +160,12 @@ public class HsmBookkeepingClientImplTest {
     @Test(expected = HSMBlockchainBookkeepingRelatedException.class)
     public void updateAncestorBlock_when_HSM_service_is_stopped() throws HSMClientException {
         hsmBookkeepingClient.setStopSending(); // stop client/service
-        hsmBookkeepingClient.advanceBlockchain(blocks);
+        hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders));
     }
 
     @Test(expected = HSMBlockchainBookkeepingRelatedException.class)
     public void updateAncestorBlock_when_blockheaders_is_empty() throws HSMClientException {
-        hsmBookkeepingClient.advanceBlockchain(Collections.emptyList());
+        hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(Collections.emptyList()));
     }
 
     @Test(expected = HSMBlockchainBookkeepingRelatedException.class)
@@ -172,7 +174,7 @@ public class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
             .thenReturn(buildResponse(true));
 
-        hsmBookkeepingClient.advanceBlockchain(blocks);
+        hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders));
     }
 
     @Test
@@ -366,8 +368,6 @@ public class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, hsmVersion));
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", hsmVersion)))
             .thenReturn(buildResponse(false));
-
-        List<BlockHeader> blockHeaders = blocks.stream().map(Block::getHeader).collect(Collectors.toList());
 
         int maxChunkSize = 2;
         hsmBookkeepingClient.setMaxChunkSizeToHsm(maxChunkSize);
