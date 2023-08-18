@@ -41,7 +41,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             mockHsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -62,7 +62,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             mockHsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -84,7 +84,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             mock(HSMBookkeepingClient.class),
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             true
@@ -109,7 +109,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             mockHsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -134,7 +134,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             mockHsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -159,7 +159,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             mockHsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -185,7 +185,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             mockHsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -210,7 +210,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             mockHsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             0,
             false
@@ -237,7 +237,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             mockHsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -262,7 +262,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             hsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -291,7 +291,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             hsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -314,7 +314,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService service = new HSMBookkeepingService(
             mock(BlockStore.class),
             hsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -345,15 +345,15 @@ class HSMBookkeepingServiceTest {
 
         List<Block> blocks = Collections.singletonList(TestUtils.mockBlock(1));
 
-        ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlocks(any())).thenReturn(blocks);
+        ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
+        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(blocks);
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
             mockBlockStore,
             mockHsmBookkeepingClient,
-            mockConfirmedBlockHeadersProvider,
+            mockConfirmedBlocksProvider,
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -383,15 +383,15 @@ class HSMBookkeepingServiceTest {
 
         List<Block> confirmedBlocks = Collections.singletonList(TestUtils.mockBlock(1, TestUtils.createHash(1)));
 
-        ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlocks(any())).thenReturn(confirmedBlocks);
+        ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
+        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(confirmedBlocks);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
 
         HSMBookkeepingService hsmBookkeepingService = new HSMBookkeepingService(
             mockBlockStore,
             mockHsmBookkeepingClient,
-            mockConfirmedBlockHeadersProvider,
+            mockConfirmedBlocksProvider,
             nodeBlockProcessor,
             2_000,
             false
@@ -423,15 +423,15 @@ class HSMBookkeepingServiceTest {
 
         List<Block> confirmedBlocks = Collections.singletonList(TestUtils.mockBlock(1, TestUtils.createHash(1)));
 
-        ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlocks(any())).thenReturn(confirmedBlocks);
+        ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
+        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(confirmedBlocks);
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService hsmBookkeepingService = new HSMBookkeepingService(
             mockBlockStore,
             mockHsmBookkeepingClient,
-            mockConfirmedBlockHeadersProvider,
+            mockConfirmedBlocksProvider,
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -465,7 +465,7 @@ class HSMBookkeepingServiceTest {
         HSMBookkeepingService hsmBookkeepingService = new HSMBookkeepingService(
             mock(BlockStore.class),
             mockHsmBookkeepingClient,
-            mock(ConfirmedBlockHeadersProvider.class),
+            mock(ConfirmedBlocksProvider.class),
             mockNodeBlockProcessor,
             2_000,
             false
@@ -491,14 +491,14 @@ class HSMBookkeepingServiceTest {
         BlockStore mockBlockStore = mock(BlockStore.class);
         when(mockBlockStore.getBlockByHash(any())).thenReturn(null);
 
-        ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
+        ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService hsmBookkeepingService = new HSMBookkeepingService(
             mockBlockStore,
             mockHsmBookkeepingClient,
-            mockConfirmedBlockHeadersProvider,
+            mockConfirmedBlocksProvider,
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -514,7 +514,7 @@ class HSMBookkeepingServiceTest {
         verify(mockHsmBookkeepingClient, times(1)).getHSMPointer();
         verifyNoMoreInteractions(mockHsmBookkeepingClient);
         verify(mockBlockStore, times(1)).getBlockByHash(any());
-        verifyNoInteractions(mockConfirmedBlockHeadersProvider);
+        verifyNoInteractions(mockConfirmedBlocksProvider);
         verifyNoInteractions(mockListener);
     }
 
@@ -530,15 +530,15 @@ class HSMBookkeepingServiceTest {
         BlockStore mockBlockStore = mock(BlockStore.class);
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
 
-        ConfirmedBlockHeadersProvider mockConfirmedBlockHeadersProvider = mock(ConfirmedBlockHeadersProvider.class);
-        when(mockConfirmedBlockHeadersProvider.getConfirmedBlocks(any())).thenReturn(new ArrayList<>());
+        ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
+        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(new ArrayList<>());
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService hsmBookkeepingService = new HSMBookkeepingService(
             mockBlockStore,
             mockHsmBookkeepingClient,
-            mockConfirmedBlockHeadersProvider,
+            mockConfirmedBlocksProvider,
             mock(NodeBlockProcessor.class),
             2_000,
             false
@@ -551,7 +551,7 @@ class HSMBookkeepingServiceTest {
         hsmBookkeepingService.informConfirmedBlockHeaders();
 
         // Assert
-        verify(mockConfirmedBlockHeadersProvider, times(1)).getConfirmedBlocks(any());
+        verify(mockConfirmedBlocksProvider, times(1)).getConfirmedBlocks(any());
         verify(mockHsmBookkeepingClient, never()).advanceBlockchain(any());
         verify(mockBlockStore, times(1)).getBlockByHash(any());
         verifyNoInteractions(mockListener);
