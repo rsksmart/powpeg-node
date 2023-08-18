@@ -10,8 +10,8 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ConfirmedBlockHeadersProvider {
-    private static final Logger logger = LoggerFactory.getLogger(ConfirmedBlockHeadersProvider.class);
+public class ConfirmedBlocksProvider {
+    private static final Logger logger = LoggerFactory.getLogger(ConfirmedBlocksProvider.class);
 
     private final BigInteger minimumAccumulatedDifficulty;
     private final int maximumElementsToSendHSM;
@@ -19,7 +19,7 @@ public class ConfirmedBlockHeadersProvider {
     private final int hsmVersion;
     private final BigInteger difficultyCap;
 
-    public ConfirmedBlockHeadersProvider(
+    public ConfirmedBlocksProvider(
         BigInteger minimumAccumulatedDifficulty,
         int maximumElementsToSendHSM,
         BlockStore blockStore,
