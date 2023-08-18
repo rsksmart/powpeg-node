@@ -130,19 +130,19 @@ public class AdvanceBlockchainMessageTest {
         BlockHeader blockHeader3 = blockHeaderBuilder.setNumber(3).build();
 
         List<BlockHeader> block1Brothers = Arrays.asList(
-            blockHeaderBuilder.setNumber(101).setDifficulty(new BlockDifficulty(BigInteger.valueOf(24))).build(),
-            blockHeaderBuilder.setNumber(102).setDifficulty(new BlockDifficulty(BigInteger.valueOf(42))).build(),
-            blockHeaderBuilder.setNumber(103).setDifficulty(BlockDifficulty.ONE).build(),
-            blockHeaderBuilder.setNumber(104).setDifficulty(new BlockDifficulty(BigInteger.valueOf(27))).build(),
-            blockHeaderBuilder.setNumber(105).setDifficulty(new BlockDifficulty(BigInteger.valueOf(99))).build(),
-            blockHeaderBuilder.setNumber(106).setDifficulty(new BlockDifficulty(BigInteger.valueOf(55))).build(),
-            blockHeaderBuilder.setNumber(107).setDifficulty(new BlockDifficulty(BigInteger.TEN)).build(),
-            blockHeaderBuilder.setNumber(108).setDifficulty(new BlockDifficulty(BigInteger.valueOf(32))).build(),
-            blockHeaderBuilder.setNumber(109).setDifficulty(new BlockDifficulty(BigInteger.valueOf(39))).build(),
-            blockHeaderBuilder.setNumber(110).setDifficulty(new BlockDifficulty(BigInteger.valueOf(65))).build(),
-            blockHeaderBuilder.setNumber(111).setDifficulty(new BlockDifficulty(BigInteger.valueOf(14))).build(),
-            blockHeaderBuilder.setNumber(112).setDifficulty(new BlockDifficulty(BigInteger.valueOf(43))).build(),
-            blockHeaderBuilder.setNumber(113).setDifficulty(new BlockDifficulty(BigInteger.valueOf(80))).build()
+            blockHeaderBuilder.setNumber(101).setDifficulty(new BlockDifficulty(BigInteger.valueOf(100))).build(),
+            blockHeaderBuilder.setNumber(102).setDifficulty(new BlockDifficulty(BigInteger.valueOf(110))).build(),
+            blockHeaderBuilder.setNumber(103).setDifficulty(new BlockDifficulty(BigInteger.valueOf(70))).build(),
+            blockHeaderBuilder.setNumber(104).setDifficulty(new BlockDifficulty(BigInteger.valueOf(120))).build(),
+            blockHeaderBuilder.setNumber(105).setDifficulty(new BlockDifficulty(BigInteger.valueOf(130))).build(),
+            blockHeaderBuilder.setNumber(106).setDifficulty(new BlockDifficulty(BigInteger.valueOf(140))).build(),
+            blockHeaderBuilder.setNumber(107).setDifficulty(new BlockDifficulty(BigInteger.valueOf(50))).build(),
+            blockHeaderBuilder.setNumber(108).setDifficulty(new BlockDifficulty(BigInteger.valueOf(150))).build(),
+            blockHeaderBuilder.setNumber(109).setDifficulty(new BlockDifficulty(BigInteger.valueOf(160))).build(),
+            blockHeaderBuilder.setNumber(110).setDifficulty(new BlockDifficulty(BigInteger.valueOf(170))).build(),
+            blockHeaderBuilder.setNumber(111).setDifficulty(new BlockDifficulty(BigInteger.valueOf(80))).build(),
+            blockHeaderBuilder.setNumber(112).setDifficulty(new BlockDifficulty(BigInteger.valueOf(180))).build(),
+            blockHeaderBuilder.setNumber(113).setDifficulty(new BlockDifficulty(BigInteger.valueOf(190))).build()
         );
 
         List<BlockHeader> block2Brothers = Arrays.asList(
@@ -184,7 +184,7 @@ public class AdvanceBlockchainMessageTest {
             .toArray(String[]::new);
 
         // Assert expectedBlock1BrothersFiltered with brothers1
-        assertTrue(Arrays.asList(expectedBlock1BrothersFiltered).containsAll(Arrays.asList(brothers1)));
+        assertArrayEquals(expectedBlock1BrothersFiltered, brothers1);
 
         String[] brothers2 = message.getParsedBrothers(parsedBlockHeaders.get(1));
         List<BlockHeader> blockBrothers2 = blocks.get(1).getUncleList();
