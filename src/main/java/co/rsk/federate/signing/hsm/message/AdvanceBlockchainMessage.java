@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class AdvanceBlockchainMessage {
-    public static final int BROTHERS_LIMIT_PER_BLOCK_HEADER = 10;
+    protected static final int BROTHERS_LIMIT_PER_BLOCK_HEADER = 10;
     private final List<ParsedHeader> parsedHeaders;
 
     public AdvanceBlockchainMessage(List<Block> blocks) {
