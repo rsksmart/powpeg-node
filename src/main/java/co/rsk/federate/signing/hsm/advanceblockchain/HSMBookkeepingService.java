@@ -21,7 +21,7 @@ public class HSMBookkeepingService {
 
     private final BlockStore blockStore;
     private final HSMBookkeepingClient hsmBookkeepingClient;
-    private final ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider;
+    private final ConfirmedBlocksProvider confirmedBlocksProvider;
     private final long advanceBlockchainTimeInterval;
     private final List<HSMBookeepingServiceListener> listeners;
     private final NodeBlockProcessor nodeBlockProcessor;
@@ -36,14 +36,14 @@ public class HSMBookkeepingService {
     public HSMBookkeepingService(
         BlockStore blockStore,
         HSMBookkeepingClient hsmBookkeepingClient,
-        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider,
+        ConfirmedBlocksProvider confirmedBlocksProvider,
         NodeBlockProcessor nodeBlockProcessor,
         long advanceBlockchainTimeInterval,
         boolean stopBookkeepingScheduler
     ) {
         this.blockStore = blockStore;
         this.hsmBookkeepingClient = hsmBookkeepingClient;
-        this.confirmedBlockHeadersProvider = confirmedBlockHeadersProvider;
+        this.confirmedBlocksProvider = confirmedBlocksProvider;
         this.advanceBlockchainTimeInterval = advanceBlockchainTimeInterval;
         this.listeners = new ArrayList<>();
         this.nodeBlockProcessor = nodeBlockProcessor;
@@ -148,7 +148,7 @@ public class HSMBookkeepingService {
                 hsmCurrentBestBlock.getNumber()
             );
 
-            List<Block> blocks = this.confirmedBlockHeadersProvider.getConfirmedBlocks(hsmCurrentBestBlock.getHash());
+            List<Block> blocks = this.confirmedBlocksProvider.getConfirmedBlocks(hsmCurrentBestBlock.getHash());
             if (blocks.isEmpty()) {
                 logger.debug("[informConfirmedBlockHeaders] No new block headers to inform");
                 logger.info("[informConfirmedBlockHeaders] Finished HSM bookkeeping process");

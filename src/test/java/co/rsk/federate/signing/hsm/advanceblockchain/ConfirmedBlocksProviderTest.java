@@ -17,7 +17,7 @@ import java.util.List;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ConfirmedBlockHeadersProviderTest {
+public class ConfirmedBlocksProviderTest {
 
     private final int HSM_VERSION_2 = 2;
     private final int HSM_VERSION_3 = 3;
@@ -44,14 +44,14 @@ public class ConfirmedBlockHeadersProviderTest {
         }
         Assert.assertEquals(26, expectedBlocks.size());
 
-        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
                 new BigInteger("160"),
                 100,
                 mockBlockStore,
                 difficultyCapRegTest,
                 HSM_VERSION_2);
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         //Assert
         // 13 elements in confirmed and 13 in potential list
@@ -75,14 +75,14 @@ public class ConfirmedBlockHeadersProviderTest {
             when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
         }
 
-        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
                 new BigInteger("160"),
                 12,
                 mockBlockStore,
                 difficultyCapRegTest,
                 HSM_VERSION_2);
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         //Assert 12 elements in confirmed and 11 in potential list
         Assert.assertEquals(23, confirmedBlocks.size());
@@ -104,14 +104,14 @@ public class ConfirmedBlockHeadersProviderTest {
             when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
         }
 
-        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
                 new BigInteger("160"),
                 100,
                 mockBlockStore,
                 difficultyCapRegTest,
                 HSM_VERSION_2);
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         //Assert
         Assert.assertEquals(0, confirmedBlocks.size());
@@ -133,14 +133,14 @@ public class ConfirmedBlockHeadersProviderTest {
             when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
         }
 
-        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
             new BigInteger("160"),
             100,
             mockBlockStore,
             difficultyCapRegTest,
             HSM_VERSION_3);
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         // Assert 23 elements in confirmed and 7 in potential list
         Assert.assertEquals(30, confirmedBlocks.size());
@@ -162,14 +162,14 @@ public class ConfirmedBlockHeadersProviderTest {
             when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
         }
 
-        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
             new BigInteger("160"),
             100,
             mockBlockStore,
             difficultyCapRegTest,
             HSM_VERSION_3);
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         // Assert 20 elements in confirmed and 10 in potential list
         Assert.assertEquals(30, confirmedBlocks.size());
@@ -196,28 +196,28 @@ public class ConfirmedBlockHeadersProviderTest {
         }
 
         // Above Difficulty Cap For HSM 2
-        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
             new BigInteger("160"),
             100,
             mockBlockStore,
             difficultyCapRegTest,
             HSM_VERSION_2);
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         // HSM 2 Doesn't consider brothers difficulty
         // Assert 0 element in confirmed list
         Assert.assertEquals(0, confirmedBlocks.size());
 
         // Below Difficulty Cap For HSM 3
-        confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+        confirmedBlocksProvider = new ConfirmedBlocksProvider(
             new BigInteger("160"),
             100,
             mockBlockStore,
             BigInteger.valueOf(50),
             HSM_VERSION_3);
 
-        confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         // HSM 3 considers brothers difficulty
         // Assert 1 element in confirmed and 5 in potential list
@@ -245,28 +245,28 @@ public class ConfirmedBlockHeadersProviderTest {
         }
 
         // Below Difficulty Cap For HSM 2
-        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
             new BigInteger("160"),
             100,
             mockBlockStore,
             difficultyCapRegTest,
             HSM_VERSION_2);
 
-        List<Block> confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         // HSM 2 Doesn't consider brothers difficulty
         // Assert 0 element in confirmed list
         Assert.assertEquals(0, confirmedBlocks.size());
 
         // Above Difficulty Cap For HSM 3
-        confirmedBlockHeadersProvider = new ConfirmedBlockHeadersProvider(
+        confirmedBlocksProvider = new ConfirmedBlocksProvider(
             new BigInteger("160"),
             100,
             mockBlockStore,
             difficultyCapRegTest,
             HSM_VERSION_3);
 
-        confirmedBlocks = confirmedBlockHeadersProvider.getConfirmedBlocks(startingPoint);
+        confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         // HSM 3 considers brothers difficulty
         // Assert 1 element in confirmed and 7 in potential list
