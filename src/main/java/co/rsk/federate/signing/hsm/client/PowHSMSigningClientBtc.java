@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.ethereum.crypto.ECKey;
 
+import static co.rsk.federate.signing.HSMCommand.SIGN;
+
 public class PowHSMSigningClientBtc extends PowHSMSigningClient {
 
     public PowHSMSigningClientBtc(HSMClientProtocol protocol, int version) {
@@ -20,7 +22,7 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient {
         final String MESSAGE_FIELD = "message";
         PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) message;
 
-        ObjectNode objectToSign = this.hsmClientProtocol.buildCommand(SIGN_METHOD_NAME, this.getVersion());
+        ObjectNode objectToSign = this.hsmClientProtocol.buildCommand(SIGN.getCommand(), this.getVersion());
         objectToSign.put(KEYID_FIELD, keyId);
         objectToSign.set(AUTH_FIELD, createAuthField(powHSMSignerMessage));
         objectToSign.set(MESSAGE_FIELD, createMessageField(powHSMSignerMessage));
