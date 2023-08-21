@@ -6,8 +6,8 @@ import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.PowHSMResponseHandler;
 import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
-import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
+import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +21,8 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static co.rsk.federate.signing.HSMCommand.*;
 
 /**
  * Created by Kelvin Isievwore on 13/03/2023.
@@ -162,14 +164,13 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public PowHSMState getHSMPointer() throws HSMClientException {
-        final String BLOCKCHAIN_STATE_METHOD_NAME = "blockchainState";
         final String STATE_FIELD = "state";
         final String BEST_BLOCK_FIELD = "best_block";
         final String ANCESTOR_BLOCK_FIELD = "ancestor_block";
         final String UPDATING_FIELD = "updating";
         final String IN_PROGRESS_FIELD = "in_progress";
 
-        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE_METHOD_NAME, getVersion());
+        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE.getCommand(), getVersion());
         JsonNode response = this.hsmClientProtocol.send(command);
 
         this.hsmClientProtocol.validatePresenceOf(response, STATE_FIELD);
@@ -192,9 +193,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public void resetAdvanceBlockchain() throws HSMClientException {
-        final String RESET_COMMAND = "resetAdvanceBlockchain";
-
-        ObjectNode command = hsmClientProtocol.buildCommand(RESET_COMMAND, getVersion());
+        ObjectNode command = hsmClientProtocol.buildCommand(RESET_ADVANCE_BLOCKCHAIN.getCommand(), getVersion());
         this.hsmClientProtocol.send(command);
 
         logger.trace("[resetAdvanceBlockchain] Sent command to reset Advance Blockchain.");
@@ -212,7 +211,6 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public PowHSMBlockchainParameters getBlockchainParameters() throws HSMClientException {
-        final String BLOCKCHAIN_PARAMETERS_COMMAND = "blockchainParameters";
         final String PARAMETERS_FIELD = "parameters";
         final String CHECKPOINT_FIELD = "checkpoint";
         final String MINIMUM_DIFFICULTY_FIELD = "minimum_difficulty";
@@ -220,10 +218,10 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
         int version = getVersion();
         if (version < 3) {
-            throw new HSMUnsupportedTypeException("method call not allowed for version {}." + version);
+            throw new HSMUnsupportedTypeException("method call not allowed for version " + version);
         }
 
-        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_PARAMETERS_COMMAND, version);
+        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_PARAMETERS.getCommand(), version);
         JsonNode response = this.hsmClientProtocol.send(command);
 
         this.hsmClientProtocol.validatePresenceOf(response, PARAMETERS_FIELD);

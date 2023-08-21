@@ -25,6 +25,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
 
+import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
+import static co.rsk.federate.signing.HSMCommand.SIGN;
+
 /**
  * Can interact with a specific
  * Hardware Security Module (HSM)
@@ -49,7 +52,7 @@ public class HSMSigningClientV1 extends HSMSigningClientBase {
         if (!publicKeys.containsKey(keyId)) {
             final String PUBKEY_FIELD = "pubKey";
 
-            ObjectNode command = this.hsmClientProtocol.buildCommand(GETPUBKEY_METHOD_NAME, this.getVersion());
+            ObjectNode command = this.hsmClientProtocol.buildCommand(GET_PUB_KEY.getCommand(), this.getVersion());
             command.put(KEYID_FIELD, keyId);
             command.put(AUTH_FIELD, "");
             JsonNode response = this.hsmClientProtocol.send(command);
@@ -66,14 +69,14 @@ public class HSMSigningClientV1 extends HSMSigningClientBase {
 
     @Override
     public HSMSignature sign(String keyId, SignerMessage message) throws HSMClientException {
-        byte[] messageBytes = ((SignerMessageV1)message).getBytes();
+        byte[] messageBytes = ((SignerMessageV1) message).getBytes();
         final String MESSAGE_FIELD = "message";
         final String SIGNATURE_FIELD = "signature";
         final String R_FIELD = "r";
         final String S_FIELD = "s";
         final String V_FIELD = "v";
 
-        ObjectNode command = this.hsmClientProtocol.buildCommand(SIGN_METHOD_NAME, this.getVersion());
+        ObjectNode command = this.hsmClientProtocol.buildCommand(SIGN.getCommand(), this.getVersion());
         command.put(KEYID_FIELD, keyId);
         command.put(AUTH_FIELD, "");
         command.put(MESSAGE_FIELD, Hex.toHexString(messageBytes));
