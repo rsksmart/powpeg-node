@@ -20,7 +20,6 @@ package co.rsk.federate.signing.hsm.client;
 
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
-import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
@@ -69,7 +68,7 @@ public class HSMSigningClientV1 extends HSMSigningClientBase {
 
     @Override
     public HSMSignature sign(String keyId, SignerMessage message) throws HSMClientException {
-        byte[] messageBytes = ((SignerMessageV1) message).getBytes();
+        byte[] messageBytes = message.getBytes();
         final String MESSAGE_FIELD = "message";
         final String SIGNATURE_FIELD = "signature";
         final String R_FIELD = "r";
