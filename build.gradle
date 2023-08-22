@@ -13,6 +13,8 @@ group = 'co.rsk'
 version = config.modifier?.trim() ? config.modifier  + "-" + config.versionNumber : config.versionNumber
 
 test {
+    useJUnitPlatform()
+
     beforeTest { descriptor ->
         logger.lifecycle("Running test: ${descriptor}")
     }
@@ -68,7 +70,8 @@ ext {
     jacksonDatabindVersion = '2.13.3'
     typesafeVersion = '1.4.2'
     logbackVersion = '1.2.11'
-    junitVersion = '4.13.2'
+    junitVersion = '5.8.1'
+    junitSuiteVersion = '1.9.0'
     mockitoVersion = '4.6.1'
     rskjcoreVersion = '5.3.0-SNAPSHOT'
 }
@@ -89,8 +92,11 @@ dependencies {
     runtimeOnly "ch.qos.logback:logback-core:${logbackVersion}"
     runtimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
 
-    testImplementation "junit:junit:${junitVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:${junitVersion}"
+    testImplementation "org.junit.platform:junit-platform-suite:${junitSuiteVersion}"
     testImplementation "org.mockito:mockito-inline:${mockitoVersion}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
 }
 
 javadoc {
