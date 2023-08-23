@@ -36,6 +36,8 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static co.rsk.federate.signing.HSMCommand.VERSION;
+
 /**
  * Can interact with a specific
  * Hardware Security Module (HSM)
@@ -46,16 +48,13 @@ import org.slf4j.LoggerFactory;
  * @author Ariel Mendelzon
  */
 public class HSMClientProtocol {
-    private static final String VERSION_METHOD_NAME = "version";
+    private static ExecutorService executorService;
     private static final Logger logger = LoggerFactory.getLogger(HSMClientProtocol.class);
-
     private final ObjectMapper objectMapper;
     private final JsonRpcClientProvider clientProvider;
-    private int maxConnectionAttempts;
-    private int waitTimeForReconnection;
+    private final int maxConnectionAttempts;
+    private final int waitTimeForReconnection;
     private HSMResponseHandlerBase responseHandler;
-
-    private static ExecutorService executorService;
 
     public HSMClientProtocol(JsonRpcClientProvider clientProvider, int maxConnectionAttempts, int waitTimeForReconnection) {
         this.objectMapper = new ObjectMapper();
@@ -66,7 +65,7 @@ public class HSMClientProtocol {
     }
 
     public void setResponseHandler(HSMResponseHandlerBase handler) {
-        logger.debug("set response handler {}", handler.getClass());
+        logger.debug("[setResponseHandler] set response handler {}", handler.getClass());
         this.responseHandler = handler;
     }
 
@@ -75,13 +74,13 @@ public class HSMClientProtocol {
             final String VERSION_FIELD = "version";
 
             ObjectNode command = objectMapper.createObjectNode();
-            command.put("command", VERSION_METHOD_NAME);
+            command.put("command", VERSION.getCommand());
             JsonNode response = send(command);
-            validateResponse(VERSION_METHOD_NAME, response);
+            validateResponse(VERSION.getCommand(), response);
             validatePresenceOf(response, VERSION_FIELD);
 
             int hsmVersion = response.get(VERSION_FIELD).asInt();
-            logger.debug("HSM version: {}", hsmVersion);
+            logger.debug("[getVersion] HSM version: {}", hsmVersion);
             return hsmVersion;
         } catch (RuntimeException e) {
             String message = String.format("Error trying to connect to HSM. Details: '%s. %s'", e.getClass(), e.getMessage());
@@ -100,35 +99,35 @@ public class HSMClientProtocol {
     public JsonNode send(ObjectNode command) throws HSMClientException {
         int attempts = 0;
         JsonRpcClient client = null;
-        while(true) {
+        while (true) {
             try {
                 client = clientProvider.acquire();
                 String commandName = command.get("command").toString();
-                logger.trace("Sending command to hsm: {}", commandName);
+                logger.trace("[send] Sending command to hsm: {}", commandName);
                 Future future = getExecutor().submit(new HSMRequest(client, command));
                 JsonNode result = null;
                 try {
-                    logger.trace("Fetching response for command: {}", commandName);
+                    logger.trace("[send] Fetching response for command: {}", commandName);
                     result = (JsonNode) future.get();
-                    logger.trace("Got response for command: {}", commandName);
+                    logger.trace("[send] Got response for command: {}", commandName);
                 } catch (ExecutionException e) {
                     Throwable cause = e.getCause();
                     if (cause instanceof JsonRpcException) {
-                        throw (JsonRpcException)cause;
+                        throw (JsonRpcException) cause;
                     }
                     if (cause instanceof HSMDeviceNotReadyException) {
-                        throw (HSMDeviceNotReadyException)cause;
+                        throw (HSMDeviceNotReadyException) cause;
                     }
                     if (cause instanceof HSMClientException) {
-                        throw (HSMClientException)cause;
+                        throw (HSMClientException) cause;
                     }
                 }
                 int responseCode = validateResponse(command.get("command").textValue(), result);
-                logger.trace("HSM responds with code {} to command {}", responseCode, commandName);
+                logger.trace("[send] HSM responds with code {} to command {}", responseCode, commandName);
                 return result;
             } catch (JsonRpcException e) {
                 attempts++;
-                if(attempts == this.maxConnectionAttempts) {
+                if (attempts == this.maxConnectionAttempts) {
                     String message = String.format(
                         "There was a connection error trying to contact the HSM gateway. Details: '%s'",
                         e.getMessage()
@@ -140,15 +139,15 @@ public class HSMClientProtocol {
             } catch (HSMDeviceNotReadyException e) {
                 attempts++;
                 if (attempts == this.maxConnectionAttempts) {
-                    logger.error("HSM device not ready after {} attempts", attempts, e);
+                    logger.error("[send] HSM device not ready after {} attempts", attempts, e);
                     throw e;
                 }
                 logger.debug("retrying send, attempt {}", attempts);
             } catch (HSMClientException e) {
-                logger.debug("HSMClientException {}", e.getClass(), e.getMessage());
+                logger.debug("[send] HSMClientException {}", e.getMessage());
                 throw e;
             } catch (InterruptedException e) {
-                logger.debug("Thread exception {}", e.getClass(), e.getMessage());
+                logger.debug("[send] Thread exception {}", e.getMessage());
                 throw new HSMUnknownErrorException("There was an error with the thread of the HSM request", e);
             } finally {
                 clientProvider.release(client);
@@ -156,10 +155,10 @@ public class HSMClientProtocol {
 
             try {
                 Thread.sleep(this.waitTimeForReconnection);
-            } catch (InterruptedException ie){
+            } catch (InterruptedException ie) {
                 String message = String.format(
-                        "There was an interrupted exception when trying to contact the HSM gateway. Details: '%s'",
-                        ie.getMessage()
+                    "There was an interrupted exception when trying to contact the HSM gateway. Details: '%s'",
+                    ie.getMessage()
                 );
                 logger.error(message, ie);
                 throw new HSMGatewayIrresponsiveException(message, ie);
@@ -185,6 +184,7 @@ public class HSMClientProtocol {
     private class HSMRequest implements Callable<JsonNode> {
         private final JsonRpcClient client;
         private final ObjectNode command;
+
         public HSMRequest(JsonRpcClient client, ObjectNode command) {
             this.client = client;
             this.command = command;
@@ -197,4 +197,3 @@ public class HSMClientProtocol {
     }
 
 }
-

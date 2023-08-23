@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
 
+import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
+
 public abstract class PowHSMSigningClient extends HSMSigningClientBase {
 
     protected PowHSMSigningClient(HSMClientProtocol protocol, int version) {
@@ -39,7 +41,7 @@ public abstract class PowHSMSigningClient extends HSMSigningClientBase {
         if (!publicKeys.containsKey(keyId)) {
             final String PUBKEY_FIELD = "pubKey";
 
-            ObjectNode command = this.hsmClientProtocol.buildCommand(GETPUBKEY_METHOD_NAME, this.getVersion());
+            ObjectNode command = this.hsmClientProtocol.buildCommand(GET_PUB_KEY.getCommand(), this.getVersion());
             command.put(KEYID_FIELD, keyId);
             JsonNode response = this.hsmClientProtocol.send(command);
             hsmClientProtocol.validatePresenceOf(response, PUBKEY_FIELD);
