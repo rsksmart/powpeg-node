@@ -25,10 +25,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 
+import static co.rsk.federate.signing.HSMField.ERROR;
+import static co.rsk.federate.signing.HSMField.ERROR_CODE;
 import static co.rsk.federate.signing.hsm.client.HSMResponseCode.*;
 
 public class HSMResponseHandlerBase {
-    protected static final String ERROR_CODE_FIELD = "errorcode";
 
     //When a `getVersion` request is sent to HSM a `device error` can occur
     //Since the HSM version is yet undefined we need to handle error codes for both versions at this stage
@@ -40,9 +41,9 @@ public class HSMResponseHandlerBase {
     }
 
     protected final int validateResponse(String methodName, JsonNode response) throws HSMClientException {
-        validatePresenceOf(response, ERROR_CODE_FIELD);
+        validatePresenceOf(response, ERROR_CODE.getName());
 
-        int errorCode = response.get(ERROR_CODE_FIELD).asInt();
+        int errorCode = response.get(ERROR_CODE.getName()).asInt();
         if (getOkErrorCodes().contains(errorCode)) {
             return errorCode;
         }
@@ -59,7 +60,7 @@ public class HSMResponseHandlerBase {
 
     protected String formatErrorMessage(String exceptionMessage, String methodName, JsonNode response) {
         String context = String.format("Context: Running method '%s'", methodName);
-        String errorMessage = response.hasNonNull("error") ? response.get("error").asText() : "[no error message given]";
+        String errorMessage = response.hasNonNull(ERROR.getName()) ? response.get(ERROR.getName()).asText() : "[no error message given]";
 
         return String.format(exceptionMessage, errorMessage , context);
     }

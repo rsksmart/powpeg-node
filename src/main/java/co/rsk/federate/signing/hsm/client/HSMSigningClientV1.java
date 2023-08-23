@@ -26,6 +26,7 @@ import org.bouncycastle.util.encoders.Hex;
 
 import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
 import static co.rsk.federate.signing.HSMCommand.SIGN;
+import static co.rsk.federate.signing.HSMField.*;
 
 /**
  * Can interact with a specific
@@ -47,17 +48,14 @@ public class HSMSigningClientV1 extends HSMSigningClientBase {
     public byte[] getPublicKey(String keyId) throws HSMClientException {
         // Gather the public key at most once per key id
         // Public keys should remain constant for the same key id
-
         if (!publicKeys.containsKey(keyId)) {
-            final String PUBKEY_FIELD = "pubKey";
-
             ObjectNode command = this.hsmClientProtocol.buildCommand(GET_PUB_KEY.getCommand(), this.getVersion());
-            command.put(KEYID_FIELD, keyId);
-            command.put(AUTH_FIELD, "");
+            command.put(KEY_ID.getName(), keyId);
+            command.put(AUTH.getName(), "");
             JsonNode response = this.hsmClientProtocol.send(command);
-            hsmClientProtocol.validatePresenceOf(response, PUBKEY_FIELD);
+            hsmClientProtocol.validatePresenceOf(response, PUB_KEY.getName());
 
-            String pubKeyHex = response.get(PUBKEY_FIELD).asText();
+            String pubKeyHex = response.get(PUB_KEY.getName()).asText();
             byte[] pubKeyBytes = Hex.decode(pubKeyHex);
 
             publicKeys.put(keyId, pubKeyBytes);
@@ -69,30 +67,25 @@ public class HSMSigningClientV1 extends HSMSigningClientBase {
     @Override
     public HSMSignature sign(String keyId, SignerMessage message) throws HSMClientException {
         byte[] messageBytes = message.getBytes();
-        final String MESSAGE_FIELD = "message";
-        final String SIGNATURE_FIELD = "signature";
-        final String R_FIELD = "r";
-        final String S_FIELD = "s";
-        final String V_FIELD = "v";
 
         ObjectNode command = this.hsmClientProtocol.buildCommand(SIGN.getCommand(), this.getVersion());
-        command.put(KEYID_FIELD, keyId);
-        command.put(AUTH_FIELD, "");
-        command.put(MESSAGE_FIELD, Hex.toHexString(messageBytes));
+        command.put(KEY_ID.getName(), keyId);
+        command.put(AUTH.getName(), "");
+        command.put(MESSAGE.getName(), Hex.toHexString(messageBytes));
         JsonNode response = this.hsmClientProtocol.send(command);
-        hsmClientProtocol.validatePresenceOf(response, SIGNATURE_FIELD);
+        hsmClientProtocol.validatePresenceOf(response, SIGNATURE.getName());
 
-        JsonNode signature = response.get("signature");
-        hsmClientProtocol.validatePresenceOf(signature, R_FIELD);
-        hsmClientProtocol.validatePresenceOf(signature, S_FIELD);
+        JsonNode signature = response.get(SIGNATURE.getName());
+        hsmClientProtocol.validatePresenceOf(signature, R.getName());
+        hsmClientProtocol.validatePresenceOf(signature, S.getName());
 
-        byte[] rBytes = Hex.decode(signature.get(R_FIELD).asText());
-        byte[] sBytes = Hex.decode(signature.get(S_FIELD).asText());
+        byte[] rBytes = Hex.decode(signature.get(R.getName()).asText());
+        byte[] sBytes = Hex.decode(signature.get(S.getName()).asText());
 
         // Value of 'v' is optional
         Byte v = null;
-        if (signature.has(V_FIELD)) {
-            v = (byte) signature.get(V_FIELD).asInt();
+        if (signature.has(V.getName())) {
+            v = (byte) signature.get(V.getName()).asInt();
         }
 
         byte[] publicKey = getPublicKey(keyId);
