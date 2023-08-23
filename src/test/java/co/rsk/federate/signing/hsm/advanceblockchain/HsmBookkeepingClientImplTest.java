@@ -43,7 +43,7 @@ public class HsmBookkeepingClientImplTest {
     private HsmBookkeepingClientImpl hsmBookkeepingClient;
     private BlockHeaderBuilder blockHeaderBuilder;
     private List<Block> blocks;
-    List<BlockHeader> blockHeaders;
+    private List<BlockHeader> blockHeaders;
 
     @Before
     public void setUp() throws Exception {
