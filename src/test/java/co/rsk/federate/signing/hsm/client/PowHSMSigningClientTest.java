@@ -22,6 +22,7 @@ import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
+import co.rsk.federate.signing.HSMCommand;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -30,20 +31,20 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
+import static co.rsk.federate.signing.HSMField.*;
 import static org.mockito.Mockito.*;
 
 public class PowHSMSigningClientTest {
-    private JsonRpcClientProvider jsonRpcClientProviderMock;
-    private HSMClientProtocol hsmClientProtocol;
     private JsonRpcClient jsonRpcClientMock;
     private PowHSMSigningClient client;
     private final static int VERSION = 2;
 
     @Before
     public void createClient() throws JsonRpcException {
-        jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
+        JsonRpcClientProvider jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
-        hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
         //Since parent class is abstract, test all the common methods using PowHSMSigningClientBtc.
         client = new PowHSMSigningClientBtc(hsmClientProtocol, VERSION);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
@@ -52,7 +53,7 @@ public class PowHSMSigningClientTest {
     @Test
     public void getVersionOk() throws Exception {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put("command", "version");
+        expectedRequest.put(COMMAND.getName(), HSMCommand.VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(5));
         int version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 2.
@@ -64,11 +65,12 @@ public class PowHSMSigningClientTest {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = buildResponse(0);
-        response.put("pubKey", "aabbccddeeff");
+        response.put(PUB_KEY.getName(), "aabbccddeeff");
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
         byte[] publicKey = client.getPublicKey("a-key-id");
-        Assert.assertArrayEquals(publicKey, Hex.decode("aabbccddeeff"));;
+        Assert.assertArrayEquals(publicKey, Hex.decode("aabbccddeeff"));
+        ;
         // Subsequent calls shouldn't issue a command (i.e., public key is locally cached)
         publicKey = client.getPublicKey("a-key-id");
         Assert.assertArrayEquals(publicKey, Hex.decode("aabbccddeeff"));
@@ -128,21 +130,21 @@ public class PowHSMSigningClientTest {
 
     private ObjectNode buildVersionResponse(int version) {
         ObjectNode response = buildResponse(0);
-        response.put("version", version);
+        response.put(VERSION_FIELD.getName(), version);
         return response;
     }
 
-    private ObjectNode buildResponse(int errorcode) {
+    private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", errorcode);
+        response.put(ERROR_CODE.getName(), errorCode);
         return response;
     }
 
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
-        request.put("command", "getPubKey");
-        request.put("version", VERSION);
-        request.put("keyId", "a-key-id");
+        request.put(COMMAND.getName(), GET_PUB_KEY.getCommand());
+        request.put(VERSION_FIELD.getName(), VERSION);
+        request.put(KEY_ID.getName(), "a-key-id");
 
         return request;
     }

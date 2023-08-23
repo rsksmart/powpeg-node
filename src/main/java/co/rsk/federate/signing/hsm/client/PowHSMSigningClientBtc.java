@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.ethereum.crypto.ECKey;
 
 import static co.rsk.federate.signing.HSMCommand.SIGN;
+import static co.rsk.federate.signing.HSMField.*;
 
 public class PowHSMSigningClientBtc extends PowHSMSigningClient {
 
@@ -19,35 +20,31 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient {
 
     @Override
     protected final ObjectNode createObjectToSend(String keyId, SignerMessage message) {
-        final String MESSAGE_FIELD = "message";
         PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) message;
 
         ObjectNode objectToSign = this.hsmClientProtocol.buildCommand(SIGN.getCommand(), this.getVersion());
-        objectToSign.put(KEYID_FIELD, keyId);
-        objectToSign.set(AUTH_FIELD, createAuthField(powHSMSignerMessage));
-        objectToSign.set(MESSAGE_FIELD, createMessageField(powHSMSignerMessage));
+        objectToSign.put(KEY_ID.getName(), keyId);
+        objectToSign.set(AUTH.getName(), createAuthField(powHSMSignerMessage));
+        objectToSign.set(MESSAGE.getName(), createMessageField(powHSMSignerMessage));
 
         return objectToSign;
     }
 
     private ObjectNode createAuthField(PowHSMSignerMessage message) {
-        final String RECEIPT = "receipt";
-        final String RECEIPT_MERKLE_PROOF = "receipt_merkle_proof";
-
         ObjectNode auth = new ObjectMapper().createObjectNode();
-        auth.put(RECEIPT, message.getTransactionReceipt());
+        auth.put(RECEIPT.getName(), message.getTransactionReceipt());
         ArrayNode receiptMerkleProof = new ObjectMapper().createArrayNode();
         for (String receiptMerkleProofValue : message.getReceiptMerkleProof()) {
             receiptMerkleProof.add(receiptMerkleProofValue);
         }
-        auth.set(RECEIPT_MERKLE_PROOF, receiptMerkleProof);
+        auth.set(RECEIPT_MERKLE_PROOF.getName(), receiptMerkleProof);
         return auth;
     }
 
     private ObjectNode createMessageField(PowHSMSignerMessage message) {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
-        messageToSend.put("tx", message.getBtcTransactionSerialized());
-        messageToSend.put("input", message.getInputIndex());
+        messageToSend.put(TX.getName(), message.getBtcTransactionSerialized());
+        messageToSend.put(INPUT.getName(), message.getInputIndex());
         return messageToSend;
     }
 
