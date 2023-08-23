@@ -18,6 +18,8 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static co.rsk.federate.signing.HSMCommand.VERSION;
+import static co.rsk.federate.signing.HSMField.ERROR_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,7 +52,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseWrongAuthError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -101);
+        response.put(ERROR_CODE.getName(), -101);
 
         assertThrows(HSMAuthException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -61,7 +63,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseInvalidMessageError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -102);
+        response.put(ERROR_CODE.getName(), -102);
 
         assertThrows(HSMInvalidMessageException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -72,7 +74,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseRejectedKeyError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -103);
+        response.put(ERROR_CODE.getName(), -103);
 
         assertThrows(HSMAuthException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -83,7 +85,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseInvalidBrothersError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -205);
+        response.put(ERROR_CODE.getName(), -205);
 
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -94,7 +96,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseInvalidUserDefinedValueError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -301);
+        response.put(ERROR_CODE.getName(), -301);
 
         assertThrows(HSMInvalidUserDefinedValueException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -105,7 +107,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseFormatError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -901);
+        response.put(ERROR_CODE.getName(), -901);
 
         assertThrows(HSMFormatErrorException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -116,7 +118,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseInvalidRequestError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -902);
+        response.put(ERROR_CODE.getName(), -902);
 
         assertThrows(HSMInvalidRequestException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -127,7 +129,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseUnknownCommandError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -903);
+        response.put(ERROR_CODE.getName(), -903);
 
         assertThrows(HSMCommandUnknownException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -138,7 +140,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseVersionChangedError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -904);
+        response.put(ERROR_CODE.getName(), -904);
 
         assertThrows(HSMChangedVersionException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -149,7 +151,7 @@ class PowHSMResponseHandlerTest {
     @Test
     void validateResponseUnknownError() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -906);
+        response.put(ERROR_CODE.getName(), -906);
 
         assertThrows(HSMUnknownErrorException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -158,120 +160,111 @@ class PowHSMResponseHandlerTest {
     }
 
     @Test
-    void handleErrorResponseWrongAuth() {
-        int errorcode = -101;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+    void handleErrorResponseWrongAuth() throws HSMClientException {
+        int errorCode = -101;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMAuthException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errorcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
-    void handleErrorResponseInvalidMessage() {
-        int errorcode = -102;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+    void handleErrorResponseInvalidMessage() throws HSMClientException {
+        int errorCode = -102;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMInvalidMessageException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errorcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
-    void handleErrorResponseRejectedKey() {
-        int errorcode = -103;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+    void handleErrorResponseRejectedKey() throws HSMClientException {
+        int errorCode = -103;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMAuthException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errorcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
-    void handleErrorResponseFormatError() {
-        int errorcode = -901;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+    void handleErrorResponseFormatError() throws HSMClientException {
+        int errorCode = -901;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMFormatErrorException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errorcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
-    void handleErrorResponseInvalidRequest() {
-        int errorcode = -902;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+    void handleErrorResponseInvalidRequest() throws HSMClientException {
+        int errorCode = -902;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMInvalidRequestException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errorcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
-    void handleErrorResponseUnknownCommand() {
-        int errorcode = -903;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+    void handleErrorResponseUnknownCommand() throws HSMClientException {
+        int errorCode = -903;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMCommandUnknownException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errorcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
-    void handleErrorResponseVersionChanged() {
-        int errorcode = -904;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+    void handleErrorResponseVersionChanged() throws HSMClientException {
+        int errorCode = -904;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMChangedVersionException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errorcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
-    void handleErrorUnknownError() {
-        int errorcode = -906;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+    void handleErrorUnknownError() throws HSMClientException {
+        int errorCode = -906;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMUnknownErrorException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errorcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
-    void handleErrorResponseUnhandledErrorCode() {
-        int errorcode = -99;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+    public void handleErrorResponseUnhandledErrorCode() {
+        int errorCode = -99;
+        ObjectNode sendResponse = buildResponse(errorCode);
         try {
-            responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+            responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
             fail();
         } catch (HSMClientException e) {
             assertTrue(e instanceof HSMDeviceException);
-            assertEquals(Integer.valueOf(errorcode), ((HSMDeviceException)e).getErrorCode());
+            assertEquals(Integer.valueOf(errorCode), ((HSMDeviceException) e).getErrorCode());
         }
     }
 
@@ -372,9 +365,9 @@ class PowHSMResponseHandlerTest {
         ));
     }
 
-    private ObjectNode buildResponse(int errorcode) {
+    private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", errorcode);
+        response.put(ERROR_CODE.getName(), errorCode);
         return response;
     }
 

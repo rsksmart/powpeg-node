@@ -18,6 +18,19 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
+import static co.rsk.federate.signing.HSMCommand.SIGN;
+import static co.rsk.federate.signing.HSMField.AUTH;
+import static co.rsk.federate.signing.HSMField.COMMAND;
+import static co.rsk.federate.signing.HSMField.ERROR_CODE;
+import static co.rsk.federate.signing.HSMField.KEY_ID;
+import static co.rsk.federate.signing.HSMField.MESSAGE;
+import static co.rsk.federate.signing.HSMField.PUB_KEY;
+import static co.rsk.federate.signing.HSMField.R;
+import static co.rsk.federate.signing.HSMField.S;
+import static co.rsk.federate.signing.HSMField.SIGNATURE;
+import static co.rsk.federate.signing.HSMField.V;
+import static co.rsk.federate.signing.HSMField.VERSION_FIELD;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -32,6 +45,7 @@ import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
+import co.rsk.federate.signing.HSMCommand;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,8 +63,7 @@ class HSMSigningClientV1Test {
     void createClient() throws JsonRpcException {
         JsonRpcClientProvider jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
-        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock,
-            ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
         client = new HSMSigningClientV1(hsmClientProtocol);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
@@ -58,73 +71,26 @@ class HSMSigningClientV1Test {
     @Test
     void getVersionOk() throws Exception {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put("command", "version");
+        expectedRequest.put(COMMAND.getName(), HSMCommand.VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(5));
         int version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 1.
         assertEquals(VERSION, version);
     }
 
-//    @Test
-//    public void getVersionNoErrorCode() throws Exception {
-//        ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-//        expectedRequest.put("command", "version");
-//
-//        ObjectNode faultyResponse = new ObjectMapper().createObjectNode();
-//        faultyResponse.put("version", 8);
-//        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(faultyResponse);
-//        try {
-//            client.getVersion();
-//            fail();
-//        } catch (HSMClientException e) {
-//            assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
-//        }
-//    }
-
-//    @Test
-//    public void getVersionNonZeroErrorCode() throws Exception {
-//        ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-//        expectedRequest.put("command", "version");
-//
-//        ObjectNode faultyResponse = buildResponse(5);
-//        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(faultyResponse);
-//        try {
-//            client.getVersion();
-//            fail();
-//        } catch (HSMClientException e) {
-//            assertTrue(e.getMessage().contains("HSM returned unrecognized error code 5 when running version"));
-//        }
-//    }
-
-//    @Test
-//    public void getVersionNoVersion() throws Exception {
-//        ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-//        expectedRequest.put("command", "version");
-//
-//        ObjectNode faultyResponse = buildResponse(0);
-//        faultyResponse.put("something", "else");
-//        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(faultyResponse);
-//        try {
-//            client.getVersion();
-//            fail();
-//        } catch (HSMClientException e) {
-//            assertTrue(e.getMessage().contains("Expected 'version' field to be present"));
-//        }
-//    }
-
     @Test
     void getPublicKeyOk() throws Exception {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = buildResponse(0);
-        response.put("pubKey", "aabbccddeeff");
+        response.put(PUB_KEY.getName(), "aabbccddeeff");
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
         byte[] publicKey = client.getPublicKey("a-key-id");
-        assertArrayEquals(Hex.decode("aabbccddeeff"), publicKey);
+        assertArrayEquals(publicKey, Hex.decode("aabbccddeeff"));
         // Subsequent calls shouldn't issue a command (i.e., public key is locally cached)
         publicKey = client.getPublicKey("a-key-id");
-        assertArrayEquals(Hex.decode("aabbccddeeff"), publicKey);
+        assertArrayEquals(publicKey, Hex.decode("aabbccddeeff"));
 
         verify(jsonRpcClientMock, times(1)).send(expectedRequest);
     }
@@ -183,16 +149,16 @@ class HSMSigningClientV1Test {
     void signOkNoV() throws Exception {
         ObjectNode expectedPublicKeyRequest = buildGetPublicKeyRequest();
         ObjectNode publicKeyResponse = buildResponse(0);
-        publicKeyResponse.put("pubKey", "001122334455");
+        publicKeyResponse.put(PUB_KEY.getName(), "001122334455");
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
 
         ObjectNode expectedRequest = buildSignRequest();
 
         ObjectNode signatureResponse = new ObjectMapper().createObjectNode();
-        signatureResponse.put("r", "223344");
-        signatureResponse.put("s", "55667788");
+        signatureResponse.put(R.getName(), "223344");
+        signatureResponse.put(S.getName(), "55667788");
         ObjectNode response = buildResponse(0);
-        response.set("signature", signatureResponse);
+        response.set(SIGNATURE.getName(), signatureResponse);
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
         HSMSignature signature = client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
@@ -210,17 +176,17 @@ class HSMSigningClientV1Test {
     void signOkWithV() throws Exception {
         ObjectNode expectedPublicKeyRequest = buildGetPublicKeyRequest();
         ObjectNode publicKeyResponse = buildResponse(0);
-        publicKeyResponse.put("pubKey", "001122334455");
+        publicKeyResponse.put(PUB_KEY.getName(), "001122334455");
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
 
         ObjectNode expectedRequest = buildSignRequest();
 
         ObjectNode signatureResponse = new ObjectMapper().createObjectNode();
-        signatureResponse.put("r", "223344");
-        signatureResponse.put("s", "55667788");
-        signatureResponse.put("v", 123);
+        signatureResponse.put(R.getName(), "223344");
+        signatureResponse.put(S.getName(), "55667788");
+        signatureResponse.put(V.getName(), 123);
         ObjectNode response = buildResponse(0);
-        response.set("signature", signatureResponse);
+        response.set(SIGNATURE.getName(), signatureResponse);
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
         HSMSignature signature = client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
@@ -289,7 +255,7 @@ class HSMSigningClientV1Test {
         ObjectNode expectedRequest = buildSignRequest();
 
         ObjectNode response = buildResponse(0);
-        response.set("signature", new ObjectMapper().createObjectNode());
+        response.set(SIGNATURE.getName(), new ObjectMapper().createObjectNode());
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
 
@@ -307,8 +273,8 @@ class HSMSigningClientV1Test {
 
         ObjectNode response = buildResponse(0);
         ObjectNode signatureResponse = new ObjectMapper().createObjectNode();
-        signatureResponse.put("r", "aabbcc");
-        response.set("signature", signatureResponse);
+        signatureResponse.put(R.getName(), "aabbcc");
+        response.set(SIGNATURE.getName(), signatureResponse);
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
 
@@ -322,33 +288,33 @@ class HSMSigningClientV1Test {
 
     private ObjectNode buildVersionResponse(int version) {
         ObjectNode response = buildResponse(0);
-        response.put("version", version);
+        response.put(VERSION_FIELD.getName(), version);
         return response;
     }
 
-    private ObjectNode buildResponse(int errorcode) {
+    private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", errorcode);
+        response.put(ERROR_CODE.getName(), errorCode);
         return response;
     }
 
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
-        request.put("command", "getPubKey");
-        request.put("version", VERSION);
-        request.put("keyId", "a-key-id");
-        request.put("auth", "");
+        request.put(COMMAND.getName(), GET_PUB_KEY.getCommand());
+        request.put(VERSION_FIELD.getName(), VERSION);
+        request.put(KEY_ID.getName(), "a-key-id");
+        request.put(AUTH.getName(), "");
 
         return request;
     }
 
     private ObjectNode buildSignRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
-        request.put("command", "sign");
-        request.put("version", VERSION);
-        request.put("keyId", "a-key-id");
-        request.put("auth", "");
-        request.put("message", "bbccddee");
+        request.put(COMMAND.getName(), SIGN.getCommand());
+        request.put(VERSION_FIELD.getName(), VERSION);
+        request.put(KEY_ID.getName(), "a-key-id");
+        request.put(AUTH.getName(), "");
+        request.put(MESSAGE.getName(), "bbccddee");
 
         return request;
     }

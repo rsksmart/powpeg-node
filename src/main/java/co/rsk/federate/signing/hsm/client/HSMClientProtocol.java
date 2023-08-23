@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static co.rsk.federate.signing.HSMCommand.VERSION;
+import static co.rsk.federate.signing.HSMField.*;
 
 /**
  * Can interact with a specific
@@ -71,15 +72,13 @@ public class HSMClientProtocol {
 
     public int getVersion() throws HSMClientException {
         try {
-            final String VERSION_FIELD = "version";
-
             ObjectNode command = objectMapper.createObjectNode();
-            command.put("command", VERSION.getCommand());
+            command.put(COMMAND.getName(), VERSION.getCommand());
             JsonNode response = send(command);
             validateResponse(VERSION.getCommand(), response);
-            validatePresenceOf(response, VERSION_FIELD);
+            validatePresenceOf(response, VERSION_FIELD.getName());
 
-            int hsmVersion = response.get(VERSION_FIELD).asInt();
+            int hsmVersion = response.get(VERSION_FIELD.getName()).asInt();
             logger.debug("[getVersion] HSM version: {}", hsmVersion);
             return hsmVersion;
         } catch (RuntimeException e) {
@@ -91,8 +90,8 @@ public class HSMClientProtocol {
 
     public ObjectNode buildCommand(String commandName, int version) {
         ObjectNode command = objectMapper.createObjectNode();
-        command.put("command", commandName);
-        command.put("version", version);
+        command.put(COMMAND.getName(), commandName);
+        command.put(VERSION_FIELD.getName(), version);
         return command;
     }
 
@@ -102,7 +101,7 @@ public class HSMClientProtocol {
         while (true) {
             try {
                 client = clientProvider.acquire();
-                String commandName = command.get("command").toString();
+                String commandName = command.get(COMMAND.getName()).toString();
                 logger.trace("[send] Sending command to hsm: {}", commandName);
                 Future future = getExecutor().submit(new HSMRequest(client, command));
                 JsonNode result = null;
@@ -122,7 +121,7 @@ public class HSMClientProtocol {
                         throw (HSMClientException) cause;
                     }
                 }
-                int responseCode = validateResponse(command.get("command").textValue(), result);
+                int responseCode = validateResponse(command.get(COMMAND.getName()).textValue(), result);
                 logger.trace("[send] HSM responds with code {} to command {}", responseCode, commandName);
                 return result;
             } catch (JsonRpcException e) {
