@@ -25,6 +25,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import static co.rsk.federate.signing.HSMCommand.VERSION;
+import static co.rsk.federate.signing.HSMField.ERROR_CODE;
+
 public class PowHSMResponseHandlerTest {
     private HSMResponseHandlerBase responseHandler;
 
@@ -36,7 +39,7 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMAuthException.class)
     public void validateResponseWrongAuthError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -101);
+        response.put(ERROR_CODE.getFieldName(), -101);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -44,7 +47,7 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMInvalidMessageException.class)
     public void validateResponseInvalidMessageError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -102);
+        response.put(ERROR_CODE.getFieldName(), -102);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -52,7 +55,7 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMAuthException.class)
     public void validateResponseRejectedKeyError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -103);
+        response.put(ERROR_CODE.getFieldName(), -103);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -60,7 +63,7 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMBlockchainBookkeepingRelatedException.class)
     public void validateResponseInvalidBrothersError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -205);
+        response.put(ERROR_CODE.getFieldName(), -205);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -68,7 +71,7 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMInvalidUserDefinedValueException.class)
     public void validateResponseInvalidUserDefinedValueError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -301);
+        response.put(ERROR_CODE.getFieldName(), -301);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -76,7 +79,7 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMFormatErrorException.class)
     public void validateResponseFormatError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -901);
+        response.put(ERROR_CODE.getFieldName(), -901);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -84,7 +87,7 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMInvalidRequestException.class)
     public void validateResponseInvalidRequestError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -902);
+        response.put(ERROR_CODE.getFieldName(), -902);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -92,7 +95,7 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMCommandUnknownException.class)
     public void validateResponseUnknownCommandError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -903);
+        response.put(ERROR_CODE.getFieldName(), -903);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -100,7 +103,7 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMChangedVersionException.class)
     public void validateResponseVersionChangedError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -904);
+        response.put(ERROR_CODE.getFieldName(), -904);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -108,94 +111,85 @@ public class PowHSMResponseHandlerTest {
     @Test(expected = HSMUnknownErrorException.class)
     public void validateResponseUnknownError() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -906);
+        response.put(ERROR_CODE.getFieldName(), -906);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
 
     @Test(expected = HSMAuthException.class)
     public void handleErrorResponseWrongAuth() throws HSMClientException {
-        int errorcode = -101;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+        int errorCode = -101;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test(expected = HSMInvalidMessageException.class)
     public void handleErrorResponseInvalidMessage() throws HSMClientException {
-        int errorcode = -102;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+        int errorCode = -102;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test(expected = HSMAuthException.class)
     public void handleErrorResponseRejectedKey() throws HSMClientException {
-        int errorcode = -103;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+        int errorCode = -103;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test(expected = HSMFormatErrorException.class)
     public void handleErrorResponseFormatError() throws HSMClientException {
-        int errorcode = -901;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+        int errorCode = -901;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test(expected = HSMInvalidRequestException.class)
     public void handleErrorResponseInvalidRequest() throws HSMClientException {
-        int errorcode = -902;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+        int errorCode = -902;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test(expected = HSMCommandUnknownException.class)
     public void handleErrorResponseUnknownCommand() throws HSMClientException {
-        int errorcode = -903;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+        int errorCode = -903;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test(expected = HSMChangedVersionException.class)
     public void handleErrorResponseVersionChanged() throws HSMClientException {
-        int errorcode = -904;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+        int errorCode = -904;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test(expected = HSMUnknownErrorException.class)
     public void handleErrorUnknownError() throws HSMClientException {
-        int errorcode = -906;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+        int errorCode = -906;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test
     public void handleErrorResponseUnhandledErrorCode() {
-        int errorcode = -99;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errorcode);
+        int errorCode = -99;
+        ObjectNode sendResponse = buildResponse(errorCode);
         try {
-            responseHandler.handleErrorResponse(method, errorcode, sendResponse);
+            responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
             Assert.fail();
         } catch (HSMClientException e) {
             Assert.assertTrue(e instanceof HSMDeviceException);
-            Assert.assertEquals(Integer.valueOf(errorcode), ((HSMDeviceException)e).getErrorCode());
+            Assert.assertEquals(Integer.valueOf(errorCode), ((HSMDeviceException) e).getErrorCode());
         }
     }
 
@@ -269,9 +263,9 @@ public class PowHSMResponseHandlerTest {
         responseHandler.validateResponse("a-random-command-name", response);
     }
 
-    private ObjectNode buildResponse(int errorcode) {
+    private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", errorcode);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 

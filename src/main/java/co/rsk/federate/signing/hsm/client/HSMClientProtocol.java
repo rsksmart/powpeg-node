@@ -21,6 +21,7 @@ package co.rsk.federate.signing.hsm.client;
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
+import co.rsk.federate.signing.HSMField;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
 import co.rsk.federate.signing.hsm.HSMGatewayIrresponsiveException;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static co.rsk.federate.signing.HSMCommand.VERSION;
+import static co.rsk.federate.signing.HSMField.*;
 
 /**
  * Can interact with a specific
@@ -71,15 +73,13 @@ public class HSMClientProtocol {
 
     public int getVersion() throws HSMClientException {
         try {
-            final String VERSION_FIELD = "version";
-
             ObjectNode command = objectMapper.createObjectNode();
-            command.put("command", VERSION.getCommand());
+            command.put(COMMAND.getFieldName(), VERSION.getCommand());
             JsonNode response = send(command);
             validateResponse(VERSION.getCommand(), response);
-            validatePresenceOf(response, VERSION_FIELD);
+            validatePresenceOf(response, HSMField.VERSION.getFieldName());
 
-            int hsmVersion = response.get(VERSION_FIELD).asInt();
+            int hsmVersion = response.get(HSMField.VERSION.getFieldName()).asInt();
             logger.debug("[getVersion] HSM version: {}", hsmVersion);
             return hsmVersion;
         } catch (RuntimeException e) {
@@ -91,8 +91,8 @@ public class HSMClientProtocol {
 
     public ObjectNode buildCommand(String commandName, int version) {
         ObjectNode command = objectMapper.createObjectNode();
-        command.put("command", commandName);
-        command.put("version", version);
+        command.put(COMMAND.getFieldName(), commandName);
+        command.put(HSMField.VERSION.getFieldName(), version);
         return command;
     }
 
@@ -102,7 +102,7 @@ public class HSMClientProtocol {
         while (true) {
             try {
                 client = clientProvider.acquire();
-                String commandName = command.get("command").toString();
+                String commandName = command.get(COMMAND.getFieldName()).toString();
                 logger.trace("[send] Sending command to hsm: {}", commandName);
                 Future future = getExecutor().submit(new HSMRequest(client, command));
                 JsonNode result = null;
@@ -122,7 +122,7 @@ public class HSMClientProtocol {
                         throw (HSMClientException) cause;
                     }
                 }
-                int responseCode = validateResponse(command.get("command").textValue(), result);
+                int responseCode = validateResponse(command.get(COMMAND.getFieldName()).textValue(), result);
                 logger.trace("[send] HSM responds with code {} to command {}", responseCode, commandName);
                 return result;
             } catch (JsonRpcException e) {

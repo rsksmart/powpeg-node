@@ -28,6 +28,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import static co.rsk.federate.signing.HSMCommand.VERSION;
+import static co.rsk.federate.signing.HSMField.*;
+
 public class HSMResponseHandlerV1Test {
     private HSMResponseHandlerBase responseHandler;
 
@@ -40,8 +43,8 @@ public class HSMResponseHandlerV1Test {
     public void validateDeviceError() {
         try {
             ObjectNode response = new ObjectMapper().createObjectNode();
-            response.put("errorcode", -2);
-            response.put("error", "a-random-error-message");
+            response.put(ERROR_CODE.getFieldName(), -2);
+            response.put(ERROR.getFieldName(), "a-random-error-message");
             responseHandler.validateResponse("a-random-command-name", response);
         } catch (HSMClientException e) {
             Assert.assertTrue(e instanceof HSMDeviceNotReadyException);
@@ -54,8 +57,8 @@ public class HSMResponseHandlerV1Test {
     public void validateInvalidVersionError() {
         try {
             ObjectNode response = new ObjectMapper().createObjectNode();
-            response.put("errorcode", -666);
-            response.put("error", "a-random-error-message");
+            response.put(ERROR_CODE.getFieldName(), -666);
+            response.put(ERROR.getFieldName(), "a-random-error-message");
             responseHandler.validateResponse("a-random-command-name", response);
         } catch (HSMClientException e) {
             Assert.assertTrue(e instanceof HSMChangedVersionException);
@@ -68,8 +71,8 @@ public class HSMResponseHandlerV1Test {
     public void validateUnknownError() {
         try {
             ObjectNode response = new ObjectMapper().createObjectNode();
-            response.put("errorcode", -999);
-            response.put("error", "a-random-error-message");
+            response.put(ERROR_CODE.getFieldName(), -999);
+            response.put(ERROR.getFieldName(), "a-random-error-message");
             responseHandler.validateResponse("a-random-command-name", response);
         } catch (HSMClientException e) {
             Assert.assertTrue(e instanceof HSMDeviceException);
@@ -80,35 +83,32 @@ public class HSMResponseHandlerV1Test {
     @Test(expected = HSMDeviceNotReadyException.class)
     public void handleDeviceError() throws HSMClientException {
         int errorCode = -2;
-        String method = "version";
         ObjectNode sendResponse = buildResponse(errorCode);
-        sendResponse.put("error", "a-random-error-message");
+        sendResponse.put(ERROR.getFieldName(), "a-random-error-message");
 
-        responseHandler.handleErrorResponse(method, errorCode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test(expected = HSMChangedVersionException.class)
     public void handleInvalidVersion() throws HSMClientException {
         int errorCode = -666;
-        String method = "version";
         ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.handleErrorResponse(method, errorCode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     @Test(expected = HSMDeviceException.class)
     public void handleUnknownError() throws HSMClientException {
         int errorCode = -999;
-        String method = "version";
         ObjectNode sendResponse = buildResponse(errorCode);
-        sendResponse.put("error", "a-random-error-message");
+        sendResponse.put(ERROR.getFieldName(), "a-random-error-message");
 
-        responseHandler.handleErrorResponse(method, errorCode, sendResponse);
+        responseHandler.handleErrorResponse(VERSION.getCommand(), errorCode, sendResponse);
     }
 
     private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", errorCode);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 }
