@@ -36,7 +36,7 @@ public class PowHSMSigningClientRskMstTest {
     public void signOk() throws Exception {
         ObjectNode expectedPublicKeyRequest = buildGetPublicKeyRequest();
         ObjectNode publicKeyResponse = buildResponse(0);
-        publicKeyResponse.put(PUB_KEY.getName(), "001122334455");
+        publicKeyResponse.put(PUB_KEY.getFieldName(), "001122334455");
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
 
         SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
@@ -116,7 +116,7 @@ public class PowHSMSigningClientRskMstTest {
 
         ObjectNode expectedSignRequest = buildSignRequest();
         ObjectNode response = buildResponse(0);
-        response.set(SIGNATURE.getName(), new ObjectMapper().createObjectNode());
+        response.set(SIGNATURE.getFieldName(), new ObjectMapper().createObjectNode());
 
         when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
 
@@ -135,8 +135,8 @@ public class PowHSMSigningClientRskMstTest {
         ObjectNode expectedSignRequest = buildSignRequest();
         ObjectNode response = buildResponse(0);
         ObjectNode signatureResponse = new ObjectMapper().createObjectNode();
-        signatureResponse.put(R.getName(), "aabbcc");
-        response.set(SIGNATURE.getName(), signatureResponse);
+        signatureResponse.put(R.getFieldName(), "aabbcc");
+        response.set(SIGNATURE.getFieldName(), signatureResponse);
 
         when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
 
@@ -150,28 +150,28 @@ public class PowHSMSigningClientRskMstTest {
 
     private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put(ERROR_CODE.getName(), errorCode);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
-        request.put(COMMAND.getName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION_FIELD.getName(), VERSION);
-        request.put(KEY_ID.getName(), "a-key-id");
+        request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
+        request.put(VERSION_FIELD.getFieldName(), VERSION);
+        request.put(KEY_ID.getFieldName(), "a-key-id");
 
         return request;
     }
 
     private ObjectNode buildSignRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
-        request.put(COMMAND.getName(), SIGN.getCommand());
-        request.put(VERSION_FIELD.getName(), VERSION);
-        request.put(KEY_ID.getName(), "a-key-id");
+        request.put(COMMAND.getFieldName(), SIGN.getCommand());
+        request.put(VERSION_FIELD.getFieldName(), VERSION);
+        request.put(KEY_ID.getFieldName(), "a-key-id");
 
         ObjectNode message = new ObjectMapper().createObjectNode();
-        message.put(HASH.getName(), "bbccddee");
-        request.set(MESSAGE.getName(), message);
+        message.put(HASH.getFieldName(), "bbccddee");
+        request.set(MESSAGE.getFieldName(), message);
 
         return request;
     }
@@ -179,10 +179,10 @@ public class PowHSMSigningClientRskMstTest {
     private ObjectNode buildSignResponse(String r, String s, int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
         ObjectNode signature = new ObjectMapper().createObjectNode();
-        signature.put(R.getName(), r);
-        signature.put(S.getName(), s);
-        response.set(SIGNATURE.getName(), signature);
-        response.put(ERROR_CODE.getName(), errorCode);
+        signature.put(R.getFieldName(), r);
+        signature.put(S.getFieldName(), s);
+        response.set(SIGNATURE.getFieldName(), signature);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 }

@@ -41,7 +41,7 @@ public class HSMResponseHandlerBaseTest {
     @Test(expected = HSMDeviceNotReadyException.class)
     public void validateResponseDeviceNotReadyErrorForVersion1() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put(ERROR_CODE.getName(), -2);
+        response.put(ERROR_CODE.getFieldName(), -2);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -49,7 +49,7 @@ public class HSMResponseHandlerBaseTest {
     @Test(expected = HSMDeviceNotReadyException.class)
     public void validateResponseDeviceNotReadyErrorForVersion2() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put(ERROR_CODE.getName(), -905);
+        response.put(ERROR_CODE.getFieldName(), -905);
 
         responseHandler.validateResponse("a-random-command-name", response);
     }
@@ -75,7 +75,7 @@ public class HSMResponseHandlerBaseTest {
         int errorCode = -1;
         ObjectNode sendResponse = buildResponse(errorCode);
 
-        responseHandler.validatePresenceOf(sendResponse, ERROR_CODE.getName());
+        responseHandler.validatePresenceOf(sendResponse, ERROR_CODE.getFieldName());
 
         Assert.assertTrue(true);
     }
@@ -85,11 +85,11 @@ public class HSMResponseHandlerBaseTest {
         int errorCode = -1;
         ObjectNode sendResponse = buildResponse(errorCode);
         try {
-            responseHandler.validatePresenceOf(sendResponse, VERSION_FIELD.getName());
+            responseHandler.validatePresenceOf(sendResponse, VERSION_FIELD.getFieldName());
             Assert.fail();
         } catch (HSMClientException e) {
             Assert.assertTrue(e.getMessage().contains("field to be present in response"));
-            Assert.assertTrue(e.getMessage().contains(VERSION_FIELD.getName()));
+            Assert.assertTrue(e.getMessage().contains(VERSION_FIELD.getFieldName()));
         }
     }
 
@@ -101,7 +101,7 @@ public class HSMResponseHandlerBaseTest {
 
     private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put(ERROR_CODE.getName(), errorCode);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 }
