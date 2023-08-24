@@ -157,10 +157,20 @@ public class HsmBookkeepingClientImplTest {
         assertEquals(result.get(1)[2] + 1, result.get(2)[0].intValue());
     }
 
-    @Test(expected = HSMBlockchainBookkeepingRelatedException.class)
-    public void updateAncestorBlock_when_HSM_service_is_stopped() throws HSMClientException {
+    @Test
+    public void updateAncestorBlock_when_HSM_service_is_stopped() throws HSMClientException, JsonRpcException {
         hsmBookkeepingClient.setStopSending(); // stop client/service
+
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
+            .thenReturn(buildResponse(false));
+
         hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders));
+
+        // 2 interactions to get the hsm version and blockchain state
+        verify(jsonRpcClientMock, times(2)).send(any());
+        // no interaction when it attempts to send the block headers
+        verifyNoMoreInteractions(jsonRpcClientMock);
     }
 
     @Test(expected = HSMBlockchainBookkeepingRelatedException.class)
@@ -177,6 +187,16 @@ public class HsmBookkeepingClientImplTest {
         hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders));
     }
 
+    @Test(expected = HSMClientException.class)
+    public void updateAncestorBlock_when_HSMProtocol_send_is_thrown() throws HSMClientException, JsonRpcException {
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(-999));
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
+            .thenReturn(buildResponse(false));
+
+        hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders));
+    }
+
     @Test
     public void updateAncestorBlock_hsm_version_2() throws HSMClientException, JsonRpcException {
         testUpdateAncestorBlock(2);
@@ -188,10 +208,20 @@ public class HsmBookkeepingClientImplTest {
     }
 
 
-    @Test(expected = HSMBlockchainBookkeepingRelatedException.class)
-    public void advanceBlockchain_when_HSM_is_stopped() throws HSMClientException {
+    @Test
+    public void advanceBlockchain_when_HSM_service_is_stopped() throws HSMClientException, JsonRpcException {
         hsmBookkeepingClient.setStopSending(); // stop client/service
+
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
+            .thenReturn(buildResponse(false));
+
         hsmBookkeepingClient.advanceBlockchain(blocks);
+
+        // 2 interactions to get the hsm version and blockchain state
+        verify(jsonRpcClientMock, times(2)).send(any());
+        // no interaction when it attempts to send the block headers
+        verifyNoMoreInteractions(jsonRpcClientMock);
     }
 
     @Test(expected = HSMBlockchainBookkeepingRelatedException.class)
@@ -204,6 +234,16 @@ public class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
             .thenReturn(buildResponse(true));
+
+        hsmBookkeepingClient.advanceBlockchain(blocks);
+    }
+
+    @Test(expected = HSMClientException.class)
+    public void advanceBlockchain_when_HSMProtocol_send_is_thrown() throws HSMClientException, JsonRpcException {
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(-999));
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
+            .thenReturn(buildResponse(false));
 
         hsmBookkeepingClient.advanceBlockchain(blocks);
     }
