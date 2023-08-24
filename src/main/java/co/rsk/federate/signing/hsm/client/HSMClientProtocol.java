@@ -21,6 +21,7 @@ package co.rsk.federate.signing.hsm.client;
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
+import co.rsk.federate.signing.HSMField;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
 import co.rsk.federate.signing.hsm.HSMGatewayIrresponsiveException;
@@ -76,9 +77,9 @@ public class HSMClientProtocol {
             command.put(COMMAND.getFieldName(), VERSION.getCommand());
             JsonNode response = send(command);
             validateResponse(VERSION.getCommand(), response);
-            validatePresenceOf(response, VERSION_FIELD.getFieldName());
+            validatePresenceOf(response, HSMField.VERSION.getFieldName());
 
-            int hsmVersion = response.get(VERSION_FIELD.getFieldName()).asInt();
+            int hsmVersion = response.get(HSMField.VERSION.getFieldName()).asInt();
             logger.debug("[getVersion] HSM version: {}", hsmVersion);
             return hsmVersion;
         } catch (RuntimeException e) {
@@ -91,7 +92,7 @@ public class HSMClientProtocol {
     public ObjectNode buildCommand(String commandName, int version) {
         ObjectNode command = objectMapper.createObjectNode();
         command.put(COMMAND.getFieldName(), commandName);
-        command.put(VERSION_FIELD.getFieldName(), version);
+        command.put(HSMField.VERSION.getFieldName(), version);
         return command;
     }
 

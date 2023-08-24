@@ -20,13 +20,13 @@ package co.rsk.federate.signing.hsm.client;
 
 import static co.rsk.federate.signing.HSMCommand.VERSION;
 import static co.rsk.federate.signing.HSMField.ERROR_CODE;
-import static co.rsk.federate.signing.HSMField.VERSION_FIELD;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import co.rsk.federate.signing.HSMField;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -71,7 +71,7 @@ class HSMResponseHandlerBaseTest {
 
         assertThrows(HSMDeviceNotReadyException.class, () -> responseHandler.handleErrorResponse(
             VERSION.getCommand(),
-            errorcode,
+            errorCode,
             sendResponse
         ));
     }
@@ -89,7 +89,7 @@ class HSMResponseHandlerBaseTest {
     }
 
     @Test
-    void validatePresenceOf() throws {
+    void validatePresenceOf() {
         int errorCode = -1;
         ObjectNode sendResponse = buildResponse(errorCode);
 
@@ -101,11 +101,11 @@ class HSMResponseHandlerBaseTest {
         int errorCode = -1;
         ObjectNode sendResponse = buildResponse(errorCode);
         try {
-            responseHandler.validatePresenceOf(sendResponse, VERSION_FIELD.getFieldName());
+            responseHandler.validatePresenceOf(sendResponse, HSMField.VERSION.getFieldName());
             fail();
         } catch (HSMClientException e) {
             assertTrue(e.getMessage().contains("field to be present in response"));
-            assertTrue(e.getMessage().contains(VERSION_FIELD.getFieldName()));
+            assertTrue(e.getMessage().contains(HSMField.VERSION.getFieldName()));
         }
     }
 
