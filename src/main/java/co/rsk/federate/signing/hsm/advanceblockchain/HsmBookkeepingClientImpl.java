@@ -82,9 +82,6 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     private void validateHSMStateAndBlockHeaders(List<String> blockHeaders, String methodName) throws HSMClientException {
-        if (isStopped) {
-            throw new HSMBlockchainBookkeepingRelatedException(String.format("[%s] HSM has been stopped.", methodName));
-        }
         if (blockHeaders == null || blockHeaders.isEmpty()) {
             throw new HSMBlockchainBookkeepingRelatedException(String.format("[%s] Block headers is null or empty.", methodName));
         }
