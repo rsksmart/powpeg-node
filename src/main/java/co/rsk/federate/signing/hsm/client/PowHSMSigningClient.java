@@ -40,11 +40,11 @@ public abstract class PowHSMSigningClient extends HSMSigningClientBase {
         // Public keys should remain constant for the same key id
         if (!publicKeys.containsKey(keyId)) {
             ObjectNode command = this.hsmClientProtocol.buildCommand(GET_PUB_KEY.getCommand(), this.getVersion());
-            command.put(KEY_ID.getName(), keyId);
+            command.put(KEY_ID.getFieldName(), keyId);
             JsonNode response = this.hsmClientProtocol.send(command);
-            hsmClientProtocol.validatePresenceOf(response, PUB_KEY.getName());
+            hsmClientProtocol.validatePresenceOf(response, PUB_KEY.getFieldName());
 
-            String pubKeyHex = response.get(PUB_KEY.getName()).asText();
+            String pubKeyHex = response.get(PUB_KEY.getFieldName()).asText();
             byte[] pubKeyBytes = Hex.decode(pubKeyHex);
 
             publicKeys.put(keyId, pubKeyBytes);
@@ -57,14 +57,14 @@ public abstract class PowHSMSigningClient extends HSMSigningClientBase {
     public HSMSignature sign(String keyId, SignerMessage message) throws HSMClientException {
         ObjectNode objectToSign = createObjectToSend(keyId, message);
         JsonNode response = this.hsmClientProtocol.send(objectToSign);
-        this.hsmClientProtocol.validatePresenceOf(response, SIGNATURE.getName());
+        this.hsmClientProtocol.validatePresenceOf(response, SIGNATURE.getFieldName());
 
-        JsonNode signature = response.get(SIGNATURE.getName());
-        this.hsmClientProtocol.validatePresenceOf(signature, R.getName());
-        this.hsmClientProtocol.validatePresenceOf(signature, S.getName());
+        JsonNode signature = response.get(SIGNATURE.getFieldName());
+        this.hsmClientProtocol.validatePresenceOf(signature, R.getFieldName());
+        this.hsmClientProtocol.validatePresenceOf(signature, S.getFieldName());
 
-        byte[] rBytes = Hex.decode(signature.get(R.getName()).asText());
-        byte[] sBytes = Hex.decode(signature.get(S.getName()).asText());
+        byte[] rBytes = Hex.decode(signature.get(R.getFieldName()).asText());
+        byte[] sBytes = Hex.decode(signature.get(S.getFieldName()).asText());
         byte[] publicKey = getPublicKey(keyId);
 
         HSMSignature signatureCreated = new HSMSignature(rBytes, sBytes, message.getBytes(), publicKey, null);

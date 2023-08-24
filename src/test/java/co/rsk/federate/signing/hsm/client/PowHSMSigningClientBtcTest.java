@@ -58,7 +58,7 @@ class PowHSMSigningClientBtcTest {
     void signOk() throws Exception {
         ObjectNode expectedPublicKeyRequest = buildGetPublicKeyRequest();
         ObjectNode publicKeyResponse = buildResponse(0);
-        publicKeyResponse.put(PUB_KEY.getName(), "001122334455");
+        publicKeyResponse.put(PUB_KEY.getFieldName(), "001122334455");
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
 
         PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
@@ -138,7 +138,7 @@ class PowHSMSigningClientBtcTest {
 
         ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
         ObjectNode response = buildResponse(0);
-        response.set(SIGNATURE.getName(), objectMapper.createObjectNode());
+        response.set(SIGNATURE.getFieldName(), objectMapper.createObjectNode());
 
         when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
 
@@ -157,8 +157,8 @@ class PowHSMSigningClientBtcTest {
         ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
         ObjectNode response = buildResponse(0);
         ObjectNode signatureResponse = objectMapper.createObjectNode();
-        signatureResponse.put(R.getName(), "aabbcc");
-        response.set(SIGNATURE.getName(), signatureResponse);
+        signatureResponse.put(R.getFieldName(), "aabbcc");
+        response.set(SIGNATURE.getFieldName(), signatureResponse);
 
         when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
 
@@ -172,15 +172,15 @@ class PowHSMSigningClientBtcTest {
 
     private ObjectNode buildResponse(int errorcode) {
         ObjectNode response = objectMapper.createObjectNode();
-        response.put(ERROR_CODE.getName(), errorcode);
+        response.put(ERROR_CODE.getFieldName(), errorcode);
         return response;
     }
 
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = objectMapper.createObjectNode();
-        request.put(COMMAND.getName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION_FIELD.getName(), VERSION);
-        request.put(KEY_ID.getName(), "a-key-id");
+        request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
+        request.put(VERSION_FIELD.getFieldName(), VERSION);
+        request.put(KEY_ID.getFieldName(), "a-key-id");
 
         return request;
     }
@@ -188,22 +188,22 @@ class PowHSMSigningClientBtcTest {
     private ObjectNode buildSignRequest(PowHSMSignerMessage messageForRequest) {
         // Message child
         ObjectNode message = objectMapper.createObjectNode();
-        message.put(TX.getName(), messageForRequest.getBtcTransactionSerialized());
-        message.put(INPUT.getName(), messageForRequest.getInputIndex());
+        message.put(TX.getFieldName(), messageForRequest.getBtcTransactionSerialized());
+        message.put(INPUT.getFieldName(), messageForRequest.getInputIndex());
 
         // Auth child
         ObjectNode auth = objectMapper.createObjectNode();
-        auth.put(RECEIPT.getName(), "cccc");
+        auth.put(RECEIPT.getFieldName(), "cccc");
         ArrayNode receiptMerkleProofArrayNode = new ObjectMapper().createArrayNode();
         receiptMerkleProofArrayNode.add("cccc");
-        auth.set(RECEIPT_MERKLE_PROOF.getName(), receiptMerkleProofArrayNode);
+        auth.set(RECEIPT_MERKLE_PROOF.getFieldName(), receiptMerkleProofArrayNode);
 
         ObjectNode request = objectMapper.createObjectNode();
-        request.put(COMMAND.getName(), SIGN.getCommand());
-        request.put(VERSION_FIELD.getName(), VERSION);
-        request.put(KEY_ID.getName(), "a-key-id");
-        request.set(AUTH.getName(), auth);
-        request.set(MESSAGE.getName(), message);
+        request.put(COMMAND.getFieldName(), SIGN.getCommand());
+        request.put(VERSION_FIELD.getFieldName(), VERSION);
+        request.put(KEY_ID.getFieldName(), "a-key-id");
+        request.set(AUTH.getFieldName(), auth);
+        request.set(MESSAGE.getFieldName(), message);
 
         return request;
     }
@@ -211,10 +211,10 @@ class PowHSMSigningClientBtcTest {
     private ObjectNode buildSignResponse(String r, String s, int errorCode) {
         ObjectNode response = objectMapper.createObjectNode();
         ObjectNode signature = objectMapper.createObjectNode();
-        signature.put(R.getName(), r);
-        signature.put(S.getName(), s);
-        response.set(SIGNATURE.getName(), signature);
-        response.put(ERROR_CODE.getName(), errorCode);
+        signature.put(R.getFieldName(), r);
+        signature.put(S.getFieldName(), s);
+        response.set(SIGNATURE.getFieldName(), signature);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 

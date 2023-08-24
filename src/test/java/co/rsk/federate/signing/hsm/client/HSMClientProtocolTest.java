@@ -71,7 +71,7 @@ class HSMClientProtocolTest {
     @Test
     void getVersionOk() throws HSMClientException, JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put(COMMAND.getName(), VERSION.getCommand());
+        expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(1));
         assertEquals(1, hsmClientProtocol.getVersion());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(2));
@@ -81,7 +81,7 @@ class HSMClientProtocolTest {
     @Test
     void getVersionError() throws JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put(COMMAND.getName(), VERSION.getCommand());
+        expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildResponse(-2));
         try {
             hsmClientProtocol.getVersion();
@@ -94,15 +94,15 @@ class HSMClientProtocolTest {
     @Test
     void buildCommand() {
         ObjectNode result = hsmClientProtocol.buildCommand("a-random-command-name", 1);
-        assertEquals("a-random-command-name", result.get(COMMAND.getName()).asText());
-        assertEquals(1, result.get(VERSION_FIELD.getName()).asInt());
+        assertEquals("a-random-command-name", result.get(COMMAND.getFieldName()).asText());
+        assertEquals(1, result.get(VERSION_FIELD.getFieldName()).asInt());
         assertEquals(2, result.size());
     }
 
     @Test
     void validateResponseOk() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put(ERROR_CODE.getName(), 0);
+        response.put(ERROR_CODE.getFieldName(), 0);
         int responseValidation = hsmClientProtocol.validateResponse("a-random-command-name", response);
 
         assertEquals(HSMResponseCode.SUCCESS.getResponseCode(), responseValidation);
@@ -112,15 +112,15 @@ class HSMClientProtocolTest {
     void sendOk() throws JsonRpcException, HSMClientException {
         int version = 1;
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put(COMMAND.getName(), VERSION.getCommand());
+        expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(version));
 
         JsonNode response = hsmClientProtocol.send(expectedRequest);
 
         verify(jsonRpcClientProviderMock, times(1)).acquire();
-        assertTrue(response.has(ERROR_CODE.getName()));
-        assertEquals(0, response.get(ERROR_CODE.getName()).asInt());
-        assertEquals(version, response.get(VERSION_FIELD.getName()).asInt());
+        assertTrue(response.has(ERROR_CODE.getFieldName()));
+        assertEquals(0, response.get(ERROR_CODE.getFieldName()).asInt());
+        assertEquals(version, response.get(VERSION_FIELD.getFieldName()).asInt());
     }
 
     @Test
@@ -128,7 +128,7 @@ class HSMClientProtocolTest {
         int version = 1;
         String exceptionMessage = "Unable to connect to socket";
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put(COMMAND.getName(), VERSION.getCommand());
+        expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest))
             .thenThrow(new JsonRpcException(exceptionMessage, new Exception()))
             .thenReturn(buildVersionResponse(version));
@@ -136,16 +136,16 @@ class HSMClientProtocolTest {
         JsonNode response = hsmClientProtocol.send(expectedRequest);
 
         verify(jsonRpcClientProviderMock, times(2)).acquire();
-        assertTrue(response.has(ERROR_CODE.getName()));
-        assertEquals(0, response.get(ERROR_CODE.getName()).asInt());
-        assertEquals(version, response.get(VERSION_FIELD.getName()).asInt());
+        assertTrue(response.has(ERROR_CODE.getFieldName()));
+        assertEquals(0, response.get(ERROR_CODE.getFieldName()).asInt());
+        assertEquals(version, response.get(VERSION_FIELD.getFieldName()).asInt());
     }
 
     @Test
     void sendError() throws JsonRpcException {
         String exceptionMessage = "Unable to connect to socket";
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put(COMMAND.getName(), VERSION.getCommand());
+        expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenThrow(new JsonRpcException(exceptionMessage, new Exception()));
 
         try {
@@ -161,9 +161,9 @@ class HSMClientProtocolTest {
     @Test
     void sendNoVersionProvided() throws JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put(COMMAND.getName(), VERSION.getCommand());
+        expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         ObjectNode sendResponse = buildResponse(-4);
-        sendResponse.put(ERROR.getName(), "You should provide 'version' field");
+        sendResponse.put(ERROR.getFieldName(), "You should provide 'version' field");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(sendResponse);
         hsmClientProtocol.setResponseHandler(new HSMResponseHandlerV1());
 
@@ -180,10 +180,10 @@ class HSMClientProtocolTest {
     void sendInvalidVersion() throws JsonRpcException {
         int version = 9999;
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put(COMMAND.getName(), VERSION.getCommand());
-        expectedRequest.put(VERSION_FIELD.getName(), version);
+        expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
+        expectedRequest.put(VERSION_FIELD.getFieldName(), version);
         ObjectNode sendResponse = buildResponse(-666);
-        sendResponse.put(ERROR.getName(), "Requested version " + version + " but the gateway version is 1");
+        sendResponse.put(ERROR.getFieldName(), "Requested version " + version + " but the gateway version is 1");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(sendResponse);
         hsmClientProtocol.setResponseHandler(new HSMResponseHandlerV1());
 
@@ -206,9 +206,9 @@ class HSMClientProtocolTest {
         JsonRpcClient jsonRpcClient = mock(JsonRpcClient.class);
         doAnswer((a) -> {
             JsonNode command = (JsonNode) a.getArguments()[0];
-            System.out.println("thread " + command.get(COMMAND.getName()).textValue() + " executing");
+            System.out.println("thread " + command.get(COMMAND.getFieldName()).textValue() + " executing");
             Thread.sleep(forcedDelay); // forced time per thread
-            System.out.println("thread " + command.get(COMMAND.getName()).textValue() + " finished");
+            System.out.println("thread " + command.get(COMMAND.getFieldName()).textValue() + " finished");
             return buildResponse(0);
         }).when(jsonRpcClient).send(any(JsonNode.class));
         JsonRpcClientProvider jsonRpcClientProvider = mock(JsonRpcClientProvider.class);
@@ -225,7 +225,7 @@ class HSMClientProtocolTest {
             int finalI = i;
             futures.add(executorService.submit(() ->
                     hsmClientProtocol.send(
-                        hsmClientProtocol.buildCommand(COMMAND.getName() + finalI, 1))
+                        hsmClientProtocol.buildCommand(COMMAND.getFieldName() + finalI, 1))
                 )
             );
             System.out.println("thread " + i + " created");
@@ -248,13 +248,13 @@ class HSMClientProtocolTest {
 
     private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put(ERROR_CODE.getName(), errorCode);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 
     private ObjectNode buildVersionResponse(int version) {
         ObjectNode response = buildResponse(0);
-        response.put(VERSION_FIELD.getName(), version);
+        response.put(VERSION_FIELD.getFieldName(), version);
         return response;
     }
 }

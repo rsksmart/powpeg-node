@@ -20,15 +20,15 @@ public class PowHSMSigningClientRskMst extends PowHSMSigningClient {
         SignerMessageV1 messageVersion1 = (SignerMessageV1) message;
 
         ObjectNode objectToSign = this.hsmClientProtocol.buildCommand(SIGN.getCommand(), this.getVersion());
-        objectToSign.put(KEY_ID.getName(), keyId);
-        objectToSign.set(MESSAGE.getName(), createMessageField(messageVersion1));
+        objectToSign.put(KEY_ID.getFieldName(), keyId);
+        objectToSign.set(MESSAGE.getFieldName(), createMessageField(messageVersion1));
 
         return objectToSign;
     }
 
     private ObjectNode createMessageField(SignerMessageV1 messageVersion1) {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
-        messageToSend.put(HASH.getName(), Hex.toHexString(messageVersion1.getBytes()));
+        messageToSend.put(HASH.getFieldName(), Hex.toHexString(messageVersion1.getBytes()));
 
         return messageToSend;
     }
