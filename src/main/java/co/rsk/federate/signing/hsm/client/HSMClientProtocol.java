@@ -73,12 +73,12 @@ public class HSMClientProtocol {
     public int getVersion() throws HSMClientException {
         try {
             ObjectNode command = objectMapper.createObjectNode();
-            command.put(COMMAND.getName(), VERSION.getCommand());
+            command.put(COMMAND.getFieldName(), VERSION.getCommand());
             JsonNode response = send(command);
             validateResponse(VERSION.getCommand(), response);
-            validatePresenceOf(response, VERSION_FIELD.getName());
+            validatePresenceOf(response, VERSION_FIELD.getFieldName());
 
-            int hsmVersion = response.get(VERSION_FIELD.getName()).asInt();
+            int hsmVersion = response.get(VERSION_FIELD.getFieldName()).asInt();
             logger.debug("[getVersion] HSM version: {}", hsmVersion);
             return hsmVersion;
         } catch (RuntimeException e) {
@@ -90,8 +90,8 @@ public class HSMClientProtocol {
 
     public ObjectNode buildCommand(String commandName, int version) {
         ObjectNode command = objectMapper.createObjectNode();
-        command.put(COMMAND.getName(), commandName);
-        command.put(VERSION_FIELD.getName(), version);
+        command.put(COMMAND.getFieldName(), commandName);
+        command.put(VERSION_FIELD.getFieldName(), version);
         return command;
     }
 
@@ -101,7 +101,7 @@ public class HSMClientProtocol {
         while (true) {
             try {
                 client = clientProvider.acquire();
-                String commandName = command.get(COMMAND.getName()).toString();
+                String commandName = command.get(COMMAND.getFieldName()).toString();
                 logger.trace("[send] Sending command to hsm: {}", commandName);
                 Future future = getExecutor().submit(new HSMRequest(client, command));
                 JsonNode result = null;
@@ -121,7 +121,7 @@ public class HSMClientProtocol {
                         throw (HSMClientException) cause;
                     }
                 }
-                int responseCode = validateResponse(command.get(COMMAND.getName()).textValue(), result);
+                int responseCode = validateResponse(command.get(COMMAND.getFieldName()).textValue(), result);
                 logger.trace("[send] HSM responds with code {} to command {}", responseCode, commandName);
                 return result;
             } catch (JsonRpcException e) {

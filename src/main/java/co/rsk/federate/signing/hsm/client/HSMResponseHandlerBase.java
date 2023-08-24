@@ -41,9 +41,9 @@ public class HSMResponseHandlerBase {
     }
 
     protected final int validateResponse(String methodName, JsonNode response) throws HSMClientException {
-        validatePresenceOf(response, ERROR_CODE.getName());
+        validatePresenceOf(response, ERROR_CODE.getFieldName());
 
-        int errorCode = response.get(ERROR_CODE.getName()).asInt();
+        int errorCode = response.get(ERROR_CODE.getFieldName()).asInt();
         if (getOkErrorCodes().contains(errorCode)) {
             return errorCode;
         }
@@ -60,7 +60,7 @@ public class HSMResponseHandlerBase {
 
     protected String formatErrorMessage(String exceptionMessage, String methodName, JsonNode response) {
         String context = String.format("Context: Running method '%s'", methodName);
-        String errorMessage = response.hasNonNull(ERROR.getName()) ? response.get(ERROR.getName()).asText() : "[no error message given]";
+        String errorMessage = response.hasNonNull(ERROR.getFieldName()) ? response.get(ERROR.getFieldName()).asText() : "[no error message given]";
 
         return String.format(exceptionMessage, errorMessage , context);
     }

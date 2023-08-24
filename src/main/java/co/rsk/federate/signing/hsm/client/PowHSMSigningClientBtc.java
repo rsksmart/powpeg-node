@@ -23,28 +23,28 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient {
         PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) message;
 
         ObjectNode objectToSign = this.hsmClientProtocol.buildCommand(SIGN.getCommand(), this.getVersion());
-        objectToSign.put(KEY_ID.getName(), keyId);
-        objectToSign.set(AUTH.getName(), createAuthField(powHSMSignerMessage));
-        objectToSign.set(MESSAGE.getName(), createMessageField(powHSMSignerMessage));
+        objectToSign.put(KEY_ID.getFieldName(), keyId);
+        objectToSign.set(AUTH.getFieldName(), createAuthField(powHSMSignerMessage));
+        objectToSign.set(MESSAGE.getFieldName(), createMessageField(powHSMSignerMessage));
 
         return objectToSign;
     }
 
     private ObjectNode createAuthField(PowHSMSignerMessage message) {
         ObjectNode auth = new ObjectMapper().createObjectNode();
-        auth.put(RECEIPT.getName(), message.getTransactionReceipt());
+        auth.put(RECEIPT.getFieldName(), message.getTransactionReceipt());
         ArrayNode receiptMerkleProof = new ObjectMapper().createArrayNode();
         for (String receiptMerkleProofValue : message.getReceiptMerkleProof()) {
             receiptMerkleProof.add(receiptMerkleProofValue);
         }
-        auth.set(RECEIPT_MERKLE_PROOF.getName(), receiptMerkleProof);
+        auth.set(RECEIPT_MERKLE_PROOF.getFieldName(), receiptMerkleProof);
         return auth;
     }
 
     private ObjectNode createMessageField(PowHSMSignerMessage message) {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
-        messageToSend.put(TX.getName(), message.getBtcTransactionSerialized());
-        messageToSend.put(INPUT.getName(), message.getInputIndex());
+        messageToSend.put(TX.getFieldName(), message.getBtcTransactionSerialized());
+        messageToSend.put(INPUT.getFieldName(), message.getInputIndex());
         return messageToSend;
     }
 

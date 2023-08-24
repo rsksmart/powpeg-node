@@ -45,7 +45,7 @@ class HSMResponseHandlerBaseTest {
     @Test
     void validateResponseDeviceNotReadyErrorForVersion1() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put(ERROR_CODE.getName(), -2);
+        response.put(ERROR_CODE.getFieldName(), -2);
 
         assertThrows(HSMDeviceNotReadyException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -56,7 +56,7 @@ class HSMResponseHandlerBaseTest {
     @Test
     void validateResponseDeviceNotReadyErrorForVersion2() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put(ERROR_CODE.getName(), -905);
+        response.put(ERROR_CODE.getFieldName(), -905);
 
         assertThrows(HSMDeviceNotReadyException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -93,7 +93,7 @@ class HSMResponseHandlerBaseTest {
         int errorCode = -1;
         ObjectNode sendResponse = buildResponse(errorCode);
 
-        assertDoesNotThrow(() -> responseHandler.validatePresenceOf(sendResponse, ERROR_CODE.getName()));
+        assertDoesNotThrow(() -> responseHandler.validatePresenceOf(sendResponse, ERROR_CODE.getFieldName()));
     }
 
     @Test
@@ -101,11 +101,11 @@ class HSMResponseHandlerBaseTest {
         int errorCode = -1;
         ObjectNode sendResponse = buildResponse(errorCode);
         try {
-            responseHandler.validatePresenceOf(sendResponse, VERSION_FIELD.getName());
+            responseHandler.validatePresenceOf(sendResponse, VERSION_FIELD.getFieldName());
             fail();
         } catch (HSMClientException e) {
             assertTrue(e.getMessage().contains("field to be present in response"));
-            assertTrue(e.getMessage().contains(VERSION_FIELD.getName()));
+            assertTrue(e.getMessage().contains(VERSION_FIELD.getFieldName()));
         }
     }
 
@@ -117,7 +117,7 @@ class HSMResponseHandlerBaseTest {
 
     private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put(ERROR_CODE.getName(), errorCode);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 }

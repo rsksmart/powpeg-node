@@ -39,7 +39,7 @@ public enum HSMField {
         this.name = name;
     }
 
-    public String getName() {
+    public String getFieldName() {
         return name;
     }
 }

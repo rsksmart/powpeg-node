@@ -137,7 +137,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         for (String blockHeader : blockHeaderChunk) {
             blocksFieldData.add(blockHeader);
         }
-        payload.set(BLOCKS.getName(), blocksFieldData);
+        payload.set(BLOCKS.getFieldName(), blocksFieldData);
     }
 
     private void addBrothersToPayload(ObjectNode payload, String[] blockHeaderChunk) {
@@ -147,7 +147,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
             //  This should be changed to sending the actual brothers when HSM V3 is fully implemented
             brothersFieldData.add(new ObjectMapper().createArrayNode());
         }
-        payload.set(BROTHERS.getName(), brothersFieldData);
+        payload.set(BROTHERS.getFieldName(), brothersFieldData);
     }
 
     @Override
@@ -166,18 +166,18 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE.getCommand(), getVersion());
         JsonNode response = this.hsmClientProtocol.send(command);
 
-        this.hsmClientProtocol.validatePresenceOf(response, STATE.getName());
-        JsonNode state = response.get(STATE.getName());
+        this.hsmClientProtocol.validatePresenceOf(response, STATE.getFieldName());
+        JsonNode state = response.get(STATE.getFieldName());
 
-        this.hsmClientProtocol.validatePresenceOf(state, BEST_BLOCK.getName());
-        this.hsmClientProtocol.validatePresenceOf(state, ANCESTOR_BLOCK.getName());
-        this.hsmClientProtocol.validatePresenceOf(state, UPDATING.getName());
-        JsonNode updating = state.get(UPDATING.getName());
+        this.hsmClientProtocol.validatePresenceOf(state, BEST_BLOCK.getFieldName());
+        this.hsmClientProtocol.validatePresenceOf(state, ANCESTOR_BLOCK.getFieldName());
+        this.hsmClientProtocol.validatePresenceOf(state, UPDATING.getFieldName());
+        JsonNode updating = state.get(UPDATING.getFieldName());
 
-        this.hsmClientProtocol.validatePresenceOf(updating, IN_PROGRESS.getName());
-        boolean inProgress = updating.get(IN_PROGRESS.getName()).asBoolean();
-        String bestBlockHash = state.get(BEST_BLOCK.getName()).asText();
-        String ancestorBlockHash = state.get(ANCESTOR_BLOCK.getName()).asText();
+        this.hsmClientProtocol.validatePresenceOf(updating, IN_PROGRESS.getFieldName());
+        boolean inProgress = updating.get(IN_PROGRESS.getFieldName()).asBoolean();
+        String bestBlockHash = state.get(BEST_BLOCK.getFieldName()).asText();
+        String ancestorBlockHash = state.get(ANCESTOR_BLOCK.getFieldName()).asText();
 
         logger.trace("[getHSMPointer] HSM State: BestBlock: {}, ancestor: {}, inProgress:{}", bestBlockHash, ancestorBlockHash, inProgress);
 
@@ -212,16 +212,16 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_PARAMETERS.getCommand(), version);
         JsonNode response = this.hsmClientProtocol.send(command);
 
-        this.hsmClientProtocol.validatePresenceOf(response, PARAMETERS.getName());
-        JsonNode parameters = response.get(PARAMETERS.getName());
+        this.hsmClientProtocol.validatePresenceOf(response, PARAMETERS.getFieldName());
+        JsonNode parameters = response.get(PARAMETERS.getFieldName());
 
-        this.hsmClientProtocol.validatePresenceOf(parameters, CHECKPOINT.getName());
-        this.hsmClientProtocol.validatePresenceOf(parameters, MINIMUM_DIFFICULTY.getName());
-        this.hsmClientProtocol.validatePresenceOf(parameters, NETWORK.getName());
+        this.hsmClientProtocol.validatePresenceOf(parameters, CHECKPOINT.getFieldName());
+        this.hsmClientProtocol.validatePresenceOf(parameters, MINIMUM_DIFFICULTY.getFieldName());
+        this.hsmClientProtocol.validatePresenceOf(parameters, NETWORK.getFieldName());
 
-        String checkpoint = parameters.get(CHECKPOINT.getName()).asText();
-        BigInteger minimumDifficulty = new BigInteger(parameters.get(MINIMUM_DIFFICULTY.getName()).asText());
-        String network = parameters.get(NETWORK.getName()).asText();
+        String checkpoint = parameters.get(CHECKPOINT.getFieldName()).asText();
+        BigInteger minimumDifficulty = new BigInteger(parameters.get(MINIMUM_DIFFICULTY.getFieldName()).asText());
+        String network = parameters.get(NETWORK.getFieldName()).asText();
 
         logger.info("[getBlockchainParameters] Checkpoint: {}, Minimum Difficulty: {}, Network: {}", checkpoint, minimumDifficulty, network);
         return new PowHSMBlockchainParameters(checkpoint, minimumDifficulty, network);
