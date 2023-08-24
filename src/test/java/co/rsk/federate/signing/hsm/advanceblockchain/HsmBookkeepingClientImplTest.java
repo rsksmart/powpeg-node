@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import co.rsk.crypto.Keccak256;
@@ -176,10 +177,19 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void updateAncestorBlock_when_HSM_service_is_stopped() {
+    void updateAncestorBlock_when_HSM_service_is_stopped() throws HSMClientException, JsonRpcException {
         hsmBookkeepingClient.setStopSending(); // stop client/service
 
-        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders)));
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
+            .thenReturn(buildResponse(false));
+
+        hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders));
+
+        // 2 interactions to get the hsm version and blockchain state
+        verify(jsonRpcClientMock, times(2)).send(any());
+        // no interaction when it attempts to send the block headers
+        verifyNoMoreInteractions(jsonRpcClientMock);
     }
 
     @Test
@@ -197,6 +207,16 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
+    void updateAncestorBlock_when_HSMProtocol_send_is_thrown() throws HSMClientException, JsonRpcException {
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(-999));
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
+            .thenReturn(buildResponse(false));
+
+        assertThrows(HSMClientException.class, () -> hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders)));
+    }
+
+    @Test
     void updateAncestorBlock_hsm_version_2() throws HSMClientException, JsonRpcException {
         testUpdateAncestorBlock(2);
     }
@@ -208,23 +228,43 @@ class HsmBookkeepingClientImplTest {
 
 
     @Test
-    void advanceBlockchain_when_HSM_is_stopped() {
+    void advanceBlockchain_when_HSM_service_is_stopped() throws HSMClientException, JsonRpcException {
         hsmBookkeepingClient.setStopSending(); // stop client/service
-        assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(blocks));
+
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
+            .thenReturn(buildResponse(false));
+
+        hsmBookkeepingClient.advanceBlockchain(blocks);
+
+        // 2 interactions to get the hsm version and blockchain state
+        verify(jsonRpcClientMock, times(2)).send(any());
+        // no interaction when it attempts to send the block headers
+        verifyNoMoreInteractions(jsonRpcClientMock);
     }
 
     @Test
-    void advanceBlockchain_when_blockheaders_is_empty() throws HSMClientException {
+    void advanceBlockchain_when_blockheaders_is_empty() {
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(Collections.emptyList()));
     }
 
     @Test
-    void advanceBlockchain_when_HSM_is_updating() throws HSMClientException, JsonRpcException {
+    void advanceBlockchain_when_HSM_is_updating() throws JsonRpcException {
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
             .thenReturn(buildResponse(true));
 
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () -> hsmBookkeepingClient.advanceBlockchain(blocks));
+    }
+
+    @Test
+    void advanceBlockchain_when_HSMProtocol_send_is_thrown() throws JsonRpcException {
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(-999));
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
+            .thenReturn(buildResponse(false));
+
+        assertThrows(HSMClientException.class, () -> hsmBookkeepingClient.advanceBlockchain(blocks));
     }
 
     @Test
