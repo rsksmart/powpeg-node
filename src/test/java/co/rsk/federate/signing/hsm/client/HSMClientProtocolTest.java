@@ -22,6 +22,7 @@ import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
+import co.rsk.federate.signing.HSMField;
 import co.rsk.federate.signing.hsm.HSMChangedVersionException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceException;
@@ -86,7 +87,7 @@ public class HSMClientProtocolTest {
     public void buildCommand() {
         ObjectNode result = hsmClientProtocol.buildCommand("a-random-command-name", 1);
         Assert.assertEquals("a-random-command-name", result.get(COMMAND.getFieldName()).asText());
-        Assert.assertEquals(1, result.get(VERSION_FIELD.getFieldName()).asInt());
+        Assert.assertEquals(1, result.get(HSMField.VERSION.getFieldName()).asInt());
         Assert.assertEquals(2, result.size());
     }
 
@@ -110,7 +111,7 @@ public class HSMClientProtocolTest {
         verify(jsonRpcClientProviderMock, times(1)).acquire();
         Assert.assertTrue(response.has(ERROR_CODE.getFieldName()));
         Assert.assertEquals(0, response.get(ERROR_CODE.getFieldName()).asInt());
-        Assert.assertEquals(version, response.get(VERSION_FIELD.getFieldName()).asInt());
+        Assert.assertEquals(version, response.get(HSMField.VERSION.getFieldName()).asInt());
     }
 
     @Test
@@ -128,7 +129,7 @@ public class HSMClientProtocolTest {
         verify(jsonRpcClientProviderMock, times(2)).acquire();
         Assert.assertTrue(response.has(ERROR_CODE.getFieldName()));
         Assert.assertEquals(0, response.get(ERROR_CODE.getFieldName()).asInt());
-        Assert.assertEquals(version, response.get(VERSION_FIELD.getFieldName()).asInt());
+        Assert.assertEquals(version, response.get(HSMField.VERSION.getFieldName()).asInt());
     }
 
     @Test
@@ -171,7 +172,7 @@ public class HSMClientProtocolTest {
         int version = 9999;
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
-        expectedRequest.put(VERSION_FIELD.getFieldName(), version);
+        expectedRequest.put(HSMField.VERSION.getFieldName(), version);
         ObjectNode sendResponse = buildResponse(-666);
         sendResponse.put(ERROR.getFieldName(), "Requested version " + version + " but the gateway version is 1");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(sendResponse);
@@ -244,7 +245,7 @@ public class HSMClientProtocolTest {
 
     private ObjectNode buildVersionResponse(int version) {
         ObjectNode response = buildResponse(0);
-        response.put(VERSION_FIELD.getFieldName(), version);
+        response.put(HSMField.VERSION.getFieldName(), version);
         return response;
     }
 }

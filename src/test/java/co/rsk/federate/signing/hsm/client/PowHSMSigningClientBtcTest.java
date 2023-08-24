@@ -23,7 +23,7 @@ import static org.mockito.Mockito.*;
 public class PowHSMSigningClientBtcTest {
     private JsonRpcClient jsonRpcClientMock;
     private PowHSMSigningClientBtc client;
-    private final static int VERSION = 2;
+    private final static int HSM_VERSION = 2;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Before
@@ -33,7 +33,7 @@ public class PowHSMSigningClientBtcTest {
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
 
         HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, VERSION);
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSM_VERSION);
     }
 
     @Test
@@ -160,7 +160,7 @@ public class PowHSMSigningClientBtcTest {
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = objectMapper.createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION_FIELD.getFieldName(), VERSION);
+        request.put(VERSION.getFieldName(), HSM_VERSION);
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         return request;
@@ -181,7 +181,7 @@ public class PowHSMSigningClientBtcTest {
 
         ObjectNode request = objectMapper.createObjectNode();
         request.put(COMMAND.getFieldName(), SIGN.getCommand());
-        request.put(VERSION_FIELD.getFieldName(), VERSION);
+        request.put(VERSION.getFieldName(), HSM_VERSION);
         request.put(KEY_ID.getFieldName(), "a-key-id");
         request.set(AUTH.getFieldName(), auth);
         request.set(MESSAGE.getFieldName(), message);

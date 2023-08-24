@@ -18,6 +18,7 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import co.rsk.federate.signing.HSMField;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +29,6 @@ import org.junit.Test;
 
 import static co.rsk.federate.signing.HSMCommand.VERSION;
 import static co.rsk.federate.signing.HSMField.ERROR_CODE;
-import static co.rsk.federate.signing.HSMField.VERSION_FIELD;
 
 public class HSMResponseHandlerBaseTest {
     private HSMResponseHandlerBase responseHandler;
@@ -85,11 +85,11 @@ public class HSMResponseHandlerBaseTest {
         int errorCode = -1;
         ObjectNode sendResponse = buildResponse(errorCode);
         try {
-            responseHandler.validatePresenceOf(sendResponse, VERSION_FIELD.getFieldName());
+            responseHandler.validatePresenceOf(sendResponse, HSMField.VERSION.getFieldName());
             Assert.fail();
         } catch (HSMClientException e) {
             Assert.assertTrue(e.getMessage().contains("field to be present in response"));
-            Assert.assertTrue(e.getMessage().contains(VERSION_FIELD.getFieldName()));
+            Assert.assertTrue(e.getMessage().contains(HSMField.VERSION.getFieldName()));
         }
     }
 

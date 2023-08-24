@@ -31,7 +31,7 @@ public enum HSMField {
     TX("tx"),
     UPDATING("updating"),
     V("v"),
-    VERSION_FIELD("version");
+    VERSION("version");
 
     private final String name;
 
