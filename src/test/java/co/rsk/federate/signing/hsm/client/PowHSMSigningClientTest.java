@@ -23,7 +23,7 @@ import static co.rsk.federate.signing.HSMField.COMMAND;
 import static co.rsk.federate.signing.HSMField.ERROR_CODE;
 import static co.rsk.federate.signing.HSMField.KEY_ID;
 import static co.rsk.federate.signing.HSMField.PUB_KEY;
-import static co.rsk.federate.signing.HSMField.VERSION_FIELD;
+import static co.rsk.federate.signing.HSMField.VERSION;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -48,7 +48,7 @@ import org.junit.jupiter.api.Test;
 class PowHSMSigningClientTest {
     private JsonRpcClient jsonRpcClientMock;
     private PowHSMSigningClient client;
-    private final static int VERSION = 2;
+    private final static int HSM_VERSION = 2;
 
     @BeforeEach
     void createClient() throws JsonRpcException {
@@ -56,7 +56,7 @@ class PowHSMSigningClientTest {
         jsonRpcClientMock = mock(JsonRpcClient.class);
         HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
         //Since parent class is abstract, test all the common methods using PowHSMSigningClientBtc.
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, VERSION);
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSM_VERSION);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
@@ -67,7 +67,7 @@ class PowHSMSigningClientTest {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(5));
         int version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 2.
-        assertEquals(VERSION, version);
+        assertEquals(HSM_VERSION, version);
     }
 
     @Test
@@ -139,7 +139,7 @@ class PowHSMSigningClientTest {
 
     private ObjectNode buildVersionResponse(int version) {
         ObjectNode response = buildResponse(0);
-        response.put(VERSION_FIELD.getFieldName(), version);
+        response.put(VERSION.getFieldName(), version);
         return response;
     }
 
@@ -152,7 +152,7 @@ class PowHSMSigningClientTest {
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION_FIELD.getFieldName(), VERSION);
+        request.put(VERSION.getFieldName(), HSM_VERSION);
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         return request;

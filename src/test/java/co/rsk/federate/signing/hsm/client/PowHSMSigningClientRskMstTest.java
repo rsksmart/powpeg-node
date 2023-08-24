@@ -35,14 +35,14 @@ import org.junit.jupiter.api.Test;
 class PowHSMSigningClientRskMstTest {
     private JsonRpcClient jsonRpcClientMock;
     private PowHSMSigningClient client;
-    private final static int VERSION = 2;
+    private final static int HSM_VERSION = 2;
 
     @BeforeEach
     void createClient() throws JsonRpcException {
         JsonRpcClientProvider jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
         HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        client = new PowHSMSigningClientRskMst(hsmClientProtocol, VERSION);
+        client = new PowHSMSigningClientRskMst(hsmClientProtocol, HSM_VERSION);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
@@ -171,7 +171,7 @@ class PowHSMSigningClientRskMstTest {
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION_FIELD.getFieldName(), VERSION);
+        request.put(VERSION.getFieldName(), HSM_VERSION);
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         return request;
@@ -180,7 +180,7 @@ class PowHSMSigningClientRskMstTest {
     private ObjectNode buildSignRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), SIGN.getCommand());
-        request.put(VERSION_FIELD.getFieldName(), VERSION);
+        request.put(VERSION.getFieldName(), HSM_VERSION);
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         ObjectNode message = new ObjectMapper().createObjectNode();
