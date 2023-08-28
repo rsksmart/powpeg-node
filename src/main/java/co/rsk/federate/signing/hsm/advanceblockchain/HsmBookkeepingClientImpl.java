@@ -123,33 +123,20 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     @Override
     public void updateAncestorBlock(UpdateAncestorBlockMessage updateAncestorBlockMessage) throws HSMClientException {
         List<String> blockHeaders = updateAncestorBlockMessage.getData();
-        List<String[]> blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, true);
-        int chunkIndex = 0;
         validateHSMStateAndBlockHeaders(blockHeaders, UPDATE_ANCESTOR_BLOCK.getCommand());
-        try {
-            blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, true);
+        List<String[]> blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, true);
 
-            logger.trace("[updateAncestorBlock] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
-            for (int i = 0; i < blockHeadersChunks.size(); i++) {
-                String[] blockHeaderChunk = blockHeadersChunks.get(i);
-                ObjectNode payload = this.hsmClientProtocol.buildCommand(UPDATE_ANCESTOR_BLOCK.getCommand(), getVersion());
-                addBlocksToPayload(payload, blockHeaderChunk);
+        logger.trace("[updateAncestorBlock] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
+        for (int i = 0; i < blockHeadersChunks.size(); i++) {
+            String[] blockHeaderChunk = blockHeadersChunks.get(i);
+            ObjectNode payload = this.hsmClientProtocol.buildCommand(UPDATE_ANCESTOR_BLOCK.getCommand(), getVersion());
+            addBlocksToPayload(payload, blockHeaderChunk);
 
-                if (isStopped) {
-                    return;
-                }
-                chunkIndex = i + 1;
-                logger.trace("[updateAncestorBlock] chunk {}/{}", chunkIndex, blockHeadersChunks.size());
-                this.hsmClientProtocol.send(payload);
+            if (isStopped) {
+                return;
             }
-        } catch (HSMClientException e) {
-            logger.warn(
-                "[updateAncestorBlock] failed sending {}/{} chunks. Error: {}",
-                chunkIndex,
-                blockHeadersChunks.size(),
-                e.getMessage()
-            );
-            throw e;
+            logger.trace("[updateAncestorBlock] chunk {}/{}", i + 1, blockHeadersChunks.size());
+            this.hsmClientProtocol.send(payload);
         }
     }
 
@@ -157,38 +144,25 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     public void advanceBlockchain(List<Block> blocks) throws HSMClientException {
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
         List<String> blockHeaders = message.getParsedBlockHeaders();
-        List<String[]> blockHeadersChunks = new ArrayList<>();
-        int chunkIndex = 0;
         validateHSMStateAndBlockHeaders(blockHeaders, ADVANCE_BLOCKCHAIN.getCommand());
-        try {
-            blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, false);
+        List<String[]> blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, false);
 
-            logger.trace("[advanceBlockchain] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
-            for (int i = 0; i < blockHeadersChunks.size(); i++) {
-                String[] blockHeaderChunk = blockHeadersChunks.get(i);
-                ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), getVersion());
-                addBlocksToPayload(payload, blockHeaderChunk);
+        logger.trace("[advanceBlockchain] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
+        for (int i = 0; i < blockHeadersChunks.size(); i++) {
+            String[] blockHeaderChunk = blockHeadersChunks.get(i);
+            ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), getVersion());
+            addBlocksToPayload(payload, blockHeaderChunk);
 
-                if (getVersion() >= 3) {
-                    List<String[]> brothers = getBrothers(blockHeaderChunk, message);
-                    addBrothersToPayload(payload, brothers);
-                }
-
-                if (isStopped) {
-                    return;
-                }
-                chunkIndex = i + 1;
-                logger.trace("[advanceBlockchain] chunk {}/{}", chunkIndex, blockHeadersChunks.size());
-                this.hsmClientProtocol.send(payload);
+            if (getVersion() >= 3) {
+                List<String[]> brothers = getBrothers(blockHeaderChunk, message);
+                addBrothersToPayload(payload, brothers);
             }
-        } catch (HSMClientException e) {
-            logger.warn(
-                "[advanceBlockchain] failed sending {}/{} chunks. Error: {}",
-                chunkIndex,
-                blockHeadersChunks.size(),
-                e.getMessage()
-            );
-            throw e;
+
+            if (isStopped) {
+                return;
+            }
+            logger.trace("[advanceBlockchain] chunk {}/{}", i + 1, blockHeadersChunks.size());
+            this.hsmClientProtocol.send(payload);
         }
     }
 
