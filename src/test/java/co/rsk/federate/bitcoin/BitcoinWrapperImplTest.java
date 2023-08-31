@@ -10,7 +10,6 @@ import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.script.ScriptBuilder;
-import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.config.BridgeConstants;
 import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.federate.FederatorSupport;
@@ -37,18 +36,18 @@ import org.bitcoinj.script.Script;
 import org.bitcoinj.script.Script.ScriptType;
 import org.bitcoinj.wallet.Wallet;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * Created by pprete
  */
-public class BitcoinWrapperImplTest {
+class BitcoinWrapperImplTest {
     private static BridgeConstants bridgeConstants;
     private static NetworkParameters networkParameters;
     private static Context btcContext;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpBeforeClass() {
         bridgeConstants = BridgeRegTestConstants.getInstance();
         networkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
@@ -56,7 +55,7 @@ public class BitcoinWrapperImplTest {
     }
 
     @Test
-    public void coinsReceivedOrSent_validPegInTx() throws PeginInstructionsException {
+    void coinsReceivedOrSent_validPegInTx() throws PeginInstructionsException {
         // Arrange
         Federation federation = bridgeConstants.getGenesisFederation();
         Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, federation.getAddress());
@@ -98,7 +97,7 @@ public class BitcoinWrapperImplTest {
     }
 
     @Test
-    public void coinsReceivedOrSent_invalidPegInTx_withSenderAddress_txAddedToListener()
+    void coinsReceivedOrSent_invalidPegInTx_withSenderAddress_txAddedToListener()
         throws PeginInstructionsException {
 
         // Arrange
@@ -143,7 +142,7 @@ public class BitcoinWrapperImplTest {
     }
 
     @Test
-    public void coinsReceivedOrSent_invalidPegInTx_withoutSenderAddress_txNotAddedToListener()
+    void coinsReceivedOrSent_invalidPegInTx_withoutSenderAddress_txNotAddedToListener()
         throws PeginInstructionsException {
 
         // Arrange
@@ -186,7 +185,7 @@ public class BitcoinWrapperImplTest {
     }
 
     @Test
-    public void coinsReceivedOrSent_validPegOutTx() {
+    void coinsReceivedOrSent_validPegOutTx() {
         // Arrange
         Federation federation = bridgeConstants.getGenesisFederation();
         Transaction pegOutTx = createPegOutTx(federation, BridgeRegTestConstants.REGTEST_FEDERATION_PRIVATE_KEYS);
@@ -220,7 +219,7 @@ public class BitcoinWrapperImplTest {
     }
 
     @Test
-    public void coinsReceivedOrSent_txNotPegInNorPegOut() {
+    void coinsReceivedOrSent_txNotPegInNorPegOut() {
         // Arrange
         Federation federation = bridgeConstants.getGenesisFederation();
         Transaction tx = new Transaction(networkParameters);
@@ -294,7 +293,7 @@ public class BitcoinWrapperImplTest {
         pegOutTx.addInput(pegOutInput);
 
         // Sign it using the Federation members
-        co.rsk.bitcoinj.script.Script redeemScript = createBaseRedeemScriptThatSpendsFromTheFederation(federation);
+        co.rsk.bitcoinj.script.Script redeemScript = federation.getRedeemScript();
         co.rsk.bitcoinj.script.Script inputScript = createBaseInputScriptThatSpendsFromTheFederation(federation);
 
         Sha256Hash sighash = pegOutTx.hashForSignature(
@@ -328,22 +327,14 @@ public class BitcoinWrapperImplTest {
 
     private co.rsk.bitcoinj.script.Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
         co.rsk.bitcoinj.script.Script scriptPubKey = federation.getP2SHScript();
-        co.rsk.bitcoinj.script.Script redeemScript = createBaseRedeemScriptThatSpendsFromTheFederation(federation);
-        RedeemData redeemData = RedeemData.of(federation.getBtcPublicKeys(), redeemScript);
-        co.rsk.bitcoinj.script.Script inputScript = scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), redeemData.redeemScript);
-        return inputScript;
-    }
-
-    private co.rsk.bitcoinj.script.Script createBaseRedeemScriptThatSpendsFromTheFederation(Federation federation) {
-        co.rsk.bitcoinj.script.Script redeemScript = ScriptBuilder.createRedeemScript(federation.getNumberOfSignaturesRequired(), federation.getBtcPublicKeys());
-        return redeemScript;
+        return scriptPubKey.createEmptyInputScript(null, federation.getRedeemScript());
     }
 
     // Class that allows to override certain methods in Kit class
     // that are inherited from WalletAppKit class and can't be mocked
-    private class KitForTests extends Kit {
+    private static class KitForTests extends Kit {
 
-        private Wallet wallet;
+        private final Wallet wallet;
 
         public KitForTests(Context btcContext, File directory, String filePrefix, Wallet wallet) {
             super(btcContext, directory, filePrefix);
@@ -351,11 +342,11 @@ public class BitcoinWrapperImplTest {
         }
 
         @Override
-        protected void startUp() throws Exception {
+        protected void startUp() {
         }
 
         @Override
-        protected void shutDown() throws Exception {
+        protected void shutDown() {
         }
 
         @Override
