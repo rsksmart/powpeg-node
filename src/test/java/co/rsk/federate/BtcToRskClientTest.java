@@ -1,11 +1,29 @@
 package co.rsk.federate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.ScriptBuilder;
-import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.config.BridgeConstants;
 import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.federate.adapter.ThinConverter;
@@ -28,30 +46,43 @@ import co.rsk.peg.btcLockSender.P2shP2wpkhBtcLockSender;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.collect.Lists;
-import org.bitcoinj.core.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PartialMerkleTree;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.TransactionWitness;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.spongycastle.util.encoders.Hex;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.Stream;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
 
 /**
  * Created by ajlopez on 6/1/2016.
  */
-public class BtcToRskClientTest {
+class BtcToRskClientTest {
     private final NetworkParameters networkParameters = ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString());
 
     private int nhash = 0;
@@ -60,8 +91,8 @@ public class BtcToRskClientTest {
     private Federation genesisFederation;
     private BtcToRskClientBuilder btcToRskClientBuilder;
 
-    @Before
-    public void setup() throws PeginInstructionsException, IOException {
+    @BeforeEach
+    void setup() throws PeginInstructionsException, IOException {
         activationConfig = mock(ActivationConfig.class);
         when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
         when(activationConfig.isActive(eq(ConsensusRule.RSKIP89), anyLong())).thenReturn(true);
@@ -72,7 +103,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void getNoTransactions() {
+    void getNoTransactions() {
         BtcToRskClient client = new BtcToRskClient();
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
 
@@ -80,7 +111,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void addAndGetOneTransaction() throws Exception {
+    void addAndGetOneTransaction() throws Exception {
         BtcToRskClient client = createClientWithMocks();
         Transaction tx = createTransaction();
         client.onTransaction(tx);
@@ -133,7 +164,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void addAndGetTwoTransactions() throws Exception {
+    void addAndGetTwoTransactions() throws Exception {
         BtcToRskClient client = createClientWithMocks();
 
         Transaction tx1 = createTransaction();
@@ -160,7 +191,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void addBlockWithProofOfTransaction() throws Exception {
+    void addBlockWithProofOfTransaction() throws Exception {
         Transaction tx = createTransaction();
 
         Block block = createBlock(tx);
@@ -193,7 +224,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void addBlockWithProofOfSegwitTransaction() throws Exception {
+    void addBlockWithProofOfSegwitTransaction() throws Exception {
         Transaction tx = createSegwitTransaction();
         Block block = createBlock(tx);
 
@@ -219,7 +250,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void addBlockWithProofOfManyTransactions() throws Exception {
+    void addBlockWithProofOfManyTransactions() throws Exception {
         Transaction tx = createTransaction();
         Transaction tx2 = createTransaction();
         Transaction tx3 = createTransaction();
@@ -249,7 +280,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void addTwoTransactionsAndAddBlockWithProofOfManyTransactions() throws Exception {
+    void addTwoTransactionsAndAddBlockWithProofOfManyTransactions() throws Exception {
         Transaction tx = createTransaction();
         Transaction tx2 = createTransaction();
         Transaction tx3 = createTransaction();
@@ -291,7 +322,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void onBlock_transaction_proof_already_included() throws Exception {
+    void onBlock_transaction_proof_already_included() throws Exception {
         Transaction tx = createTransaction();
 
         Block block = createBlock(tx);
@@ -321,7 +352,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void addTwoDifferentBlocksWithProofOfTransaction() throws Exception {
+    void addTwoDifferentBlocksWithProofOfTransaction() throws Exception {
         Transaction tx = createTransaction();
 
         Block block1 = createBlock(tx);
@@ -356,7 +387,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void onBlock_no_transactions() throws Exception {
+    void onBlock_no_transactions() throws Exception {
         Block block = createBlock();
 
         BtcToRskClient client = createClientWithMocks();
@@ -369,7 +400,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void onBlock_without_txs_waiting_for_proofs() throws Exception {
+    void onBlock_without_txs_waiting_for_proofs() throws Exception {
         Transaction segwitTx = getTx(false);
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
@@ -395,7 +426,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void onBlock_including_segwit_tx_registers_coinbase() throws Exception {
+    void onBlock_including_segwit_tx_registers_coinbase() throws Exception {
         Transaction segwitTx = getTx(true);
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
@@ -435,7 +466,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void onBlock_without_segwit_tx_doesnt_register_coinbase() throws Exception {
+    void onBlock_without_segwit_tx_doesnt_register_coinbase() throws Exception {
         Transaction tx = getTx(false);
         // Though there aren't segwit txs in this block let's set the data as if there were
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), tx.getWTxId().getReversedBytes()));
@@ -463,7 +494,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void onBlock_coinbase_invalid_witness_reserved_value() throws Exception {
+    void onBlock_coinbase_invalid_witness_reserved_value() throws Exception {
         Transaction segwitTx = getTx(true);
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, new byte[]{1,2,3});
@@ -490,7 +521,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void onBlock_including_segwit_tx_coinbase_without_witness() throws Exception {
+    void onBlock_including_segwit_tx_coinbase_without_witness() throws Exception {
         Transaction segwitTx = getTx(true);
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
         Transaction coinbaseTx = getCoinbaseTx(false, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
@@ -517,7 +548,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void onBlock_including_segwit_tx_coinbase_witness_commitment_doesnt_match() throws Exception {
+    void onBlock_including_segwit_tx_coinbase_witness_commitment_doesnt_match() throws Exception {
         Transaction segwitTx = getTx(true);
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes(), Sha256Hash.of(new byte[]{6,6,6}).getBytes());
@@ -544,7 +575,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void when_markCoinbasesAsReadyToBeInformed_coinbaseInformationMap_isEmpty_return() throws Exception {
+    void when_markCoinbasesAsReadyToBeInformed_coinbaseInformationMap_isEmpty_return() throws Exception {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, new BtcToRskClientFileData()));
         BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
@@ -555,7 +586,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void when_markCoinbasesAsReadyToBeInformed_informedBlocks_isEmpty_return() throws Exception {
+    void when_markCoinbasesAsReadyToBeInformed_informedBlocks_isEmpty_return() throws Exception {
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         btcToRskClientFileData.getCoinbaseInformationMap().put(Sha256Hash.ZERO_HASH, mock(CoinbaseInformation.class));
 
@@ -570,7 +601,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void when_markCoinbasesAsReadyToBeInformed_informedBlocks_notEmpty_writeToStorage() throws Exception {
+    void when_markCoinbasesAsReadyToBeInformed_informedBlocks_notEmpty_writeToStorage() throws Exception {
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         CoinbaseInformation coinbaseInformation = mock(CoinbaseInformation.class);
         btcToRskClientFileData.getCoinbaseInformationMap().put(Sha256Hash.ZERO_HASH, coinbaseInformation);
@@ -589,7 +620,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBlockchainWithoutBlocks_preRskip89() throws Exception {
+    void updateBlockchainWithoutBlocks_preRskip89() throws Exception {
         simulatePreRskip89();
 
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
@@ -599,11 +630,11 @@ public class BtcToRskClientTest {
         int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
         assertEquals(0, numberOfBlocksSent);
 
-        Assert.assertNull(fh.getReceiveHeaders());
+        assertNull(fh.getReceiveHeaders());
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInContract_preRskip89() throws Exception {
+    void updateBlockchainWithBetterBlockchainInContract_preRskip89() throws Exception {
         simulatePreRskip89();
 
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
@@ -614,13 +645,13 @@ public class BtcToRskClientTest {
         int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
         assertEquals(0, numberOfBlocksSent);
 
-        Assert.assertNull(fh.getReceiveHeaders());
+        assertNull(fh.getReceiveHeaders());
 
         assertEquals(0, fh.getSendReceiveHeadersInvocations());
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInWalletByOneBlock_preRskip89() throws Exception {
+    void updateBlockchainWithBetterBlockchainInWalletByOneBlock_preRskip89() throws Exception {
         simulatePreRskip89();
 
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
@@ -644,7 +675,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInWalletByTwoBlocks_preRskip89() throws Exception {
+    void updateBlockchainWithBetterBlockchainInWalletByTwoBlocks_preRskip89() throws Exception {
         simulatePreRskip89();
 
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
@@ -669,7 +700,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInWalletByThreeBlocks_preRskip89() throws Exception {
+    void updateBlockchainWithBetterBlockchainInWalletByThreeBlocks_preRskip89() throws Exception {
         simulatePreRskip89();
 
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
@@ -694,7 +725,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInWalletBySixHundredBlocks_preRskip89() throws Exception {
+    void updateBlockchainWithBetterBlockchainInWalletBySixHundredBlocks_preRskip89() throws Exception {
         simulatePreRskip89();
 
         StoredBlock[] blocks = createBlockchain(601);
@@ -730,7 +761,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBlockchainWithoutBlocks() throws Exception {
+    void updateBlockchainWithoutBlocks() throws Exception {
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
         BtcToRskClient client = createClientWithMocks(bw, fh);
@@ -738,11 +769,11 @@ public class BtcToRskClientTest {
         int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
         assertEquals(0, numberOfBlocksSent);
 
-        Assert.assertNull(fh.getReceiveHeaders());
+        assertNull(fh.getReceiveHeaders());
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInContract() throws Exception {
+    void updateBlockchainWithBetterBlockchainInContract() throws Exception {
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
         fh.setBtcBestBlockChainHeight(10);
@@ -751,13 +782,13 @@ public class BtcToRskClientTest {
         int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
         assertEquals(0, numberOfBlocksSent);
 
-        Assert.assertNull(fh.getReceiveHeaders());
+        assertNull(fh.getReceiveHeaders());
 
         assertEquals(0, fh.getSendReceiveHeadersInvocations());
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInWalletByOneBlock() throws Exception {
+    void updateBlockchainWithBetterBlockchainInWalletByOneBlock() throws Exception {
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         StoredBlock[] blocks = createBlockchain(3);
         bw.setBlocks(blocks);
@@ -779,7 +810,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInWalletByTwoBlocks() throws Exception {
+    void updateBlockchainWithBetterBlockchainInWalletByTwoBlocks() throws Exception {
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         StoredBlock[] blocks = createBlockchain(4);
         bw.setBlocks(blocks);
@@ -802,7 +833,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInWalletByThreeBlocks() throws Exception {
+    void updateBlockchainWithBetterBlockchainInWalletByThreeBlocks() throws Exception {
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         StoredBlock[] blocks = createBlockchain(4);
         bw.setBlocks(blocks);
@@ -825,7 +856,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBlockchainWithBetterBlockchainInWalletBySixHundredBlocks() throws Exception {
+    void updateBlockchainWithBetterBlockchainInWalletBySixHundredBlocks() throws Exception {
         StoredBlock[] blocks = createBlockchain(601);
         SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
         bitcoinWrapper.setBlocks(blocks);
@@ -858,7 +889,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBlockchainWithDeepFork() throws Exception {
+    void updateBlockchainWithDeepFork() throws Exception {
         SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
         SimpleFederatorSupport federatorSupport = spy(new SimpleFederatorSupport());
 
@@ -909,7 +940,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateNoTransaction() throws Exception {
+    void updateNoTransaction() throws Exception {
         SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
         SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
 
@@ -925,7 +956,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionWithoutProof() throws Exception {
+    void updateTransactionWithoutProof() throws Exception {
         Set<Transaction> txs = new HashSet<>();
         txs.add(createTransaction());
 
@@ -945,7 +976,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionInClientWithoutProofYet() throws Exception {
+    void updateTransactionInClientWithoutProofYet() throws Exception {
         Transaction tx = createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -968,7 +999,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionInClientWithBlockProof() throws Exception {
+    void updateTransactionInClientWithBlockProof() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1008,13 +1039,13 @@ public class BtcToRskClientTest {
 
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
 
-        Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+        assertSame(tx, txSentToRegisterBtcTransaction.tx);
         assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
-    public void updateTransactionWithAndWithoutBlockProofs() throws Exception {
+    void updateTransactionWithAndWithoutBlockProofs() throws Exception {
         SimpleBtcTransaction txWithProof1 = (SimpleBtcTransaction) createTransaction();
         SimpleBtcTransaction txWithProof2 = (SimpleBtcTransaction) createTransaction();
         SimpleBtcTransaction txWithoutProof1 = (SimpleBtcTransaction) createTransaction();
@@ -1071,17 +1102,17 @@ public class BtcToRskClientTest {
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction1 = txsSentToRegisterBtcTransaction.get(0);
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction2 = txsSentToRegisterBtcTransaction.get(1);
 
-        Assert.assertSame(txWithProof1, txSentToRegisterBtcTransaction1.tx);
+        assertSame(txWithProof1, txSentToRegisterBtcTransaction1.tx);
         assertEquals(3, txSentToRegisterBtcTransaction1.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction1.pmt);
 
-        Assert.assertSame(txWithProof2, txSentToRegisterBtcTransaction2.tx);
+        assertSame(txWithProof2, txSentToRegisterBtcTransaction2.tx);
         assertEquals(3, txSentToRegisterBtcTransaction2.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction2.pmt);
     }
 
     @Test
-    public void updateTransactionWithAndWithoutRegisteredBlockProofs() throws Exception {
+    void updateTransactionWithAndWithoutRegisteredBlockProofs() throws Exception {
         SimpleBtcTransaction txWithProof1 = (SimpleBtcTransaction) createTransaction();
         SimpleBtcTransaction txWithProof2 = (SimpleBtcTransaction) createTransaction();
         SimpleBtcTransaction txWithoutProof1 = (SimpleBtcTransaction) createTransaction();
@@ -1145,17 +1176,17 @@ public class BtcToRskClientTest {
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction1 = txsSentToRegisterBtcTransaction.get(0);
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction2 = txsSentToRegisterBtcTransaction.get(1);
 
-        Assert.assertSame(txWithProof1, txSentToRegisterBtcTransaction1.tx);
+        assertSame(txWithProof1, txSentToRegisterBtcTransaction1.tx);
         assertEquals(3, txSentToRegisterBtcTransaction1.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction1.pmt);
 
-        Assert.assertSame(txWithProof2, txSentToRegisterBtcTransaction2.tx);
+        assertSame(txWithProof2, txSentToRegisterBtcTransaction2.tx);
         assertEquals(3, txSentToRegisterBtcTransaction2.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction2.pmt);
     }
 
     @Test
-    public void updateTransactionWithAndWithoutProperlyRegisteredBlockProofs() throws Exception {
+    void updateTransactionWithAndWithoutProperlyRegisteredBlockProofs() throws Exception {
         SimpleBtcTransaction txWithProof1 = (SimpleBtcTransaction) createTransaction();
         SimpleBtcTransaction txWithProof2 = (SimpleBtcTransaction) createTransaction();
         SimpleBtcTransaction txWithoutProof1 = (SimpleBtcTransaction) createTransaction();
@@ -1220,17 +1251,17 @@ public class BtcToRskClientTest {
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction1 = txsSentToRegisterBtcTransaction.get(0);
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction2 = txsSentToRegisterBtcTransaction.get(1);
 
-        Assert.assertSame(txWithProof1, txSentToRegisterBtcTransaction1.tx);
+        assertSame(txWithProof1, txSentToRegisterBtcTransaction1.tx);
         assertEquals(3, txSentToRegisterBtcTransaction1.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction1.pmt);
 
-        Assert.assertSame(txWithProof2, txSentToRegisterBtcTransaction2.tx);
+        assertSame(txWithProof2, txSentToRegisterBtcTransaction2.tx);
         assertEquals(3, txSentToRegisterBtcTransaction2.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction2.pmt);
     }
 
     @Test
-    public void updateTransactionCheckMaximumRegisterBtcLocksTxsPerTurn() throws Exception {
+    void updateTransactionCheckMaximumRegisterBtcLocksTxsPerTurn() throws Exception {
         int AVAILABLE_TXS = 50;
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
@@ -1276,7 +1307,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionInClientWithBlockProofInTwoCompetitiveBlocks() throws Exception {
+    void updateTransactionInClientWithBlockProofInTwoCompetitiveBlocks() throws Exception {
         // This tests btc forks.
         // It checks the federator sends to the bridge the Proof of the block in the best chain.
         for (int testNumber = 0; testNumber < 2; testNumber++) {
@@ -1342,7 +1373,7 @@ public class BtcToRskClientTest {
 
             SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
 
-            Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+            assertSame(tx, txSentToRegisterBtcTransaction.tx);
             assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
             assertNotNull(txSentToRegisterBtcTransaction.pmt);
             assertEquals(client.generatePMT(block1, tx), txSentToRegisterBtcTransaction.pmt);
@@ -1350,7 +1381,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionInClientWithBlockProofInLosingFork() throws Exception {
+    void updateTransactionInClientWithBlockProofInLosingFork() throws Exception {
         // Checks that the pegnatorie does not send a tx to the bridge
         // if it was just included in a block that is not in the best chain.
 
@@ -1400,7 +1431,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionWithNoSenderValid() throws Exception {
+    void updateTransactionWithNoSenderValid() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1438,7 +1469,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionWithMultisig() throws Exception {
+    void updateTransactionWithMultisig() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1460,8 +1491,8 @@ public class BtcToRskClientTest {
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
 
         BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
@@ -1485,13 +1516,13 @@ public class BtcToRskClientTest {
 
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
 
-        Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+        assertSame(tx, txSentToRegisterBtcTransaction.tx);
         assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
-    public void updateTransactionWithSegwitCompatible() throws Exception {
+    void updateTransactionWithSegwitCompatible() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1513,8 +1544,8 @@ public class BtcToRskClientTest {
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
 
         BtcToRskClient client = btcToRskClientBuilder
             .withActivationConfig(activationsConfig)
@@ -1538,13 +1569,13 @@ public class BtcToRskClientTest {
 
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
 
-        Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+        assertSame(tx, txSentToRegisterBtcTransaction.tx);
         assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
-    public void updateTransactionWithMultisig_before_rskip143() throws Exception {
+    void updateTransactionWithMultisig_before_rskip143() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction)createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1565,8 +1596,8 @@ public class BtcToRskClientTest {
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(false).when(activations).isActive(eq(ConsensusRule.RSKIP143));
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
+        doReturn(false).when(activations).isActive(ConsensusRule.RSKIP143);
 
         int amountOfHeadersToSend = 100;
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHMULTISIG);
@@ -1594,7 +1625,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransaction_with_release_before_rskip143() throws Exception {
+    void updateTransaction_with_release_before_rskip143() throws Exception {
         co.rsk.bitcoinj.core.NetworkParameters params = RegTestParams.get();
         List<BtcECKey> federationPrivateKeys = BridgeRegTestConstants.REGTEST_FEDERATION_PRIVATE_KEYS;
         co.rsk.bitcoinj.core.Address randomAddress =
@@ -1603,8 +1634,8 @@ public class BtcToRskClientTest {
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(false).when(activations).isActive(eq(ConsensusRule.RSKIP143));
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
+        doReturn(false).when(activations).isActive(ConsensusRule.RSKIP143);
 
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx1 = new BtcTransaction(params);
@@ -1616,7 +1647,7 @@ public class BtcToRskClientTest {
         releaseTx1.addInput(releaseInput1);
 
         // Sign it using the Federation members
-        co.rsk.bitcoinj.script.Script redeemScript = createBaseRedeemScriptThatSpendsFromTheFederation(genesisFederation);
+        co.rsk.bitcoinj.script.Script redeemScript = genesisFederation.getRedeemScript();
         co.rsk.bitcoinj.script.Script inputScript = createBaseInputScriptThatSpendsFromTheFederation(genesisFederation);
         releaseInput1.setScriptSig(inputScript);
 
@@ -1684,7 +1715,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionWithSegwitCompatible_before_rskip143() throws Exception {
+    void updateTransactionWithSegwitCompatible_before_rskip143() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createSegwitTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1705,8 +1736,8 @@ public class BtcToRskClientTest {
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(false).when(activations).isActive(eq(ConsensusRule.RSKIP143));
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
+        doReturn(false).when(activations).isActive(ConsensusRule.RSKIP143);
 
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHP2WPKH);
         int amountOfHeadersToSend = 100;
@@ -1734,7 +1765,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionWithSenderUnknown_before_rskip170() throws Exception {
+    void updateTransactionWithSenderUnknown_before_rskip170() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1755,8 +1786,8 @@ public class BtcToRskClientTest {
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
         doReturn(false).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
 
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.UNKNOWN);
@@ -1785,7 +1816,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransactionWithSenderUnknown_after_rskip170() throws Exception {
+    void updateTransactionWithSenderUnknown_after_rskip170() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1808,8 +1839,8 @@ public class BtcToRskClientTest {
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
         doReturn(true).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
 
         BtcToRskClient client = btcToRskClientBuilder
@@ -1834,7 +1865,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransaction_peginInformationParsingFails_withoutSenderAddress() throws Exception {
+    void updateTransaction_peginInformationParsingFails_withoutSenderAddress() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1855,10 +1886,10 @@ public class BtcToRskClientTest {
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP170));
-        doReturn(true).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP170);
+        doReturn(true).when(activationsConfig).isActive(ConsensusRule.RSKIP170, anyLong());
 
         PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         when(peginInstructionsProvider.buildPeginInstructions(any())).thenThrow(PeginInstructionsException.class);
@@ -1884,7 +1915,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateTransaction_peginInformationParsingFails_withSenderAddress() throws Exception {
+    void updateTransaction_peginInformationParsingFails_withSenderAddress() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
         txs.add(tx);
@@ -1905,10 +1936,10 @@ public class BtcToRskClientTest {
         ActivationConfig activationsConfig = mock(ActivationConfig.class);
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP89));
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP143));
-        doReturn(true).when(activations).isActive(eq(ConsensusRule.RSKIP170));
-        doReturn(true).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
+        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP170);
+        doReturn(true).when(activationsConfig).isActive(ConsensusRule.RSKIP170, anyLong());
 
         BtcLockSender btcLockSender = mock(BtcLockSender.class);
         when(btcLockSender.getBTCAddress()).thenReturn(mock(co.rsk.bitcoinj.core.Address.class));
@@ -1940,13 +1971,13 @@ public class BtcToRskClientTest {
 
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
 
-        Assert.assertSame(tx, txSentToRegisterBtcTransaction.tx);
+        assertSame(tx, txSentToRegisterBtcTransaction.tx);
         assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
-    public void updateTransaction_noOutputToCurrentFederation() throws Exception {
+    void updateTransaction_noOutputToCurrentFederation() throws Exception {
         SimpleBtcTransaction txWithoutOutputs = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), false);
         SimpleBtcTransaction txToTheFederation = (SimpleBtcTransaction) createTransaction();
 
@@ -1991,13 +2022,13 @@ public class BtcToRskClientTest {
 
         SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction txSentToRegisterBtcTransaction = txsSentToRegisterBtcTransaction.get(0);
 
-        Assert.assertSame(txToTheFederation, txSentToRegisterBtcTransaction.tx);
+        assertSame(txToTheFederation, txSentToRegisterBtcTransaction.tx);
         assertEquals(3, txSentToRegisterBtcTransaction.blockHeight);
         assertNotNull(txSentToRegisterBtcTransaction.pmt);
     }
 
     @Test
-    public void ignoreTransactionInClientWithBlockProofNotInBlockchain() throws Exception {
+    void ignoreTransactionInClientWithBlockProofNotInBlockchain() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         tx.setAppearsInHashes(null);
 
@@ -2034,15 +2065,15 @@ public class BtcToRskClientTest {
         assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
-    @Test(expected = Exception.class)
-    public void restoreFileData_with_invalid_BtcToRskClient_file_data() throws Exception {
+    @Test
+    void restoreFileData_with_invalid_BtcToRskClient_file_data() throws Exception {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenThrow(new IOException());
-        createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        assertThrows(Exception.class, () -> createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock));
     }
 
     @Test
-    public void restoreFileData_getSuccess_true() throws Exception {
+    void restoreFileData_getSuccess_true() throws Exception {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
 
         Sha256Hash hash = Sha256Hash.of(new byte[]{1});
@@ -2058,16 +2089,17 @@ public class BtcToRskClientTest {
         assertTrue(newData.getTransactionProofs().containsKey(hash));
     }
 
-    @Test(expected = Exception.class)
-    public void restoreFileData_getSuccess_false() throws Exception {
+    @Test
+    void restoreFileData_getSuccess_false() throws Exception {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         BtcToRskClientFileReadResult result = new BtcToRskClientFileReadResult(false, new BtcToRskClientFileData());
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(result);
-        createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+
+        assertThrows(Exception.class, () -> createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock));
     }
 
     @Test
-    public void updateBridgeBtcCoinbaseTransactions_when_empty_coinbase_map_does_nothing() throws Exception {
+    void updateBridgeBtcCoinbaseTransactions_when_empty_coinbase_map_does_nothing() throws Exception {
         Map<Sha256Hash, CoinbaseInformation> coinbases = mock(Map.class);
 
         // mocking BtcToRskClientFileData so I can verify the spied map
@@ -2088,7 +2120,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_does_not_have_readyToBeInformed_coinbases_does_nothing() throws Exception {
+    void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_does_not_have_readyToBeInformed_coinbases_does_nothing() throws Exception {
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
                 getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes()), null, null, null);
@@ -2114,7 +2146,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_but_the_fork_is_not_active_doesnt_call_register_and_removes() throws Exception {
+    void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_but_the_fork_is_not_active_doesnt_call_register_and_removes() throws Exception {
         ActivationConfig activations = mock(ActivationConfig.class);
         when(activations.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(false);
 
@@ -2148,7 +2180,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_but_they_were_already_informed_doesnt_call_register_and_removes() throws Exception {
+    void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_but_they_were_already_informed_doesnt_call_register_and_removes() throws Exception {
         ActivationConfig activations = mock(ActivationConfig.class);
         when(activations.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(true);
 
@@ -2189,7 +2221,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_and_they_were_not_informed_calls_register_and_removes() throws Exception {
+    void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_and_they_were_not_informed_calls_register_and_removes() throws Exception {
         Sha256Hash blockHash = Sha256Hash.ZERO_HASH;
 
         ActivationConfig activations = mock(ActivationConfig.class);
@@ -2233,7 +2265,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBridgeBtcCoinbaseTransactions_not_removing_from_storage_until_confirmation()
+    void updateBridgeBtcCoinbaseTransactions_not_removing_from_storage_until_confirmation()
         throws Exception {
         Sha256Hash blockHash = Sha256Hash.ZERO_HASH;
 
@@ -2278,7 +2310,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBridge_when_hasBetterBlockToSync_does_not_update_headers() throws IOException, BlockStoreException {
+    void updateBridge_when_hasBetterBlockToSync_does_not_update_headers() throws IOException, BlockStoreException {
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(true);
 
@@ -2290,7 +2322,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBridge_when_does_not_hasBetterBlockToSync_updates_headers_coinbase_transactions_and_collections() throws Exception {
+    void updateBridge_when_does_not_hasBetterBlockToSync_updates_headers_coinbase_transactions_and_collections() throws Exception {
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
@@ -2320,7 +2352,7 @@ public class BtcToRskClientTest {
     }
 
     @Test
-    public void updateBridgeBtcTransactions_tx_with_witness_already_informed() throws Exception {
+    void updateBridgeBtcTransactions_tx_with_witness_already_informed() throws Exception {
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         when(activations.isActive(ConsensusRule.RSKIP143)).thenReturn(true);
         when(activationConfig.forBlock(anyLong())).thenReturn(activations);
@@ -2377,10 +2409,8 @@ public class BtcToRskClientTest {
 
     private static co.rsk.bitcoinj.script.Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
         co.rsk.bitcoinj.script.Script scriptPubKey = federation.getP2SHScript();
-        co.rsk.bitcoinj.script.Script redeemScript = createBaseRedeemScriptThatSpendsFromTheFederation(federation);
-        RedeemData redeemData = RedeemData.of(federation.getBtcPublicKeys(), redeemScript);
-        co.rsk.bitcoinj.script.Script inputScript = scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), redeemData.redeemScript);
-        return inputScript;
+
+        return scriptPubKey.createEmptyInputScript(null, federation.getRedeemScript());
     }
 
     private static co.rsk.bitcoinj.script.Script createBaseRedeemScriptThatSpendsFromTheFederation(Federation federation) {
