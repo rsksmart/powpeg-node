@@ -1,9 +1,9 @@
 package co.rsk.federate.btcreleaseclient;
 
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
@@ -21,26 +21,29 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.utils.BridgeEventLoggerImpl;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.core.*;
+import org.ethereum.core.Block;
+import org.ethereum.core.BlockTxSignatureCache;
+import org.ethereum.core.ReceivedTxSignatureCache;
+import org.ethereum.core.SignatureCache;
+import org.ethereum.core.Transaction;
+import org.ethereum.core.TransactionReceipt;
 import org.ethereum.db.BlockStore;
 import org.ethereum.db.ReceiptStore;
 import org.ethereum.vm.LogInfo;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 
-public class BtcReleaseClientStorageSynchronizerTest {
+class BtcReleaseClientStorageSynchronizerTest {
 
     @Test
-    public void isSynced_returns_false_after_instantiation() {
+    void isSynced_returns_false_after_instantiation() {
         BtcReleaseClientStorageSynchronizer storageSynchronizer =
             new BtcReleaseClientStorageSynchronizer(
                 mock(BlockStore.class),
@@ -57,7 +60,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
     }
 
     @Test
-    public void processBlock_before_sync_doesnt_do_anything() {
+    void processBlock_before_sync_doesnt_do_anything() {
         BtcReleaseClientStorageAccessor storageAccessor = mock(BtcReleaseClientStorageAccessor.class);
 
         BtcReleaseClientStorageSynchronizer storageSynchronizer =
@@ -80,7 +83,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
     }
 
     @Test
-    public void isSynced_returns_true_after_sync() {
+    void isSynced_returns_true_after_sync() {
         BlockStore blockStore = mock(BlockStore.class);
 
         Block firstBlock = mock(Block.class);
@@ -114,7 +117,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
     }
 
     @Test
-    public void syncs_from_last_stored_block() {
+    void syncs_from_last_stored_block() {
         BlockStore blockStore = mock(BlockStore.class);
 
         Block firstBlock = mock(Block.class);
@@ -159,7 +162,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
     }
 
     @Test
-    public void processBlock_ok() {
+    void processBlock_ok() {
         BlockStore blockStore = mock(BlockStore.class);
 
         Block firstBlock = mock(Block.class);
@@ -211,7 +214,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
         );
         when(receipt.getLogInfoList()).thenReturn(logs);
         when(receipt.getTransaction()).thenReturn(releaseRskTx);
-        List<TransactionReceipt> receipts = Arrays.asList(receipt);
+        List<TransactionReceipt> receipts = Collections.singletonList(receipt);
 
         when(blockStore.getBestBlock()).thenReturn(bestBlock);
 
@@ -254,7 +257,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
     }
 
     @Test
-    public void accepts_transaction_with_two_release_requested() {
+    void accepts_transaction_with_two_release_requested() {
         BlockStore blockStore = mock(BlockStore.class);
 
         Block firstBlock = mock(Block.class);
@@ -320,7 +323,7 @@ public class BtcReleaseClientStorageSynchronizerTest {
         );
         when(receipt.getLogInfoList()).thenReturn(logs);
         when(receipt.getTransaction()).thenReturn(updateCollectionsTx);
-        List<TransactionReceipt> receipts = Arrays.asList(receipt);
+        List<TransactionReceipt> receipts = Collections.singletonList(receipt);
 
         when(blockStore.getBestBlock()).thenReturn(bestBlock);
 
