@@ -1,6 +1,10 @@
 package co.rsk.federate.io.btcreleaseclientstorage;
 
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -11,28 +15,27 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class BtcReleaseClientFileStorageImplTest {
+class BtcReleaseClientFileStorageImplTest {
 
     private static final String DIRECTORY_PATH = "src/test/java/co/rsk/federate/io" + File.separator + "peg";
     private static final String FILE_PATH = DIRECTORY_PATH + File.separator + "btcReleaseClient.rlp";
 
-    @Before
-    public void setup() throws IOException {
+    @BeforeEach
+    void setup() throws IOException {
         this.clean();
     }
 
-    @After
-    public void tearDown() throws IOException {
+    @AfterEach
+    void tearDown() throws IOException {
         this.clean();
     }
 
     @Test
-    public void read_no_file() throws IOException {
+    void read_no_file() throws IOException {
         FileStorageInfo storageInfo = mock(FileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -41,12 +44,12 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileReadResult result = storage.read();
 
-        Assert.assertTrue(result.getSuccess());
-        Assert.assertTrue(result.getData().getReleaseHashesMap().isEmpty());
+        assertTrue(result.getSuccess());
+        assertTrue(result.getData().getReleaseHashesMap().isEmpty());
     }
 
     @Test
-    public void read_empty_file() throws IOException {
+    void read_empty_file() throws IOException {
         BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -57,12 +60,12 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileReadResult result = storage.read();
 
-        Assert.assertTrue(result.getSuccess());
-        Assert.assertTrue(result.getData().getReleaseHashesMap().isEmpty());
+        assertTrue(result.getSuccess());
+        assertTrue(result.getData().getReleaseHashesMap().isEmpty());
     }
 
     @Test
-    public void read_trash_file() throws IOException {
+    void read_trash_file() throws IOException {
         BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -73,22 +76,22 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileReadResult result = storage.read();
 
-        Assert.assertFalse(result.getSuccess());
+        assertFalse(result.getSuccess());
     }
 
-    @Test(expected = IOException.class)
-    public void write_null_data() throws Exception {
+    @Test
+    void write_null_data() {
         BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
-        storage.write(null);
+        assertThrows(IOException.class, () -> storage.write(null));
     }
 
     @Test
-    public void write_empty_data() throws Exception {
+    void write_empty_data() throws Exception {
         BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -99,13 +102,13 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileReadResult result = storage.read();
 
-        Assert.assertTrue(result.getSuccess());
+        assertTrue(result.getSuccess());
 
-        Assert.assertEquals(0, result.getData().getReleaseHashesMap().size());
+        assertEquals(0, result.getData().getReleaseHashesMap().size());
     }
 
     @Test
-    public void write_and_read_ok() throws Exception {
+    void write_and_read_ok() throws Exception {
         BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -120,21 +123,21 @@ public class BtcReleaseClientFileStorageImplTest {
 
         BtcReleaseClientFileReadResult result = storage.read();
 
-        Assert.assertTrue(result.getSuccess());
+        assertTrue(result.getSuccess());
 
-        Assert.assertEquals(fileData.getReleaseHashesMap(), result.getData().getReleaseHashesMap());
-        Assert.assertEquals(fileData.getBestBlockHash(), result.getData().getBestBlockHash());
+        assertEquals(fileData.getReleaseHashesMap(), result.getData().getReleaseHashesMap());
+        assertEquals(fileData.getBestBlockHash(), result.getData().getBestBlockHash());
     }
 
     @Test
-    public void getInfo() {
+    void getInfo() {
         FileStorageInfo storageInfo = mock(FileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
-        Assert.assertEquals(storageInfo, storage.getInfo());
+        assertEquals(storageInfo, storage.getInfo());
     }
 
     private Map<co.rsk.bitcoinj.core.Sha256Hash, Keccak256> getReleaseHashesData() {
