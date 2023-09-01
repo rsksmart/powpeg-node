@@ -1,5 +1,7 @@
 package co.rsk.federate.signing.hsm.requirements;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -21,14 +23,13 @@ import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-public class AncestorBlockUpdaterTest {
+class AncestorBlockUpdaterTest {
 
     @Test
-    public void ensureAncestorBlockInPosition_ancestor_ok_without_update()
+    void ensureAncestorBlockInPosition_ancestor_ok_without_update()
         throws Exception {
         Block block = mock(Block.class);
         when(block.getHash()).thenReturn(Keccak256.ZERO_HASH);
@@ -49,7 +50,7 @@ public class AncestorBlockUpdaterTest {
     }
 
     @Test
-    public void ensureAncestorBlockInPosition_ancestor_ok_after_update()
+    void ensureAncestorBlockInPosition_ancestor_ok_after_update()
         throws Exception {
         Keccak256 targetBlockHash = Keccak256.ZERO_HASH;
         Block targetBlock = mock(Block.class);
@@ -88,8 +89,8 @@ public class AncestorBlockUpdaterTest {
         verify(signer, times(2)).getHSMPointer();
     }
 
-    @Test(expected = Exception.class)
-    public void ensureSignerAncestorBlockInPosition_hsm_throws_exception()
+    @Test
+    void ensureSignerAncestorBlockInPosition_hsm_throws_exception()
         throws Exception {
         Block block = TestUtils.mockBlock(Keccak256.ZERO_HASH);
 
@@ -101,11 +102,11 @@ public class AncestorBlockUpdaterTest {
             signer
         );
 
-        ancestorBlockUpdater.ensureAncestorBlockInPosition(block);
+        assertThrows(Exception.class, () -> ancestorBlockUpdater.ensureAncestorBlockInPosition(block));
     }
 
-    @Test(expected = Exception.class)
-    public void ensureSignerAncestorBlockInPosition_move_ancestor_throws_exception() throws Exception {
+    @Test
+    void ensureSignerAncestorBlockInPosition_move_ancestor_throws_exception() throws Exception {
         Keccak256 targetBlockHash = Keccak256.ZERO_HASH;
         Block targetBlock = TestUtils.mockBlock(0, targetBlockHash, targetBlockHash);
 
@@ -132,11 +133,11 @@ public class AncestorBlockUpdaterTest {
             signer
         );
 
-        ancestorBlockUpdater.ensureAncestorBlockInPosition(targetBlock);
+        assertThrows(Exception.class, () -> ancestorBlockUpdater.ensureAncestorBlockInPosition(targetBlock));
     }
 
-    @Test(expected = Exception.class)
-    public void ensureSignerAncestorBlockInPosition_ancestor_not_updated() throws Exception {
+    @Test
+    void ensureSignerAncestorBlockInPosition_ancestor_not_updated() throws Exception {
         Keccak256 targetBlockHash = Keccak256.ZERO_HASH;
         Block targetBlock = TestUtils.mockBlock(0, targetBlockHash, targetBlockHash);
 
@@ -161,11 +162,11 @@ public class AncestorBlockUpdaterTest {
             signer
         );
 
-        ancestorBlockUpdater.ensureAncestorBlockInPosition(targetBlock);
+        assertThrows(Exception.class, () -> ancestorBlockUpdater.ensureAncestorBlockInPosition(targetBlock));
     }
 
     @Test
-    public void moveAncestorBlockToPosition_starting_from_ancestor_ok() throws Exception {
+    void moveAncestorBlockToPosition_starting_from_ancestor_ok() throws Exception {
         Keccak256 targetBlockHash = TestUtils.createHash(1);
         Block targetBlock = TestUtils.mockBlock(1, targetBlockHash, Keccak256.ZERO_HASH);
 
@@ -193,7 +194,7 @@ public class AncestorBlockUpdaterTest {
     }
 
     @Test
-    public void moveAncestorBlockToPosition_starting_from_ancestor_loops_several_times_ok() throws Exception {
+    void moveAncestorBlockToPosition_starting_from_ancestor_loops_several_times_ok() throws Exception {
         Keccak256 targetBlockHash = TestUtils.createHash(1);
         Block targetBlock = TestUtils.mockBlock(1, targetBlockHash, Keccak256.ZERO_HASH);
 
@@ -228,22 +229,22 @@ public class AncestorBlockUpdaterTest {
 
         ArgumentCaptor<UpdateAncestorBlockMessage> blockHeadersCaptor = ArgumentCaptor.forClass(UpdateAncestorBlockMessage.class);
         verify(signer, times(1)).updateAncestorBlock(blockHeadersCaptor.capture());
-        Assert.assertEquals(blocks.size() + 1, blockHeadersCaptor.getValue().getData().size());
+        assertEquals(blocks.size() + 1, blockHeadersCaptor.getValue().getData().size());
         // The flow occured as expected, the ancestor was fetched and then loop through its children until getting the parent of the target.
         ArgumentCaptor<byte[]> blockHashesCaptor = ArgumentCaptor.forClass(byte[].class);
         verify(blockStore, times(blocks.size())).getBlockByHash(blockHashesCaptor.capture());
         List<byte[]> blockHashes =  blockHashesCaptor.getAllValues();
-        Assert.assertEquals(initialAncestorBlock.getHash().toHexString(), Hex.toHexString(blockHashes.get(0)));
+        assertEquals(initialAncestorBlock.getHash().toHexString(), Hex.toHexString(blockHashes.get(0)));
         // The blocks are created from the oldest to the newest, whereas the blockstore access is from the newest to the oldest.
         for (int blocksIndex = 0, blockHashesIndex = blockHashes.size() - 1;
              blocksIndex < blocks.size();
              blocksIndex++, blockHashesIndex--) {
-            Assert.assertEquals(blocks.get(blocksIndex).getHash().toHexString(), Hex.toHexString(blockHashes.get(blockHashesIndex)));
+            assertEquals(blocks.get(blocksIndex).getHash().toHexString(), Hex.toHexString(blockHashes.get(blockHashesIndex)));
         }
     }
 
     @Test
-    public void moveAncestorBlockToPosition_starting_from_best_block_ok() throws Exception {
+    void moveAncestorBlockToPosition_starting_from_best_block_ok() throws Exception {
         Keccak256 targetBlockHash = TestUtils.createHash(5);
         Block targetBlock = TestUtils.mockBlock(5, targetBlockHash, TestUtils.createHash(4));
 
@@ -275,8 +276,8 @@ public class AncestorBlockUpdaterTest {
         verify(blockStore, times(1)).getBlockByHash(bestBlockHash.getBytes());
     }
 
-    @Test(expected = HSMClientException.class)
-    public void moveAncestorBlockToPosition_update_fails() throws Exception {
+    @Test
+    void moveAncestorBlockToPosition_update_fails() throws Exception {
         Keccak256 targetBlockHash = TestUtils.createHash(1);
         Block targetBlock = TestUtils.mockBlock(1, targetBlockHash, Keccak256.ZERO_HASH);
 
@@ -296,11 +297,11 @@ public class AncestorBlockUpdaterTest {
             signer
         );
 
-        ancestorBlockUpdater.moveAncestorBlockToPosition(initialState, targetBlock);
+        assertThrows(HSMClientException.class, () -> ancestorBlockUpdater.moveAncestorBlockToPosition(initialState, targetBlock));
     }
 
-    @Test(expected = Exception.class)
-    public void moveAncestorBlockToPosition_target_block_not_in_HSM() throws Exception {
+    @Test
+    void moveAncestorBlockToPosition_target_block_not_in_HSM() {
         Keccak256 targetBlockHash = TestUtils.createHash(1);
         Block targetBlock = TestUtils.mockBlock(2, targetBlockHash, Keccak256.ZERO_HASH);
 
@@ -321,6 +322,6 @@ public class AncestorBlockUpdaterTest {
             mock(HSMBookkeepingClient.class)
         );
 
-        ancestorBlockUpdater.moveAncestorBlockToPosition(initialState, targetBlock);
+        assertThrows(Exception.class, () -> ancestorBlockUpdater.moveAncestorBlockToPosition(initialState, targetBlock));
     }
 }
