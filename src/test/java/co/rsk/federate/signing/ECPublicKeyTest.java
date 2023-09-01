@@ -18,65 +18,68 @@
 
 package co.rsk.federate.signing;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+
 import co.rsk.bitcoinj.core.BtcECKey;
-import org.ethereum.crypto.ECKey;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.math.BigInteger;
-import java.util.Arrays;
+import org.ethereum.crypto.ECKey;
+import org.junit.jupiter.api.Test;
 
-public class ECPublicKeyTest {
+class ECPublicKeyTest {
+    
     @Test
-    public void equality() {
+    void equality() {
         ECPublicKey k1 = new ECPublicKey(ECKey.fromPrivate(BigInteger.valueOf(100)).getPubKey(true));
         ECPublicKey k2 = new ECPublicKey(ECKey.fromPrivate(BigInteger.valueOf(100)).getPubKey(true));
         ECPublicKey k3 = new ECPublicKey(ECKey.fromPrivate(BigInteger.valueOf(102)).getPubKey(true));
 
-        Assert.assertEquals(k1, k1);
-        Assert.assertEquals(k1, k2);
-        Assert.assertNotEquals(k1, k3);
-        Assert.assertNotEquals(k2, k3);
+        assertEquals(k1, k1);
+        assertEquals(k1, k2);
+        assertNotEquals(k1, k3);
+        assertNotEquals(k2, k3);
     }
 
     @Test
-    public void getCompressedKeyBytes() {
+    void getCompressedKeyBytes() {
         ECKey ecKey = ECKey.fromPrivate(BigInteger.valueOf(100));
         byte[] bytes = ecKey.getPubKey(false);
         ECPublicKey k = new ECPublicKey(bytes);
 
-        Assert.assertTrue(Arrays.equals(ecKey.getPubKey(true), k.getCompressedKeyBytes()));
-        Assert.assertNotSame(bytes, k.getCompressedKeyBytes());
+        assertArrayEquals(ecKey.getPubKey(true), k.getCompressedKeyBytes());
+        assertNotSame(bytes, k.getCompressedKeyBytes());
 
         ecKey = ECKey.fromPrivate(BigInteger.valueOf(101));
         bytes = ecKey.getPubKey(true);
         k = new ECPublicKey(bytes);
 
-        Assert.assertTrue(Arrays.equals(ecKey.getPubKey(true), k.getCompressedKeyBytes()));
-        Assert.assertNotSame(bytes, k.getCompressedKeyBytes());
+        assertArrayEquals(ecKey.getPubKey(true), k.getCompressedKeyBytes());
+        assertNotSame(bytes, k.getCompressedKeyBytes());
     }
 
     @Test
-    public void toEthKey() {
+    void toEthKey() {
         ECKey ecKey = ECKey.fromPrivate(BigInteger.valueOf(100));
         ECPublicKey k = new ECPublicKey(ecKey.getPubKey());
 
-        Assert.assertTrue(Arrays.equals(ecKey.getPubKey(true), k.toEthKey().getPubKey(true)));
-        Assert.assertTrue(Arrays.equals(ecKey.getPubKey(false), k.toEthKey().getPubKey(false)));
+        assertArrayEquals(ecKey.getPubKey(true), k.toEthKey().getPubKey(true));
+        assertArrayEquals(ecKey.getPubKey(false), k.toEthKey().getPubKey(false));
     }
 
     @Test
-    public void toBtcKey() {
+    void toBtcKey() {
         ECKey ecKey = ECKey.fromPrivate(BigInteger.valueOf(100));
         ECPublicKey k = new ECPublicKey(ecKey.getPubKey(true));
         BtcECKey btcKey = BtcECKey.fromPrivate(BigInteger.valueOf(100));
 
-        Assert.assertTrue(Arrays.equals(btcKey.getPubKey(), k.toBtcKey().getPubKey()));
+        assertArrayEquals(btcKey.getPubKey(), k.toBtcKey().getPubKey());
 
         ecKey = ECKey.fromPrivate(BigInteger.valueOf(101));
         k = new ECPublicKey(ecKey.getPubKey(false));
         btcKey = BtcECKey.fromPrivate(BigInteger.valueOf(101));
 
-        Assert.assertTrue(Arrays.equals(btcKey.getPubKey(), k.toBtcKey().getPubKey()));
+        assertArrayEquals(btcKey.getPubKey(), k.toBtcKey().getPubKey());
     }
 }
