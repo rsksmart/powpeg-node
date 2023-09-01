@@ -1,25 +1,28 @@
 package co.rsk.federate.timing;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TurnSchedulerTest {
+import org.junit.jupiter.api.Test;
+
+class TurnSchedulerTest {
+    
     @Test
-    public void getInterval() {
+    void getInterval() {
         int[][] cases = new int[][]{
             // period, # of participants, expected interval
             new int[]{1000, 3, 3000},
             new int[]{100, 1, 100},
             new int[]{2, 100, 200},
         };
-        for (int i = 0; i < cases.length; i++) {
-            TurnScheduler scheduler = new TurnScheduler(cases[i][0], cases[i][1]);
-            Assert.assertEquals(cases[i][2], scheduler.getInterval());
+        for (int[] aCase : cases) {
+            TurnScheduler scheduler = new TurnScheduler(aCase[0], aCase[1]);
+            assertEquals(aCase[2], scheduler.getInterval());
         }
     }
 
     @Test
-    public void getDelay() {
+    void getDelay() {
         int[][] cases = new int[][]{
             // current time, period, # of participants, participant #, expected delay
             new int[]{0, 10, 6, 0, 0},
@@ -34,24 +37,24 @@ public class TurnSchedulerTest {
             new int[]{142, 10, 6, 4, 18},
             new int[]{142, 10, 6, 5, 28}
         };
-        for (int i = 0; i < cases.length; i++) {
-            TurnScheduler scheduler = new TurnScheduler(cases[i][1], cases[i][2]);
-            Assert.assertEquals(cases[i][4], scheduler.getDelay(cases[i][0], cases[i][3]));
+        for (int[] aCase : cases) {
+            TurnScheduler scheduler = new TurnScheduler(aCase[1], aCase[2]);
+            assertEquals(aCase[4], scheduler.getDelay(aCase[0], aCase[3]));
         }
     }
 
     @Test
-    public void getDelay_exception() {
+    void getDelay_exception() {
         boolean thrown = false;
         int[] cases = new int[]{ -1, 2, 3 };
-        for (int i = 0; i < cases.length ; i++) {
+        for (int aCase : cases) {
             try {
                 TurnScheduler scheduler = new TurnScheduler(5, 2);
-                scheduler.getDelay(100, cases[i]);
+                scheduler.getDelay(100, aCase);
             } catch (IllegalArgumentException e) {
                 thrown = true;
             }
-            Assert.assertTrue(thrown);
+            assertTrue(thrown);
         }
     }
 }
