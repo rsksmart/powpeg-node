@@ -1,40 +1,56 @@
 package co.rsk.federate.io;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import co.rsk.federate.CoinbaseInformation;
 import co.rsk.federate.Proof;
-import org.apache.commons.io.FileUtils;
-import org.bitcoinj.core.*;
-import org.bitcoinj.params.RegTestParams;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.io.FileUtils;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PartialMerkleTree;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.TransactionWitness;
+import org.bitcoinj.params.RegTestParams;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.mockito.Mockito.*;
+class BtcToRskClientFileStorageImplTest {
 
-public class BtcToRskClientFileStorageImplTest {
-
-    private NetworkParameters parameters = RegTestParams.get();
+    private final NetworkParameters parameters = RegTestParams.get();
 
     private static final String DIRECTORY_PATH = "src/test/java/co/rsk/federate/io" + File.separator + "peg";
     private static final String FILE_PATH = DIRECTORY_PATH + File.separator + "btctorskclient.rlp";
 
-    @Before
-    public void setup() throws IOException {
+    @BeforeEach
+    void setup() throws IOException {
         this.clean();
     }
 
-    @After
-    public void tearDown() throws IOException {
+    @AfterEach
+    void tearDown() throws IOException {
         this.clean();
     }
 
     @Test
-    public void read_no_file() throws IOException {
+    void read_no_file() throws IOException {
         FileStorageInfo storageInfo = mock(FileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -43,13 +59,13 @@ public class BtcToRskClientFileStorageImplTest {
 
         BtcToRskClientFileReadResult result = storage.read(parameters);
 
-        Assert.assertTrue(result.getSuccess());
-        Assert.assertTrue(result.getData().getCoinbaseInformationMap().isEmpty());
-        Assert.assertTrue(result.getData().getTransactionProofs().isEmpty());
+        assertTrue(result.getSuccess());
+        assertTrue(result.getData().getCoinbaseInformationMap().isEmpty());
+        assertTrue(result.getData().getTransactionProofs().isEmpty());
     }
 
     @Test
-    public void read_empty_file() throws IOException {
+    void read_empty_file() throws IOException {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -60,13 +76,13 @@ public class BtcToRskClientFileStorageImplTest {
 
         BtcToRskClientFileReadResult result = storage.read(parameters);
 
-        Assert.assertTrue(result.getSuccess());
-        Assert.assertTrue(result.getData().getCoinbaseInformationMap().isEmpty());
-        Assert.assertTrue(result.getData().getTransactionProofs().isEmpty());
+        assertTrue(result.getSuccess());
+        assertTrue(result.getData().getCoinbaseInformationMap().isEmpty());
+        assertTrue(result.getData().getTransactionProofs().isEmpty());
     }
 
     @Test
-    public void read_trash_file() throws IOException {
+    void read_trash_file() throws IOException {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -77,22 +93,22 @@ public class BtcToRskClientFileStorageImplTest {
 
         BtcToRskClientFileReadResult result = storage.read(parameters);
 
-        Assert.assertFalse(result.getSuccess());
+        assertFalse(result.getSuccess());
     }
 
-    @Test(expected = IOException.class)
-    public void write_null_data() throws Exception {
+    @Test
+    void write_null_data() {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         BtcToRskClientFileStorageImpl storage = getBtcToRskClientFileStorage(storageInfo);
 
-        storage.write(null);
+        assertThrows(IOException.class, () -> storage.write(null));
     }
 
     @Test
-    public void write_empty_data() throws Exception {
+    void write_empty_data() throws Exception {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -104,14 +120,14 @@ public class BtcToRskClientFileStorageImplTest {
 
         BtcToRskClientFileReadResult result = storage.read(parameters);
 
-        Assert.assertTrue(result.getSuccess());
+        assertTrue(result.getSuccess());
 
-        Assert.assertEquals(0, result.getData().getTransactionProofs().size());
-        Assert.assertEquals(0, result.getData().getCoinbaseInformationMap().size());
+        assertEquals(0, result.getData().getTransactionProofs().size());
+        assertEquals(0, result.getData().getCoinbaseInformationMap().size());
     }
 
     @Test
-    public void write_and_read_ok() throws Exception {
+    void write_and_read_ok() throws Exception {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
@@ -126,16 +142,16 @@ public class BtcToRskClientFileStorageImplTest {
 
         BtcToRskClientFileReadResult result = storage.read(parameters);
 
-        Assert.assertTrue(result.getSuccess());
+        assertTrue(result.getSuccess());
 
-        Assert.assertEquals(fileData.getTransactionProofs(), result.getData().getTransactionProofs());
-        Assert.assertEquals(fileData.getCoinbaseInformationMap(), result.getData().getCoinbaseInformationMap());
+        assertEquals(fileData.getTransactionProofs(), result.getData().getTransactionProofs());
+        assertEquals(fileData.getCoinbaseInformationMap(), result.getData().getCoinbaseInformationMap());
     }
 
     private Map<Sha256Hash, List<Proof>> getProofData() {
         Map<Sha256Hash, List<Proof>> proofData = new HashMap<>();
         List<Proof> proofs = new ArrayList<>();
-        List<Sha256Hash> hashes =  Arrays.asList(Sha256Hash.ZERO_HASH);
+        List<Sha256Hash> hashes = Collections.singletonList(Sha256Hash.ZERO_HASH);
         proofs.add(new Proof(Sha256Hash.ZERO_HASH, new PartialMerkleTree(parameters, new byte[] {}, hashes, hashes.size())));
         proofData.put(Sha256Hash.ZERO_HASH, proofs);
 
@@ -154,7 +170,7 @@ public class BtcToRskClientFileStorageImplTest {
         TransactionOutput output = new TransactionOutput(parameters, null, Coin.COIN, Address.fromString(parameters, "mvbnrCX3bg1cDRUu8pkecrvP6vQkSLDSou"));
         coinbaseTx.addOutput(output);
 
-        List<Sha256Hash> hashes =  Arrays.asList(Sha256Hash.ZERO_HASH);
+        List<Sha256Hash> hashes = Collections.singletonList(Sha256Hash.ZERO_HASH);
         PartialMerkleTree pmt = new PartialMerkleTree(parameters, new byte[] {}, hashes, hashes.size());
         CoinbaseInformation coinbase = new CoinbaseInformation(coinbaseTx, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH, pmt);
         data.put(Sha256Hash.ZERO_HASH, coinbase);
