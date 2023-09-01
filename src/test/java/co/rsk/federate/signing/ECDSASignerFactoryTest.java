@@ -18,48 +18,49 @@
 
 package co.rsk.federate.signing;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import co.rsk.federate.config.SignerConfig;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
-import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
+import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-public class ECDSASignerFactoryTest {
+class ECDSASignerFactoryTest {
     private ECDSASignerFactory factory;
 
-    @Before
-    public void createFactory() {
+    @BeforeEach
+    void createFactory() {
         factory = new ECDSASignerFactory();
     }
 
     @Test
-    public void buildFromConfigKeyFile() throws SignerException {
+    void buildFromConfigKeyFile() throws SignerException {
         Config configMock = mockConfig("keyFile");
         when(configMock.getString("path")).thenReturn("a-random-path");
         SignerConfig signerConfig = new SignerConfig("a-random-id", configMock);
         ECDSASigner signer = factory.buildFromConfig(signerConfig);
 
-        Assert.assertEquals(ECDSASignerFromFileKey.class, signer.getClass());
-        Assert.assertEquals(new KeyId("a-random-id"), TestUtils.getInternalState(signer, "keyId"));
-        Assert.assertEquals("a-random-path", TestUtils.getInternalState(signer, "keyPath"));
+        assertEquals(ECDSASignerFromFileKey.class, signer.getClass());
+        assertEquals(new KeyId("a-random-id"), TestUtils.getInternalState(signer, "keyId"));
+        assertEquals("a-random-path", TestUtils.getInternalState(signer, "keyPath"));
     }
 
     @Test
-    public void buildFromConfigHSM() throws SignerException {
+    void buildFromConfigHSM() throws SignerException {
         Config configMock = mockConfig("hsm");
         when(configMock.getString("host")).thenReturn("remotehost");
         when(configMock.getInt("port")).thenReturn(1234);
@@ -75,7 +76,7 @@ public class ECDSASignerFactoryTest {
         ECDSASigner signer = factory.buildFromConfig(signerConfig);
 
         // Instance OK
-        Assert.assertEquals(ECDSAHSMSigner.class, signer.getClass());
+        assertEquals(ECDSAHSMSigner.class, signer.getClass());
 
         // Provider chain OK
         HSMSigningClientProvider clientProvider = TestUtils.getInternalState(signer, "clientProvider");
@@ -83,43 +84,43 @@ public class ECDSASignerFactoryTest {
         HSMClientProtocol hsmClientProtocol = TestUtils.getInternalState(clientProvider, "hsmClientProtocol");
 
         JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(hsmClientProtocol, "clientProvider");
-        Assert.assertEquals(SocketBasedJsonRpcClientProvider.class, jsonRpcClientProvider.getClass());
+        assertEquals(SocketBasedJsonRpcClientProvider.class, jsonRpcClientProvider.getClass());
         // Host OK
         SocketAddress address = TestUtils.getInternalState(jsonRpcClientProvider, "address");
-        Assert.assertEquals(InetSocketAddress.class, address.getClass());
+        assertEquals(InetSocketAddress.class, address.getClass());
         InetSocketAddress inetAddress = (InetSocketAddress)address;
-        Assert.assertEquals("remotehost", inetAddress.getHostName());
-        Assert.assertEquals(1234, inetAddress.getPort());
+        assertEquals("remotehost", inetAddress.getHostName());
+        assertEquals(1234, inetAddress.getPort());
 
         // Timeout OK
         int timeout = TestUtils.getInternalState(jsonRpcClientProvider, "socketTimeout");
-        Assert.assertEquals(6666, timeout);
+        assertEquals(6666, timeout);
 
         // Attempts OK
         int attempts = TestUtils.getInternalState(hsmClientProtocol, "maxConnectionAttempts");
-        Assert.assertEquals(6, attempts);
+        assertEquals(6, attempts);
 
         // Interval OK
         int interval = TestUtils.getInternalState(hsmClientProtocol, "waitTimeForReconnection");
-        Assert.assertEquals(666, interval);
+        assertEquals(666, interval);
 
         // Key mappings OK
         Map<KeyId, String> keyMapping = TestUtils.getInternalState(signer, "keyIdMapping");
-        Assert.assertEquals(1, keyMapping.size());
-        Assert.assertTrue(keyMapping.containsKey(new KeyId("a-random-id")));
-        Assert.assertEquals("a-bip32-path", keyMapping.get(new KeyId("a-random-id")));
+        assertEquals(1, keyMapping.size());
+        assertTrue(keyMapping.containsKey(new KeyId("a-random-id")));
+        assertEquals("a-bip32-path", keyMapping.get(new KeyId("a-random-id")));
 
     }
 
     @Test
-    public void buildFromConfigUnknown() throws SignerException {
+    void buildFromConfigUnknown() throws SignerException {
         Config configMock = mockConfig("a-random-type");
         SignerConfig signerConfig = new SignerConfig("a-random-id", configMock);
         try {
             factory.buildFromConfig(signerConfig);
-            Assert.fail();
+            fail();
         } catch (RuntimeException e) {
-            Assert.assertEquals("Unsupported signer type: a-random-type", e.getMessage());
+            assertEquals("Unsupported signer type: a-random-type", e.getMessage());
         }
     }
 
