@@ -18,28 +18,33 @@
 
 package co.rsk.federate.signing.hsm.message;
 
-import org.bouncycastle.util.encoders.Hex;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 
-public class SignerMessageV1Test {
+import org.bouncycastle.util.encoders.Hex;
+import org.junit.jupiter.api.Test;
+
+class SignerMessageV1Test {
+
     @Test
-    public void equality() {
+    void equality() {
         SignerMessage m1 = new SignerMessageV1(Hex.decode("aabb"));
         SignerMessage m2 = new SignerMessageV1(Hex.decode("aabb"));
         SignerMessage m3 = new SignerMessageV1(Hex.decode("aabbcc"));
 
-        Assert.assertEquals(m1, m2);
-        Assert.assertNotEquals(m1, m3);
-        Assert.assertNotEquals(m2, m3);
+        assertEquals(m1, m2);
+        assertNotEquals(m1, m3);
+        assertNotEquals(m2, m3);
     }
 
     @Test
-    public void getBytes() {
+    void getBytes() {
         byte[] bytes = Hex.decode("aabb");
         SignerMessage m = new SignerMessageV1(bytes);
 
-        Assert.assertArrayEquals(bytes, ((SignerMessageV1) m).getBytes());
-        Assert.assertNotSame(bytes, ((SignerMessageV1) m).getBytes());
+        assertArrayEquals(bytes, m.getBytes());
+        assertNotSame(bytes, m.getBytes());
     }
 }
