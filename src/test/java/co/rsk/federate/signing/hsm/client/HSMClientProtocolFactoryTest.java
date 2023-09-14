@@ -1,40 +1,43 @@
 package co.rsk.federate.signing.hsm.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import co.rsk.federate.config.SignerConfig;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-public class HSMClientProtocolFactoryTest {
+class HSMClientProtocolFactoryTest {
 
     private HSMClientProtocolFactory hsmClientProtocolFactory;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         hsmClientProtocolFactory = new HSMClientProtocolFactory();
     }
 
-    @Test(expected = HSMUnsupportedTypeException.class)
-    public void buildHSMProtocolFromUnknownConfig() throws HSMUnsupportedTypeException {
+    @Test
+    void buildHSMProtocolFromUnknownConfig() {
         Config configMock = mockConfig("random-type");
         SignerConfig signerConfig = new SignerConfig("random-id", configMock);
-        hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+
+        assertThrows(HSMUnsupportedTypeException.class, () ->
+            hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig)
+        );
     }
 
     @Test
-    public void buildHSMProtocolFromConfig() throws HSMUnsupportedTypeException {
+    void buildHSMProtocolFromConfig() throws HSMUnsupportedTypeException {
         Config configMock = mockConfig("hsm");
         when(configMock.getString(HSMClientProtocolFactory.HOST)).thenReturn("localhost");
         when(configMock.getInt(HSMClientProtocolFactory.PORT)).thenReturn(9999);
@@ -50,30 +53,30 @@ public class HSMClientProtocolFactoryTest {
 
         // Provider chain
         JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(protocol, "clientProvider");
-        Assert.assertEquals(SocketBasedJsonRpcClientProvider.class, jsonRpcClientProvider.getClass());
+        assertEquals(SocketBasedJsonRpcClientProvider.class, jsonRpcClientProvider.getClass());
 
         // Host - Port
         SocketAddress address = TestUtils.getInternalState(jsonRpcClientProvider, "address");
-        Assert.assertEquals(InetSocketAddress.class, address.getClass());
+        assertEquals(InetSocketAddress.class, address.getClass());
         InetSocketAddress inetAddress = (InetSocketAddress) address;
-        Assert.assertEquals("localhost", inetAddress.getHostName());
-        Assert.assertEquals(9999, inetAddress.getPort());
+        assertEquals("localhost", inetAddress.getHostName());
+        assertEquals(9999, inetAddress.getPort());
 
         // Timeout
         int timeout = TestUtils.getInternalState(jsonRpcClientProvider, HSMClientProtocolFactory.SOCKET_TIMEOUT);
-        Assert.assertEquals(5000, timeout);
+        assertEquals(5000, timeout);
 
         // Attempts
         int attempts = TestUtils.getInternalState(protocol, "maxConnectionAttempts");
-        Assert.assertEquals(3, attempts);
+        assertEquals(3, attempts);
 
         // Interval
         int interval = TestUtils.getInternalState(protocol, "waitTimeForReconnection");
-        Assert.assertEquals(3000, interval);
+        assertEquals(3000, interval);
     }
 
     @Test
-    public void buildHSMProtocolFromDefaultConfig() throws HSMUnsupportedTypeException {
+    void buildHSMProtocolFromDefaultConfig() throws HSMUnsupportedTypeException {
         Config configMock = mockConfig("hsm");
         when(configMock.getString(HSMClientProtocolFactory.HOST)).thenReturn("localhost");
         when(configMock.getInt(HSMClientProtocolFactory.PORT)).thenReturn(9999);
@@ -86,26 +89,26 @@ public class HSMClientProtocolFactoryTest {
 
         // Provider chain
         JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(protocol, "clientProvider");
-        Assert.assertEquals(SocketBasedJsonRpcClientProvider.class, jsonRpcClientProvider.getClass());
+        assertEquals(SocketBasedJsonRpcClientProvider.class, jsonRpcClientProvider.getClass());
 
         // Host - Port
         SocketAddress address = TestUtils.getInternalState(jsonRpcClientProvider, "address");
-        Assert.assertEquals(InetSocketAddress.class, address.getClass());
+        assertEquals(InetSocketAddress.class, address.getClass());
         InetSocketAddress inetAddress = (InetSocketAddress) address;
-        Assert.assertEquals("localhost", inetAddress.getHostName());
-        Assert.assertEquals(9999, inetAddress.getPort());
+        assertEquals("localhost", inetAddress.getHostName());
+        assertEquals(9999, inetAddress.getPort());
 
         // Timeout
         int timeout = TestUtils.getInternalState(jsonRpcClientProvider, HSMClientProtocolFactory.SOCKET_TIMEOUT);
-        Assert.assertEquals(HSMClientProtocolFactory.DEFAULT_SOCKET_TIMEOUT, timeout);
+        assertEquals(HSMClientProtocolFactory.DEFAULT_SOCKET_TIMEOUT, timeout);
 
         // Attempts
         int attempts = TestUtils.getInternalState(protocol, "maxConnectionAttempts");
-        Assert.assertEquals(HSMClientProtocolFactory.DEFAULT_ATTEMPTS, attempts);
+        assertEquals(HSMClientProtocolFactory.DEFAULT_ATTEMPTS, attempts);
 
         // Interval
         int interval = TestUtils.getInternalState(protocol, "waitTimeForReconnection");
-        Assert.assertEquals(HSMClientProtocolFactory.DEFAULT_INTERVAL, interval);
+        assertEquals(HSMClientProtocolFactory.DEFAULT_INTERVAL, interval);
     }
 
     private Config mockConfig(String type) {
