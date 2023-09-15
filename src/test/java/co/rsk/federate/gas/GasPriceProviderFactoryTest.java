@@ -1,6 +1,7 @@
 package co.rsk.federate.gas;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,7 +23,7 @@ class GasPriceProviderFactoryTest {
         when(mockedConfig.hasPath("gap")).thenReturn(true);
         GasPriceProviderConfig config = new GasPriceProviderConfig(mockedConfig);
         IGasPriceProvider provider = GasPriceProviderFactory.get(config, mock(Blockchain.class));
-        assertTrue(provider.getClass() == BestBlockMinGasPriceWithGapProvider.class);
+        assertSame(BestBlockMinGasPriceWithGapProvider.class, provider.getClass());
     }
 
     @Test
@@ -40,8 +41,8 @@ class GasPriceProviderFactoryTest {
     @Test
     void canCreateDefaultGasproviderWithNoConfig() throws RskConfigurationException {
         IGasPriceProvider provider = GasPriceProviderFactory.get(null, mock(Blockchain.class));
-        assertTrue(provider.getClass() == BestBlockMinGasPriceWithGapProvider.class);
-        assertEquals(((BestBlockMinGasPriceWithGapProvider)provider).gap.longValue(), GasPriceProviderFactory.DEFAULT_GAP);
+        assertSame(BestBlockMinGasPriceWithGapProvider.class, provider.getClass());
+        assertEquals(GasPriceProviderFactory.DEFAULT_GAP, ((BestBlockMinGasPriceWithGapProvider)provider).gap.longValue());
     }
 
     @Test
@@ -49,7 +50,7 @@ class GasPriceProviderFactoryTest {
         Config mockedConfig = mockConfig("bestBlock");
         GasPriceProviderConfig config = new GasPriceProviderConfig(mockedConfig);
         IGasPriceProvider provider = GasPriceProviderFactory.get(config, mock(Blockchain.class));
-        assertTrue(provider.getClass() == BestBlockMinGasPriceProvider.class);
+        assertSame(BestBlockMinGasPriceProvider.class, provider.getClass());
     }
 
     private Config mockConfig(String type) {
