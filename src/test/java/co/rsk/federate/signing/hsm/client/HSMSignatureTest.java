@@ -18,41 +18,54 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import co.rsk.federate.signing.utils.TestUtils;
 import org.ethereum.crypto.ECKey;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class HSMSignatureTest {
+class HSMSignatureTest {
     private ECKey key;
     private ECKey.ECDSASignature signature;
     private byte[] hash;
 
-    @Before
-    public void createSignature() {
+    @BeforeEach
+    void createSignature() {
         key = new ECKey();
         hash = TestUtils.randomHash();
         signature = key.sign(hash);
     }
 
     @Test
-    public void toEthWithV() {
-        HSMSignature s = new HSMSignature(signature.r.toByteArray(), signature.s.toByteArray(), hash, key.getPubKey(), signature.v);
+    void toEthWithV() {
+        HSMSignature s = new HSMSignature(
+            signature.r.toByteArray(),
+            signature.s.toByteArray(),
+            hash,
+            key.getPubKey(),
+            signature.v
+        );
         ECKey.ECDSASignature output = s.toEthSignature();
 
-        Assert.assertEquals(signature.r, output.r);
-        Assert.assertEquals(signature.s, output.s);
-        Assert.assertEquals(signature.v, output.v);
+        assertEquals(signature.r, output.r);
+        assertEquals(signature.s, output.s);
+        assertEquals(signature.v, output.v);
     }
 
     @Test
-    public void toEthWithoutV() {
-        HSMSignature s = new HSMSignature(signature.r.toByteArray(), signature.s.toByteArray(), hash, key.getPubKey(), null);
+    void toEthWithoutV() {
+        HSMSignature s = new HSMSignature(
+            signature.r.toByteArray(),
+            signature.s.toByteArray(),
+            hash,
+            key.getPubKey(),
+            null
+        );
         ECKey.ECDSASignature output = s.toEthSignature();
 
-        Assert.assertEquals(signature.r, output.r);
-        Assert.assertEquals(signature.s, output.s);
-        Assert.assertEquals(signature.v, output.v);
+        assertEquals(signature.r, output.r);
+        assertEquals(signature.s, output.s);
+        assertEquals(signature.v, output.v);
     }
 }
