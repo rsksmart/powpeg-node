@@ -11,9 +11,9 @@ public class UpdateAncestorBlockMessage {
 
     public UpdateAncestorBlockMessage(List<BlockHeader> blockHeaders) {
         this.blockHeaders = blockHeaders
-                .stream()
-                .map(this::parseBlockHeader)
-                .collect(Collectors.toList());
+            .stream()
+            .map(this::parseBlockHeader)
+            .collect(Collectors.toList());
     }
 
     private String parseBlockHeader(BlockHeader blockHeader) {
