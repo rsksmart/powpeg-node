@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import org.junit.jupiter.api.Test;
 
@@ -153,6 +154,6 @@ class HSMSigningClientProviderTest {
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "XYZ");
         when(protocol.getVersion()).thenReturn(2);
 
-        assertThrows(HSMUnsupportedVersionException.class, () -> clientProvider.getSigningClient());
+        assertThrows(HSMUnsupportedTypeException.class, () -> clientProvider.getSigningClient());
     }
 }

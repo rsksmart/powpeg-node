@@ -42,7 +42,6 @@ class HSMBookKeepingClientProviderTest {
         getHSMBookkeepingClient(4);
     }
 
-    @Test
     void getHSMBookkeepingClient(int version) throws HSMClientException {
         when(hsmClientProtocol.getVersion()).thenReturn(version);
         HSMBookkeepingClient bookkeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(hsmClientProtocol);

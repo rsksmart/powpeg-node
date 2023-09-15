@@ -205,8 +205,7 @@ class HsmBookkeepingClientImplTest {
     @Test
     void sendBlockHeadersChunks_chunk_failsWithExceptionInProtocol() throws JsonRpcException {
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_TWO));
-        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO)))
-            .thenReturn(buildResponse(false)).thenThrow(new Exception(""));
+        when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_TWO))).thenThrow(new JsonRpcException("", new Exception()));
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
 

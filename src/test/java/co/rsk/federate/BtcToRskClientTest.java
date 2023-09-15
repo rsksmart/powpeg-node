@@ -1889,7 +1889,7 @@ class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
         doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
         doReturn(true).when(activations).isActive(ConsensusRule.RSKIP170);
-        doReturn(true).when(activationsConfig).isActive(ConsensusRule.RSKIP170, anyLong());
+        doReturn(true).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
 
         PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         when(peginInstructionsProvider.buildPeginInstructions(any())).thenThrow(PeginInstructionsException.class);
@@ -1939,7 +1939,7 @@ class BtcToRskClientTest {
         doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
         doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
         doReturn(true).when(activations).isActive(ConsensusRule.RSKIP170);
-        doReturn(true).when(activationsConfig).isActive(ConsensusRule.RSKIP170, anyLong());
+        doReturn(true).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
 
         BtcLockSender btcLockSender = mock(BtcLockSender.class);
         when(btcLockSender.getBTCAddress()).thenReturn(mock(co.rsk.bitcoinj.core.Address.class));
