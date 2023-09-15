@@ -18,42 +18,41 @@
 
 package co.rsk.federate.signing;
 
-import co.rsk.federate.signing.hsm.HSMClientException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.when;
+
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import co.rsk.federate.signing.keyfile.KeyFileChecker;
 import co.rsk.federate.signing.keyfile.KeyFileHandler;
+import java.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.crypto.Keccak256Helper;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
-import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.Arrays;
-
-import static org.mockito.Mockito.*;
-
-@RunWith(MockitoJUnitRunner.class)
-public class ECDSASignerFromFileKeyTest {
+class ECDSASignerFromFileKeyTest {
     ECDSASignerFromFileKey signer;
 
-    @Before
-    public void createSigner() {
+    @BeforeEach
+    void createSigner() {
         signer = new ECDSASignerFromFileKey(new KeyId("an-id"), "a-file-path");
     }
 
     @Test
-    public void canSignWith() {
-        Assert.assertTrue(signer.canSignWith(new KeyId("an-id")));
-        Assert.assertFalse(signer.canSignWith(new KeyId("another-id")));
+    void canSignWith() {
+        assertTrue(signer.canSignWith(new KeyId("an-id")));
+        assertFalse(signer.canSignWith(new KeyId("another-id")));
     }
 
     @Test
-    public void check() {
+    void check() {
         MockedConstruction.MockInitializer<KeyFileChecker> keyFileCheckerMockInitializer = (KeyFileChecker kfc, MockedConstruction.Context ctx) -> {
             boolean isExpectedCall = ctx.arguments().size() == 1 && ctx.arguments().get(0).equals("a-file-path");
             if (isExpectedCall) {
@@ -63,14 +62,14 @@ public class ECDSASignerFromFileKeyTest {
 
         try (MockedConstruction<KeyFileChecker> keyFileCheckerMockedConstruction = mockConstruction(KeyFileChecker.class, keyFileCheckerMockInitializer)) {
             ECDSASigner.ECDSASignerCheckResult checkResult = signer.check();
-            Assert.assertEquals(1, keyFileCheckerMockedConstruction.constructed().size());
-            Assert.assertFalse(checkResult.wasSuccessful());
-            Assert.assertEquals(Arrays.asList("message-1", "message-2"), checkResult.getMessages());
+            assertEquals(1, keyFileCheckerMockedConstruction.constructed().size());
+            assertFalse(checkResult.wasSuccessful());
+            assertEquals(Arrays.asList("message-1", "message-2"), checkResult.getMessages());
         }
     }
 
     @Test
-    public void sign() throws Exception {
+    void sign() throws Exception {
         MockedConstruction.MockInitializer<KeyFileHandler> keyFileHandlerMockInitializer = (KeyFileHandler kfh, MockedConstruction.Context ctx) -> {
             boolean isExpectedCall = ctx.arguments().size() == 1 && ctx.arguments().get(0).equals("a-file-path");
             if (isExpectedCall) {
@@ -84,23 +83,23 @@ public class ECDSASignerFromFileKeyTest {
             ECKey.ECDSASignature result = signer.sign(new KeyId("an-id"), new SignerMessageV1(message));
             ECKey.ECDSASignature expectedSignature = ECKey.fromPrivate(Hex.decode("1122334455")).sign(message);
 
-            Assert.assertEquals(1, keyFileHandlerMockedConstruction.constructed().size());
-            Assert.assertEquals(expectedSignature.r, result.r);
-            Assert.assertEquals(expectedSignature.s, result.s);
+            assertEquals(1, keyFileHandlerMockedConstruction.constructed().size());
+            assertEquals(expectedSignature.r, result.r);
+            assertEquals(expectedSignature.s, result.s);
         }
     }
 
     @Test
-    public void signNonMatchingKeyId() throws Exception {
+    void signNonMatchingKeyId() {
         try {
             signer.sign(new KeyId("another-id"), new SignerMessageV1(Hex.decode("aabbcc")));
-            Assert.fail();
+            fail();
         } catch (Exception e) {
         }
     }
 
     @Test
-    public void getPublicKey() throws Exception {
+    void getPublicKey() throws Exception {
         ECKey key = new ECKey();
 
         MockedConstruction.MockInitializer<KeyFileHandler> keyFileHandlerMockInitializer = (KeyFileHandler kfh, MockedConstruction.Context ctx) -> {
@@ -115,39 +114,37 @@ public class ECDSASignerFromFileKeyTest {
 
             ECPublicKey expectedPublicKey = new ECPublicKey(key.getPubKey());
 
-            Assert.assertEquals(1, keyFileHandlerMockedConstruction.constructed().size());
-            Assert.assertEquals(expectedPublicKey, result);
+            assertEquals(1, keyFileHandlerMockedConstruction.constructed().size());
+            assertEquals(expectedPublicKey, result);
         }
     }
 
     @Test
-    public void getPublicKeyNonMatchingKeyId() throws Exception {
+    void getPublicKeyNonMatchingKeyId() {
         try {
             signer.getPublicKey(new KeyId("another-id"));
-            Assert.fail();
+            fail();
         } catch (Exception e) {
         }
     }
 
     @Test
-    public void getVersionForKeyIdOk() throws HSMClientException, SignerException {
+    void getVersionForKeyIdOk() throws SignerException {
         KeyId key = new KeyId("an-id");
         int version = 1;
 
-        Assert.assertEquals(signer.getVersionForKeyId(key), version);
+        assertEquals(signer.getVersionForKeyId(key), version);
     }
 
     @Test
-    public void getVersionForKeyId_SignerException() throws HSMClientException, SignerException {
+    void getVersionForKeyId_SignerException() {
         KeyId key = new KeyId("keyAB");
-        int version = 10000;
 
         try {
-            version = signer.getVersionForKeyId(key);
-            Assert.fail();
+            signer.getVersionForKeyId(key);
+            fail();
         } catch (SignerException e) {
-            Assert.assertEquals(e.getMessage(), String.format("Can't get public key for the requested signing key: %s", key));
+            assertEquals(e.getMessage(), String.format("Can't get public key for the requested signing key: %s", key));
         }
     }
-
 }
