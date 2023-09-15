@@ -2,11 +2,13 @@ package co.rsk.federate.mock;
 
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.config.TestSystemProperties;
-import org.bitcoinj.core.*;
-
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.PartialMerkleTree;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
 
 /**
  * Created by ajlopez on 6/2/2016.
@@ -14,14 +16,14 @@ import java.util.List;
 public class SimpleFederatorSupport extends FederatorSupport {
     private Block[] headers;
     private int sendReceiveHeadersInvocations = 0;
-    private List<TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction = new ArrayList<>();
+    private final List<TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction = new ArrayList<>();
     private int height = 0;
     private Object[] locator;
     private Sha256Hash[] blockHashes;
     private Long bestChainHeight = 1L;
     private int initialChainHeight = 0;
 
-    public SimpleFederatorSupport() throws Exception {
+    public SimpleFederatorSupport() {
         super(null, new TestSystemProperties(), null);
     }
 
@@ -62,7 +64,7 @@ public class SimpleFederatorSupport extends FederatorSupport {
     }
 
     @Override
-    public List<PeerAddress> getBitcoinPeerAddresses() throws UnknownHostException {
+    public List<PeerAddress> getBitcoinPeerAddresses() {
         return null;
     }
 
@@ -100,14 +102,10 @@ public class SimpleFederatorSupport extends FederatorSupport {
     }
 
     @Override
-    public void addSignature(List<byte[]> signatures, byte[] rskTxHash) {
-        return;
-    }
+    public void addSignature(List<byte[]> signatures, byte[] rskTxHash) {}
 
     @Override
-    public void sendUpdateCollections() {
-
-    }
+    public void sendUpdateCollections() {}
 
     @Override
     public Boolean isBtcTxHashAlreadyProcessed(Sha256Hash btcTxHash) {
@@ -132,7 +130,7 @@ public class SimpleFederatorSupport extends FederatorSupport {
         return txsSentToRegisterBtcTransaction;
     }
 
-    public class TransactionSentToRegisterBtcTransaction {
+    public static class TransactionSentToRegisterBtcTransaction {
         public Transaction tx;
         public int blockHeight;
         public PartialMerkleTree pmt;

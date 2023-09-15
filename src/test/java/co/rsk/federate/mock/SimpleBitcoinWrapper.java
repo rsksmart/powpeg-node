@@ -4,11 +4,16 @@ import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BlockListener;
 import co.rsk.federate.bitcoin.TransactionListener;
 import co.rsk.peg.Federation;
-import org.bitcoinj.core.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.listeners.NewBestBlockListener;
-import org.bitcoinj.store.BlockStoreException;
-
-import java.util.*;
 
 /**
  * Created by ajlopez on 6/2/2016.
@@ -18,19 +23,13 @@ public class SimpleBitcoinWrapper implements BitcoinWrapper {
     private Set<Transaction> transactions = new HashSet<>();
 
     @Override
-    public void setup(List<PeerAddress> peerAddresses) {
-
-    }
+    public void setup(List<PeerAddress> peerAddresses) {}
 
     @Override
-    public void start() {
-
-    }
+    public void start() {}
 
     @Override
-    public void stop() {
-
-    }
+    public void stop() {}
 
     @Override
     public int getBestChainHeight() {
@@ -51,7 +50,7 @@ public class SimpleBitcoinWrapper implements BitcoinWrapper {
     }
 
     @Override
-    public StoredBlock getBlock(Sha256Hash hash) throws BlockStoreException {
+    public StoredBlock getBlock(Sha256Hash hash) {
         for (StoredBlock block : blocks) {
             if (block != null && block.getHeader().getHash().equals(hash)) {
                 return block;
@@ -62,7 +61,7 @@ public class SimpleBitcoinWrapper implements BitcoinWrapper {
     }
 
     @Override
-    public StoredBlock getBlockAtHeight(int height) throws BlockStoreException {
+    public StoredBlock getBlockAtHeight(int height) {
         return blocks[height];
     }
 
@@ -84,34 +83,22 @@ public class SimpleBitcoinWrapper implements BitcoinWrapper {
     }
 
     @Override
-    public void addFederationListener(Federation federation, TransactionListener listener) {
-
-    }
+    public void addFederationListener(Federation federation, TransactionListener listener) {}
 
     @Override
-    public void removeFederationListener(Federation federation, TransactionListener listener) {
-
-    }
+    public void removeFederationListener(Federation federation, TransactionListener listener) {}
 
     @Override
-    public void addBlockListener(BlockListener listener) {
-
-    }
+    public void addBlockListener(BlockListener listener) {}
 
     @Override
-    public void removeBlockListener(BlockListener listener) {
-
-    }
+    public void removeBlockListener(BlockListener listener) {}
 
     @Override
-    public void addNewBlockListener(NewBestBlockListener newBestBlockListener) {
-
-    }
+    public void addNewBlockListener(NewBestBlockListener newBestBlockListener) {}
 
     @Override
-    public void removeNewBestBlockListener(NewBestBlockListener newBestBlockListener) {
-
-    }
+    public void removeNewBestBlockListener(NewBestBlockListener newBestBlockListener) {}
 
     public void setTransactions(Set<Transaction> transactions) {
         this.transactions = transactions;

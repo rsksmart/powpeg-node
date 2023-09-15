@@ -9,7 +9,7 @@ import org.bitcoinj.core.Sha256Hash;
  * Created by ajlopez on 6/2/2016.
  */
 public class SimpleFilteredBlock extends FilteredBlock {
-    private Sha256Hash hash;
+    private final Sha256Hash hash;
 
     public SimpleFilteredBlock(NetworkParameters networkParameters, PartialMerkleTree pmt, Sha256Hash hash) {
         super(networkParameters, null, pmt);
