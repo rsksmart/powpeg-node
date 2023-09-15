@@ -1,5 +1,10 @@
 package co.rsk.federate.bitcoin;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import co.rsk.config.BridgeConstants;
 import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.federate.FederatorSupport;
@@ -7,31 +12,32 @@ import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
-import org.bitcoinj.core.*;
-import org.bitcoinj.wallet.Wallet;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import org.bitcoinj.core.BlockChain;
+import org.bitcoinj.core.Context;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.wallet.Wallet;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.mockito.Mockito.*;
-
-public class KitTest {
+class KitTest {
     private static BridgeConstants bridgeConstants;
     private static NetworkParameters networkParameters;
     private static Context btcContext;
 
-    @BeforeClass
-    public static void setUpBeforeClass() {
+    @BeforeEach
+    void setUpBeforeClass() {
         bridgeConstants = BridgeRegTestConstants.getInstance();
         networkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
         btcContext = new Context(networkParameters);
     }
 
     @Test
-    public void setupConsistentWallet() throws Exception {
+    void setupConsistentWallet() {
         BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
         PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
@@ -64,7 +70,7 @@ public class KitTest {
     }
 
     @Test
-    public void setupNoConsistentWallet() throws Exception {
+    void setupNoConsistentWallet() {
         BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
         PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
