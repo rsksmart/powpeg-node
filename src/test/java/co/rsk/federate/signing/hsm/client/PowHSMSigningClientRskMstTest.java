@@ -1,5 +1,13 @@
 package co.rsk.federate.signing.hsm.client;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
@@ -9,21 +17,18 @@ import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.mockito.Mockito.*;
-
-public class PowHSMSigningClientRskMstTest {
+class PowHSMSigningClientRskMstTest {
     private JsonRpcClientProvider jsonRpcClientProviderMock;
     private HSMClientProtocol hsmClientProtocol;
     private JsonRpcClient jsonRpcClientMock;
     private PowHSMSigningClient client;
     private final static int VERSION = 2;
 
-    @Before
-    public void createClient() throws JsonRpcException {
+    @BeforeEach
+    void createClient() throws JsonRpcException {
         jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
@@ -32,7 +37,7 @@ public class PowHSMSigningClientRskMstTest {
     }
 
     @Test
-    public void signOk() throws Exception {
+    void signOk() throws JsonRpcException, HSMClientException {
         ObjectNode expectedPublicKeyRequest = buildGetPublicKeyRequest();
         ObjectNode publicKeyResponse = buildResponse(0);
         publicKeyResponse.put("pubKey", "001122334455");
@@ -47,15 +52,15 @@ public class PowHSMSigningClientRskMstTest {
 
         HSMSignature signature = client.sign("a-key-id", messageForSignature);
 
-        Assert.assertArrayEquals(Hex.decode("223344"), signature.getR());
-        Assert.assertArrayEquals(Hex.decode("55667788"), signature.getS());
-        Assert.assertArrayEquals(Hex.decode("001122334455"), signature.getPublicKey());
+        assertArrayEquals(Hex.decode("223344"), signature.getR());
+        assertArrayEquals(Hex.decode("55667788"), signature.getS());
+        assertArrayEquals(Hex.decode("001122334455"), signature.getPublicKey());
         verify(jsonRpcClientMock, times(1)).send(expectedSignRequest);
         verify(jsonRpcClientMock, times(1)).send(expectedPublicKeyRequest);
     }
 
     @Test
-    public void signNoErrorCode() throws Exception {
+    void signNoErrorCode() throws JsonRpcException {
         SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
@@ -67,14 +72,14 @@ public class PowHSMSigningClientRskMstTest {
 
         try {
             client.sign("a-key-id", messageForSignature);
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
         }
     }
 
     @Test
-    public void signNonZeroErrorCode() throws Exception {
+    void signNonZeroErrorCode() throws JsonRpcException {
         SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
@@ -85,15 +90,15 @@ public class PowHSMSigningClientRskMstTest {
 
         try {
             client.sign("a-key-id", messageForSignature);
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("HSM Device returned exception"));
-            Assert.assertTrue(e.getMessage().contains("Context: Running method 'sign'"));
+            assertTrue(e.getMessage().contains("HSM Device returned exception"));
+            assertTrue(e.getMessage().contains("Context: Running method 'sign'"));
         }
     }
 
     @Test
-    public void signNoSignature() throws Exception {
+    void signNoSignature() throws JsonRpcException {
         SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
@@ -103,14 +108,14 @@ public class PowHSMSigningClientRskMstTest {
 
         try {
             client.sign("a-key-id", messageForSignature);
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'signature' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'signature' field to be present"));
         }
     }
 
     @Test
-    public void signNoR() throws Exception {
+    void signNoR() throws Exception {
         SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
@@ -121,14 +126,14 @@ public class PowHSMSigningClientRskMstTest {
 
         try {
             client.sign("a-key-id", messageForSignature);
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'r' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'r' field to be present"));
         }
     }
 
     @Test
-    public void signNoS() throws Exception {
+    void signNoS() throws Exception {
         SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
@@ -141,9 +146,9 @@ public class PowHSMSigningClientRskMstTest {
 
         try {
             client.sign("a-key-id", messageForSignature);
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 's' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 's' field to be present"));
         }
     }
 
@@ -185,4 +190,3 @@ public class PowHSMSigningClientRskMstTest {
         return response;
     }
 }
-
