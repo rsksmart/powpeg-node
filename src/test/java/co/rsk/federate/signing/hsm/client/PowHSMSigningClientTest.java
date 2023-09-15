@@ -18,6 +18,15 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
@@ -26,21 +35,18 @@ import co.rsk.federate.signing.hsm.HSMClientException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.mockito.Mockito.*;
-
-public class PowHSMSigningClientTest {
+class PowHSMSigningClientTest {
     private JsonRpcClientProvider jsonRpcClientProviderMock;
     private HSMClientProtocol hsmClientProtocol;
     private JsonRpcClient jsonRpcClientMock;
     private PowHSMSigningClient client;
     private final static int VERSION = 2;
 
-    @Before
-    public void createClient() throws JsonRpcException {
+    @BeforeEach
+    void createClient() throws JsonRpcException {
         jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
@@ -50,17 +56,17 @@ public class PowHSMSigningClientTest {
     }
 
     @Test
-    public void getVersionOk() throws Exception {
+    void getVersionOk() throws JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put("command", "version");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(5));
         int version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 2.
-        Assert.assertEquals(VERSION, version);
+        assertEquals(VERSION, version);
     }
 
     @Test
-    public void getPublicKeyOk() throws Exception {
+    void getPublicKeyOk() throws JsonRpcException, HSMClientException {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = buildResponse(0);
@@ -68,16 +74,16 @@ public class PowHSMSigningClientTest {
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
         byte[] publicKey = client.getPublicKey("a-key-id");
-        Assert.assertArrayEquals(publicKey, Hex.decode("aabbccddeeff"));;
+        assertArrayEquals(publicKey, Hex.decode("aabbccddeeff"));;
         // Subsequent calls shouldn't issue a command (i.e., public key is locally cached)
         publicKey = client.getPublicKey("a-key-id");
-        Assert.assertArrayEquals(publicKey, Hex.decode("aabbccddeeff"));
+        assertArrayEquals(publicKey, Hex.decode("aabbccddeeff"));
 
         verify(jsonRpcClientMock, times(1)).send(expectedRequest);
     }
 
     @Test
-    public void getPublicKeyNoErrorCode() throws Exception {
+    void getPublicKeyNoErrorCode() throws JsonRpcException {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = new ObjectMapper().createObjectNode();
@@ -87,14 +93,14 @@ public class PowHSMSigningClientTest {
 
         try {
             client.getPublicKey("a-key-id");
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
         }
     }
 
     @Test
-    public void getPublicKeyNonZeroErrorCode() throws Exception {
+    void getPublicKeyNonZeroErrorCode() throws JsonRpcException {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = buildResponse(-905);
@@ -103,15 +109,15 @@ public class PowHSMSigningClientTest {
 
         try {
             client.getPublicKey("a-key-id");
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("HSM Device returned exception"));
-            Assert.assertTrue(e.getMessage().contains("Context: Running method 'getPubKey'"));
+            assertTrue(e.getMessage().contains("HSM Device returned exception"));
+            assertTrue(e.getMessage().contains("Context: Running method 'getPubKey'"));
         }
     }
 
     @Test
-    public void getPublicKeyNoPublicKey() throws Exception {
+    void getPublicKeyNoPublicKey() throws JsonRpcException {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = buildResponse(0);
@@ -120,9 +126,9 @@ public class PowHSMSigningClientTest {
 
         try {
             client.getPublicKey("a-key-id");
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'pubKey' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'pubKey' field to be present"));
         }
     }
 
