@@ -46,8 +46,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 class HSMClientProtocolTest {
@@ -100,7 +100,7 @@ class HSMClientProtocolTest {
         response.put("errorcode", 0);
         int responseValidation = hsmClientProtocol.validateResponse("a-random-command-name", response);
 
-        assertEquals(HSMResponseCode.SUCCESS, responseValidation);
+        assertEquals(HSMResponseCode.SUCCESS.getResponseCode(), responseValidation);
     }
 
     @Test
@@ -197,9 +197,9 @@ class HSMClientProtocolTest {
         }
     }
 
+    @Disabled("This test is ignored as it is expensive and erratical as it is written")
     @Test
-    @Ignore // This test is ignored as it is expensive and erratical as it is written
-    public void singleExecutor()
+    void singleExecutor()
         throws JsonRpcException, ExecutionException, InterruptedException {
 
         long forcedDelay = 1000;
