@@ -3,11 +3,11 @@ package co.rsk.federate;
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.MST_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -32,40 +32,37 @@ import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Collections;
 import java.util.List;
 import org.ethereum.config.Constants;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Created by Kelvin Isievwore on 24/04/2023.
  */
-public class FedNodeRunnerTest {
+class FedNodeRunnerTest {
     private FedNodeRunner fedNodeRunner;
     private FedNodeSystemProperties fedNodeSystemProperties;
     private Config keyFileConfig;
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public Path temporaryFolder;
 
-    @Before
-    public void setUp() throws IOException, HSMClientException {
+    @BeforeEach
+    void setUp() throws IOException, HSMClientException {
         // Create temp key file
-        File file = temporaryFolder.newFile("reg1.key");
-        FileWriter fileWriter = new FileWriter(file);
-        fileWriter.write("45c5b07fc1a6f58892615b7c31dca6c96db58c4bbc538a6b8a22999aaa860c32");
-        fileWriter.close();
-        Files.setPosixFilePermissions(file.toPath(), PosixFilePermissions.fromString("r--------")); // Add only read permission
+        Path keyFilePath = temporaryFolder.resolve("reg1.key");
+        Files.write(keyFilePath, Collections.singletonList("45c5b07fc1a6f58892615b7c31dca6c96db58c4bbc538a6b8a22999aaa860c32"));
+        Files.setPosixFilePermissions(keyFilePath, PosixFilePermissions.fromString("r--------")); // Add only read permission
 
         keyFileConfig = mock(Config.class);
-        when(keyFileConfig.getString("path")).thenReturn(file.getPath());
+        when(keyFileConfig.getString("path")).thenReturn(keyFilePath.toString());
 
         BridgeConstants bridgeConstants = mock(BridgeConstants.class);
         Constants constants = mock(Constants.class);
@@ -102,7 +99,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_hsm_v2_config_Ok() throws Exception {
+    void test_with_hsm_v2_config_Ok() throws Exception {
         SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
@@ -132,7 +129,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_hsm_v1_config() throws Exception {
+    void test_with_hsm_v1_config() throws Exception {
         SignerConfig btcSignerConfig = getHSMBTCSignerConfig(1);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
@@ -182,7 +179,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_hsm_config_without_btc() throws Exception {
+    void test_with_hsm_config_without_btc() throws Exception {
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
@@ -210,7 +207,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_hsm_v2_config_without_rsk() throws Exception {
+    void test_with_hsm_v2_config_without_rsk() throws Exception {
         SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
@@ -238,7 +235,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_hsm_v2_config_without_mst() throws Exception {
+    void test_with_hsm_v2_config_without_mst() throws Exception {
         SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
@@ -266,7 +263,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_KeyFile_config_Ok() throws Exception {
+    void test_with_KeyFile_config_Ok() throws Exception {
         SignerConfig btcSignerConfig = getBTCSignerConfig();
         SignerConfig rskSignerConfig = getRSKSignerConfig();
         SignerConfig mstSignerConfig = getMSTSignerConfig();
@@ -303,7 +300,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_KeyFile_config_without_btc() throws Exception {
+    void test_with_KeyFile_config_without_btc() throws Exception {
         SignerConfig rskSignerConfig = getRSKSignerConfig();
         SignerConfig mstSignerConfig = getMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
@@ -332,7 +329,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_KeyFile_config_without_rsk() throws Exception {
+    void test_with_KeyFile_config_without_rsk() throws Exception {
         SignerConfig btcSignerConfig = getBTCSignerConfig();
         SignerConfig mstSignerConfig = getMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
@@ -361,7 +358,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_KeyFile_config_without_mst() throws Exception {
+    void test_with_KeyFile_config_without_mst() throws Exception {
         SignerConfig btcSignerConfig = getBTCSignerConfig();
         SignerConfig rskSignerConfig = getRSKSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
@@ -390,7 +387,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_KeyFile_config_with_no_path() throws Exception {
+    void test_KeyFile_config_with_no_path() throws Exception {
         Config mockConfig = mock(Config.class);
         when(mockConfig.getString("path")).thenReturn("");
         SignerConfig btcSignerConfig = getBTCSignerConfig();
@@ -417,7 +414,7 @@ public class FedNodeRunnerTest {
     }
 
     @Test
-    public void test_with_no_config() throws Exception {
+    void test_with_no_config() throws Exception {
         fedNodeRunner.run();
 
         ECDSASigner signer = TestUtils.getInternalState(fedNodeRunner, "signer");
