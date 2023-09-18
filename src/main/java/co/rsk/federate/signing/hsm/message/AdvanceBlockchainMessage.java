@@ -1,12 +1,11 @@
 package co.rsk.federate.signing.hsm.message;
 
+import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class AdvanceBlockchainMessage {
@@ -18,10 +17,20 @@ public class AdvanceBlockchainMessage {
     }
 
     private List<ParsedHeader> parseHeadersAndBrothers(List<Block> blocks) {
+        Map<Keccak256, List<BlockHeader>> unclesByParentHash = groupUnclesByParentHash(blocks);
+
         return blocks.stream()
             .sorted(Comparator.comparingLong(Block::getNumber).reversed()) // sort blocks from latest to oldest
-            .map(block -> new ParsedHeader(block.getHeader(), filterBrothers(block.getUncleList())))
+            .map(block -> new ParsedHeader(block.getHeader(),
+                filterBrothers(unclesByParentHash.getOrDefault(block.getHash(), Collections.emptyList()))))
             .collect(Collectors.toList());
+    }
+
+    private Map<Keccak256, List<BlockHeader>> groupUnclesByParentHash(List<Block> blocks) {
+        return blocks.stream()
+            .skip(1) // Skip the oldest block (index 0)
+            .flatMap(block -> block.getUncleList().stream())
+            .collect(Collectors.groupingBy(BlockHeader::getParentHash));
     }
 
     public List<String> getParsedBlockHeaders() {
@@ -39,7 +48,7 @@ public class AdvanceBlockchainMessage {
     }
 
     private List<BlockHeader> filterBrothers(List<BlockHeader> brothers) {
-        if (brothers.size() <= BROTHERS_LIMIT_PER_BLOCK_HEADER) {
+        if (brothers == null || brothers.isEmpty() || brothers.size() <= BROTHERS_LIMIT_PER_BLOCK_HEADER) {
             return brothers;
         }
         return brothers.stream()
