@@ -511,17 +511,17 @@ class HsmBookkeepingClientImplTest {
         BlockHeader block2Header = blockHeaderBuilder.setNumber(2).build();
         BlockHeader block3Header = blockHeaderBuilder.setNumber(3).build();
 
-        List<BlockHeader> block1Brothers = Arrays.asList(
+        List<BlockHeader> block1Uncles = Arrays.asList(
             blockHeaderBuilder.setNumber(101).build(),
             blockHeaderBuilder.setNumber(102).build()
         );
-        List<BlockHeader> block2Brothers = Collections.emptyList();
-        List<BlockHeader> block3Brothers = Collections.singletonList(blockHeaderBuilder.setNumber(301).build());
+        List<BlockHeader> block2Uncles = Collections.emptyList();
+        List<BlockHeader> block3Uncles = Collections.singletonList(blockHeaderBuilder.setNumber(301).build());
 
         return Arrays.asList(
-            new Block(block1Header, Collections.emptyList(), block1Brothers, true, true),
-            new Block(block2Header, Collections.emptyList(), block2Brothers, true, true),
-            new Block(block3Header, Collections.emptyList(), block3Brothers, true, true)
+            new Block(block1Header, Collections.emptyList(), block1Uncles, true, true),
+            new Block(block2Header, Collections.emptyList(), block2Uncles, true, true),
+            new Block(block3Header, Collections.emptyList(), block3Uncles, true, true)
         );
     }
 }
