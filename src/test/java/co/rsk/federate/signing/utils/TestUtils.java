@@ -117,15 +117,15 @@ public class TestUtils {
         return block;
     }
 
-    public static Block mockBlockWithBrothers(long number, Keccak256 hash, long difficultyValue, List<BlockHeader> brothers) {
+    public static Block mockBlockWithUncles(long number, Keccak256 hash, long difficultyValue, List<BlockHeader> uncles) {
         Block block = mockBlock(number, hash, difficultyValue);
-        when(block.getUncleList()).thenReturn(brothers);
+        when(block.getUncleList()).thenReturn(uncles);
         return block;
     }
 
-    public static Block mockBlockWithBrothers(long number, Keccak256 hash, List<BlockHeader> brothers) {
-        Block block = mockBlock(number, hash);
-        when(block.getUncleList()).thenReturn(brothers);
+    public static Block mockBlockWithUncles(long number, Keccak256 hash, Keccak256 parentHash, List<BlockHeader> uncles) {
+        Block block = mockBlock(number, hash, parentHash);
+        when(block.getUncleList()).thenReturn(uncles);
         return block;
     }
 

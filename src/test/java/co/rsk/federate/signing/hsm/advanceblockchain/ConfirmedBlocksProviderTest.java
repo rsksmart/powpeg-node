@@ -190,7 +190,7 @@ class ConfirmedBlocksProviderTest {
 
         for (int i = 11; i < 17; i++) {
             long difficultyValue = 25;
-            Block mockBlockToProcess = TestUtils.mockBlockWithBrothers(i, TestUtils.createHash(i), difficultyValue, brothers);
+            Block mockBlockToProcess = TestUtils.mockBlockWithUncles(i, TestUtils.createHash(i), difficultyValue, brothers);
             when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
         }
 
@@ -239,7 +239,7 @@ class ConfirmedBlocksProviderTest {
 
         for (int i = 11; i < 19; i++) {
             long difficultyValue = 15;
-            Block mockBlockToProcess = TestUtils.mockBlockWithBrothers(i, TestUtils.createHash(i), difficultyValue, brothers);
+            Block mockBlockToProcess = TestUtils.mockBlockWithUncles(i, TestUtils.createHash(i), difficultyValue, brothers);
             when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
         }
 
