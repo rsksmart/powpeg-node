@@ -91,7 +91,6 @@ class AdvanceBlockchainMessageTest {
 
         String[] block3Brothers = message.getParsedBrothers(parsedBlockHeaders.get(2));
         assertEquals(2, block3Brothers.length);
-
         assertEquals(Hex.toHexString(block4Uncles.get(1).getFullEncoded()), block3Brothers[0]);
 
         List<BlockHeader> block5Uncles = blocks.get(4).getUncleList();
@@ -109,40 +108,51 @@ class AdvanceBlockchainMessageTest {
     @Test
     void getParsedBrothers_sorted_by_hash() throws HSMBlockchainBookkeepingRelatedException {
         List<BlockHeader> block1Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(102).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
-            blockHeaderBuilder.setNumber(105).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
             blockHeaderBuilder.setNumber(103).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
             blockHeaderBuilder.setNumber(101).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
-            blockHeaderBuilder.setNumber(104).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
+            blockHeaderBuilder.setNumber(102).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
         );
         List<BlockHeader> block2Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(202).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
+            blockHeaderBuilder.setNumber(201).setParentHashFromKeccak256(TestUtils.createHash(1)).build(),
+            blockHeaderBuilder.setNumber(203).setParentHashFromKeccak256(TestUtils.createHash(1)).build()
+        );
+        List<BlockHeader> block3Uncles = Arrays.asList(
             blockHeaderBuilder.setNumber(302).setParentHashFromKeccak256(TestUtils.createHash(2)).build(),
+            blockHeaderBuilder.setNumber(304).setParentHashFromKeccak256(TestUtils.createHash(1)).build(),
             blockHeaderBuilder.setNumber(301).setParentHashFromKeccak256(TestUtils.createHash(1)).build(),
+            blockHeaderBuilder.setNumber(305).setParentHashFromKeccak256(TestUtils.createHash(2)).build(),
             blockHeaderBuilder.setNumber(303).setParentHashFromKeccak256(TestUtils.createHash(2)).build()
         );
 
         List<Block> testBlocks = Arrays.asList(
             TestUtils.mockBlockWithUncles(1, TestUtils.createHash(1), TestUtils.createHash(0), block1Uncles),
-            TestUtils.mockBlockWithUncles(2, TestUtils.createHash(2), TestUtils.createHash(1), block2Uncles)
+            TestUtils.mockBlockWithUncles(2, TestUtils.createHash(2), TestUtils.createHash(1), block2Uncles),
+            TestUtils.mockBlockWithUncles(3, TestUtils.createHash(3), TestUtils.createHash(2), block3Uncles)
         );
 
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(testBlocks);
         List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
 
         // Headers should have been parsed in the reverse order
-        String[] block1Brothers = message.getParsedBrothers(parsedBlockHeaders.get(1));
+        String[] block1Brothers = message.getParsedBrothers(parsedBlockHeaders.get(2));
         for (int i = 0; i < block1Brothers.length - 1; i++) {
             assertTrue(block1Brothers[i].compareTo(block1Brothers[i + 1]) < 0);
         }
 
-        String[] block2Brothers = message.getParsedBrothers(parsedBlockHeaders.get(0));
+        String[] block2Brothers = message.getParsedBrothers(parsedBlockHeaders.get(1));
         for (int i = 0; i < block2Brothers.length - 1; i++) {
             assertTrue(block2Brothers[i].compareTo(block2Brothers[i + 1]) < 0);
         }
+
+        String[] block3Brothers = message.getParsedBrothers(parsedBlockHeaders.get(0));
+        assertEquals(0, block3Brothers.length);
     }
 
     @Test
     void getParsedBrothers_with_more_than_10_brothers() throws HSMBlockchainBookkeepingRelatedException {
+        List<BlockHeader> block1Uncles = Collections.emptyList();
+
         List<BlockHeader> block2Uncles = Arrays.asList(
             blockHeaderBuilder.setNumber(201)
                 .setParentHashFromKeccak256(TestUtils.createHash(1))
@@ -201,7 +211,7 @@ class AdvanceBlockchainMessageTest {
         );
 
         blocks = Arrays.asList(
-            TestUtils.mockBlockWithUncles(1, TestUtils.createHash(1), TestUtils.createHash(0), Collections.emptyList()),
+            TestUtils.mockBlockWithUncles(1, TestUtils.createHash(1), TestUtils.createHash(0), block1Uncles),
             TestUtils.mockBlockWithUncles(2, TestUtils.createHash(2), TestUtils.createHash(1), block2Uncles),
             TestUtils.mockBlockWithUncles(3, TestUtils.createHash(3), TestUtils.createHash(2), block3Uncles)
         );
