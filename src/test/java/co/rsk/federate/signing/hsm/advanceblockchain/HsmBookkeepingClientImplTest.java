@@ -26,6 +26,7 @@ import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
+import co.rsk.federate.signing.utils.TestUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -324,14 +325,17 @@ class HsmBookkeepingClientImplTest {
         assertEquals(Hex.toHexString(blocks.get(1).getHeader().getFullEncoded()), blocksInRequest.get(1).asText());
         assertEquals(Hex.toHexString(blocks.get(0).getHeader().getFullEncoded()), blocksInRequest.get(2).asText());
 
-        // Assert block brothers
-        assertEquals(blocks.get(0).getUncleList().size(), brothersInRequest.get(2).size());
-        assertEquals(blocks.get(1).getUncleList().size(), brothersInRequest.get(1).size());
-        assertEquals(blocks.get(2).getUncleList().size(), brothersInRequest.get(0).size());
+        // Assert brothers
+        List<BlockHeader> block2Uncles = blocks.get(1).getUncleList();
+        String block1Brothers = brothersInRequest.get(2).toString();
+        assertTrue(block1Brothers.contains(Hex.toHexString(block2Uncles.get(0).getFullEncoded())));
 
-        assertEquals(Hex.toHexString(blocks.get(0).getUncleList().get(0).getFullEncoded()), brothersInRequest.get(2).get(0).asText());
-        assertEquals(Hex.toHexString(blocks.get(0).getUncleList().get(1).getFullEncoded()), brothersInRequest.get(2).get(1).asText());
-        assertEquals(Hex.toHexString(blocks.get(2).getUncleList().get(0).getFullEncoded()), brothersInRequest.get(0).get(0).asText());
+        List<BlockHeader> block3Uncles = blocks.get(2).getUncleList();
+        String block2Brothers = brothersInRequest.get(1).toString();
+        assertTrue(block2Brothers.contains(Hex.toHexString(block3Uncles.get(0).getFullEncoded())));
+
+        JsonNode block3Brothers = brothersInRequest.get(0);
+        assertTrue(block3Brothers.isEmpty());
     }
 
     @Test
@@ -507,21 +511,22 @@ class HsmBookkeepingClientImplTest {
     }
 
     private List<Block> buildBlocks() {
-        BlockHeader block1Header = blockHeaderBuilder.setNumber(1).build();
-        BlockHeader block2Header = blockHeaderBuilder.setNumber(2).build();
-        BlockHeader block3Header = blockHeaderBuilder.setNumber(3).build();
-
+        // 3 Blocks, 1 Brother Each For Block 2 And Block 1
         List<BlockHeader> block1Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(101).build(),
-            blockHeaderBuilder.setNumber(102).build()
+            blockHeaderBuilder.setNumber(101).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
+            blockHeaderBuilder.setNumber(102).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
         );
-        List<BlockHeader> block2Uncles = Collections.emptyList();
-        List<BlockHeader> block3Uncles = Collections.singletonList(blockHeaderBuilder.setNumber(301).build());
+        List<BlockHeader> block2Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(201).setParentHashFromKeccak256(TestUtils.createHash(1)).build(),
+            blockHeaderBuilder.setNumber(202).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
+        );
+        List<BlockHeader> block3Uncles = Collections.singletonList(
+            blockHeaderBuilder.setNumber(301).setParentHashFromKeccak256(TestUtils.createHash(2)).build());
 
         return Arrays.asList(
-            new Block(block1Header, Collections.emptyList(), block1Uncles, true, true),
-            new Block(block2Header, Collections.emptyList(), block2Uncles, true, true),
-            new Block(block3Header, Collections.emptyList(), block3Uncles, true, true)
+            TestUtils.mockBlockWithUncles(1, TestUtils.createHash(1), TestUtils.createHash(0), block1Uncles),
+            TestUtils.mockBlockWithUncles(2, TestUtils.createHash(2), TestUtils.createHash(1), block2Uncles),
+            TestUtils.mockBlockWithUncles(3, TestUtils.createHash(3), TestUtils.createHash(2), block3Uncles)
         );
     }
 }
