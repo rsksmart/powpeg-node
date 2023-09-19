@@ -17,16 +17,16 @@ public class AdvanceBlockchainMessage {
     }
 
     private List<ParsedHeader> parseHeadersAndBrothers(List<Block> blocks) {
-        Map<Keccak256, List<BlockHeader>> unclesByParentHash = groupUnclesByParentHash(blocks);
+        Map<Keccak256, List<BlockHeader>> brothersByParentHash = groupBrothersByParentHash(blocks);
 
         return blocks.stream()
             .sorted(Comparator.comparingLong(Block::getNumber).reversed()) // sort blocks from latest to oldest
             .map(block -> new ParsedHeader(block.getHeader(),
-                filterBrothers(unclesByParentHash.getOrDefault(block.getHash(), Collections.emptyList()))))
+                filterBrothers(brothersByParentHash.getOrDefault(block.getHash(), Collections.emptyList()))))
             .collect(Collectors.toList());
     }
 
-    private Map<Keccak256, List<BlockHeader>> groupUnclesByParentHash(List<Block> blocks) {
+    private Map<Keccak256, List<BlockHeader>> groupBrothersByParentHash(List<Block> blocks) {
         return blocks.stream()
             .skip(1) // Skip the oldest block (index 0)
             .flatMap(block -> block.getUncleList().stream())
