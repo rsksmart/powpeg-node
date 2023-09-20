@@ -22,13 +22,13 @@ public class AdvanceBlockchainMessage {
         return blocks.stream()
             .sorted(Comparator.comparingLong(Block::getNumber).reversed()) // sort blocks from latest to oldest
             .map(block -> new ParsedHeader(block.getHeader(),
-                filterBrothers(brothersByParentHash.getOrDefault(block.getHash(), Collections.emptyList()))))
+                filterBrothers(brothersByParentHash.getOrDefault(block.getParentHash(), Collections.emptyList()))))
             .collect(Collectors.toList());
     }
 
     private Map<Keccak256, List<BlockHeader>> groupBrothersByParentHash(List<Block> blocks) {
         return blocks.stream()
-            .skip(1) // Skip the oldest block (index 0)
+            .skip(1) // Skip the oldest block (index 0) because its uncles doesn't belong to this set of blocks
             .flatMap(block -> block.getUncleList().stream())
             .collect(Collectors.groupingBy(BlockHeader::getParentHash));
     }
