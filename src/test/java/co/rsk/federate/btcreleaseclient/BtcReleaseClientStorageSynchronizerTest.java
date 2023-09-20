@@ -19,7 +19,7 @@ import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.peg.utils.BridgeEventLoggerImpl;
+import co.rsk.bridge.utils.BridgeEventLoggerImpl;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

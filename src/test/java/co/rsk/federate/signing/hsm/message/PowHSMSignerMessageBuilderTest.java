@@ -9,7 +9,7 @@ import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.utils.TestUtils;
-import co.rsk.peg.Federation;
+import co.rsk.bridge.Federation;
 import co.rsk.trie.Trie;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
@@ -20,7 +20,6 @@ import org.ethereum.db.TransactionInfo;
 import org.junit.Test;
 import org.spongycastle.util.encoders.Hex;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;

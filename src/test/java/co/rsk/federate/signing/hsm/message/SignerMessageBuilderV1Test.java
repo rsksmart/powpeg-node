@@ -6,7 +6,7 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.config.BridgeRegTestConstants;
-import co.rsk.peg.Federation;
+import co.rsk.bridge.Federation;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;

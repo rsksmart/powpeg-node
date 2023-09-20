@@ -4,7 +4,7 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.utils.TestUtils;
-import co.rsk.peg.BridgeEvents;
+import co.rsk.bridge.BridgeEvents;
 import org.ethereum.core.*;
 import org.ethereum.db.BlockStore;
 import org.ethereum.db.ReceiptStore;

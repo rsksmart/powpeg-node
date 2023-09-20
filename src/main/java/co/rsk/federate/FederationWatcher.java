@@ -1,7 +1,7 @@
 package co.rsk.federate;
 
 import co.rsk.bitcoinj.core.Address;
-import co.rsk.peg.Federation;
+import co.rsk.bridge.Federation;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;

@@ -2,7 +2,7 @@ package co.rsk.federate.signing.hsm.message;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.crypto.Keccak256;
-import co.rsk.peg.BridgeEvents;
+import co.rsk.bridge.BridgeEvents;
 import org.ethereum.core.Block;
 import org.ethereum.core.CallTransaction;
 import org.ethereum.core.Transaction;
