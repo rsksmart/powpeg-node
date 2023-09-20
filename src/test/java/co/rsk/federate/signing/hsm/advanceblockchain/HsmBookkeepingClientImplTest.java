@@ -329,10 +329,12 @@ class HsmBookkeepingClientImplTest {
         List<BlockHeader> block2Uncles = blocks.get(1).getUncleList();
         String block1Brothers = brothersInRequest.get(2).toString();
         assertTrue(block1Brothers.contains(Hex.toHexString(block2Uncles.get(0).getFullEncoded())));
+        assertTrue(block1Brothers.contains(Hex.toHexString(block2Uncles.get(1).getFullEncoded())));
 
         List<BlockHeader> block3Uncles = blocks.get(2).getUncleList();
         String block2Brothers = brothersInRequest.get(1).toString();
         assertTrue(block2Brothers.contains(Hex.toHexString(block3Uncles.get(0).getFullEncoded())));
+        assertTrue(block2Brothers.contains(Hex.toHexString(block3Uncles.get(1).getFullEncoded())));
 
         JsonNode block3Brothers = brothersInRequest.get(0);
         assertTrue(block3Brothers.isEmpty());
@@ -511,22 +513,26 @@ class HsmBookkeepingClientImplTest {
     }
 
     private List<Block> buildBlocks() {
-        // 3 Blocks, 1 Brother Each For Block 2 And Block 1
-        List<BlockHeader> block1Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(101).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
-            blockHeaderBuilder.setNumber(102).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
+        BlockHeader block1Header = blockHeaderBuilder.setNumber(1).setParentHashFromKeccak256(TestUtils.createHash(0)).build();
+        BlockHeader block2Header = blockHeaderBuilder.setNumber(2).setParentHashFromKeccak256(TestUtils.createHash(1)).build();
+        BlockHeader block3Header = blockHeaderBuilder.setNumber(3).setParentHashFromKeccak256(TestUtils.createHash(2)).build();
+
+        List<BlockHeader> block1Uncles = Collections.singletonList(
+            blockHeaderBuilder.setNumber(101).setParentHashFromKeccak256(block1Header.getParentHash()).build()
         );
         List<BlockHeader> block2Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(201).setParentHashFromKeccak256(TestUtils.createHash(1)).build(),
-            blockHeaderBuilder.setNumber(202).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
+            blockHeaderBuilder.setNumber(201).setParentHashFromKeccak256(block1Header.getParentHash()).build(),
+            blockHeaderBuilder.setNumber(202).setParentHashFromKeccak256(block1Header.getParentHash()).build()
         );
-        List<BlockHeader> block3Uncles = Collections.singletonList(
-            blockHeaderBuilder.setNumber(301).setParentHashFromKeccak256(TestUtils.createHash(2)).build());
+        List<BlockHeader> block3Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(301).setParentHashFromKeccak256(block2Header.getParentHash()).build(),
+            blockHeaderBuilder.setNumber(302).setParentHashFromKeccak256(block2Header.getParentHash()).build()
+        );
 
         return Arrays.asList(
-            TestUtils.mockBlockWithUncles(1, TestUtils.createHash(1), TestUtils.createHash(0), block1Uncles),
-            TestUtils.mockBlockWithUncles(2, TestUtils.createHash(2), TestUtils.createHash(1), block2Uncles),
-            TestUtils.mockBlockWithUncles(3, TestUtils.createHash(3), TestUtils.createHash(2), block3Uncles)
+            new Block(block1Header, Collections.emptyList(), block1Uncles, true, true),
+            new Block(block2Header, Collections.emptyList(), block2Uncles, true, true),
+            new Block(block3Header, Collections.emptyList(), block3Uncles, true, true)
         );
     }
 }
