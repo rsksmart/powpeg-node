@@ -2,7 +2,7 @@ package co.rsk.federate.btcreleaseclient;
 
 import co.rsk.crypto.Keccak256;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.peg.BridgeEvents;
+import co.rsk.bridge.BridgeEvents;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

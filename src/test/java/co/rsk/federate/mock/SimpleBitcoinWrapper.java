@@ -3,7 +3,7 @@ package co.rsk.federate.mock;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BlockListener;
 import co.rsk.federate.bitcoin.TransactionListener;
-import co.rsk.peg.Federation;
+import co.rsk.bridge.Federation;
 import org.bitcoinj.core.*;
 import org.bitcoinj.core.listeners.NewBestBlockListener;
 import org.bitcoinj.store.BlockStoreException;

@@ -1,6 +1,6 @@
 package co.rsk.federate.bitcoin;
 
-import co.rsk.peg.Federation;
+import co.rsk.bridge.Federation;
 import org.bitcoinj.core.*;
 import org.bitcoinj.core.listeners.NewBestBlockListener;
 import org.bitcoinj.store.BlockStoreException;

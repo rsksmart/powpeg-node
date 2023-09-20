@@ -19,7 +19,7 @@
 package co.rsk.federate;
 
 import co.rsk.bitcoinj.core.Address;
-import co.rsk.peg.Federation;
+import co.rsk.bridge.Federation;
 
 import java.util.List;
 import java.util.Optional;
