@@ -89,30 +89,9 @@ class AdvanceBlockchainMessageTest {
 
     @Test
     void getParsedBrothers_sorted_by_hash() throws HSMBlockchainBookkeepingRelatedException {
-        List<BlockHeader> block1Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(103).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
-            blockHeaderBuilder.setNumber(101).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
-            blockHeaderBuilder.setNumber(102).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
-        );
-        List<BlockHeader> block2Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(202).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
-            blockHeaderBuilder.setNumber(201).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
-        );
-        List<BlockHeader> block3Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(302).setParentHashFromKeccak256(TestUtils.createHash(1)).build(),
-            blockHeaderBuilder.setNumber(304).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
-            blockHeaderBuilder.setNumber(301).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
-            blockHeaderBuilder.setNumber(305).setParentHashFromKeccak256(TestUtils.createHash(1)).build(),
-            blockHeaderBuilder.setNumber(303).setParentHashFromKeccak256(TestUtils.createHash(1)).build()
-        );
+        List<Block> unsortedBlocks = buildUnsortedBlocks();
 
-        List<Block> testBlocks = Arrays.asList(
-            new Block(blockHeaders.get(0), Collections.emptyList(), block1Uncles, true, true),
-            new Block(blockHeaders.get(1), Collections.emptyList(), block2Uncles, true, true),
-            new Block(blockHeaders.get(2), Collections.emptyList(), block3Uncles, true, true)
-        );
-
-        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(testBlocks);
+        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(unsortedBlocks);
         List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
 
         // Headers should have been parsed in the reverse order
@@ -132,92 +111,15 @@ class AdvanceBlockchainMessageTest {
 
     @Test
     void getParsedBrothers_with_more_than_10_brothers() throws HSMBlockchainBookkeepingRelatedException {
-        List<BlockHeader> block1Uncles = Collections.emptyList();
-        List<BlockHeader> block2Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(201)
-                .setParentHashFromKeccak256(blockHeaders.get(0).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(20))).build(),
-            blockHeaderBuilder.setNumber(202)
-                .setParentHashFromKeccak256(blockHeaders.get(0).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(30))).build()
-        );
-        List<BlockHeader> block3Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(301)
-                .setParentHashFromKeccak256(blockHeaders.get(1).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(20))).build(),
-            blockHeaderBuilder.setNumber(302)
-                .setParentHashFromKeccak256(blockHeaders.get(0).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(30))).build(),
-            blockHeaderBuilder.setNumber(303)
-                .setParentHashFromKeccak256(blockHeaders.get(1).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(40))).build()
-        );
-        List<BlockHeader> block4Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(401)
-                .setParentHashFromKeccak256(blockHeaders.get(1).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(20))).build(),
-            blockHeaderBuilder.setNumber(402)
-                .setParentHashFromKeccak256(blockHeaders.get(1).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(30))).build(),
-            blockHeaderBuilder.setNumber(403)
-                .setParentHashFromKeccak256(blockHeaders.get(0).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(40))).build(),
-            blockHeaderBuilder.setNumber(404)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(50))).build()
-        );
-        List<BlockHeader> block5Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(501)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(100))).build(),
-            blockHeaderBuilder.setNumber(502)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(110))).build(),
-            blockHeaderBuilder.setNumber(503)
-                .setParentHashFromKeccak256(blockHeaders.get(3).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(70))).build(),
-            blockHeaderBuilder.setNumber(504)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(120))).build(),
-            blockHeaderBuilder.setNumber(505)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(130))).build(),
-            blockHeaderBuilder.setNumber(506)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(140))).build(),
-            blockHeaderBuilder.setNumber(507)
-                .setParentHashFromKeccak256(blockHeaders.get(3).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(50))).build(),
-            blockHeaderBuilder.setNumber(508)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(150))).build(),
-            blockHeaderBuilder.setNumber(509)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(160))).build(),
-            blockHeaderBuilder.setNumber(510)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(170))).build(),
-            blockHeaderBuilder.setNumber(511)
-                .setParentHashFromKeccak256(blockHeaders.get(3).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(80))).build(),
-            blockHeaderBuilder.setNumber(512)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(180))).build(),
-            blockHeaderBuilder.setNumber(513)
-                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
-                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(190))).build()
-        );
+        List<Block> multipleBrothersBlocks = buildMultipleBrothersBlocks();
 
-        blocks = Arrays.asList(
-            new Block(blockHeaders.get(0), Collections.emptyList(), block1Uncles, true, true),
-            new Block(blockHeaders.get(1), Collections.emptyList(), block2Uncles, true, true),
-            new Block(blockHeaders.get(2), Collections.emptyList(), block3Uncles, true, true),
-            new Block(blockHeaders.get(3), Collections.emptyList(), block4Uncles, true, true),
-            new Block(blockHeaders.get(4), Collections.emptyList(), block5Uncles, true, true)
-        );
-
-        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
+        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(multipleBrothersBlocks);
         List<String> parsedBlockHeaders = message.getParsedBlockHeaders();
+
+        List<BlockHeader> block2Uncles = multipleBrothersBlocks.get(1).getUncleList();
+        List<BlockHeader> block3Uncles = multipleBrothersBlocks.get(2).getUncleList();
+        List<BlockHeader> block4Uncles = multipleBrothersBlocks.get(3).getUncleList();
+        List<BlockHeader> block5Uncles = multipleBrothersBlocks.get(4).getUncleList();
 
         // Headers should have been parsed in the reverse order
         String[] block1Brothers = message.getParsedBrothers(parsedBlockHeaders.get(4));
@@ -296,6 +198,117 @@ class AdvanceBlockchainMessageTest {
         );
         List<BlockHeader> block5Uncles = Collections.singletonList(
             blockHeaderBuilder.setNumber(501).setParentHashFromKeccak256(blockHeaders.get(3).getParentHash()).build()
+        );
+
+        return Arrays.asList(
+            new Block(blockHeaders.get(0), Collections.emptyList(), block1Uncles, true, true),
+            new Block(blockHeaders.get(1), Collections.emptyList(), block2Uncles, true, true),
+            new Block(blockHeaders.get(2), Collections.emptyList(), block3Uncles, true, true),
+            new Block(blockHeaders.get(3), Collections.emptyList(), block4Uncles, true, true),
+            new Block(blockHeaders.get(4), Collections.emptyList(), block5Uncles, true, true)
+        );
+    }
+
+    private List<Block> buildUnsortedBlocks() {
+        List<BlockHeader> block1Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(103).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
+            blockHeaderBuilder.setNumber(101).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
+            blockHeaderBuilder.setNumber(102).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
+        );
+        List<BlockHeader> block2Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(202).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
+            blockHeaderBuilder.setNumber(201).setParentHashFromKeccak256(TestUtils.createHash(0)).build()
+        );
+        List<BlockHeader> block3Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(302).setParentHashFromKeccak256(TestUtils.createHash(1)).build(),
+            blockHeaderBuilder.setNumber(304).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
+            blockHeaderBuilder.setNumber(301).setParentHashFromKeccak256(TestUtils.createHash(0)).build(),
+            blockHeaderBuilder.setNumber(305).setParentHashFromKeccak256(TestUtils.createHash(1)).build(),
+            blockHeaderBuilder.setNumber(303).setParentHashFromKeccak256(TestUtils.createHash(1)).build()
+        );
+
+        return Arrays.asList(
+            new Block(blockHeaders.get(0), Collections.emptyList(), block1Uncles, true, true),
+            new Block(blockHeaders.get(1), Collections.emptyList(), block2Uncles, true, true),
+            new Block(blockHeaders.get(2), Collections.emptyList(), block3Uncles, true, true)
+        );
+    }
+
+    private List<Block> buildMultipleBrothersBlocks() {
+        List<BlockHeader> block1Uncles = Collections.emptyList();
+        List<BlockHeader> block2Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(201)
+                .setParentHashFromKeccak256(blockHeaders.get(0).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(20))).build(),
+            blockHeaderBuilder.setNumber(202)
+                .setParentHashFromKeccak256(blockHeaders.get(0).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(30))).build()
+        );
+        List<BlockHeader> block3Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(301)
+                .setParentHashFromKeccak256(blockHeaders.get(1).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(20))).build(),
+            blockHeaderBuilder.setNumber(302)
+                .setParentHashFromKeccak256(blockHeaders.get(0).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(30))).build(),
+            blockHeaderBuilder.setNumber(303)
+                .setParentHashFromKeccak256(blockHeaders.get(1).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(40))).build()
+        );
+        List<BlockHeader> block4Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(401)
+                .setParentHashFromKeccak256(blockHeaders.get(1).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(20))).build(),
+            blockHeaderBuilder.setNumber(402)
+                .setParentHashFromKeccak256(blockHeaders.get(1).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(30))).build(),
+            blockHeaderBuilder.setNumber(403)
+                .setParentHashFromKeccak256(blockHeaders.get(0).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(40))).build(),
+            blockHeaderBuilder.setNumber(404)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(50))).build()
+        );
+        List<BlockHeader> block5Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(501)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(100))).build(),
+            blockHeaderBuilder.setNumber(502)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(110))).build(),
+            blockHeaderBuilder.setNumber(503)
+                .setParentHashFromKeccak256(blockHeaders.get(3).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(70))).build(),
+            blockHeaderBuilder.setNumber(504)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(120))).build(),
+            blockHeaderBuilder.setNumber(505)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(130))).build(),
+            blockHeaderBuilder.setNumber(506)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(140))).build(),
+            blockHeaderBuilder.setNumber(507)
+                .setParentHashFromKeccak256(blockHeaders.get(3).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(50))).build(),
+            blockHeaderBuilder.setNumber(508)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(150))).build(),
+            blockHeaderBuilder.setNumber(509)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(160))).build(),
+            blockHeaderBuilder.setNumber(510)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(170))).build(),
+            blockHeaderBuilder.setNumber(511)
+                .setParentHashFromKeccak256(blockHeaders.get(3).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(80))).build(),
+            blockHeaderBuilder.setNumber(512)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(180))).build(),
+            blockHeaderBuilder.setNumber(513)
+                .setParentHashFromKeccak256(blockHeaders.get(2).getParentHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(190))).build()
         );
 
         return Arrays.asList(
