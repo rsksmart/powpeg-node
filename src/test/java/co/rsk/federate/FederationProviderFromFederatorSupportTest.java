@@ -1,5 +1,14 @@
 package co.rsk.federate;
 
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP284;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
@@ -10,25 +19,19 @@ import co.rsk.peg.ErpFederation;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
 import co.rsk.peg.P2shErpFederation;
-import org.bouncycastle.util.encoders.Hex;
-import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.crypto.ECKey;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.bouncycastle.util.encoders.Hex;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.crypto.ECKey;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP284;
-import static org.mockito.Mockito.*;
-
-public class FederationProviderFromFederatorSupportTest {
+class FederationProviderFromFederatorSupportTest {
     private FederatorSupport federatorSupportMock;
     private FederationProvider federationProvider;
     private BridgeConstants bridgeConstants;
@@ -43,8 +46,8 @@ public class FederationProviderFromFederatorSupportTest {
         Hex.decode("6453210208f40073a9e43b3e9103acec79767a6de9b0409749884e989960fee578012fce210225e892391625854128c5c4ea4340de0c2a70570f33db53426fc9c746597a03f42102afc230c2d355b1a577682b07bc2646041b5d0177af0f98395a46018da699b6da210344a3c38cd59afcba3edcebe143e025574594b001700dec41e59409bdbd0f2a0921039a060badbeb24bee49eb2063f616c0f0f0765d4ca646b20a88ce828f259fcdb955670300cd50b27552210216c23b2ea8e4f11c3f9e22711addb1d16a93964796913830856b568cc3ea21d3210275562901dd8faae20de0a4166362a4f82188db77dbed4ca887422ea1ec185f1421034db69f2112f4fb1bb6141bf6e2bd6631f0484d0bd95b16767902c9fe219d4a6f5368ae")
     );
 
-    @Before
-    public void createProvider() {
+    @BeforeEach
+    void createProvider() {
         bridgeConstants = BridgeTestNetConstants.getInstance();
         federatorSupportMock = mock(FederatorSupport.class);
         federationProvider = new FederationProviderFromFederatorSupport(
@@ -56,7 +59,7 @@ public class FederationProviderFromFederatorSupportTest {
     }
 
     @Test
-    public void getActiveFederation_beforeMultikey() {
+    void getActiveFederation_beforeMultikey() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(false);
 
@@ -77,13 +80,13 @@ public class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        Assert.assertTrue(obtainedFederation instanceof Federation);
-        Assert.assertEquals(expectedFederation, obtainedFederation);
-        Assert.assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
+        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(expectedFederation, obtainedFederation);
+        assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
     @Test
-    public void getActiveFederation_afterMultikey() {
+    void getActiveFederation_afterMultikey() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -106,13 +109,13 @@ public class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        Assert.assertTrue(obtainedFederation instanceof Federation);
-        Assert.assertEquals(expectedFederation, obtainedFederation);
-        Assert.assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
+        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(expectedFederation, obtainedFederation);
+        assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
     @Test
-    public void getActiveFederation_erp_federation() {
+    void getActiveFederation_erp_federation() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -136,13 +139,13 @@ public class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        Assert.assertTrue(obtainedFederation instanceof ErpFederation);
-        Assert.assertEquals(expectedFederation, obtainedFederation);
-        Assert.assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
+        assertTrue(obtainedFederation instanceof ErpFederation);
+        assertEquals(expectedFederation, obtainedFederation);
+        assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
     @Test
-    public void getActiveFederation_erp_federation_testnet_hardcoded() {
+    void getActiveFederation_erp_federation_testnet_hardcoded() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
         when(configMock.isActive(RSKIP284)).thenReturn(false);
@@ -168,14 +171,14 @@ public class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        Assert.assertTrue(obtainedFederation instanceof ErpFederation);
-        Assert.assertEquals(expectedFederation, obtainedFederation);
-        Assert.assertEquals(HARDCODED_TESTNET_FED_ADDRESS, obtainedFederation.getAddress());
-        Assert.assertEquals(HARDCODED_TESTNET_FED_REDEEM_SCRIPT, obtainedFederation.getRedeemScript());
+        assertTrue(obtainedFederation instanceof ErpFederation);
+        assertEquals(expectedFederation, obtainedFederation);
+        assertEquals(HARDCODED_TESTNET_FED_ADDRESS, obtainedFederation.getAddress());
+        assertEquals(HARDCODED_TESTNET_FED_REDEEM_SCRIPT, obtainedFederation.getRedeemScript());
     }
 
     @Test
-    public void getActiveFederation_p2sh_erp_federation() {
+    void getActiveFederation_p2sh_erp_federation() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -199,41 +202,41 @@ public class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        Assert.assertTrue(obtainedFederation instanceof P2shErpFederation);
-        Assert.assertEquals(expectedFederation, obtainedFederation);
-        Assert.assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
+        assertTrue(obtainedFederation instanceof P2shErpFederation);
+        assertEquals(expectedFederation, obtainedFederation);
+        assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
     @Test
-    public void getActiveFederationAddress() {
+    void getActiveFederationAddress() {
         Address randomAddress = new BtcECKey().toAddress(testnetParams);
 
         when(federatorSupportMock.getBtcParams()).thenReturn(testnetParams);
         when(federatorSupportMock.getFederationAddress()).thenReturn(randomAddress);
 
-        Assert.assertEquals(randomAddress, federationProvider.getActiveFederationAddress());
+        assertEquals(randomAddress, federationProvider.getActiveFederationAddress());
     }
 
     @Test
-    public void getRetiringFederation_none() {
+    void getRetiringFederation_none() {
         when(federatorSupportMock.getRetiringFederationSize()).thenReturn(-1);
 
-        Assert.assertEquals(Optional.empty(), federationProvider.getRetiringFederation());
+        assertEquals(Optional.empty(), federationProvider.getRetiringFederation());
         verify(federatorSupportMock, times(1)).getRetiringFederationSize();
         verify(federatorSupportMock, times(1)).getRetiringFederationAddress();
     }
 
     @Test
-    public void getRetiringFederation_no_address() {
+    void getRetiringFederation_no_address() {
         when(federatorSupportMock.getRetiringFederationSize()).thenReturn(5);
 
-        Assert.assertEquals(Optional.empty(), federationProvider.getRetiringFederation());
+        assertEquals(Optional.empty(), federationProvider.getRetiringFederation());
         verify(federatorSupportMock, times(1)).getRetiringFederationSize();
         verify(federatorSupportMock, times(1)).getRetiringFederationAddress();
     }
 
     @Test
-    public void getRetiringFederation_present_beforeMultikey() {
+    void getRetiringFederation_present_beforeMultikey() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(false);
 
@@ -253,17 +256,17 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         Optional<Federation> obtainedFederationOptional = federationProvider.getRetiringFederation();
-        Assert.assertTrue(obtainedFederationOptional.isPresent());
+        assertTrue(obtainedFederationOptional.isPresent());
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        Assert.assertTrue(obtainedFederation instanceof Federation);
-        Assert.assertEquals(expectedFederation, obtainedFederation);
-        Assert.assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
+        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(expectedFederation, obtainedFederation);
+        assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
     @Test
-    public void getRetiringFederation_present_afterMultikey() {
+    void getRetiringFederation_present_afterMultikey() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -285,17 +288,17 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         Optional<Federation> obtainedFederationOptional = federationProvider.getRetiringFederation();
-        Assert.assertTrue(obtainedFederationOptional.isPresent());
+        assertTrue(obtainedFederationOptional.isPresent());
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        Assert.assertTrue(obtainedFederation instanceof Federation);
-        Assert.assertEquals(expectedFederation, obtainedFederation);
-        Assert.assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
+        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(expectedFederation, obtainedFederation);
+        assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
     @Test
-    public void getRetiringFederation_present_erp_federation() {
+    void getRetiringFederation_present_erp_federation() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -318,17 +321,17 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         Optional<Federation> obtainedFederationOptional = federationProvider.getRetiringFederation();
-        Assert.assertTrue(obtainedFederationOptional.isPresent());
+        assertTrue(obtainedFederationOptional.isPresent());
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        Assert.assertTrue(obtainedFederation instanceof ErpFederation);
-        Assert.assertEquals(expectedFederation, obtainedFederation);
-        Assert.assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
+        assertTrue(obtainedFederation instanceof ErpFederation);
+        assertEquals(expectedFederation, obtainedFederation);
+        assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
     @Test
-    public void getRetiringFederation_present_p2sh_erp_federation() {
+    void getRetiringFederation_present_p2sh_erp_federation() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -351,17 +354,17 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         Optional<Federation> obtainedFederationOptional = federationProvider.getRetiringFederation();
-        Assert.assertTrue(obtainedFederationOptional.isPresent());
+        assertTrue(obtainedFederationOptional.isPresent());
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        Assert.assertTrue(obtainedFederation instanceof P2shErpFederation);
-        Assert.assertEquals(expectedFederation, obtainedFederation);
-        Assert.assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
+        assertTrue(obtainedFederation instanceof P2shErpFederation);
+        assertEquals(expectedFederation, obtainedFederation);
+        assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_onlyActive_beforeMultikey() {
+    void getLiveFederations_onlyActive_beforeMultikey() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(false);
 
@@ -382,16 +385,16 @@ public class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getRetiringFederationSize()).thenReturn(-1);
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(1, liveFederations.size());
+        assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof Federation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof Federation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_onlyActive_afterMultikey() {
+    void getLiveFederations_onlyActive_afterMultikey() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -414,16 +417,16 @@ public class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getRetiringFederationSize()).thenReturn(-1);
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(1, liveFederations.size());
+        assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof Federation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof Federation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_onlyActive_erp_federation() {
+    void getLiveFederations_onlyActive_erp_federation() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -447,16 +450,16 @@ public class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getRetiringFederationSize()).thenReturn(-1);
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(1, liveFederations.size());
+        assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof ErpFederation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof ErpFederation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_onlyActive_p2sh_erp_federation() {
+    void getLiveFederations_onlyActive_p2sh_erp_federation() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -480,16 +483,16 @@ public class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getRetiringFederationSize()).thenReturn(-1);
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(1, liveFederations.size());
+        assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof P2shErpFederation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof P2shErpFederation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_both_beforeMultikey() {
+    void getLiveFederations_both_beforeMultikey() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(false);
 
@@ -523,21 +526,21 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(2, liveFederations.size());
+        assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof Federation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof Federation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        Assert.assertTrue(retiringFederation instanceof Federation);
-        Assert.assertEquals(expectedRetiringFederation, retiringFederation);
-        Assert.assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
+        assertTrue(retiringFederation instanceof Federation);
+        assertEquals(expectedRetiringFederation, retiringFederation);
+        assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_both_afterMultikey() {
+    void getLiveFederations_both_afterMultikey() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -575,21 +578,21 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(2, liveFederations.size());
+        assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof Federation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof Federation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        Assert.assertTrue(retiringFederation instanceof Federation);
-        Assert.assertEquals(expectedRetiringFederation, retiringFederation);
-        Assert.assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
+        assertTrue(retiringFederation instanceof Federation);
+        assertEquals(expectedRetiringFederation, retiringFederation);
+        assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_both_erp_federations() {
+    void getLiveFederations_both_erp_federations() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -629,21 +632,21 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(2, liveFederations.size());
+        assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof ErpFederation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof ErpFederation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        Assert.assertTrue(retiringFederation instanceof ErpFederation);
-        Assert.assertEquals(expectedRetiringFederation, retiringFederation);
-        Assert.assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
+        assertTrue(retiringFederation instanceof ErpFederation);
+        assertEquals(expectedRetiringFederation, retiringFederation);
+        assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_retiring_multikey_active_erp() {
+    void getLiveFederations_retiring_multikey_active_erp() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -682,21 +685,21 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(2, liveFederations.size());
+        assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof ErpFederation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof ErpFederation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        Assert.assertTrue(retiringFederation instanceof Federation);
-        Assert.assertEquals(expectedRetiringFederation, retiringFederation);
-        Assert.assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
+        assertTrue(retiringFederation instanceof Federation);
+        assertEquals(expectedRetiringFederation, retiringFederation);
+        assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_retiring_erp_active_p2sh_erp() {
+    void getLiveFederations_retiring_erp_active_p2sh_erp() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -736,21 +739,21 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(2, liveFederations.size());
+        assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof P2shErpFederation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof P2shErpFederation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        Assert.assertTrue(retiringFederation instanceof ErpFederation);
-        Assert.assertEquals(expectedRetiringFederation, retiringFederation);
-        Assert.assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
+        assertTrue(retiringFederation instanceof ErpFederation);
+        assertEquals(expectedRetiringFederation, retiringFederation);
+        assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
 
     @Test
-    public void getLiveFederations_both_p2sh_erp_federations() {
+    void getLiveFederations_both_p2sh_erp_federations() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
@@ -790,17 +793,17 @@ public class FederationProviderFromFederatorSupportTest {
         }
 
         List<Federation> liveFederations = federationProvider.getLiveFederations();
-        Assert.assertEquals(2, liveFederations.size());
+        assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        Assert.assertTrue(activeFederation instanceof P2shErpFederation);
-        Assert.assertEquals(expectedActiveFederation, activeFederation);
-        Assert.assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
+        assertTrue(activeFederation instanceof P2shErpFederation);
+        assertEquals(expectedActiveFederation, activeFederation);
+        assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        Assert.assertTrue(retiringFederation instanceof P2shErpFederation);
-        Assert.assertEquals(expectedRetiringFederation, retiringFederation);
-        Assert.assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
+        assertTrue(retiringFederation instanceof P2shErpFederation);
+        assertEquals(expectedRetiringFederation, retiringFederation);
+        assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
 
     private Federation createFederation(List<FederationMember> members) {

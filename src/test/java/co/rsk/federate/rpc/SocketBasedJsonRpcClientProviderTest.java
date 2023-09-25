@@ -18,25 +18,35 @@
 
 package co.rsk.federate.rpc;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import java.io.IOException;
+import java.net.Socket;
+import java.net.SocketAddress;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketAddress;
-
-import static org.mockito.Mockito.*;
-
-@RunWith(MockitoJUnitRunner.class)
-public class SocketBasedJsonRpcClientProviderTest {
+@ExtendWith(MockitoExtension.class)
+class SocketBasedJsonRpcClientProviderTest {
     private static final int MOCKED_PORT = 1111;
 
     private static final ArgumentMatcher<Socket> MOCKED_SOCKET_MATCHER = s -> s.getPort() == MOCKED_PORT;
@@ -45,23 +55,23 @@ public class SocketBasedJsonRpcClientProviderTest {
     private SocketBasedJsonRpcClientProvider provider;
     private int counter;
 
-    @Before
-    public void createProvider() {
+    @BeforeEach
+    void createProvider() {
         mockAddress = mock(SocketAddress.class);
         provider = new SocketBasedJsonRpcClientProvider(mockAddress);
         counter = 0;
     }
 
     @Test
-    public void defaults() {
-        Assert.assertSame(mockAddress, provider.getAddress());
-        Assert.assertEquals(3, provider.getMaxConnectionAttempts());
-        Assert.assertEquals(1000, provider.getConnectionTimeout());
-        Assert.assertEquals(2000, provider.getSocketTimeout());
+    void defaults() {
+        assertSame(mockAddress, provider.getAddress());
+        assertEquals(3, provider.getMaxConnectionAttempts());
+        assertEquals(1000, provider.getConnectionTimeout());
+        assertEquals(2000, provider.getSocketTimeout());
     }
 
     @Test
-    public void acquireOk() throws Exception {
+    void acquireOk() throws Exception {
         try (MockedConstruction<Socket> socketMockedConstruction = mockConstruction(Socket.class, this::createMockedSocket);
              MockedStatic<JsonRpcOnStreamClient> jsonRpcOnStreamClientMocked = mockStatic(JsonRpcOnStreamClient.class)) {
 
@@ -73,14 +83,14 @@ public class SocketBasedJsonRpcClientProviderTest {
             JsonRpcClient client = provider.acquire();
             Socket socketMocked = socketMockedConstruction.constructed().get(0);
 
-            Assert.assertSame(mockClient, client);
+            assertSame(mockClient, client);
             verify(socketMocked, times(1)).setSoTimeout(2000);
             verify(socketMocked, times(1)).connect(mockAddress, 3000);
         }
     }
 
     @Test
-    public void acquireRetryFail() throws Exception {
+    void acquireRetryFail() throws Exception {
         MockedConstruction.MockInitializer<Socket> socketMockInitializer = (socket, context) -> {
             createMockedSocket(socket, context);
             Mockito.doThrow(new IOException("socket made a boo boo")).when(socket).connect(mockAddress, 4000);
@@ -92,10 +102,10 @@ public class SocketBasedJsonRpcClientProviderTest {
             provider.setSocketTimeout(3000);
 
             try {
-                JsonRpcClient client = provider.acquire();
-                Assert.fail();
+                provider.acquire();
+                fail();
             } catch (JsonRpcException e) {
-                Assert.assertTrue(e.getMessage().contains("Unable to connect to socket at"));
+                assertTrue(e.getMessage().contains("Unable to connect to socket at"));
             }
 
             Socket socketMock = socketMockedConstruction.constructed().get(0);
@@ -106,7 +116,7 @@ public class SocketBasedJsonRpcClientProviderTest {
     }
 
     @Test
-    public void acquireRetrySucceed() throws Exception {
+    void acquireRetrySucceed() throws Exception {
         MockedConstruction.MockInitializer<Socket> socketMockInitializer = (socket, context) -> {
             createMockedSocket(socket, context);
 
@@ -131,14 +141,14 @@ public class SocketBasedJsonRpcClientProviderTest {
             JsonRpcClient client = provider.acquire();
             Socket socketMock = socketMockedConstruction.constructed().get(0);
 
-            Assert.assertSame(mockClient, client);
+            assertSame(mockClient, client);
             verify(socketMock, times(3)).setSoTimeout(4000);
             verify(socketMock, times(3)).connect(mockAddress, 5000);
         }
     }
 
     @Test
-    public void release() throws Exception {
+    void release() throws Exception {
         try (MockedConstruction<Socket> socketMockedConstruction = mockConstruction(Socket.class, this::createMockedSocket);
              MockedStatic<JsonRpcOnStreamClient> jsonRpcOnStreamClientMocked = mockStatic(JsonRpcOnStreamClient.class)) {
             JsonRpcOnStreamClient mockClient = mock(JsonRpcOnStreamClient.class);
@@ -147,15 +157,15 @@ public class SocketBasedJsonRpcClientProviderTest {
             JsonRpcClient client = provider.acquire();
             Socket socketMock = socketMockedConstruction.constructed().get(0);
 
-            Assert.assertSame(mockClient, client);
+            assertSame(mockClient, client);
 
             verify(socketMock, never()).close();
-            Assert.assertTrue(provider.release(client));
+            assertTrue(provider.release(client));
             verify(socketMock, times(1)).close();
-            Assert.assertFalse(provider.release(client));
+            assertFalse(provider.release(client));
             verify(socketMock, times(1)).close();
             JsonRpcClient anotherClient = mock(JsonRpcClient.class);
-            Assert.assertFalse(provider.release(anotherClient));
+            assertFalse(provider.release(anotherClient));
             verify(socketMock, times(1)).close();
         }
     }

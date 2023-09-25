@@ -1,26 +1,30 @@
 package co.rsk.federate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import co.rsk.federate.helpers.ProofBuilder;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.params.RegTestParams;
-import org.junit.Assert;
-import org.junit.Test;
 import org.bouncycastle.util.encoders.Hex;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.junit.jupiter.api.Test;
 
 /**
  * Created by mario on 26/04/17.
  */
-public class ProofTest {
+class ProofTest {
 
-    private NetworkParameters networkParameters = RegTestParams.get();
-
-    private ProofBuilder pb = new ProofBuilder(this.networkParameters);
+    private final NetworkParameters networkParameters = RegTestParams.get();
+    private final ProofBuilder pb = new ProofBuilder(this.networkParameters);
 
     private static final String SHA_1 = "1111111111111111111111111111111111111111111111111111111111111111";
     private static final String SHA_2 = "2222222222222222222222222222222222222222222222222222222222222222";
@@ -32,63 +36,63 @@ public class ProofTest {
     private static final String ENCODED_RESULT = "f848a01111111111111111111111111111111111111111111111111111111111111111a60100000001111111111111111111111111111111111111111111111111111111111111111100";
 
     @Test
-    public void create() {
+    void create() {
         Proof p1 = pb.buildProof(SHA_1);
-        Assert.assertNotNull(p1);
-        Assert.assertNotNull(p1.getBlockHash());
-        Assert.assertNotNull(p1.getPartialMerkleTree());
+        assertNotNull(p1);
+        assertNotNull(p1.getBlockHash());
+        assertNotNull(p1.getPartialMerkleTree());
     }
 
     @Test
-    public void encode() {
+    void encode() {
         Proof p1 = pb.buildProof(SHA_1);
-        Assert.assertTrue(StringUtils.equals(ENCODED_RESULT,Hex.toHexString(p1.getEnconded())));
+        assertTrue(StringUtils.equals(ENCODED_RESULT,Hex.toHexString(p1.getEnconded())));
         Proof p2 = pb.buildProof(SHA_2);
-        Assert.assertFalse(StringUtils.equals(ENCODED_RESULT,Hex.toHexString(p2.getEnconded())));
+        assertFalse(StringUtils.equals(ENCODED_RESULT,Hex.toHexString(p2.getEnconded())));
     }
 
     @Test
-    public void decode() {
+    void decode() {
         Proof p1 = pb.buildProof(SHA_1);
 
         Proof p2 = new Proof(p1.getEnconded(), this.networkParameters);
-        Assert.assertNotNull(p2);
-        Assert.assertEquals(p1.getPartialMerkleTree(), p2.getPartialMerkleTree());
-        Assert.assertEquals(p1.getBlockHash(), p2.getBlockHash());
+        assertNotNull(p2);
+        assertEquals(p1.getPartialMerkleTree(), p2.getPartialMerkleTree());
+        assertEquals(p1.getBlockHash(), p2.getBlockHash());
 
         Proof p3 = pb.buildProof(SHA_2);
         Proof p4 = new Proof(p3.getEnconded(), this.networkParameters);
 
-        Assert.assertNotNull(p4);
-        Assert.assertEquals(p3.getPartialMerkleTree(), p4.getPartialMerkleTree());
-        Assert.assertEquals(p3.getBlockHash(), p4.getBlockHash());
+        assertNotNull(p4);
+        assertEquals(p3.getPartialMerkleTree(), p4.getPartialMerkleTree());
+        assertEquals(p3.getBlockHash(), p4.getBlockHash());
 
-        Assert.assertNotEquals(p2.getPartialMerkleTree(), p4.getPartialMerkleTree());
-        Assert.assertNotEquals(p2.getBlockHash(), p4.getBlockHash());
+        assertNotEquals(p2.getPartialMerkleTree(), p4.getPartialMerkleTree());
+        assertNotEquals(p2.getBlockHash(), p4.getBlockHash());
     }
 
     @Test
-    public void deserializeProofList() {
+    void deserializeProofList() {
         List<Proof> proofs = pb.buildProofList(SHA_1, SHA_2, SHA_3, SHA_4);
 
         byte[] encodedList = Proof.serializeProofList(proofs);
 
-        Assert.assertTrue(encodedList.length > 0);
+        assertTrue(encodedList.length > 0);
 
         List<Proof> proofs2 = Proof.deserializeProofList(encodedList, this.networkParameters);
 
-        Assert.assertNotNull(proofs2);
-        Assert.assertEquals(proofs.size(), proofs2.size());
+        assertNotNull(proofs2);
+        assertEquals(proofs.size(), proofs2.size());
 
-        proofs2.forEach(p -> Assert.assertTrue(proofs.contains(p)));
+        proofs2.forEach(p -> assertTrue(proofs.contains(p)));
 
-        Assert.assertTrue(Proof.deserializeProofList(null, this.networkParameters).isEmpty());
-        Assert.assertTrue(Proof.deserializeProofList(new byte[]{}, this.networkParameters).isEmpty());
+        assertTrue(Proof.deserializeProofList(null, this.networkParameters).isEmpty());
+        assertTrue(Proof.deserializeProofList(new byte[]{}, this.networkParameters).isEmpty());
     }
 
 
     @Test
-    public void deserializeProofs() {
+    void deserializeProofs() {
         Map<Sha256Hash, List<Proof>> proofs = new HashMap<>();
 
         Sha256Hash hash1 = Sha256Hash.wrap(SHA_1);
@@ -105,11 +109,11 @@ public class ProofTest {
 
         byte[] encodedProofs = Proof.encodeProofs(proofs);
 
-        Assert.assertTrue(encodedProofs.length > 0);
+        assertTrue(encodedProofs.length > 0);
 
         Map<Sha256Hash, List<Proof>> recoveredProofs = Proof.deserializeProofs(encodedProofs, this.networkParameters);
 
-        Assert.assertEquals(proofs.size(), recoveredProofs.size());
+        assertEquals(proofs.size(), recoveredProofs.size());
 
         List<Proof> pList1 = recoveredProofs.get(hash1);
         List<Proof> pList2 = recoveredProofs.get(hash2);
@@ -117,12 +121,12 @@ public class ProofTest {
         List<Proof> pList4 = recoveredProofs.get(hash4);
         List<Proof> pList5 = recoveredProofs.get(hash5);
 
-        Assert.assertNotNull(pList1);
-        Assert.assertNotNull(pList2);
-        Assert.assertNotNull(pList3);
-        Assert.assertNotNull(pList4);
-        Assert.assertNotNull(pList5);
-        Assert.assertNull(proofs.get(Sha256Hash.wrap(SHA_6)));
+        assertNotNull(pList1);
+        assertNotNull(pList2);
+        assertNotNull(pList3);
+        assertNotNull(pList4);
+        assertNotNull(pList5);
+        assertNull(proofs.get(Sha256Hash.wrap(SHA_6)));
 
         List<Proof> originalList1 = proofs.get(hash1);
         List<Proof> originalList2 = proofs.get(hash2);
@@ -130,16 +134,16 @@ public class ProofTest {
         List<Proof> originalList4 = proofs.get(hash4);
         List<Proof> originalList5 = proofs.get(hash5);
 
-        Assert.assertEquals(originalList1.size(), pList1.size());
-        Assert.assertEquals(originalList2.size(), pList2.size());
-        Assert.assertEquals(originalList3.size(), pList3.size());
-        Assert.assertEquals(originalList4.size(), pList4.size());
-        Assert.assertEquals(originalList5.size(), pList5.size());
+        assertEquals(originalList1.size(), pList1.size());
+        assertEquals(originalList2.size(), pList2.size());
+        assertEquals(originalList3.size(), pList3.size());
+        assertEquals(originalList4.size(), pList4.size());
+        assertEquals(originalList5.size(), pList5.size());
 
-        pList1.forEach(p -> Assert.assertTrue(originalList1.contains(p)));
-        pList2.forEach(p -> Assert.assertTrue(originalList2.contains(p)));
-        pList3.forEach(p -> Assert.assertTrue(originalList3.contains(p)));
-        pList4.forEach(p -> Assert.assertTrue(originalList4.contains(p)));
-        pList5.forEach(p -> Assert.assertTrue(originalList5.contains(p)));
+        pList1.forEach(p -> assertTrue(originalList1.contains(p)));
+        pList2.forEach(p -> assertTrue(originalList2.contains(p)));
+        pList3.forEach(p -> assertTrue(originalList3.contains(p)));
+        pList4.forEach(p -> assertTrue(originalList4.contains(p)));
+        pList5.forEach(p -> assertTrue(originalList5.contains(p)));
     }
 }

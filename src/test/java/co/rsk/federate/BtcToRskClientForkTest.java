@@ -1,9 +1,6 @@
 package co.rsk.federate;
 
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.params.RegTestParams;
-import org.junit.Assert;
-import org.bouncycastle.util.encoders.Hex;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -12,12 +9,9 @@ import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-
+import org.bouncycastle.util.encoders.Hex;
 
 public class BtcToRskClientForkTest {
-    private NetworkParameters networkParameters = RegTestParams.get();
-
-
 
     //@Test
     public void simpleTest() throws Exception {
@@ -37,17 +31,16 @@ public class BtcToRskClientForkTest {
             rskNode = startRskNode();
             Thread.sleep(10000);
             BigInteger bridgeBalance = getBridgeBalance();
-            Assert.assertEquals(bridgeBalance, new BigInteger("21").multiply(BigInteger.TEN.pow(24)));
+            assertEquals(bridgeBalance, new BigInteger("21").multiply(BigInteger.TEN.pow(24)));
             Thread.sleep(150000);
             bridgeBalance = getBridgeBalance();
-            Assert.assertEquals(bridgeBalance, new BigInteger("20999998").multiply(BigInteger.TEN.pow(18)));
+            assertEquals(bridgeBalance, new BigInteger("20999998").multiply(BigInteger.TEN.pow(18)));
             rskNode.waitFor();
         } finally {
             try { rskNode.destroyForcibly(); } catch (Exception e) {}
             try { bitcoind1.destroyForcibly(); } catch (Exception e) {}
             try { bitcoind2.destroyForcibly(); } catch (Exception e) {}
         }
-
     }
 
     private void copyFiles() throws IOException, InterruptedException {
@@ -228,6 +221,4 @@ public class BtcToRskClientForkTest {
         String hexBalance = line.substring(45, 67);
         return new BigInteger(Hex.decode(hexBalance));
     }
-
-
 }

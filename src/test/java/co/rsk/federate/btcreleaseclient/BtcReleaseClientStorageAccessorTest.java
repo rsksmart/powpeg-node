@@ -1,10 +1,11 @@
 package co.rsk.federate.btcreleaseclient;
 
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -17,7 +18,6 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileData;
 import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileReadResult;
 import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorage;
@@ -26,29 +26,28 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.ethereum.config.Constants;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 
-public class BtcReleaseClientStorageAccessorTest {
+class BtcReleaseClientStorageAccessorTest {
 
-    @Test(expected = InvalidStorageFileException.class)
-    public void invalid_file() throws IOException, InvalidStorageFileException {
+    @Test
+    void invalid_file() throws IOException {
         BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
         when(btcReleaseClientFileStorage.read()).thenReturn(
             new BtcReleaseClientFileReadResult(false, null)
         );
 
-        new BtcReleaseClientStorageAccessor(
+        assertThrows(InvalidStorageFileException.class, () -> new BtcReleaseClientStorageAccessor(
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             10,
             1
-        );
+        ));
     }
 
     @Test
-    public void works_with_no_file() throws InvalidStorageFileException, IOException {
+    void works_with_no_file() throws InvalidStorageFileException, IOException {
         BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
         when(btcReleaseClientFileStorage.read()).thenReturn(
             new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
@@ -66,7 +65,7 @@ public class BtcReleaseClientStorageAccessorTest {
     }
 
     @Test
-    public void getBestBlockHash_ok() throws IOException, InvalidStorageFileException {
+    void getBestBlockHash_ok() throws IOException, InvalidStorageFileException {
         Keccak256 bestBlockHash = createHash(1);
 
         BtcReleaseClientFileData btcReleaseClientFileData = new BtcReleaseClientFileData();
@@ -89,7 +88,7 @@ public class BtcReleaseClientStorageAccessorTest {
     }
 
     @Test
-    public void setBestBlockHash_ok() throws InvalidStorageFileException, IOException {
+    void setBestBlockHash_ok() throws InvalidStorageFileException, IOException {
         Keccak256 bestBlockHash = createHash(1);
 
         BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
@@ -111,7 +110,7 @@ public class BtcReleaseClientStorageAccessorTest {
     }
 
     @Test
-    public void getRskTxHash_and_hasBtcTxHash_ok() throws IOException, InvalidStorageFileException {
+    void getRskTxHash_and_hasBtcTxHash_ok() throws IOException, InvalidStorageFileException {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
 
@@ -136,7 +135,7 @@ public class BtcReleaseClientStorageAccessorTest {
     }
 
     @Test
-    public void putBtcTxHashRskTxHash_ok() throws InvalidStorageFileException, IOException {
+    void putBtcTxHashRskTxHash_ok() throws InvalidStorageFileException, IOException {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
 
@@ -169,7 +168,7 @@ public class BtcReleaseClientStorageAccessorTest {
     }
 
     @Test
-    public void writes_to_file() throws InvalidStorageFileException, IOException {
+    void writes_to_file() throws InvalidStorageFileException, IOException {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
         Keccak256 bestBlockHash = createHash(2);
@@ -198,23 +197,10 @@ public class BtcReleaseClientStorageAccessorTest {
 
         // As we are not using delays it writes for each call to the storage changing methods
         verify(btcReleaseClientFileStorage, times(2)).write(any(BtcReleaseClientFileData.class));
-
-//        FileStorageInfo storageInfo = new BtcReleaseClientFileStorageInfo(getFedNodeSystemProperties());
-//        BtcReleaseClientFileStorage storage = new BtcReleaseClientFileStorageImpl(storageInfo);
-//        BtcReleaseClientFileReadResult readResult =
-//            storage.read(ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString()));
-//
-//        assertTrue(readResult.getSuccess());
-//
-//        BtcReleaseClientFileData data = readResult.getData();
-//
-//        assertTrue(data.getBestBlockHash().isPresent());
-//        assertEquals(bestBlockHash, data.getBestBlockHash().get());
-//        assertEquals(rskTxHash, data.getReleaseHashesMap().get(btcTxHash));
     }
 
     @Test
-    public void multiple_sets_delay_writing() throws IOException, InvalidStorageFileException {
+    void multiple_sets_delay_writing() throws IOException, InvalidStorageFileException {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
         Keccak256 bestBlockHash = createHash(2);
@@ -266,7 +252,7 @@ public class BtcReleaseClientStorageAccessorTest {
     }
 
     @Test
-    public void forces_writing_after_max_delay() throws InvalidStorageFileException, IOException {
+    void forces_writing_after_max_delay() throws InvalidStorageFileException, IOException {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
         Keccak256 bestBlockHash = createHash(2);
@@ -306,13 +292,6 @@ public class BtcReleaseClientStorageAccessorTest {
         storageAccessor.putBtcTxHashRskTxHash(btcTxHash2, rskTxHash2); // Triggers a writing
         storageAccessor.setBestBlockHash(bestBlockHash2); // Triggers a writing again
         verify(task, times(1)).cancel(false); // It should have cancelled the first task only
-    }
-
-    private FedNodeSystemProperties getFedNodeSystemProperties() {
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-
-        return fedNodeSystemProperties;
     }
 
     private ScheduledExecutorService getImmediateTaskExecutor() {

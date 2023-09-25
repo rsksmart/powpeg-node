@@ -18,14 +18,24 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.hsm.HSMChangedVersionException;
 import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
 import co.rsk.federate.signing.hsm.HSMDeviceException;
+import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -36,20 +46,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
-import static org.mockito.Mockito.*;
-
-public class HSMClientProtocolTest {
+class HSMClientProtocolTest {
     private JsonRpcClientProvider jsonRpcClientProviderMock;
     private JsonRpcClient jsonRpcClientMock;
     private HSMClientProtocol hsmClientProtocol;
 
-    @Before
-    public void createClient() throws JsonRpcException {
+    @BeforeEach
+    void createClient() throws JsonRpcException {
         jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
@@ -57,46 +64,47 @@ public class HSMClientProtocolTest {
     }
 
     @Test
-    public void getVersionOk() throws HSMClientException, JsonRpcException {
+    void getVersionOk() throws HSMClientException, JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put("command", "version");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(1));
-        Assert.assertEquals(1, hsmClientProtocol.getVersion());
+        assertEquals(1, hsmClientProtocol.getVersion());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(2));
-        Assert.assertEquals(2, hsmClientProtocol.getVersion());
+        assertEquals(2, hsmClientProtocol.getVersion());
     }
 
     @Test
-    public void getVersionError()throws JsonRpcException {
+    void getVersionError() throws JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put("command", "version");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildResponse(-2));
         try {
             hsmClientProtocol.getVersion();
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e instanceof HSMDeviceNotReadyException);
+            assertTrue(e instanceof HSMDeviceNotReadyException);
         }
     }
 
     @Test
-    public void buildCommand() {
+    void buildCommand() {
         ObjectNode result = hsmClientProtocol.buildCommand("a-random-command-name", 1);
-        Assert.assertEquals("a-random-command-name", result.get("command").asText());
-        Assert.assertEquals(1, result.get("version").asInt());
-        Assert.assertEquals(2, result.size());
+        assertEquals("a-random-command-name", result.get("command").asText());
+        assertEquals(1, result.get("version").asInt());
+        assertEquals(2, result.size());
     }
 
     @Test
-    public void validateResponseOk() throws HSMClientException {
+    void validateResponseOk() throws HSMClientException {
         ObjectNode response = new ObjectMapper().createObjectNode();
         response.put("errorcode", 0);
-        hsmClientProtocol.validateResponse("a-random-command-name", response);
-        Assert.assertTrue("great", true);
+        int responseValidation = hsmClientProtocol.validateResponse("a-random-command-name", response);
+
+        assertEquals(HSMResponseCode.SUCCESS.getResponseCode(), responseValidation);
     }
 
     @Test
-    public void sendOk() throws JsonRpcException, HSMClientException {
+    void sendOk() throws JsonRpcException, HSMClientException {
         int version = 1;
         String command = "version";
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
@@ -106,13 +114,13 @@ public class HSMClientProtocolTest {
         JsonNode response = hsmClientProtocol.send(expectedRequest);
 
         verify(jsonRpcClientProviderMock, times(1)).acquire();
-        Assert.assertTrue(response.has("errorcode"));
-        Assert.assertEquals(0, response.get("errorcode").asInt());
-        Assert.assertEquals(version, response.get(command).asInt());
+        assertTrue(response.has("errorcode"));
+        assertEquals(0, response.get("errorcode").asInt());
+        assertEquals(version, response.get(command).asInt());
     }
 
     @Test
-    public void sendOkWithRetries() throws JsonRpcException, HSMClientException {
+    void sendOkWithRetries() throws JsonRpcException, HSMClientException {
         int version = 1;
         String command = "version";
         String exceptionMessage = "Unable to connect to socket";
@@ -125,13 +133,13 @@ public class HSMClientProtocolTest {
         JsonNode response = hsmClientProtocol.send(expectedRequest);
 
         verify(jsonRpcClientProviderMock, times(2)).acquire();
-        Assert.assertTrue(response.has("errorcode"));
-        Assert.assertEquals(0, response.get("errorcode").asInt());
-        Assert.assertEquals(version, response.get(command).asInt());
+        assertTrue(response.has("errorcode"));
+        assertEquals(0, response.get("errorcode").asInt());
+        assertEquals(version, response.get(command).asInt());
     }
 
     @Test
-    public void sendError() throws JsonRpcException {
+    void sendError() throws JsonRpcException {
         String command = "version";
         String exceptionMessage = "Unable to connect to socket";
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
@@ -140,16 +148,16 @@ public class HSMClientProtocolTest {
 
         try {
             hsmClientProtocol.send(expectedRequest);
-            Assert.fail();
+            fail();
         } catch (HSMClientException e){
             verify(jsonRpcClientProviderMock, times(2)).acquire();
-            Assert.assertTrue(e.getMessage().contains("connection error trying to contact the HSM gateway"));
-            Assert.assertTrue(e.getMessage().contains(exceptionMessage));
+            assertTrue(e.getMessage().contains("connection error trying to contact the HSM gateway"));
+            assertTrue(e.getMessage().contains(exceptionMessage));
         }
     }
 
     @Test
-    public void sendNoVersionProvided() throws JsonRpcException  {
+    void sendNoVersionProvided() throws JsonRpcException  {
         String command = "version";
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put("command", command);
@@ -160,15 +168,15 @@ public class HSMClientProtocolTest {
 
         try {
             hsmClientProtocol.send(expectedRequest);
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
             verify(jsonRpcClientProviderMock, times(1)).acquire();
-            Assert.assertTrue(e instanceof HSMDeviceException);
+            assertTrue(e instanceof HSMDeviceException);
         }
     }
 
     @Test
-    public void sendInvalidVersion() throws JsonRpcException  {
+    void sendInvalidVersion() throws JsonRpcException  {
         int version = 9999;
         String command = "version";
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
@@ -181,17 +189,17 @@ public class HSMClientProtocolTest {
 
         try {
             hsmClientProtocol.send(expectedRequest);
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
             verify(jsonRpcClientProviderMock, times(1)).acquire();
-            Assert.assertTrue(e instanceof HSMChangedVersionException);
-            Assert.assertTrue(e.getMessage().contains(" but the gateway version is 1"));
+            assertTrue(e instanceof HSMChangedVersionException);
+            assertTrue(e.getMessage().contains(" but the gateway version is 1"));
         }
     }
 
+    @Disabled("This test is ignored as it is expensive and erratical as it is written")
     @Test
-    @Ignore // This test is ignored as it is expensive and erratical as it is written
-    public void singleExecutor()
+    void singleExecutor()
         throws JsonRpcException, ExecutionException, InterruptedException {
 
         long forcedDelay = 1000;
@@ -232,7 +240,7 @@ public class HSMClientProtocolTest {
             long end = new Date().getTime();
             long took = end - start;
             System.out.println("took " + took);
-            Assert.assertTrue(took >= forcedDelay);
+            assertTrue(took >= forcedDelay);
         }
 
         // If the overall test takes threads times 1 second it means the executor in HSMClientProtocol works

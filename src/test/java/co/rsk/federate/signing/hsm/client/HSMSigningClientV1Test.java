@@ -18,6 +18,16 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
@@ -27,38 +37,32 @@ import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-
-import static org.mockito.Mockito.*;
-
-public class HSMSigningClientV1Test {
-    private JsonRpcClientProvider jsonRpcClientProviderMock;
-    private HSMClientProtocol hsmClientProtocol;
+class HSMSigningClientV1Test {
     private JsonRpcClient jsonRpcClientMock;
     private HSMSigningClientV1 client;
     private final static int VERSION = 1;
 
-    @Before
-    public void createClient() throws JsonRpcException {
-        jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
+    @BeforeEach
+    void createClient() throws JsonRpcException {
+        JsonRpcClientProvider jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
-        hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock,
+            ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
         client = new HSMSigningClientV1(hsmClientProtocol);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
     @Test
-    public void getVersionOk() throws Exception {
+    void getVersionOk() throws Exception {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put("command", "version");
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(5));
         int version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 1.
-        Assert.assertEquals(VERSION, version);
+        assertEquals(VERSION, version);
     }
 
 //    @Test
@@ -71,9 +75,9 @@ public class HSMSigningClientV1Test {
 //        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(faultyResponse);
 //        try {
 //            client.getVersion();
-//            Assert.fail();
+//            fail();
 //        } catch (HSMClientException e) {
-//            Assert.assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
+//            assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
 //        }
 //    }
 
@@ -86,9 +90,9 @@ public class HSMSigningClientV1Test {
 //        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(faultyResponse);
 //        try {
 //            client.getVersion();
-//            Assert.fail();
+//            fail();
 //        } catch (HSMClientException e) {
-//            Assert.assertTrue(e.getMessage().contains("HSM returned unrecognized error code 5 when running version"));
+//            assertTrue(e.getMessage().contains("HSM returned unrecognized error code 5 when running version"));
 //        }
 //    }
 
@@ -102,14 +106,14 @@ public class HSMSigningClientV1Test {
 //        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(faultyResponse);
 //        try {
 //            client.getVersion();
-//            Assert.fail();
+//            fail();
 //        } catch (HSMClientException e) {
-//            Assert.assertTrue(e.getMessage().contains("Expected 'version' field to be present"));
+//            assertTrue(e.getMessage().contains("Expected 'version' field to be present"));
 //        }
 //    }
 
     @Test
-    public void getPublicKeyOk() throws Exception {
+    void getPublicKeyOk() throws Exception {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = buildResponse(0);
@@ -117,16 +121,16 @@ public class HSMSigningClientV1Test {
 
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
         byte[] publicKey = client.getPublicKey("a-key-id");
-        Assert.assertTrue(Arrays.equals(publicKey, Hex.decode("aabbccddeeff")));
+        assertArrayEquals(Hex.decode("aabbccddeeff"), publicKey);
         // Subsequent calls shouldn't issue a command (i.e., public key is locally cached)
         publicKey = client.getPublicKey("a-key-id");
-        Assert.assertTrue(Arrays.equals(publicKey, Hex.decode("aabbccddeeff")));
+        assertArrayEquals(Hex.decode("aabbccddeeff"), publicKey);
 
         verify(jsonRpcClientMock, times(1)).send(expectedRequest);
     }
 
     @Test
-    public void getPublicKeyNoErrorCode() throws Exception {
+    void getPublicKeyNoErrorCode() throws Exception {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = new ObjectMapper().createObjectNode();
@@ -136,14 +140,14 @@ public class HSMSigningClientV1Test {
 
         try {
             client.getPublicKey("a-key-id");
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
         }
     }
 
     @Test
-    public void getPublicKeyNonZeroErrorCode() throws Exception {
+    void getPublicKeyNonZeroErrorCode() throws Exception {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = buildResponse(-2);
@@ -152,15 +156,15 @@ public class HSMSigningClientV1Test {
 
         try {
             client.getPublicKey("a-key-id");
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("HSM Device returned exception"));
-            Assert.assertTrue(e.getMessage().contains("Context: Running method 'getPubKey'"));
+            assertTrue(e.getMessage().contains("HSM Device returned exception"));
+            assertTrue(e.getMessage().contains("Context: Running method 'getPubKey'"));
         }
     }
 
     @Test
-    public void getPublicKeyNoPublicKey() throws Exception {
+    void getPublicKeyNoPublicKey() throws Exception {
         ObjectNode expectedRequest = buildGetPublicKeyRequest();
 
         ObjectNode response = buildResponse(0);
@@ -169,14 +173,14 @@ public class HSMSigningClientV1Test {
 
         try {
             client.getPublicKey("a-key-id");
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'pubKey' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'pubKey' field to be present"));
         }
     }
 
     @Test
-    public void signOkNoV() throws Exception {
+    void signOkNoV() throws Exception {
         ObjectNode expectedPublicKeyRequest = buildGetPublicKeyRequest();
         ObjectNode publicKeyResponse = buildResponse(0);
         publicKeyResponse.put("pubKey", "001122334455");
@@ -193,17 +197,17 @@ public class HSMSigningClientV1Test {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
         HSMSignature signature = client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
 
-        Assert.assertTrue(Arrays.equals(Hex.decode("223344"), signature.getR()));
-        Assert.assertTrue(Arrays.equals(Hex.decode("55667788"), signature.getS()));
-        Assert.assertTrue(Arrays.equals(Hex.decode("bbccddee"), signature.getHash()));
-        Assert.assertTrue(Arrays.equals(Hex.decode("001122334455"), signature.getPublicKey()));
-        Assert.assertNull(signature.getV());
+        assertArrayEquals(Hex.decode("223344"), signature.getR());
+        assertArrayEquals(Hex.decode("55667788"), signature.getS());
+        assertArrayEquals(Hex.decode("bbccddee"), signature.getHash());
+        assertArrayEquals(Hex.decode("001122334455"), signature.getPublicKey());
+        assertNull(signature.getV());
         verify(jsonRpcClientMock, times(1)).send(expectedRequest);
         verify(jsonRpcClientMock, times(1)).send(expectedPublicKeyRequest);
     }
 
     @Test
-    public void signOkWithV() throws Exception {
+    void signOkWithV() throws Exception {
         ObjectNode expectedPublicKeyRequest = buildGetPublicKeyRequest();
         ObjectNode publicKeyResponse = buildResponse(0);
         publicKeyResponse.put("pubKey", "001122334455");
@@ -221,17 +225,17 @@ public class HSMSigningClientV1Test {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(response);
         HSMSignature signature = client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
 
-        Assert.assertTrue(Arrays.equals(Hex.decode("223344"), signature.getR()));
-        Assert.assertTrue(Arrays.equals(Hex.decode("55667788"), signature.getS()));
-        Assert.assertTrue(Arrays.equals(Hex.decode("bbccddee"), signature.getHash()));
-        Assert.assertTrue(Arrays.equals(Hex.decode("001122334455"), signature.getPublicKey()));
-        Assert.assertEquals(123, signature.getV().byteValue());
+        assertArrayEquals(Hex.decode("223344"), signature.getR());
+        assertArrayEquals(Hex.decode("55667788"), signature.getS());
+        assertArrayEquals(Hex.decode("bbccddee"), signature.getHash());
+        assertArrayEquals(Hex.decode("001122334455"), signature.getPublicKey());
+        assertEquals(123, signature.getV().byteValue());
         verify(jsonRpcClientMock, times(1)).send(expectedRequest);
         verify(jsonRpcClientMock, times(1)).send(expectedPublicKeyRequest);
     }
 
     @Test
-    public void signNoErrorCode() throws Exception {
+    void signNoErrorCode() throws Exception {
         ObjectNode expectedRequest = buildSignRequest();
 
         ObjectNode response = new ObjectMapper().createObjectNode();
@@ -241,14 +245,14 @@ public class HSMSigningClientV1Test {
 
         try {
             client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
         }
     }
 
     @Test
-    public void signNonZeroErrorCode() throws Exception {
+    void signNonZeroErrorCode() throws Exception {
         ObjectNode expectedRequest = buildSignRequest();
 
         ObjectNode response = buildResponse(-2);
@@ -257,16 +261,15 @@ public class HSMSigningClientV1Test {
 
         try {
             client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("HSM Device returned exception"));
-            Assert.assertTrue(e.getMessage().contains("Context: Running method 'sign'"));
-
+            assertTrue(e.getMessage().contains("HSM Device returned exception"));
+            assertTrue(e.getMessage().contains("Context: Running method 'sign'"));
         }
     }
 
     @Test
-    public void signNoSignature() throws Exception {
+    void signNoSignature() throws Exception {
         ObjectNode expectedRequest = buildSignRequest();
 
         ObjectNode response = buildResponse(0);
@@ -275,14 +278,14 @@ public class HSMSigningClientV1Test {
 
         try {
             client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'signature' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'signature' field to be present"));
         }
     }
 
     @Test
-    public void signNoR() throws Exception {
+    void signNoR() throws Exception {
         ObjectNode expectedRequest = buildSignRequest();
 
         ObjectNode response = buildResponse(0);
@@ -292,14 +295,14 @@ public class HSMSigningClientV1Test {
 
         try {
             client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 'r' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 'r' field to be present"));
         }
     }
 
     @Test
-    public void signNoS() throws Exception {
+    void signNoS() throws Exception {
         ObjectNode expectedRequest = buildSignRequest();
 
         ObjectNode response = buildResponse(0);
@@ -311,9 +314,9 @@ public class HSMSigningClientV1Test {
 
         try {
             client.sign("a-key-id", new SignerMessageV1(Hex.decode("bbccddee")));
-            Assert.fail();
+            fail();
         } catch (HSMClientException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected 's' field to be present"));
+            assertTrue(e.getMessage().contains("Expected 's' field to be present"));
         }
     }
 

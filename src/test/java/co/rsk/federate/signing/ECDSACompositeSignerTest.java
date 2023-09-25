@@ -18,24 +18,30 @@
 
 package co.rsk.federate.signing;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
+import java.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-public class ECDSACompositeSignerTest {
+class ECDSACompositeSignerTest {
     ECDSASigner signer1, signer2;
     ECDSACompositeSigner signer;
 
-    @Before
-    public void createSigner() {
+    @BeforeEach
+    void createSigner() {
         signer = new ECDSACompositeSigner();
 
         signer1 = mock(ECDSASigner.class);
@@ -45,34 +51,34 @@ public class ECDSACompositeSignerTest {
     }
 
     @Test
-    public void canSignWithWhenNone() {
+    void canSignWithWhenNone() {
         when(signer1.canSignWith(new KeyId("a-key"))).thenReturn(false);
         when(signer2.canSignWith(new KeyId("a-key"))).thenReturn(false);
-        Assert.assertFalse(signer.canSignWith(new KeyId("a-key")));
+        assertFalse(signer.canSignWith(new KeyId("a-key")));
     }
 
     @Test
-    public void canSignWithWhenOne() {
+    void canSignWithWhenOne() {
         when(signer1.canSignWith(new KeyId("a-key"))).thenReturn(false);
         when(signer2.canSignWith(new KeyId("a-key"))).thenReturn(true);
         when(signer1.canSignWith(new KeyId("another-key"))).thenReturn(true);
         when(signer2.canSignWith(new KeyId("another-key"))).thenReturn(false);
 
-        Assert.assertTrue(signer.canSignWith(new KeyId("a-key")));
-        Assert.assertTrue(signer.canSignWith(new KeyId("another-key")));
+        assertTrue(signer.canSignWith(new KeyId("a-key")));
+        assertTrue(signer.canSignWith(new KeyId("another-key")));
     }
 
     @Test
-    public void check() throws Exception {
+    void check() {
         when(signer1.check()).thenReturn(new ECDSASigner.ECDSASignerCheckResult(Arrays.asList("m1", "m2")));
         when(signer2.check()).thenReturn(new ECDSASigner.ECDSASignerCheckResult(Arrays.asList("m3", "m4")));
         ECDSASigner.ECDSASignerCheckResult checkResult = signer.check();
-        Assert.assertFalse(checkResult.wasSuccessful());
-        Assert.assertEquals(Arrays.asList("m1", "m2", "m3", "m4"), checkResult.getMessages());
+        assertFalse(checkResult.wasSuccessful());
+        assertEquals(Arrays.asList("m1", "m2", "m3", "m4"), checkResult.getMessages());
     }
 
     @Test
-    public void sign() throws Exception {
+    void sign() throws Exception {
         when(signer1.canSignWith(new KeyId("a-key"))).thenReturn(false);
         when(signer2.canSignWith(new KeyId("a-key"))).thenReturn(true);
 
@@ -82,21 +88,21 @@ public class ECDSACompositeSignerTest {
         ECKey.ECDSASignature result = signer.sign(new KeyId("a-key"), new SignerMessageV1(Hex.decode("aabbccdd")));
 
         verify(signer1, never()).sign(any(), any());
-        Assert.assertSame(mockedSignature, result);
+        assertSame(mockedSignature, result);
     }
 
     @Test
-    public void signNonMatchingKeyId() throws Exception {
+    void signNonMatchingKeyId() {
         try {
             when(signer1.canSignWith(new KeyId("another-key"))).thenReturn(false);
             when(signer2.canSignWith(new KeyId("another-key"))).thenReturn(false);
             signer.sign(new KeyId("another-id"), new SignerMessageV1(Hex.decode("aabbcc")));
-            Assert.fail();
+            fail();
         } catch (Exception e) {}
     }
 
     @Test
-    public void getPublicKey() throws Exception {
+    void getPublicKey() throws Exception {
         when(signer1.canSignWith(new KeyId("a-key"))).thenReturn(false);
         when(signer2.canSignWith(new KeyId("a-key"))).thenReturn(true);
 
@@ -106,16 +112,16 @@ public class ECDSACompositeSignerTest {
         ECPublicKey result = signer.getPublicKey(new KeyId("a-key"));
 
         verify(signer1, never()).getPublicKey(any());
-        Assert.assertSame(mockedPublicKey, result);
+        assertSame(mockedPublicKey, result);
     }
 
     @Test
-    public void getPublicKeyNonMatchingKeyId() throws Exception {
+    void getPublicKeyNonMatchingKeyId() {
         try {
             when(signer1.canSignWith(new KeyId("another-key"))).thenReturn(false);
             when(signer2.canSignWith(new KeyId("another-key"))).thenReturn(false);
             signer.getPublicKey(new KeyId("another-id"));
-            Assert.fail();
+            fail();
         } catch (Exception e) {}
     }
 

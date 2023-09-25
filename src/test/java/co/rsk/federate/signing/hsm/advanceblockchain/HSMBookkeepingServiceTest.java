@@ -1,5 +1,7 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -26,14 +28,13 @@ import java.util.List;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-public class HSMBookkeepingServiceTest {
+class HSMBookkeepingServiceTest {
 
     @Test
-    public void start_ok() throws InterruptedException, HSMClientException {
+    void start_ok() throws InterruptedException, HSMClientException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -50,11 +51,11 @@ public class HSMBookkeepingServiceTest {
         service.start();
         Thread.sleep(10);
 
-        Assert.assertTrue(service.isStarted());
+        assertTrue(service.isStarted());
     }
 
     @Test
-    public void start_already_started_service() throws InterruptedException, HSMClientException {
+    void start_already_started_service() throws InterruptedException, HSMClientException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -73,12 +74,12 @@ public class HSMBookkeepingServiceTest {
         service.start();
         Thread.sleep(10);
 
-        Assert.assertTrue(service.isStarted());
+        assertTrue(service.isStarted());
         verify(mockHsmBookkeepingClient, times(1)).getHSMPointer();
     }
 
     @Test
-    public void start_with_stopBookkepingConf_True() throws InterruptedException {
+    void start_with_stopBookkepingConf_True() throws InterruptedException {
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
         HSMBookkeepingService service = new HSMBookkeepingService(
@@ -94,12 +95,12 @@ public class HSMBookkeepingServiceTest {
         service.start();
         Thread.sleep(10);
 
-        Assert.assertFalse(service.isStarted());
-        Mockito.verifyNoInteractions(mockListener);
+        assertFalse(service.isStarted());
+        verifyNoInteractions(mockListener);
     }
 
     @Test
-    public void start_with_stopBookkepingConf_False() throws InterruptedException, HSMClientException {
+    void start_with_stopBookkepingConf_False() throws InterruptedException, HSMClientException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -119,12 +120,12 @@ public class HSMBookkeepingServiceTest {
         service.start();
         Thread.sleep(10);
 
-        Assert.assertTrue(service.isStarted());
-        Mockito.verifyNoInteractions(mockListener);
+        assertTrue(service.isStarted());
+        verifyNoInteractions(mockListener);
     }
 
     @Test
-    public void start_neededReset_Ok() throws InterruptedException, HSMClientException {
+    void start_neededReset_Ok() throws InterruptedException, HSMClientException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), true);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -144,13 +145,13 @@ public class HSMBookkeepingServiceTest {
         service.start();
         Thread.sleep(10);
 
-        Assert.assertTrue(service.isStarted());
-        Mockito.verifyNoInteractions(mockListener);
+        assertTrue(service.isStarted());
+        verifyNoInteractions(mockListener);
         verify(mockHsmBookkeepingClient, times(1)).resetAdvanceBlockchain();
     }
 
     @Test
-    public void start_neededReset_FailGettingState() throws InterruptedException, HSMClientException {
+    void start_neededReset_FailGettingState() throws InterruptedException, HSMClientException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenThrow(new HSMInvalidResponseException(""));
 
@@ -169,12 +170,12 @@ public class HSMBookkeepingServiceTest {
         service.start();
         Thread.sleep(10);
 
-        Assert.assertFalse(service.isStarted());
+        assertFalse(service.isStarted());
         verify(mockListener, times(1)).onIrrecoverableError(any());
     }
 
     @Test
-    public void start_neededReset_FailReset() throws InterruptedException, HSMClientException {
+    void start_neededReset_FailReset() throws InterruptedException, HSMClientException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), true);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -195,13 +196,13 @@ public class HSMBookkeepingServiceTest {
         service.start();
         Thread.sleep(10);
 
-        Assert.assertFalse(service.isStarted());
+        assertFalse(service.isStarted());
         verify(mockHsmBookkeepingClient, times(1)).resetAdvanceBlockchain();
         verify(mockListener, times(1)).onIrrecoverableError(any());
     }
 
     @Test
-    public void start_fails_on_scheduler_startup() throws HSMClientException, InterruptedException {
+    void start_fails_on_scheduler_startup() throws HSMClientException, InterruptedException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -224,12 +225,12 @@ public class HSMBookkeepingServiceTest {
 
         // Scheduler error is captured and the listener's onIrrecoverableError method is invoked
         verify(listener, times(1)).onIrrecoverableError(any());
-        Assert.assertFalse(service.isStarted());
+        assertFalse(service.isStarted());
     }
 
     // Stop
     @Test
-    public void stop_Ok() throws InterruptedException, HSMClientException {
+    void stop_Ok() throws InterruptedException, HSMClientException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -245,16 +246,16 @@ public class HSMBookkeepingServiceTest {
 
         service.start();
         Thread.sleep(10);
-        Assert.assertTrue(service.isStarted());
+        assertTrue(service.isStarted());
 
         service.stop();
         Thread.sleep(10);
 
-        Assert.assertFalse(service.isStarted());
+        assertFalse(service.isStarted());
     }
 
     @Test
-    public void stop_already_stopped_service() throws InterruptedException, HSMClientException {
+    void stop_already_stopped_service() throws InterruptedException, HSMClientException {
         HSMBookkeepingClient hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(hsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -270,21 +271,21 @@ public class HSMBookkeepingServiceTest {
 
         service.stop();
         Thread.sleep(10);
-        Assert.assertFalse(service.isStarted());
+        assertFalse(service.isStarted());
 
         service.start();
         Thread.sleep(10);
-        Assert.assertTrue(service.isStarted());
+        assertTrue(service.isStarted());
 
         service.stop();
         Thread.sleep(10);
 
-        Assert.assertFalse(service.isStarted());
+        assertFalse(service.isStarted());
     }
 
     // Add and remove Listener
     @Test
-    public void addListener_Listener_Working_Ok() throws HSMClientException, InterruptedException {
+    void addListener_Listener_Working_Ok() throws HSMClientException, InterruptedException {
         HSMBookkeepingClient hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         when(hsmBookkeepingClient.getHSMPointer()).thenThrow(new HSMDeviceException("", 1));
 
@@ -307,7 +308,7 @@ public class HSMBookkeepingServiceTest {
     }
 
     @Test
-    public void removeListener_Ok() throws HSMClientException, InterruptedException {
+    void removeListener_Ok() throws HSMClientException, InterruptedException {
         HSMBookkeepingClient hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         when(hsmBookkeepingClient.getHSMPointer()).thenThrow(new HSMDeviceException("", 1));
 
@@ -334,7 +335,7 @@ public class HSMBookkeepingServiceTest {
 
     // informConfirmedBlockHeaders
     @Test
-    public void informConfirmedBlockHeaders_onIrrecoverableError() throws HSMClientException {
+    void informConfirmedBlockHeaders_onIrrecoverableError() throws HSMClientException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -358,7 +359,6 @@ public class HSMBookkeepingServiceTest {
             mock(NodeBlockProcessor.class),
             2_000,
             false
-
         );
 
         service.addListener(mockListener);
@@ -370,8 +370,7 @@ public class HSMBookkeepingServiceTest {
     }
 
     @Test
-    public void informConfirmedBlockHeaders_already_informing()
-        throws HSMClientException, InterruptedException {
+    void informConfirmedBlockHeaders_already_informing() throws HSMClientException, InterruptedException {
         BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
         when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
         List<BlockHeader> blockHeadersToInform = Collections.singletonList(mockBlockHeaderToInform);
@@ -415,7 +414,7 @@ public class HSMBookkeepingServiceTest {
     }
 
     @Test
-    public void informConfirmedBlockHeaders_Ok() throws InterruptedException, HSMClientException {
+    void informConfirmedBlockHeaders_Ok() throws InterruptedException, HSMClientException {
         BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
         when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
         List<BlockHeader> blockHeadersToInform = Collections.singletonList(mockBlockHeaderToInform);
@@ -449,7 +448,7 @@ public class HSMBookkeepingServiceTest {
         hsmBookkeepingService.informConfirmedBlockHeaders();
 
         // Assert
-        Assert.assertTrue(hsmBookkeepingService.isStarted());
+        assertTrue(hsmBookkeepingService.isStarted());
         verify(mockHsmBookkeepingClient, times(1)).advanceBlockchain(any(AdvanceBlockchainMessage.class));
         verify(mockBlockStore, times(2)).getBlockByHash(any());
         Mockito.verifyNoInteractions(mockListener);
@@ -460,7 +459,7 @@ public class HSMBookkeepingServiceTest {
     }
 
     @Test
-    public void informConfirmedBlockHeaders_hasBetterBlockToSync_true() throws InterruptedException {
+    void informConfirmedBlockHeaders_hasBetterBlockToSync_true() throws InterruptedException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
         NodeBlockProcessor mockNodeBlockProcessor = mock(NodeBlockProcessor.class);
@@ -483,12 +482,12 @@ public class HSMBookkeepingServiceTest {
 
         // Assert
         verify(mockNodeBlockProcessor, times(1)).hasBetterBlockToSync();
-        Mockito.verifyNoInteractions(mockHsmBookkeepingClient);
-        Mockito.verifyNoInteractions(mockListener);
+        verifyNoInteractions(mockHsmBookkeepingClient);
+        verifyNoInteractions(mockListener);
     }
 
     @Test
-    public void informConfirmedBlockHeaders_getHsmBestBlock_null() throws InterruptedException, HSMClientException {
+    void informConfirmedBlockHeaders_getHsmBestBlock_null() throws InterruptedException, HSMClientException {
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -518,12 +517,12 @@ public class HSMBookkeepingServiceTest {
         verify(mockHsmBookkeepingClient, times(1)).getHSMPointer();
         verifyNoMoreInteractions(mockHsmBookkeepingClient);
         verify(mockBlockStore, times(1)).getBlockByHash(any());
-        Mockito.verifyNoInteractions(mockConfirmedBlockHeadersProvider);
+        verifyNoInteractions(mockConfirmedBlockHeadersProvider);
         verifyNoInteractions(mockListener);
     }
 
     @Test
-    public void informConfirmedBlockHeaders_emptyBlockHeaders() throws InterruptedException, HSMClientException {
+    void informConfirmedBlockHeaders_emptyBlockHeaders() throws InterruptedException, HSMClientException {
         BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
         when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
 
@@ -558,6 +557,6 @@ public class HSMBookkeepingServiceTest {
         verify(mockConfirmedBlockHeadersProvider, times(1)).getConfirmedBlockHeaders(any());
         verify(mockHsmBookkeepingClient, never()).advanceBlockchain(any(AdvanceBlockchainMessage.class));
         verify(mockBlockStore, times(1)).getBlockByHash(any());
-        Mockito.verifyNoInteractions(mockListener);
+        verifyNoInteractions(mockListener);
     }
 }

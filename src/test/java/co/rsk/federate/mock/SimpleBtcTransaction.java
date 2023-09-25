@@ -1,18 +1,23 @@
 package co.rsk.federate.mock;
 
-import org.bitcoinj.core.*;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionBag;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionWitness;
 
 /**
  * Created by ajlopez on 6/1/2016.
  */
 public class SimpleBtcTransaction extends Transaction {
-    private NetworkParameters networkParameters;
-    private Sha256Hash txId;
-    private Sha256Hash wtxId;
-    private boolean firstInputSegwit;
+    private final NetworkParameters networkParameters;
+    private final Sha256Hash txId;
+    private final Sha256Hash wtxId;
+    private final boolean firstInputSegwit;
     private Map<Sha256Hash, Integer> appears = new HashMap<>();
 
     public SimpleBtcTransaction(NetworkParameters networkParameters, Sha256Hash txId, Sha256Hash wtxId, boolean firstInputSegwit) {

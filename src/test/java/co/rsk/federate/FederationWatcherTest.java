@@ -1,45 +1,50 @@
 package co.rsk.federate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
-import org.ethereum.crypto.ECKey;
-import org.ethereum.facade.Ethereum;
-import org.ethereum.listener.EthereumListenerAdapter;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.ethereum.crypto.ECKey;
+import org.ethereum.facade.Ethereum;
+import org.ethereum.listener.EthereumListenerAdapter;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-public class FederationWatcherTest {
-    private Federation federation1 = new Federation(
+class FederationWatcherTest {
+    private final Federation federation1 = new Federation(
             getFederationMembersFromPksForBtc(1000, 2000, 3000, 4000),
             Instant.ofEpochMilli(5005L),
             0L,
             NetworkParameters.fromID(NetworkParameters.ID_REGTEST)
     );
 
-    private Federation federation2 = new Federation(
+    private final Federation federation2 = new Federation(
             getFederationMembersFromPksForBtc(2000, 3000, 4000, 5000, 6000, 7000),
             Instant.ofEpochMilli(15300L),
             0L,
             NetworkParameters.fromID(NetworkParameters.ID_REGTEST)
     );
 
-    private Federation federation3 = new Federation(
+    private final Federation federation3 = new Federation(
             getFederationMembersFromPksForBtc(5000, 6000, 7000),
             Instant.ofEpochMilli(7400L),
             0L,
@@ -50,19 +55,19 @@ public class FederationWatcherTest {
     private Ethereum ethereumMock;
     private FederationWatcher watcher;
 
-    @Before
-    public void createMocksAndWatcher() {
+    @BeforeEach
+    void createMocksAndWatcher() {
         federationProvider = mock(FederationProvider.class);
         ethereumMock = mock(Ethereum.class);
         watcher = new FederationWatcher(ethereumMock);
     }
 
     @Test
-    public void setsListenerUp() throws Exception {
+    void setsListenerUp() throws Exception {
         Mockito.doAnswer((InvocationOnMock m) -> {
             Object listener = m.getArgument(0);
-            Assert.assertEquals("co.rsk.federate.FederationWatcher$FederationWatcherRskListener", listener.getClass().getName());
-            Assert.assertSame(TestUtils.getInternalState(watcher, "federationProvider"), federationProvider);
+            assertEquals("co.rsk.federate.FederationWatcher$FederationWatcherRskListener", listener.getClass().getName());
+            assertSame(TestUtils.getInternalState(watcher, "federationProvider"), federationProvider);
             return null;
         }).when(ethereumMock).addListener(any());
 
@@ -71,7 +76,7 @@ public class FederationWatcherTest {
     }
 
     @Test
-    public void triggersActiveFederationChange_none_to_active() throws Exception {
+    void triggersActiveFederationChange_none_to_active() throws Exception {
         EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.empty(), Optional.empty());
         class EventsLogger
         {
@@ -89,8 +94,8 @@ public class FederationWatcherTest {
             watcher.addListener(new FederationWatcher.Listener() {
                 @Override
                 public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    Assert.assertEquals(Optional.empty(), oldFederation);
-                    Assert.assertEquals(federation1, newFederation);
+                    assertEquals(Optional.empty(), oldFederation);
+                    assertEquals(federation1, newFederation);
                     logger.activeCalls++;
                 }
 
@@ -102,8 +107,8 @@ public class FederationWatcherTest {
         }
 
         rskListener.onBestBlock(null, null);
-        Assert.assertEquals(2, logger.activeCalls);
-        Assert.assertEquals(0, logger.retiringCalls);
+        assertEquals(2, logger.activeCalls);
+        assertEquals(0, logger.retiringCalls);
         verify(federationProvider, times(1)).getActiveFederationAddress();
         verify(federationProvider, times(1)).getRetiringFederationAddress();
         verify(federationProvider, times(1)).getActiveFederation();
@@ -111,7 +116,7 @@ public class FederationWatcherTest {
     }
 
     @Test
-    public void triggersActiveFederationChange_active_to_otherActive() throws Exception {
+    void triggersActiveFederationChange_active_to_otherActive() throws Exception {
         EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation1), Optional.empty());
         class EventsLogger
         {
@@ -129,8 +134,8 @@ public class FederationWatcherTest {
             watcher.addListener(new FederationWatcher.Listener() {
                 @Override
                 public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    Assert.assertEquals(Optional.of(federation1), oldFederation);
-                    Assert.assertEquals(federation2, newFederation);
+                    assertEquals(Optional.of(federation1), oldFederation);
+                    assertEquals(federation2, newFederation);
                     logger.activeCalls++;
                 }
 
@@ -142,8 +147,8 @@ public class FederationWatcherTest {
         }
 
         rskListener.onBestBlock(null, null);
-        Assert.assertEquals(2, logger.activeCalls);
-        Assert.assertEquals(0, logger.retiringCalls);
+        assertEquals(2, logger.activeCalls);
+        assertEquals(0, logger.retiringCalls);
         verify(federationProvider, times(1)).getActiveFederationAddress();
         verify(federationProvider, times(1)).getRetiringFederationAddress();
         verify(federationProvider, times(1)).getActiveFederation();
@@ -151,7 +156,7 @@ public class FederationWatcherTest {
     }
 
     @Test
-    public void doesntTriggerActiveOrRetiringFederationChange_none() throws Exception {
+    void doesntTriggerActiveOrRetiringFederationChange_none() throws Exception {
         EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation1), Optional.empty());
         class EventsLogger
         {
@@ -179,8 +184,8 @@ public class FederationWatcherTest {
         }
 
         rskListener.onBestBlock(null, null);
-        Assert.assertEquals(0, logger.activeCalls);
-        Assert.assertEquals(0, logger.retiringCalls);
+        assertEquals(0, logger.activeCalls);
+        assertEquals(0, logger.retiringCalls);
         verify(federationProvider, times(1)).getActiveFederationAddress();
         verify(federationProvider, times(1)).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
@@ -188,7 +193,7 @@ public class FederationWatcherTest {
     }
 
     @Test
-    public void doesntTriggerActiveOrRetiringFederationChange_noChange() throws Exception {
+    void doesntTriggerActiveOrRetiringFederationChange_noChange() throws Exception {
         EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation1), Optional.of(federation2));
         class EventsLogger
         {
@@ -216,8 +221,8 @@ public class FederationWatcherTest {
         }
 
         rskListener.onBestBlock(null, null);
-        Assert.assertEquals(0, logger.activeCalls);
-        Assert.assertEquals(0, logger.retiringCalls);
+        assertEquals(0, logger.activeCalls);
+        assertEquals(0, logger.retiringCalls);
         verify(federationProvider, times(1)).getActiveFederationAddress();
         verify(federationProvider, times(1)).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
@@ -225,7 +230,7 @@ public class FederationWatcherTest {
     }
 
     @Test
-    public void triggersRetiringFederationChange_none_to_retiring() throws Exception {
+    void triggersRetiringFederationChange_none_to_retiring() throws Exception {
         EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation2), Optional.empty());
         class EventsLogger
         {
@@ -248,16 +253,16 @@ public class FederationWatcherTest {
 
                 @Override
                 public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    Assert.assertEquals(Optional.empty(), oldFederation);
-                    Assert.assertEquals(Optional.of(federation1), newFederation);
+                    assertEquals(Optional.empty(), oldFederation);
+                    assertEquals(Optional.of(federation1), newFederation);
                     logger.retiringCalls++;
                 }
             });
         }
 
         rskListener.onBestBlock(null, null);
-        Assert.assertEquals(0, logger.activeCalls);
-        Assert.assertEquals(2, logger.retiringCalls);
+        assertEquals(0, logger.activeCalls);
+        assertEquals(2, logger.retiringCalls);
         verify(federationProvider, times(1)).getActiveFederationAddress();
         verify(federationProvider, times(1)).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
@@ -265,7 +270,7 @@ public class FederationWatcherTest {
     }
 
     @Test
-    public void triggersRetiringFederationChange_retiring_to_none() throws Exception {
+    void triggersRetiringFederationChange_retiring_to_none() throws Exception {
         EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation2), Optional.of(federation1));
         class EventsLogger
         {
@@ -288,16 +293,16 @@ public class FederationWatcherTest {
 
                 @Override
                 public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    Assert.assertEquals(Optional.of(federation1), oldFederation);
-                    Assert.assertEquals(Optional.empty(), newFederation);
+                    assertEquals(Optional.of(federation1), oldFederation);
+                    assertEquals(Optional.empty(), newFederation);
                     logger.retiringCalls++;
                 }
             });
         }
 
         rskListener.onBestBlock(null, null);
-        Assert.assertEquals(0, logger.activeCalls);
-        Assert.assertEquals(2, logger.retiringCalls);
+        assertEquals(0, logger.activeCalls);
+        assertEquals(2, logger.retiringCalls);
         verify(federationProvider, times(1)).getActiveFederationAddress();
         verify(federationProvider, times(1)).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
@@ -305,7 +310,7 @@ public class FederationWatcherTest {
     }
 
     @Test
-    public void triggersRetiringFederationChange_retiring_to_otherRetiring() throws Exception {
+    void triggersRetiringFederationChange_retiring_to_otherRetiring() throws Exception {
         EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation3), Optional.of(federation1));
         class EventsLogger
         {
@@ -328,16 +333,16 @@ public class FederationWatcherTest {
 
                 @Override
                 public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    Assert.assertEquals(Optional.of(federation1), oldFederation);
-                    Assert.assertEquals(Optional.of(federation2), newFederation);
+                    assertEquals(Optional.of(federation1), oldFederation);
+                    assertEquals(Optional.of(federation2), newFederation);
                     logger.retiringCalls++;
                 }
             });
         }
 
         rskListener.onBestBlock(null, null);
-        Assert.assertEquals(0, logger.activeCalls);
-        Assert.assertEquals(2, logger.retiringCalls);
+        assertEquals(0, logger.activeCalls);
+        assertEquals(2, logger.retiringCalls);
         verify(federationProvider, times(1)).getActiveFederationAddress();
         verify(federationProvider, times(1)).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
@@ -351,13 +356,13 @@ public class FederationWatcherTest {
 
         final ListenerHolder holder = new ListenerHolder();
         Mockito.doAnswer((InvocationOnMock m) -> {
-            holder.listener = (EthereumListenerAdapter) m.getArgument(0);
+            holder.listener = m.getArgument(0);
             return null;
         }).when(ethereumMock).addListener(any());
         watcher.setup(federationProvider);
         TestUtils.setInternalState(watcher, "activeFederation", activeFederation);
         TestUtils.setInternalState(watcher, "retiringFederation", retiringFederation);
-        Assert.assertNotNull(holder.listener);
+        assertNotNull(holder.listener);
         return holder.listener;
     }
 

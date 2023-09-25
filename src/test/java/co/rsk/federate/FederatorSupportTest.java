@@ -1,35 +1,49 @@
 package co.rsk.federate;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.config.TestSystemProperties;
 import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeMethods;
-import org.bitcoinj.core.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PartialMerkleTree;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.TransactionWitness;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.Blockchain;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+class FederatorSupportTest {
 
-import static org.mockito.Mockito.*;
-
-public class FederatorSupportTest {
-
-    private NetworkParameters networkParameters = ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString());
+    private final NetworkParameters networkParameters = ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString());
 
     @Test
-    public void sendReceiveHeadersSendsBlockHeaders() {
+    void sendReceiveHeadersSendsBlockHeaders() {
         BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
         FederatorSupport instance = new FederatorSupport(
-                mock(Blockchain.class),
-                new TestSystemProperties(),
-                bridgeTransactionSender
+            mock(Blockchain.class),
+            new TestSystemProperties(),
+            bridgeTransactionSender
         );
         FederatorSupport fs = spy(instance);
 
@@ -39,9 +53,9 @@ public class FederatorSupportTest {
 
         doAnswer((Answer<Void>) invocation -> {
             Object[] args = invocation.getArguments();
-            Assert.assertEquals(Bridge.RECEIVE_HEADERS, args[2]);
+            assertEquals(Bridge.RECEIVE_HEADERS, args[2]);
             Object secondArg = ((Object[]) args[3])[0];
-            Assert.assertEquals(Hex.toHexString(headerToExpect), Hex.toHexString((byte[])secondArg));
+            assertEquals(Hex.toHexString(headerToExpect), Hex.toHexString((byte[])secondArg));
             return null;
         }).when(bridgeTransactionSender).sendRskTx(any(), any(), any(), any());
 
@@ -51,13 +65,13 @@ public class FederatorSupportTest {
     }
 
     @Test
-    public void sendRegisterCoinbaseTransaction() throws Exception {
+    void sendRegisterCoinbaseTransaction() throws Exception {
         BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
         FederatorSupport fs = new FederatorSupport(
-                mock(Blockchain.class),
-                new TestSystemProperties(),
-                bridgeTransactionSender
+            mock(Blockchain.class),
+            new TestSystemProperties(),
+            bridgeTransactionSender
         );
 
         org.bitcoinj.core.Transaction coinbaseTx = new org.bitcoinj.core.Transaction(networkParameters);
@@ -70,18 +84,18 @@ public class FederatorSupportTest {
                 Address.fromString(networkParameters, "mvbnrCX3bg1cDRUu8pkecrvP6vQkSLDSou"));
         coinbaseTx.addOutput(output);
 
-        List<Sha256Hash> hashes =  Arrays.asList(Sha256Hash.ZERO_HASH);
+        List<Sha256Hash> hashes = Collections.singletonList(Sha256Hash.ZERO_HASH);
         PartialMerkleTree pmt = new PartialMerkleTree(networkParameters, new byte[] {}, hashes, hashes.size());
         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(coinbaseTx, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH, pmt);
 
         doAnswer((Answer<Void>) invocation -> {
             Object[] args = invocation.getArguments();
-            Assert.assertEquals(BridgeMethods.REGISTER_BTC_COINBASE_TRANSACTION.getFunction(), args[2]);
-            Assert.assertArrayEquals(coinbaseInformation.getSerializedCoinbaseTransactionWithoutWitness(), (byte[])args[3]);
-            Assert.assertEquals(coinbaseInformation.getBlockHash().getBytes(), args[4]);
-            Assert.assertArrayEquals(coinbaseInformation.getPmt().bitcoinSerialize(), (byte[])args[5]);
-            Assert.assertEquals(coinbaseInformation.getWitnessRoot().getBytes(), args[6]);
-            Assert.assertArrayEquals(coinbaseInformation.getCoinbaseWitnessReservedValue(), (byte[])args[7]);
+            assertEquals(BridgeMethods.REGISTER_BTC_COINBASE_TRANSACTION.getFunction(), args[2]);
+            assertArrayEquals(coinbaseInformation.getSerializedCoinbaseTransactionWithoutWitness(), (byte[])args[3]);
+            assertEquals(coinbaseInformation.getBlockHash().getBytes(), args[4]);
+            assertArrayEquals(coinbaseInformation.getPmt().bitcoinSerialize(), (byte[])args[5]);
+            assertEquals(coinbaseInformation.getWitnessRoot().getBytes(), args[6]);
+            assertArrayEquals(coinbaseInformation.getCoinbaseWitnessReservedValue(), (byte[])args[7]);
             return null;
         }).when(bridgeTransactionSender).sendRskTx(any(), any(), any(), any(), any(), any(), any(), any());
 
@@ -91,7 +105,7 @@ public class FederatorSupportTest {
     }
 
     @Test
-    public void hasBlockCoinbaseInformed() {
+    void hasBlockCoinbaseInformed() {
         BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
 
         FederatorSupport fs = new FederatorSupport(
@@ -102,18 +116,16 @@ public class FederatorSupportTest {
 
         doAnswer((Answer<Boolean>) invocation -> {
             Object[] args = invocation.getArguments();
-            Assert.assertEquals(BridgeMethods.HAS_BTC_BLOCK_COINBASE_TRANSACTION_INFORMATION.getFunction(), args[1]);
+            assertEquals(BridgeMethods.HAS_BTC_BLOCK_COINBASE_TRANSACTION_INFORMATION.getFunction(), args[1]);
             return true;
         }).when(bridgeTransactionSender).callTx(any(), any(), any());
 
-        Assert.assertTrue(fs.hasBlockCoinbaseInformed(Sha256Hash.ZERO_HASH));
-
+        assertTrue(fs.hasBlockCoinbaseInformed(Sha256Hash.ZERO_HASH));
     }
 
     private Sha256Hash createHash() {
         byte[] bytes = new byte[32];
         bytes[0] = (byte) 1;
-        Sha256Hash hash = Sha256Hash.wrap(bytes);
-        return hash;
+        return Sha256Hash.wrap(bytes);
     }
 }

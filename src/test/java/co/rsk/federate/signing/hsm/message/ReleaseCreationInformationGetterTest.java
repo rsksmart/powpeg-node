@@ -1,28 +1,36 @@
 package co.rsk.federate.signing.hsm.message;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
-import org.ethereum.core.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import org.ethereum.core.Block;
+import org.ethereum.core.CallTransaction;
+import org.ethereum.core.Transaction;
+import org.ethereum.core.TransactionReceipt;
 import org.ethereum.db.BlockStore;
 import org.ethereum.db.ReceiptStore;
 import org.ethereum.db.TransactionInfo;
 import org.ethereum.vm.DataWord;
 import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.util.*;
-
-import static org.mockito.Mockito.*;
-
-public class ReleaseCreationInformationGetterTest {
+class ReleaseCreationInformationGetterTest {
 
     @Test
-    public void createGetTxInfoToSign_returnOK() throws HSMReleaseCreationInformationException {
+    void createGetTxInfoToSign_returnOK() throws HSMReleaseCreationInformationException {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
@@ -82,18 +90,21 @@ public class ReleaseCreationInformationGetterTest {
                                                Block block,
                                                TransactionReceipt transactionReceipt,
                                                int hsmVersion) throws HSMReleaseCreationInformationException {
-        ReleaseCreationInformation releaseCreationInformation =
-            information.getTxInfoToSign(hsmVersion, rskTxHash, btcTransaction);
+        ReleaseCreationInformation releaseCreationInformation = information.getTxInfoToSign(
+            hsmVersion,
+            rskTxHash,
+            btcTransaction
+        );
 
-        Assert.assertEquals(releaseCreationInformation.getBlock(), block);
-        Assert.assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
-        Assert.assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
-        Assert.assertEquals(btcTransaction, releaseCreationInformation.getBtcTransaction());
+        assertEquals(releaseCreationInformation.getBlock(), block);
+        assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
+        assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
+        assertEquals(btcTransaction, releaseCreationInformation.getBtcTransaction());
     }
 
     @Test
-    //In the execution of this test, the event that is sought is not found in the first block but in the next block obtained.
-    public void createGetTxInfoToSign_returnOK_SecondBlock() throws HSMReleaseCreationInformationException {
+    void createGetTxInfoToSign_returnOK_SecondBlock() throws HSMReleaseCreationInformationException {
+        // The event that is searched is not found in the first block but in the next block obtained.
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
 
@@ -155,20 +166,20 @@ public class ReleaseCreationInformationGetterTest {
         when(receiptStore.getInMainChain(rskTxHashInSecondBlock.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfoInSecondBlock));
 
         ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
-                receiptStore,
-                blockStore
+            receiptStore,
+            blockStore
         );
         ReleaseCreationInformation releaseCreationInformation = information.getTxInfoToSign(2, rskTxHash, btcTransaction);
 
-        Assert.assertEquals(secondBlock, releaseCreationInformation.getBlock());
-        Assert.assertEquals(transactionReceiptInSecondBlock, releaseCreationInformation.getTransactionReceipt());
-        Assert.assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
-        Assert.assertEquals(btcTransaction, releaseCreationInformation.getBtcTransaction());
+        assertEquals(secondBlock, releaseCreationInformation.getBlock());
+        assertEquals(transactionReceiptInSecondBlock, releaseCreationInformation.getTransactionReceipt());
+        assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
+        assertEquals(btcTransaction, releaseCreationInformation.getBtcTransaction());
 
     }
 
-    @Test (expected = HSMReleaseCreationInformationException.class)
-    public void createGetTxInfoToSign_transactionHashNotFoundInBlock() throws HSMReleaseCreationInformationException {
+    @Test
+    void createGetTxInfoToSign_transactionHashNotFoundInBlock() {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
@@ -192,14 +203,19 @@ public class ReleaseCreationInformationGetterTest {
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
         ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
-                receiptStore,
-                blockStore
+            receiptStore,
+            blockStore
         );
-        information.getTxInfoToSign(2, rskTxHash, btcTransaction);
+
+        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getTxInfoToSign(
+            2,
+            rskTxHash,
+            btcTransaction
+        ));
     }
 
-    @Test (expected = HSMReleaseCreationInformationException.class)
-    public void createGetTxInfoToSignV2_noEventFound_noBlockFound() throws HSMReleaseCreationInformationException {
+    @Test
+    void createGetTxInfoToSignV2_noEventFound_noBlockFound() {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
@@ -228,14 +244,19 @@ public class ReleaseCreationInformationGetterTest {
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
         ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
-                receiptStore,
-                blockStore
+            receiptStore,
+            blockStore
         );
-        information.getTxInfoToSign(2, rskTxHash, btcTransaction);
+
+        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getTxInfoToSign(
+            2,
+            rskTxHash,
+            btcTransaction
+        ));
     }
 
-    @Test (expected = HSMReleaseCreationInformationException.class)
-    public void createGetTxInfoToSignV2_noEventFound_BestBlockFound() throws HSMReleaseCreationInformationException {
+    @Test
+    void createGetTxInfoToSignV2_noEventFound_BestBlockFound() {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
@@ -270,7 +291,11 @@ public class ReleaseCreationInformationGetterTest {
                 receiptStore,
                 blockStore
         );
-        information.getTxInfoToSign(2, rskTxHash, btcTransaction);
-    }
 
+        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getTxInfoToSign(
+            2,
+            rskTxHash,
+            btcTransaction
+        ));
+    }
 }

@@ -1,25 +1,27 @@
 package co.rsk.federate.log;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.util.LoggerProvider;
-import org.bitcoinj.core.StoredBlock;
-import org.ethereum.core.Block;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-import org.slf4j.Logger;
-
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import org.bitcoinj.core.StoredBlock;
+import org.ethereum.core.Block;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.*;
-
-public class FederateLoggerTest {
+class FederateLoggerTest {
 
     @Test
-    public void logOk() {
+    void logOk() {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         AtomicLong currentTime = new AtomicLong(1);
         Logger logger = mock(Logger.class);
@@ -50,23 +52,23 @@ public class FederateLoggerTest {
         ArgumentCaptor<Object> loggerArgumentsCaptor = ArgumentCaptor.forClass(Object.class);
         verify(logger, times(3)).info(anyString(), loggerArgumentsCaptor.capture());
         List<Object> loggerArguments = loggerArgumentsCaptor.getAllValues();
-        assertThat(loggerArguments.get(0), is(rskBestBlockHeight));
-        assertThat(loggerArguments.get(1), is((long) btcBestBlockHeight));
-        assertThat(loggerArguments.get(2), is(bridgeBtcHeight));
+        assertEquals(rskBestBlockHeight, loggerArguments.get(0));
+        assertEquals((long) btcBestBlockHeight, loggerArguments.get(1));
+        assertEquals(bridgeBtcHeight, loggerArguments.get(2));
     }
 
     @Test
-    public void dontLogOnEveryBlock() {
+    void dontLogOnEveryBlock() {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         AtomicLong currentTime = new AtomicLong(1);
         Logger logger = mock(Logger.class);
         LoggerProvider loggerProvider = () -> logger;
         FederateLogger monitoringLogger = new FederateLogger(
-                federatorSupport,
-                currentTime::get,
-                loggerProvider,
-                0,
-                1
+            federatorSupport,
+            currentTime::get,
+            loggerProvider,
+            0,
+            1
         );
 
         long rskBestBlockHeight = 1L;
@@ -76,25 +78,25 @@ public class FederateLoggerTest {
 
         monitoringLogger.log();
 
-        Mockito.verifyNoInteractions(logger);
+        verifyNoInteractions(logger);
     }
 
     @Test
-    public void dontFloodLogger() {
+    void dontFloodLogger() {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         AtomicLong currentTime = new AtomicLong(1);
         Logger logger = mock(Logger.class);
         LoggerProvider loggerProvider = () -> logger;
         FederateLogger monitoringLogger = new FederateLogger(
-                federatorSupport,
-                currentTime::get,
-                loggerProvider,
-                1,
-                0
+            federatorSupport,
+            currentTime::get,
+            loggerProvider,
+            1,
+            0
         );
 
         monitoringLogger.log();
 
-        Mockito.verifyNoInteractions(logger);
+        verifyNoInteractions(logger);
     }
 }
