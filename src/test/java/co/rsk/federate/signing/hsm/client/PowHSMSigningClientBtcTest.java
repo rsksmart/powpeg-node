@@ -15,7 +15,7 @@ import static co.rsk.federate.signing.HSMField.RECEIPT_MERKLE_PROOF;
 import static co.rsk.federate.signing.HSMField.S;
 import static co.rsk.federate.signing.HSMField.SIGNATURE;
 import static co.rsk.federate.signing.HSMField.TX;
-import static co.rsk.federate.signing.HSMField.VERSION_FIELD;
+import static co.rsk.federate.signing.HSMField.VERSION;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
