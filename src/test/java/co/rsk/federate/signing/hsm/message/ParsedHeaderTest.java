@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.message;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
@@ -8,9 +9,8 @@ import java.util.List;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.core.BlockHeaderBuilder;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.spongycastle.util.encoders.Hex;
 
 /**
@@ -22,8 +22,8 @@ public class ParsedHeaderTest {
     private List<BlockHeader> brothers;
     private ParsedHeader parsedHeader;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
         blockHeader = blockHeaderBuilder.setNumber(1).build();
         brothers = Arrays.asList(
@@ -34,29 +34,29 @@ public class ParsedHeaderTest {
     }
 
     @Test
-    public void test_getBlockHeader() {
+    void getBlockHeader() {
         String serializedHeader = Hex.toHexString(blockHeader.getFullEncoded());
-        Assert.assertEquals(serializedHeader, parsedHeader.getBlockHeader());
+        assertEquals(serializedHeader, parsedHeader.getBlockHeader());
     }
 
     @Test
-    public void test_getBrothers() {
+    void getBrothers() {
         String[] actualBrothers = parsedHeader.getBrothers();
-        Assert.assertEquals(2, actualBrothers.length);
+        assertEquals(2, actualBrothers.length);
         for (int i = 0; i < actualBrothers.length; i++) {
-            Assert.assertEquals(Hex.toHexString(brothers.get(i).getFullEncoded()), actualBrothers[i]);
+            assertEquals(Hex.toHexString(brothers.get(i).getFullEncoded()), actualBrothers[i]);
         }
     }
 
     @Test
-    public void test_getBrothers_empty_brothers() {
+    void getBrothers_empty_brothers() {
         parsedHeader = new ParsedHeader(blockHeader, Collections.emptyList());
 
         String[] actualBrothers = parsedHeader.getBrothers();
 
-        Assert.assertEquals(0, actualBrothers.length);
+        assertEquals(0, actualBrothers.length);
         for (int i = 0; i < actualBrothers.length; i++) {
-            Assert.assertEquals(Hex.toHexString(brothers.get(i).getFullEncoded()), actualBrothers[i]);
+            assertEquals(Hex.toHexString(brothers.get(i).getFullEncoded()), actualBrothers[i]);
         }
     }
 }
