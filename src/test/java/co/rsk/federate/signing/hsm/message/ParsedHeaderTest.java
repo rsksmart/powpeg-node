@@ -16,7 +16,7 @@ import org.spongycastle.util.encoders.Hex;
 /**
  * Created by Kelvin Isievwore on 01/08/2023.
  */
-public class ParsedHeaderTest {
+class ParsedHeaderTest {
 
     private BlockHeader blockHeader;
     private List<BlockHeader> brothers;

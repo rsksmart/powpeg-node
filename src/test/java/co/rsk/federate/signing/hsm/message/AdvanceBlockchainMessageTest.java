@@ -90,7 +90,7 @@ class AdvanceBlockchainMessageTest {
     }
 
     @Test
-    public void getParsedBrothers_sorted_by_hash() throws HSMBlockchainBookkeepingRelatedException {
+    void getParsedBrothers_sorted_by_hash() throws HSMBlockchainBookkeepingRelatedException {
         BlockHeader block1Header = blockHeaderBuilder.setNumber(1).build();
         BlockHeader block2Header = blockHeaderBuilder.setNumber(2).build();
 
@@ -127,7 +127,7 @@ class AdvanceBlockchainMessageTest {
     }
 
     @Test
-    public void getParsedBrothers_with_more_than_10_brothers() throws HSMBlockchainBookkeepingRelatedException {
+    void getParsedBrothers_with_more_than_10_brothers() throws HSMBlockchainBookkeepingRelatedException {
         BlockHeader blockHeader1 = blockHeaderBuilder.setNumber(1).build();
         BlockHeader blockHeader2 = blockHeaderBuilder.setNumber(2).build();
         BlockHeader blockHeader3 = blockHeaderBuilder.setNumber(3).build();
