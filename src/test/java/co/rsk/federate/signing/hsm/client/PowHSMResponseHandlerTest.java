@@ -256,7 +256,7 @@ class PowHSMResponseHandlerTest {
     }
 
     @Test
-    public void handleErrorResponseUnhandledErrorCode() {
+    void handleErrorResponseUnhandledErrorCode() {
         int errorCode = -99;
         ObjectNode sendResponse = buildResponse(errorCode);
         try {
