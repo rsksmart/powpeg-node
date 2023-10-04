@@ -17,7 +17,7 @@ public class AdvanceBlockchainMessage {
     }
 
     private String parseBlockHeader(BlockHeader blockHeader) {
-        return Hex.toHexString(blockHeader.getFullEncoded());
+        return Hex.toHexString(blockHeader.getEncoded(true, true, true));
     }
 
     public List<String> getBlockHeaders() {
