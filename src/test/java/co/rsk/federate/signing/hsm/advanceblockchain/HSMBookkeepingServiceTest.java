@@ -372,7 +372,7 @@ class HSMBookkeepingServiceTest {
     @Test
     void informConfirmedBlockHeaders_already_informing() throws HSMClientException, InterruptedException {
         BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
-        when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
+        when(mockBlockHeaderToInform.getEncoded(true, true, true)).thenReturn(Keccak256.ZERO_HASH.getBytes());
         List<BlockHeader> blockHeadersToInform = Collections.singletonList(mockBlockHeaderToInform);
 
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
@@ -416,7 +416,7 @@ class HSMBookkeepingServiceTest {
     @Test
     void informConfirmedBlockHeaders_Ok() throws InterruptedException, HSMClientException {
         BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
-        when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
+        when(mockBlockHeaderToInform.getEncoded(true, true, true)).thenReturn(Keccak256.ZERO_HASH.getBytes());
         List<BlockHeader> blockHeadersToInform = Collections.singletonList(mockBlockHeaderToInform);
 
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);

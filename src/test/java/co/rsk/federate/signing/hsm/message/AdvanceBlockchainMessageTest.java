@@ -17,7 +17,7 @@ class AdvanceBlockchainMessageTest {
     void getBlockHeaders_ok() {
         byte[] encodedBlockHeader1 = new byte[]{ 1 };
         BlockHeader blockHeader1 = mock(BlockHeader.class);
-        when(blockHeader1.getFullEncoded()).thenReturn(encodedBlockHeader1);
+        when(blockHeader1.getEncoded(true, true, true)).thenReturn(encodedBlockHeader1);
 
         List<BlockHeader> blockHeaders = Collections.singletonList(blockHeader1);
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blockHeaders);
@@ -30,10 +30,10 @@ class AdvanceBlockchainMessageTest {
     void getBlockHeaders_ok_sort_inverted() {
         byte[] encodedBlockHeader1 = new byte[]{ 1 };
         BlockHeader blockHeader1 = mock(BlockHeader.class);
-        when(blockHeader1.getFullEncoded()).thenReturn(encodedBlockHeader1);
+        when(blockHeader1.getEncoded(true, true, true)).thenReturn(encodedBlockHeader1);
         byte[] encodedBlockHeader2 = new byte[]{ 2 };
         BlockHeader blockHeader2 = mock(BlockHeader.class);
-        when(blockHeader2.getFullEncoded()).thenReturn(encodedBlockHeader2);
+        when(blockHeader2.getEncoded(true, true, true)).thenReturn(encodedBlockHeader2);
 
         List<BlockHeader> blockHeaders = Arrays.asList(blockHeader1, blockHeader2);
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blockHeaders);

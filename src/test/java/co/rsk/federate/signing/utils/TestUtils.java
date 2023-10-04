@@ -97,6 +97,8 @@ public class TestUtils {
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getEncoded(true, false)).thenReturn(hash.getBytes());
         when(blockHeader.getFullEncoded()).thenReturn(hash.getBytes());
+        when(blockHeader.getEncoded(true, true, true)).thenReturn(hash.getBytes());
+        when(blockHeader.getEncoded(true, false, true)).thenReturn(hash.getBytes());
         when(block.getHeader()).thenReturn(blockHeader);
 
         return block;

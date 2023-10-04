@@ -318,7 +318,7 @@ class HsmBookkeepingClientImplTest {
             .thenReturn(buildResponse(false));
 
         BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getEncoded(true, false)).thenReturn(new byte[]{});
+        when(blockHeader.getEncoded(true, false, true)).thenReturn(new byte[]{});
         List<BlockHeader> blockHeaders = Arrays.asList(blockHeader, blockHeader, blockHeader);
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
@@ -340,7 +340,7 @@ class HsmBookkeepingClientImplTest {
             .thenReturn(buildResponse(false));
 
         BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getEncoded(true, false)).thenReturn(new byte[]{});
+        when(blockHeader.getEncoded(true, false, true)).thenReturn(new byte[]{});
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(2);
         hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
@@ -364,7 +364,7 @@ class HsmBookkeepingClientImplTest {
             .thenReturn(buildResponse(false));
 
         BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
+        when(blockHeader.getEncoded(true, true, true)).thenReturn(new byte[]{});
 
         hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
 
@@ -385,7 +385,7 @@ class HsmBookkeepingClientImplTest {
             .thenReturn(buildResponse(false));
 
         BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getFullEncoded()).thenReturn(new byte[]{});
+        when(blockHeader.getEncoded(true, true, true)).thenReturn(new byte[]{});
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(3);
         hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(Arrays.asList(blockHeader, blockHeader, blockHeader)));
