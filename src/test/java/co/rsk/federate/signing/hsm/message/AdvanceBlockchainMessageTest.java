@@ -48,7 +48,7 @@ class AdvanceBlockchainMessageTest {
             // Headers should have been parsed in the reverse order
             int blockIndex = blocks.size() - 1 - i;
             assertEquals(
-                Hex.toHexString(blocks.get(blockIndex).getHeader().getFullEncoded()),
+                Hex.toHexString(blocks.get(blockIndex).getHeader().getEncoded(true, true, true)),
                 parsedBlockHeaders.get(i)
             );
         }
@@ -63,7 +63,7 @@ class AdvanceBlockchainMessageTest {
             // Headers should have been parsed in the reverse order
             int blockIndex = blocks.size() - 1 - i;
             assertEquals(
-                Hex.toHexString(blocks.get(blockIndex).getHeader().getFullEncoded()),
+                Hex.toHexString(blocks.get(blockIndex).getHeader().getEncoded(true, true, true)),
                 parsedBlockHeaders.get(i)
             );
 
@@ -76,7 +76,7 @@ class AdvanceBlockchainMessageTest {
 
             for (int j = 0; j < parsedBrothers.length; j++) {
                 assertEquals(
-                    Hex.toHexString(expectedBrothers.get(j).getFullEncoded()),
+                    Hex.toHexString(expectedBrothers.get(j).getEncoded(true, true, true)),
                     parsedBrothers[j]
                 );
             }
@@ -90,7 +90,7 @@ class AdvanceBlockchainMessageTest {
 
         assertThrows(
             HSMBlockchainBookkeepingRelatedException.class,
-            () -> message.getParsedBrothers(Hex.toHexString(invalidBlockHeader.getFullEncoded()))
+            () -> message.getParsedBrothers(Hex.toHexString(invalidBlockHeader.getEncoded(true, true, true)))
         );
     }
 
@@ -107,7 +107,7 @@ class AdvanceBlockchainMessageTest {
             // Headers should have been parsed in the reverse order
             int blockIndex = blocksWithMultipleBrothers.size() - 1 - i;
             assertEquals(
-                Hex.toHexString(blocksWithMultipleBrothers.get(blockIndex).getHeader().getFullEncoded()),
+                Hex.toHexString(blocksWithMultipleBrothers.get(blockIndex).getHeader().getEncoded(true, true, true)),
                 parsedBlockHeaders.get(i)
             );
 
@@ -119,7 +119,7 @@ class AdvanceBlockchainMessageTest {
 
             for (int j = 0; j < parsedBrothers.length; j++) {
                 assertEquals(
-                    Hex.toHexString(expectedBrothers.get(j).getFullEncoded()),
+                    Hex.toHexString(expectedBrothers.get(j).getEncoded(true, true, true)),
                     parsedBrothers[j]
                 );
             }
