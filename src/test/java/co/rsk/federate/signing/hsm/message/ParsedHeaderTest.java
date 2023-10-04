@@ -39,7 +39,7 @@ class ParsedHeaderTest {
 
     @Test
     void getBlockHeader() {
-        String serializedHeader = Hex.toHexString(blockHeader.getFullEncoded());
+        String serializedHeader = Hex.toHexString(blockHeader.getEncoded(true, true, true));
         assertEquals(serializedHeader, parsedHeader.getBlockHeader());
     }
 
@@ -50,7 +50,7 @@ class ParsedHeaderTest {
 
         brothers.sort(Comparator.comparing(BlockHeader::getHash));
         for (int i = 0; i < actualBrothers.length; i++) {
-            assertEquals(Hex.toHexString(brothers.get(i).getFullEncoded()), actualBrothers[i]);
+            assertEquals(Hex.toHexString(brothers.get(i).getEncoded(true, true, true)), actualBrothers[i]);
         }
     }
 

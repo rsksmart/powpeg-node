@@ -59,7 +59,7 @@ class AncestorBlockUpdaterTest {
         Block targetBlock = mock(Block.class);
         when(targetBlock.getHash()).thenReturn(targetBlockHash);
         BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getEncoded(true, false)).thenReturn(TestUtils.createHash(2).getBytes());
+        when(blockHeader.getEncoded(true, false, true)).thenReturn(TestUtils.createHash(2).getBytes());
         when(targetBlock.getHeader()).thenReturn(blockHeader);
 
         Keccak256 initialAncestorBlockHash = TestUtils.createHash(1);
@@ -69,7 +69,7 @@ class AncestorBlockUpdaterTest {
         // Ancestor is just one block ahead of the target block
         when(initialAncestorBlock.getParentHash()).thenReturn(targetBlockHash);
         when(initialAncestorBlock.getHeader()).thenReturn(initialAncestorBlockHeader);
-        when(initialAncestorBlockHeader.getEncoded(true, false)).thenReturn(initialAncestorBlockHash.getBytes());
+        when(initialAncestorBlockHeader.getEncoded(true, false, true)).thenReturn(initialAncestorBlockHash.getBytes());
 
         PowHSMState initialState = new PowHSMState(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString(), false);
         PowHSMState secondState = new PowHSMState(targetBlockHash.toHexString(), targetBlockHash.toHexString(), false);
