@@ -1,14 +1,13 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 import org.ethereum.core.Block;
 import org.ethereum.db.BlockStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ConfirmedBlocksProvider {
     private static final Logger logger = LoggerFactory.getLogger(ConfirmedBlocksProvider.class);
@@ -71,7 +70,11 @@ public class ConfirmedBlocksProvider {
                 potentialBlocks.remove(confirmedBlock);
                 lastIndexToConfirmBlock = potentialBlocks.size();
 
-                logger.trace("[getConfirmedBlocks] Confirmed block {}", confirmedBlock.getHash());
+                logger.trace(
+                    "[getConfirmedBlocks] Confirmed block {} (height {})",
+                    confirmedBlock.getHash(),
+                    confirmedBlock.getNumber()
+                );
             }
 
             blockToProcess = blockStore.getChainBlockByNumber(blockToProcess.getNumber() + 1);
@@ -99,8 +102,9 @@ public class ConfirmedBlocksProvider {
             difficultyToConsider = difficultyCap.min(blockDifficulty);
         }
         logger.trace(
-            "[getBlockDifficultyToConsider] Block {}, total difficulty {}, considering {}",
+            "[getBlockDifficultyToConsider] Block {} (height {}), total difficulty {}, considering {}",
             block.getHash(),
+            block.getNumber(),
             blockDifficulty,
             difficultyToConsider
         );
