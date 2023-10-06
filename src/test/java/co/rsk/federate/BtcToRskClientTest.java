@@ -37,8 +37,8 @@ import co.rsk.federate.mock.SimpleBlock;
 import co.rsk.federate.mock.SimpleBtcTransaction;
 import co.rsk.federate.mock.SimpleFederatorSupport;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.Federation;
+import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.btcLockSender.BtcLockSender;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
@@ -1666,7 +1666,7 @@ class BtcToRskClientTest {
         releaseInput1.setScriptSig(inputScript);
 
         // Verify it was properly signed
-        assertTrue(BridgeUtils.isPegOutTx(releaseTx1, Collections.singletonList(genesisFederation), activations));
+        assertTrue(PegUtilsLegacy.isPegOutTx(releaseTx1, Collections.singletonList(genesisFederation), activations));
 
         Transaction releaseTx = ThinConverter.toOriginalInstance(bridgeRegTestConstants.getBtcParamsString(), releaseTx1);
 
