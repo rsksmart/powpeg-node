@@ -1,9 +1,6 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -27,12 +24,14 @@ import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import co.rsk.federate.signing.utils.TestUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.bouncycastle.util.encoders.Hex;
@@ -297,7 +296,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void advanceBlockchain_with_brothers_ok() throws HSMClientException, JsonRpcException {
+    void advanceBlockchain_with_brothers_ok() throws HSMClientException, JsonRpcException, JsonProcessingException {
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(0, VERSION_THREE));
         when(jsonRpcClientMock.send(buildExpectedRequest("blockchainState", VERSION_THREE)))
@@ -327,14 +326,22 @@ class HsmBookkeepingClientImplTest {
 
         // Assert brothers
         List<BlockHeader> block2Uncles = blocks.get(1).getUncleList();
-        String block1Brothers = brothersInRequest.get(2).toString();
-        assertTrue(block1Brothers.contains(Hex.toHexString(block2Uncles.get(0).getFullEncoded())));
-        assertTrue(block1Brothers.contains(Hex.toHexString(block2Uncles.get(1).getFullEncoded())));
+        Iterator<JsonNode> block1BrothersPayload = new ObjectMapper().readTree(brothersInRequest.get(2).toString()).elements();
+        int block1Index = 0;
+        while (block1BrothersPayload.hasNext()) {
+            String encodedBrother = block1BrothersPayload.next().asText();
+            assertArrayEquals(Hex.decode(encodedBrother), block2Uncles.get(block1Index).getFullEncoded());
+            block1Index++;
+        }
 
         List<BlockHeader> block3Uncles = blocks.get(2).getUncleList();
-        String block2Brothers = brothersInRequest.get(1).toString();
-        assertTrue(block2Brothers.contains(Hex.toHexString(block3Uncles.get(0).getFullEncoded())));
-        assertTrue(block2Brothers.contains(Hex.toHexString(block3Uncles.get(1).getFullEncoded())));
+        Iterator<JsonNode> block2BrothersPayload = new ObjectMapper().readTree(brothersInRequest.get(1).toString()).elements();
+        int block2Index = 0;
+        while (block2BrothersPayload.hasNext()) {
+            String encodedBrother = block2BrothersPayload.next().asText();
+            assertArrayEquals(Hex.decode(encodedBrother), block3Uncles.get(block2Index).getFullEncoded());
+            block2Index++;
+        }
 
         JsonNode block3Brothers = brothersInRequest.get(0);
         assertTrue(block3Brothers.isEmpty());
