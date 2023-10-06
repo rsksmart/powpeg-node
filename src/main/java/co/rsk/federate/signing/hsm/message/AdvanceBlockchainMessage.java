@@ -48,7 +48,7 @@ public class AdvanceBlockchainMessage {
     }
 
     private List<BlockHeader> filterBrothers(List<BlockHeader> brothers) {
-        if (brothers.isEmpty() || brothers.size() <= BROTHERS_LIMIT_PER_BLOCK_HEADER) {
+        if (brothers.size() <= BROTHERS_LIMIT_PER_BLOCK_HEADER) {
             return brothers;
         }
         return brothers.stream()
