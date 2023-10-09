@@ -21,9 +21,10 @@ public class AdvanceBlockchainMessage {
 
         return blocks.stream()
             .sorted(Comparator.comparingLong(Block::getNumber).reversed()) // sort blocks from latest to oldest
-            .map(block -> new ParsedHeader(block.getHeader(),
-                filterBrothers(brothersByParentHash.getOrDefault(block.getParentHash(), Collections.emptyList()))))
-            .collect(Collectors.toList());
+            .map(block -> new ParsedHeader(
+                block.getHeader(),
+                filterBrothers(brothersByParentHash.getOrDefault(block.getParentHash(), Collections.emptyList()))
+            )).collect(Collectors.toList());
     }
 
     private Map<Keccak256, List<BlockHeader>> groupBrothersByParentHash(List<Block> blocks) {
