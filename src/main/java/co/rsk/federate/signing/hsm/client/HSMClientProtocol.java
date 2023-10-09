@@ -18,6 +18,9 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static co.rsk.federate.signing.HSMCommand.VERSION;
+import static co.rsk.federate.signing.HSMField.COMMAND;
+
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
@@ -36,9 +39,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static co.rsk.federate.signing.HSMCommand.VERSION;
-import static co.rsk.federate.signing.HSMField.*;
 
 /**
  * Can interact with a specific
@@ -135,14 +135,14 @@ public class HSMClientProtocol {
                     logger.error(message, e);
                     throw new HSMGatewayIrresponsiveException(message, e);
                 }
-                logger.debug("retrying send, attempt {}", attempts);
+                logger.debug("[send] retrying send, attempt {}", attempts);
             } catch (HSMDeviceNotReadyException e) {
                 attempts++;
                 if (attempts == this.maxConnectionAttempts) {
                     logger.error("[send] HSM device not ready after {} attempts", attempts, e);
                     throw e;
                 }
-                logger.debug("retrying send, attempt {}", attempts);
+                logger.debug("[send] retrying send, attempt {}", attempts);
             } catch (HSMClientException e) {
                 logger.debug("[send] HSMClientException {}", e.getMessage());
                 throw e;
@@ -181,7 +181,7 @@ public class HSMClientProtocol {
         return executorService;
     }
 
-    private class HSMRequest implements Callable<JsonNode> {
+    private static class HSMRequest implements Callable<JsonNode> {
         private final JsonRpcClient client;
         private final ObjectNode command;
 
@@ -195,5 +195,4 @@ public class HSMClientProtocol {
             return client.send(command);
         }
     }
-
 }
