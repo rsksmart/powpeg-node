@@ -292,9 +292,8 @@ class HsmBookkeepingClientImplTest {
         Queue<BlockHeader> blockHeadersInOriginalOrder = new LinkedList<>(blockHeaders);
 
         for (int i = 0; i < updateAncestorCalls; i++) {
-            assertEquals(UPDATE_ANCESTOR_BLOCK.getCommand(), capturedArguments.get(i+2).get(COMMAND.getFieldName()).asText());
-
-            JsonNode request = capturedArguments.get(i+2);
+            JsonNode request = capturedArguments.get(i + 2);
+            assertEquals(UPDATE_ANCESTOR_BLOCK.getCommand(), request.get(COMMAND.getFieldName()).asText());
             assertTrue(request.has(BLOCKS.getFieldName()));
             assertFalse(request.has(BROTHERS.getFieldName()));
 
@@ -415,11 +414,6 @@ class HsmBookkeepingClientImplTest {
 
             JsonNode request = capturedArguments.get(i+2);
             assertTrue(request.has(BLOCKS.getFieldName()));
-            if (hsmVersion >= VERSION_FOUR) {
-                assertTrue(request.has(BROTHERS.getFieldName()));
-            } else {
-                assertFalse(request.has(BROTHERS.getFieldName()));
-            }
 
             JsonNode blocksInRequest = request.get(BLOCKS.getFieldName());
             assertTrue(maxChunkSize >= blocksInRequest.size());
@@ -432,8 +426,11 @@ class HsmBookkeepingClientImplTest {
             }
 
             if (hsmVersion >= VERSION_FOUR) {
+                assertTrue(request.has(BROTHERS.getFieldName()));
                 JsonNode brothersInRequest = request.get(BROTHERS.getFieldName());
                 assertBrothers(brothersInRequest, allBrothers);
+            } else {
+                assertFalse(request.has(BROTHERS.getFieldName()));
             }
         }
     }
