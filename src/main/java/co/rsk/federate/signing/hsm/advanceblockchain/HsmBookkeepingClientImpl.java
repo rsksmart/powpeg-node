@@ -83,11 +83,17 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     private void validateHSMStateAndBlockHeaders(List<String> blockHeaders, String methodName) throws HSMClientException {
         if (blockHeaders == null || blockHeaders.isEmpty()) {
-            throw new HSMBlockchainBookkeepingRelatedException(String.format("[%s] Block headers is null or empty.", methodName));
+            throw new HSMBlockchainBookkeepingRelatedException(String.format(
+                "[%s] Block headers is null or empty.",
+                methodName
+            ));
         }
         // If HSM has an advanceBlockchain or updateAncestorBlock in progress, then it can't be called.
         if (getHSMPointer().isInProgress()) {
-            throw new HSMBlockchainBookkeepingRelatedException(String.format("[%s] HSM is already updating its state. Not going to proceed with this request.", methodName));
+            throw new HSMBlockchainBookkeepingRelatedException(String.format(
+                "[%s] HSM is already updating its state. Not going to proceed with this request.",
+                methodName
+            ));
         }
     }
 
@@ -124,12 +130,19 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     public void updateAncestorBlock(UpdateAncestorBlockMessage updateAncestorBlockMessage) throws HSMClientException {
         List<String> blockHeaders = updateAncestorBlockMessage.getData();
         validateHSMStateAndBlockHeaders(blockHeaders, UPDATE_ANCESTOR_BLOCK.getCommand());
-        List<String[]> blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, true);
+        List<String[]> blockHeadersChunks = getChunks(
+            blockHeaders.toArray(new String[]{}),
+            maxChunkSize,
+            true
+        );
 
         logger.trace("[updateAncestorBlock] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
         for (int i = 0; i < blockHeadersChunks.size(); i++) {
             String[] blockHeaderChunk = blockHeadersChunks.get(i);
-            ObjectNode payload = this.hsmClientProtocol.buildCommand(UPDATE_ANCESTOR_BLOCK.getCommand(), getVersion());
+            ObjectNode payload = this.hsmClientProtocol.buildCommand(
+                UPDATE_ANCESTOR_BLOCK.getCommand(),
+                getVersion()
+            );
             addBlocksToPayload(payload, blockHeaderChunk);
 
             if (isStopped) {
