@@ -30,7 +30,6 @@ public class PowHSMResponseHandler extends HSMResponseHandlerBase {
      * gets a friendly error message given a method name and error code.
      * @param methodName
      * @param errorCode Should be -101, -102, -103, -901, -902, -903, -904, -905, or -906 as those are the recognized error codes
-     * @return
      */
     @Override
     protected void handleErrorResponse(String methodName, int errorCode, JsonNode response) throws HSMClientException {

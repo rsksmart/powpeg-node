@@ -37,7 +37,7 @@ import co.rsk.federate.log.RskLogMonitor;
 import co.rsk.federate.signing.*;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.advanceblockchain.ConfirmedBlockHeadersProvider;
+import co.rsk.federate.signing.hsm.advanceblockchain.ConfirmedBlocksProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
@@ -222,7 +222,7 @@ public class FedNodeRunner implements NodeRunner {
         HSMBookkeepingService service = new HSMBookkeepingService(
             fedNodeContext.getBlockStore(),
             bookKeepingClient,
-            new ConfirmedBlockHeadersProvider(
+            new ConfirmedBlocksProvider(
                 bookKeepingConfig.getDifficultyTarget(),
                 bookKeepingConfig.getMaxAmountBlockHeaders(),
                 fedNodeContext.getBlockStore(),

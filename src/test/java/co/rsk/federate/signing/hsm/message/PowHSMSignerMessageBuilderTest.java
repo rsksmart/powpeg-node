@@ -17,14 +17,15 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.Federation;
 import co.rsk.trie.Trie;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
+import org.ethereum.core.BlockHeaderBuilder;
 import org.ethereum.core.Transaction;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.db.ReceiptStore;
@@ -98,9 +99,14 @@ class PowHSMSignerMessageBuilderTest {
     void buildMessageForIndex_fails() {
         Transaction rskTx = mock(Transaction.class);
         when(rskTx.getHash()).thenReturn(Keccak256.ZERO_HASH);
-        Block block = TestUtils.mockBlock(1);
-        when(block.getHash()).thenReturn(Keccak256.ZERO_HASH);
-        when(block.getTransactionsList()).thenReturn(Collections.singletonList(rskTx));
+        BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
+        Block block = new Block(
+            blockHeaderBuilder.setNumber(1).build(),
+            Collections.singletonList(rskTx),
+            Collections.emptyList(),
+            true,
+            true
+        );
         TransactionReceipt transactionReceipt = mock(TransactionReceipt.class);
         when(transactionReceipt.getTransaction()).thenReturn(rskTx);
         ReceiptStore receiptStore = mock(ReceiptStore.class);
@@ -126,16 +132,15 @@ class PowHSMSignerMessageBuilderTest {
     }
 
     private BtcTransaction createReleaseTx(Federation federation) {
-
         NetworkParameters params = RegTestParams.get();
 
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx = new BtcTransaction(params);
         TransactionInput releaseInput1 = new TransactionInput(
-                params,
-                releaseTx,
-                new byte[]{},
-                new TransactionOutPoint(params, 0, Sha256Hash.ZERO_HASH)
+            params,
+            releaseTx,
+            new byte[]{},
+            new TransactionOutPoint(params, 0, Sha256Hash.ZERO_HASH)
         );
         releaseTx.addInput(releaseInput1);
 
