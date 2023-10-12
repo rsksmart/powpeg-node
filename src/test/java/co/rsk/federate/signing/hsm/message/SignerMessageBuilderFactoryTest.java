@@ -9,7 +9,10 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
-import co.rsk.federate.signing.utils.TestUtils;
+import java.util.Collections;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.core.Block;
+import org.ethereum.core.BlockHeaderBuilder;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.db.ReceiptStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,10 +61,18 @@ class SignerMessageBuilderFactoryTest {
     }
 
     void test_buildFromConfig_hsm(int version) throws HSMUnsupportedVersionException {
+        BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
+        Block block = new Block(
+            blockHeaderBuilder.setNumber(1).build(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            true,
+            true
+        );
         SignerMessageBuilder messageBuilder = factory.buildFromConfig(
             version,
             new ReleaseCreationInformation(
-                TestUtils.mockBlock(1),
+                block,
                 mock(TransactionReceipt.class),
                 Keccak256.ZERO_HASH,
                 mock(BtcTransaction.class),

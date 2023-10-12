@@ -1,16 +1,22 @@
 package co.rsk.federate.signing.utils;
 
-import co.rsk.bitcoinj.core.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import co.rsk.bitcoinj.core.BtcECKey;
+import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
+import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.bitcoinj.core.Sha256Hash;
+import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.core.TransactionOutPoint;
+import co.rsk.bitcoinj.core.TransactionOutput;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
-import org.apache.commons.lang3.reflect.FieldUtils;
-import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
-
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -19,9 +25,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.ethereum.core.Block;
+import org.ethereum.core.BlockHeader;
 
 public class TestUtils {
 
@@ -32,57 +38,9 @@ public class TestUtils {
         return new Keccak256(bytes);
     }
 
-    //Creation of mock of blockheaders
-    public static BlockHeader createBlockHeaderMock(int hashValue) {
-        BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getHash()).thenReturn(TestUtils.createHash(hashValue));
-        when(blockHeader.getFullEncoded()).thenReturn(TestUtils.createHash(hashValue).getBytes());
-        return blockHeader;
-    }
-
-    public static BlockHeader createBlockHeaderMock(int hashValue, long difficultyValue) {
-        BlockHeader blockHeader = createBlockHeaderMock(hashValue);
-        when(blockHeader.getDifficulty()).thenReturn(new BlockDifficulty(BigInteger.valueOf(difficultyValue)));
-
-        return blockHeader;
-    }
-
-    public static BlockHeader createBlockHeaderMock(int hashValue, long difficultyValue, int parentHashValue) {
-        BlockHeader blockHeader = createBlockHeaderMock(hashValue, difficultyValue);
-        when(blockHeader.getParentHash()).thenReturn(TestUtils.createHash(parentHashValue));
-
-        return blockHeader;
-    }
-
-    public static BlockHeader createBlockHeaderMock(int hashValue, long difficultyValue,  int parentHashValue, long blockNumberValue) {
-        BlockHeader blockHeader = createBlockHeaderMock(hashValue, difficultyValue, parentHashValue);
-        when(blockHeader.getNumber()).thenReturn(blockNumberValue);
-
-        return blockHeader;
-    }
-
-    public static BlockHeader createBlockHeaderMock(long difficultyValue, long blockNumberValue) {
-        return createBlockHeaderMock(0, difficultyValue, 0, blockNumberValue);
-    }
-
-    // Mock block
-    public static Block mockBlock(Keccak256 hash) {
+    public static Block mockBlock(long number, Keccak256 hash) {
         Block block = mock(Block.class);
         when(block.getHash()).thenReturn(hash);
-
-        return block;
-    }
-
-    public static Block mockBlock(long number) {
-        Block block = mock(Block.class);
-        when(block.getNumber()).thenReturn(number);
-        when(block.getHeader()).thenReturn(mock(BlockHeader.class));
-
-        return block;
-    }
-
-    public static Block mockBlock(long number, Keccak256 hash) {
-        Block block = mockBlock(hash);
         when(block.getNumber()).thenReturn(number);
         when(block.getUncleList()).thenReturn(Collections.emptyList());
         BlockHeader blockHeader = mock(BlockHeader.class);
@@ -94,7 +52,8 @@ public class TestUtils {
     }
 
     public static Block mockBlock(long number, Keccak256 hash, Keccak256 parentHash) {
-        Block block = mockBlock(hash) ;
+        Block block = mock(Block.class);
+        when(block.getHash()).thenReturn(hash);
         when(block.getNumber()).thenReturn(number);
         when(block.getParentHash()).thenReturn(parentHash);
         BlockHeader blockHeader = mock(BlockHeader.class);
@@ -106,7 +65,8 @@ public class TestUtils {
     }
 
     public static Block mockBlock(long number, Keccak256 hash, long difficultyValue) {
-        Block block = mockBlock(hash);
+        Block block = mock(Block.class);
+        when(block.getHash()).thenReturn(hash);
         when(block.getNumber()).thenReturn(number);
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getFullEncoded()).thenReturn(hash.getBytes());
@@ -123,20 +83,14 @@ public class TestUtils {
         return block;
     }
 
-    public static Block mockBlockWithUncles(long number, Keccak256 hash, Keccak256 parentHash, List<BlockHeader> uncles) {
-        Block block = mockBlock(number, hash, parentHash);
-        when(block.getUncleList()).thenReturn(uncles);
-        return block;
-    }
-
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
 
         return new Federation(
-                FederationMember.getFederationMembersFromKeys(keys),
-                Instant.now(),
-                0,
-                params
+            FederationMember.getFederationMembersFromKeys(keys),
+            Instant.now(),
+            0,
+            params
         );
     }
 
@@ -147,10 +101,10 @@ public class TestUtils {
         Script redeemScript
     ) {
         TransactionInput txInput = new TransactionInput(
-                params,
-                tx,
-                new byte[]{},
-                new TransactionOutPoint(params, 0, Sha256Hash.ZERO_HASH)
+            params,
+            tx,
+            new byte[]{},
+            new TransactionOutPoint(params, 0, Sha256Hash.ZERO_HASH)
         );
 
         // Create script to be signed by federation members
@@ -232,10 +186,10 @@ public class TestUtils {
 
     private static Field getPrivateField(Object instance, String fieldName) {
         Field field = FieldUtils.getAllFieldsList(instance.getClass())
-                .stream()
-                .filter(f -> f.getName().equals(fieldName))
-                .findFirst()
-                .orElse(null);
+            .stream()
+            .filter(f -> f.getName().equals(fieldName))
+            .findFirst()
+            .orElse(null);
 
         if (field == null) {
             throw new WhiteboxException("Field not found in class");

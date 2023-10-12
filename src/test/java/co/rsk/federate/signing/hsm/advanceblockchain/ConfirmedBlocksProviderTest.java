@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.signing.utils.TestUtils;
@@ -11,16 +12,19 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
+import org.ethereum.core.BlockHeaderBuilder;
 import org.ethereum.db.BlockStore;
 import org.junit.jupiter.api.Test;
 
 class ConfirmedBlocksProviderTest {
 
     private final int HSM_VERSION_2 = 2;
-    private final int HSM_VERSION_3 = 3;
+    private final int HSM_VERSION_4 = 4;
     private final BigInteger difficultyCapRegTest = PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST;
+    private final BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
 
     @Test
     void test_getConfirmedBlocks_Ok() {
@@ -34,6 +38,7 @@ class ConfirmedBlocksProviderTest {
 
         for (int i = 11; i < 41; i++) {
             long difficultyValue = 41L - i;
+
             Block mockBlockToProcess = TestUtils.mockBlock(i, TestUtils.createHash(i), difficultyValue);
             when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
             if (i < 37) {
@@ -136,7 +141,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_3
+            HSM_VERSION_4
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -165,7 +170,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_3
+            HSM_VERSION_4
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -185,8 +190,9 @@ class ConfirmedBlocksProviderTest {
         when(mockBlockStore.getBestBlock()).thenReturn(mockBestBlock);
 
         List<BlockHeader> brothers = Arrays.asList(
-            TestUtils.createBlockHeaderMock(1, 5),
-            TestUtils.createBlockHeaderMock(2, 10));
+            blockHeaderBuilder.setNumber(1).setDifficulty(new BlockDifficulty(BigInteger.valueOf(5))).build(),
+            blockHeaderBuilder.setNumber(2).setDifficulty(new BlockDifficulty(BigInteger.valueOf(10))).build()
+        );
 
         for (int i = 11; i < 17; i++) {
             long difficultyValue = 25;
@@ -214,7 +220,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             BigInteger.valueOf(50),
-            HSM_VERSION_3);
+            HSM_VERSION_4);
 
         confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
@@ -234,8 +240,9 @@ class ConfirmedBlocksProviderTest {
         when(mockBlockStore.getBestBlock()).thenReturn(mockBestBlock);
 
         List<BlockHeader> brothers = Arrays.asList(
-            TestUtils.createBlockHeaderMock(1, 5),
-            TestUtils.createBlockHeaderMock(2, 10));
+            blockHeaderBuilder.setNumber(1).setDifficulty(new BlockDifficulty(BigInteger.valueOf(5))).build(),
+            blockHeaderBuilder.setNumber(2).setDifficulty(new BlockDifficulty(BigInteger.valueOf(10))).build()
+        );
 
         for (int i = 11; i < 19; i++) {
             long difficultyValue = 15;
@@ -249,7 +256,8 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_2);
+            HSM_VERSION_2
+        );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
@@ -263,7 +271,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_3);
+            HSM_VERSION_4);
 
         confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 

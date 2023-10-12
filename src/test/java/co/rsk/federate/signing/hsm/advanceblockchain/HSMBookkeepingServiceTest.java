@@ -24,8 +24,9 @@ import co.rsk.net.NodeBlockProcessor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
+import org.ethereum.core.BlockHeaderBuilder;
 import org.ethereum.db.BlockStore;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -343,7 +344,15 @@ class HSMBookkeepingServiceTest {
         BlockStore mockBlockStore = mock(BlockStore.class);
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
 
-        List<Block> blocks = Collections.singletonList(TestUtils.mockBlock(1));
+        BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
+        Block block = new Block(
+            blockHeaderBuilder.setNumber(1).build(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            true,
+            true
+        );
+        List<Block> blocks = Collections.singletonList(block);
 
         ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
         when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(blocks);
@@ -411,9 +420,6 @@ class HSMBookkeepingServiceTest {
 
     @Test
     void informConfirmedBlockHeaders_Ok() throws InterruptedException, HSMClientException {
-        BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
-        when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
-
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
@@ -520,9 +526,6 @@ class HSMBookkeepingServiceTest {
 
     @Test
     void informConfirmedBlockHeaders_emptyBlockHeaders() throws InterruptedException, HSMClientException {
-        BlockHeader mockBlockHeaderToInform = TestUtils.createBlockHeaderMock(1);
-        when(mockBlockHeaderToInform.getFullEncoded()).thenReturn(Keccak256.ZERO_HASH.getBytes());
-
         HSMBookkeepingClient mockHsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         PowHSMState state = new PowHSMState(Keccak256.ZERO_HASH.toHexString(), Keccak256.ZERO_HASH.toHexString(), false);
         when(mockHsmBookkeepingClient.getHSMPointer()).thenReturn(state);
