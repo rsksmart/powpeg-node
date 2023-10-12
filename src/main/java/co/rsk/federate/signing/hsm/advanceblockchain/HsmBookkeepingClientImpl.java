@@ -174,7 +174,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
             if (isStopped) {
                 return;
             }
-            logger.trace("[advanceBlockchain] chunk {}/{} with payload {}", i + 1, blockHeadersChunks.size(), payload);
+            logger.trace("[advanceBlockchain] chunk {}/{}", i + 1, blockHeadersChunks.size());
             this.hsmClientProtocol.send(payload);
         }
     }
