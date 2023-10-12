@@ -3,6 +3,7 @@ package co.rsk.federate.signing.hsm.message;
 import org.ethereum.core.BlockHeader;
 import org.spongycastle.util.encoders.Hex;
 
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -30,6 +31,8 @@ public class ParsedHeader {
     }
 
     private String[] serializeBrothers(List<BlockHeader> brothers) {
-        return brothers.stream().map(this::serializeBlockHeader).toArray(String[]::new);
+        return brothers.stream()
+            .sorted(Comparator.comparing(BlockHeader::getHash))
+            .map(this::serializeBlockHeader).toArray(String[]::new);
     }
 }
