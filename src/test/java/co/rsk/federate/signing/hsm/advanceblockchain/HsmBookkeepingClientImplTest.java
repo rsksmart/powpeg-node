@@ -53,16 +53,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.Stack;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.bouncycastle.util.encoders.Hex;
@@ -442,6 +433,8 @@ class HsmBookkeepingClientImplTest {
                 .elements();
 
             List<BlockHeader> blockBrothers = allBrothers.pop();
+            blockBrothers.sort(Comparator.comparing(BlockHeader::getHash));
+
             for (BlockHeader brother : blockBrothers) {
                 byte[] brotherFromPayload = Hex.decode(brothersPayload.next().asText());
                 assertArrayEquals(brother.getFullEncoded(), brotherFromPayload);
