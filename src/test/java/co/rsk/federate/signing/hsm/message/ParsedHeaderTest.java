@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.BlockHeader;
@@ -28,7 +29,10 @@ class ParsedHeaderTest {
         blockHeader = blockHeaderBuilder.setNumber(1).build();
         brothers = Arrays.asList(
             blockHeaderBuilder.setNumber(101).build(),
-            blockHeaderBuilder.setNumber(102).build()
+            blockHeaderBuilder.setNumber(102).build(),
+            blockHeaderBuilder.setNumber(105).build(),
+            blockHeaderBuilder.setNumber(104).build(),
+            blockHeaderBuilder.setNumber(120).build()
         );
         parsedHeader = new ParsedHeader(blockHeader, brothers);
     }
@@ -42,7 +46,9 @@ class ParsedHeaderTest {
     @Test
     void getBrothers() {
         String[] actualBrothers = parsedHeader.getBrothers();
-        assertEquals(2, actualBrothers.length);
+        assertEquals(brothers.size(), actualBrothers.length);
+
+        brothers.sort(Comparator.comparing(BlockHeader::getHash));
         for (int i = 0; i < actualBrothers.length; i++) {
             assertEquals(Hex.toHexString(brothers.get(i).getFullEncoded()), actualBrothers[i]);
         }
@@ -53,10 +59,6 @@ class ParsedHeaderTest {
         parsedHeader = new ParsedHeader(blockHeader, Collections.emptyList());
 
         String[] actualBrothers = parsedHeader.getBrothers();
-
         assertEquals(0, actualBrothers.length);
-        for (int i = 0; i < actualBrothers.length; i++) {
-            assertEquals(Hex.toHexString(brothers.get(i).getFullEncoded()), actualBrothers[i]);
-        }
     }
 }
