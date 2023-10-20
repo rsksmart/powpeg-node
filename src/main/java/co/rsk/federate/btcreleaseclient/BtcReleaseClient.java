@@ -29,11 +29,7 @@ import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
-import co.rsk.peg.Bridge;
-import co.rsk.peg.BridgeEvents;
-import co.rsk.peg.BridgeUtils;
-import co.rsk.peg.Federation;
-import co.rsk.peg.StateForFederator;
+import co.rsk.peg.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -351,7 +347,7 @@ public class BtcReleaseClient {
                 observedFederations.stream()
                         .forEach(f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
                 List<Federation> spendingFedFilter = observedFederations.stream()
-                        .filter(f -> f.getStandardRedeemScript().equals(standardRedeemScript)).collect(Collectors.toList());
+                        .filter(f -> (f instanceof ErpFederation ? ((ErpFederation) f).getStandardRedeemScript() : f.getRedeemScript()).equals(standardRedeemScript)).collect(Collectors.toList());
                 logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
                 if (spendingFedFilter.isEmpty()) {
                     String message = String.format(
@@ -463,7 +459,7 @@ public class BtcReleaseClient {
         Script redeemScript = extractStandardRedeemScript(getRedeemScriptFromInput(firstInput));
 
         List<Federation> spendingFedFilter = observedFederations.stream()
-                .filter(f -> f.getStandardRedeemScript().equals(redeemScript)).collect(Collectors.toList());
+                .filter(f -> (f instanceof ErpFederation ? ((ErpFederation) f).getStandardRedeemScript() : f.getRedeemScript()).equals(redeemScript)).collect(Collectors.toList());
 
         return spendingFedFilter.get(0);
     }

@@ -56,10 +56,8 @@ import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.peg.ErpFederation;
-import co.rsk.peg.Federation;
-import co.rsk.peg.FederationMember;
-import co.rsk.peg.StateForFederator;
+import co.rsk.peg.*;
+
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -574,11 +572,12 @@ class BtcReleaseClientTest {
 
     @Test
     void validateTxCanBeSigned_fast_bridge_ok() throws Exception {
+        // Create a StandardMultisigFederation
         Federation federation = TestUtils.createFederation(params, 1);
 
         // Create fast bridge redeem script
         Script fastBridgeRedeemScript = FastBridgeRedeemScriptParser.createMultiSigFastBridgeRedeemScript(
-            federation.getStandardRedeemScript(),
+            federation.getRedeemScript(),
             Sha256Hash.wrap(TestUtils.createHash(1).getBytes())
         );
 
@@ -594,7 +593,7 @@ class BtcReleaseClientTest {
     @Test
     void validateTxCanBeSigned_erp_fed_ok() throws Exception {
         Federation federation = TestUtils.createFederation(params, 3);
-        ErpFederation erpFederation = new ErpFederation(
+        ErpFederation erpFederation = new LegacyErpFederation(
             federation.getMembers(),
             federation.getCreationTime(),
             federation.getCreationBlockNumber(),
@@ -618,7 +617,7 @@ class BtcReleaseClientTest {
         // Arrange
         BtcECKey federator1PrivKey = new BtcECKey();
         BtcECKey federator2PrivKey = new BtcECKey();
-        Federation federation = new Federation(
+        Federation federation = new StandardMultisigFederation(
             FederationMember.getFederationMembersFromKeys(Arrays.asList(federator1PrivKey, federator2PrivKey)),
             Instant.now(),
             0,
@@ -716,7 +715,7 @@ class BtcReleaseClientTest {
         // Arrange
         BtcECKey federator1PrivKey = new BtcECKey();
         BtcECKey federator2PrivKey = new BtcECKey();
-        Federation federation = new Federation(
+        Federation federation = new StandardMultisigFederation(
             FederationMember.getFederationMembersFromKeys(Arrays.asList(federator1PrivKey, federator2PrivKey)),
             Instant.now(),
             0,
@@ -794,7 +793,7 @@ class BtcReleaseClientTest {
     void extractStandardRedeemScript_erp_redeem_script() {
         Federation federation = TestUtils.createFederation(params, 1);
 
-        ErpFederation erpFederation = new ErpFederation(
+        ErpFederation erpFederation = new LegacyErpFederation(
             federation.getMembers(),
             federation.getCreationTime(),
             federation.getCreationBlockNumber(),
@@ -1052,7 +1051,7 @@ class BtcReleaseClientTest {
             new FederationMember(btcECKey, new ECKey(), new ECKey()))
         );
 
-        return new Federation(
+        return new StandardMultisigFederation(
             federationMembers,
             Instant.now(),
             0L,
