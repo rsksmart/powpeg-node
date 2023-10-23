@@ -1,12 +1,6 @@
 package co.rsk.federate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyLong;
@@ -39,6 +33,7 @@ import co.rsk.federate.mock.SimpleFederatorSupport;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.Federation;
+import co.rsk.peg.FederationMember;
 import co.rsk.peg.btcLockSender.BtcLockSender;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
@@ -103,6 +98,46 @@ class BtcToRskClientTest {
     }
 
     @Test
+    void checkBtcToRskClientStartDoesntThrowErrorWithRealMember() throws Exception {
+        BitcoinWrapper bw = new SimpleBitcoinWrapper();
+        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        BtcECKey btcPublicKeyFromMember = BtcECKey.fromPublicOnly(Hex.decode("02cd53fc53a07f211641a677d250f6de99caf620e8e77071e811a28b3bcddf0be1"));
+        FederationMember fedMember = FederationMember.getFederationMemberFromKey(btcPublicKeyFromMember);
+        fh.setMember(fedMember);
+        BtcToRskClient client = createClientWithMocks(bw, fh);
+        assertDoesNotThrow(() -> client.start(genesisFederation));
+    }
+
+    @Test
+    void checkBtcToRskClientStartDoesntThrowErrorWithFakeMember() throws Exception {
+        BitcoinWrapper bw = new SimpleBitcoinWrapper();
+        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+
+        BtcECKey btcPublicKeyFromFakeMember = BtcECKey.fromPublicOnly(Hex.decode("02cd53fc53a07f211641a677d250f6de99caf620e8e77071e811a28b3bcddf0be0"));
+        FederationMember fakeMember = FederationMember.getFederationMemberFromKey(btcPublicKeyFromFakeMember);
+        fh.setMember(fakeMember);
+        BtcToRskClient client = createClientWithMocks(bw, fh);
+        assertDoesNotThrow(() -> client.start(genesisFederation));
+    }
+
+    @Test
+    void checkBtcToRskClientStartThrowsErrorIfInconsistencyWithMemberAndKeyIndex() throws Exception {
+        BitcoinWrapper bw = new SimpleBitcoinWrapper();
+        SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        Federation federation = mock(Federation.class);
+
+        BtcECKey btcPublicKeyFromMember1 = BtcECKey.fromPublicOnly(Hex.decode("02cd53fc53a07f211641a677d250f6de99caf620e8e77071e811a28b3bcddf0be1"));
+        FederationMember fedMember1 = FederationMember.getFederationMemberFromKey(btcPublicKeyFromMember1);
+
+        fh.setMember(fedMember1);
+        when(federation.isMember(fedMember1)).thenReturn(true);
+        when(federation.getBtcPublicKeyIndex(any())).thenReturn(Optional.empty());
+
+        BtcToRskClient client = createClientWithMocksCustomFederation(bw, fh, federation);
+        assertThrows(IllegalStateException.class, () -> client.start(federation));
+    }
+
+    @Test
     void getNoTransactions() {
         BtcToRskClient client = new BtcToRskClient();
         Map<Sha256Hash, List<Proof>> txs = client.getTransactionsToSendToRsk();
@@ -130,7 +165,7 @@ class BtcToRskClientTest {
         return createClientWithMocks(null, null);
     }
 
-    private BtcToRskClient createClientWithMocks(
+    public BtcToRskClient createClientWithMocks(
         BitcoinWrapper bitcoinWrapper,
         FederatorSupport federatorSupport) throws Exception {
 
@@ -144,6 +179,25 @@ class BtcToRskClientTest {
             .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withFederation(genesisFederation)
+            .withAmountOfHeadersToSend(amountOfHeadersToSend)
+            .build();
+    }
+
+    public BtcToRskClient createClientWithMocksCustomFederation(
+        BitcoinWrapper bitcoinWrapper,
+        FederatorSupport federatorSupport,
+        Federation federation) throws Exception {
+
+        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
+        int amountOfHeadersToSend = 100;
+
+        return btcToRskClientBuilder
+            .withActivationConfig(activationConfig)
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
+            .withBridgeConstants(bridgeRegTestConstants)
+            .withBtcLockSenderProvider(btcLockSenderProvider)
+            .withFederation(federation)
             .withAmountOfHeadersToSend(amountOfHeadersToSend)
             .build();
     }
