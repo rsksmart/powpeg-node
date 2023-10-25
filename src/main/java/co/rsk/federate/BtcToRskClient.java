@@ -120,38 +120,45 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         this.federation = federation;
         FederationMember federator = federatorSupport.getFederationMember();
         boolean isMember = federation.isMember(federator);
-        if (isMember) {
-            logger.info("[start] {} is member of the federation {}", federator.getBtcPublicKey(), federation.getAddress());
-            logger.info("[start] Watching federation {} since I belong to it", federation.getAddress());
-            bitcoinWrapper.addFederationListener(federation, this);
-            Optional<Integer> federatorIndex = federation.getBtcPublicKeyIndex(federatorSupport.getFederationMember().getBtcPublicKey());
-            if (!federatorIndex.isPresent()) {
-                String message = String.format(
-                    "Federator %s is a member of the federation %s but could not find the btcPublicKeyIndex",
-                    federator,
-                    federation.getAddress()
-                );
-                logger.error("[start] {}", message);
-                throw new IllegalStateException(message);
-            }
-            TurnScheduler scheduler = new TurnScheduler(
-                    bridgeConstants.getUpdateBridgeExecutionPeriod(),
-                    federation.getSize()
+        if (!isMember) {
+            logger.info("[start] member {} is no part of the federation {} ",
+                federator.getBtcPublicKey(), federation.getAddress());
+            return;
+        }
+        logger.info("[start] {} is member of the federation {}",
+            federator.getBtcPublicKey(), federation.getAddress());
+        logger.info("[start] Watching federation {} since I belong to it",
+            federation.getAddress());
+        bitcoinWrapper.addFederationListener(federation, this);
+        Optional<Integer> federatorIndex = federation.getBtcPublicKeyIndex(
+            federatorSupport.getFederationMember().getBtcPublicKey()
+        );
+        if (!federatorIndex.isPresent()) {
+            String message = String.format(
+                "Federator %s is a member of the federation %s but could not find the btcPublicKeyIndex",
+                federator,
+                federation.getAddress()
             );
-            long now = Clock.systemUTC().instant().toEpochMilli();
+            logger.error("[start] {}", message);
+            throw new IllegalStateException(message);
+        }
+        TurnScheduler scheduler = new TurnScheduler(
+                bridgeConstants.getUpdateBridgeExecutionPeriod(),
+                federation.getSize()
+        );
+        long now = Clock.systemUTC().instant().toEpochMilli();
 
-            if (isUpdateBridgeTimerEnabled) {
-                updateBridgeTimer = Executors.newSingleThreadScheduledExecutor();
-                updateBridgeTimer.scheduleAtFixedRate(
-                    this::updateBridge,
-                    scheduler.getDelay(now, federatorIndex.get()),
-                    scheduler.getInterval(),
-                    TimeUnit.MILLISECONDS
-                );
-            }
-            else {
-                logger.info("[start] updateBridgeTimer is disabled");
-            }
+        if (isUpdateBridgeTimerEnabled) {
+            updateBridgeTimer = Executors.newSingleThreadScheduledExecutor();
+            updateBridgeTimer.scheduleAtFixedRate(
+                this::updateBridge,
+                scheduler.getDelay(now, federatorIndex.get()),
+                scheduler.getInterval(),
+                TimeUnit.MILLISECONDS
+            );
+        }
+        else {
+            logger.info("[start] updateBridgeTimer is disabled");
         }
     }
 

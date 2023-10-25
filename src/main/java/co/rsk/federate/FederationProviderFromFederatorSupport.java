@@ -21,7 +21,11 @@ package co.rsk.federate;
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.config.BridgeConstants;
-import co.rsk.peg.*;
+import co.rsk.peg.Federation;
+import co.rsk.peg.StandardMultisigFederation;
+import co.rsk.peg.LegacyErpFederation;
+import co.rsk.peg.P2shErpFederation;
+import co.rsk.peg.FederationMember;
 import org.ethereum.crypto.ECKey;
 
 import java.time.Instant;

@@ -98,7 +98,7 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void checkBtcToRskClientStartDoesntThrowErrorWithRealMember() throws Exception {
+    void start_withExistingFederationMember_doesntThrowError() throws Exception {
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
         BtcECKey btcPublicKeyFromMember = BtcECKey.fromPublicOnly(Hex.decode("02cd53fc53a07f211641a677d250f6de99caf620e8e77071e811a28b3bcddf0be1"));
@@ -109,7 +109,7 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void checkBtcToRskClientStartDoesntThrowErrorWithFakeMember() throws Exception {
+    void start_withNoFederationMember_doesntThrowError() throws Exception {
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
 
@@ -121,7 +121,7 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void checkBtcToRskClientStartThrowsErrorIfInconsistencyWithMemberAndKeyIndex() throws Exception {
+    void start_withFederationMember_withoutMemberPkIndex_throwsError() throws Exception {
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
         Federation federation = mock(Federation.class);
@@ -165,7 +165,7 @@ class BtcToRskClientTest {
         return createClientWithMocks(null, null);
     }
 
-    public BtcToRskClient createClientWithMocks(
+    private BtcToRskClient createClientWithMocks(
         BitcoinWrapper bitcoinWrapper,
         FederatorSupport federatorSupport) throws Exception {
 
@@ -183,7 +183,7 @@ class BtcToRskClientTest {
             .build();
     }
 
-    public BtcToRskClient createClientWithMocksCustomFederation(
+    private BtcToRskClient createClientWithMocksCustomFederation(
         BitcoinWrapper bitcoinWrapper,
         FederatorSupport federatorSupport,
         Federation federation) throws Exception {
