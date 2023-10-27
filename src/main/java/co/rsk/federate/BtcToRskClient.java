@@ -120,9 +120,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         this.federation = federation;
         FederationMember federator = federatorSupport.getFederationMember();
         boolean isMember = federation.isMember(federator);
-        
+
         if (!isMember) {
-            logger.info("[start] member is no part of the federation {} ",
+            logger.info("[start] member {} is no part of the federation {} ",
+                federator.getBtcPublicKey(),
                 federation.getAddress());
             return;
         }
