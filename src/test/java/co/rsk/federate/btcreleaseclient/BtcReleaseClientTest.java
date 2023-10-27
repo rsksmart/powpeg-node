@@ -56,7 +56,12 @@ import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.peg.*;
+import co.rsk.peg.Federation;
+import co.rsk.peg.StandardMultisigFederation;
+import co.rsk.peg.ErpFederation;
+import co.rsk.peg.LegacyErpFederation;
+import co.rsk.peg.FederationMember;
+import co.rsk.peg.StateForFederator;
 
 import java.math.BigInteger;
 import java.time.Instant;
