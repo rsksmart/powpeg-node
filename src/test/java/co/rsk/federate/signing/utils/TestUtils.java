@@ -7,6 +7,7 @@ import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
+import co.rsk.peg.StandardMultisigFederation;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
@@ -116,7 +117,7 @@ public class TestUtils {
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
 
-        return new Federation(
+        return new StandardMultisigFederation(
                 FederationMember.getFederationMembersFromKeys(keys),
                 Instant.now(),
                 0,
