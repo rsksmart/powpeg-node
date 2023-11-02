@@ -12,6 +12,7 @@ import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.Federation;
+import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
@@ -742,7 +743,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
         // If the tx is a peg-out it means we are receiving change (or migrating funds)
         // so it should be processable
-        return BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(federation), activationConfig.forBlock(bestBlockNumber))
+        return PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(federation), activationConfig.forBlock(bestBlockNumber))
             || activationConfig.isActive(ConsensusRule.RSKIP170, bestBlockNumber)
             || BridgeUtils.txIsProcessableInLegacyVersion(txSenderAddressType, activationConfig.forBlock(bestBlockNumber));
     }
