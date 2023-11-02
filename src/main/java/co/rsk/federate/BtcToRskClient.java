@@ -16,6 +16,7 @@ import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.Federation;
+import co.rsk.peg.FederationMember;
 import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
