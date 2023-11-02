@@ -116,10 +116,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
  }
 
     public void start(Federation federation) {
-        logger.info("Starting for Federation {}", federation.getAddress().toString());
+        logger.info("Starting for Federation {}", federation.getAddress());
         this.federation = federation;
         if (federation.isMember(federatorSupport.getFederationMember())) {
-            logger.info("Watching federation {} since I belong to it", federation.getAddress().toString());
+            logger.info("Watching federation {} since I belong to it", federation.getAddress());
             bitcoinWrapper.addFederationListener(federation, this);
             int federatorIndex = federation.getBtcPublicKeyIndex(federatorSupport.getFederationMember().getBtcPublicKey());
             TurnScheduler scheduler = new TurnScheduler(
