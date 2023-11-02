@@ -1,42 +1,55 @@
 package co.rsk.federate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.config.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BlockListener;
 import co.rsk.federate.bitcoin.TransactionListener;
-import co.rsk.federate.io.*;
+import co.rsk.federate.io.BtcToRskClientFileData;
+import co.rsk.federate.io.BtcToRskClientFileReadResult;
+import co.rsk.federate.io.BtcToRskClientFileStorage;
 import co.rsk.federate.timing.TurnScheduler;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.Federation;
-import co.rsk.peg.FederationMember;
+import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
+import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.annotations.VisibleForTesting;
-import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import com.google.common.collect.Lists;
-import org.bitcoinj.core.*;
+import java.io.IOException;
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
+import javax.annotation.PreDestroy;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PartialMerkleTree;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Utils;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.PreDestroy;
-import java.io.IOException;
-import java.time.Clock;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Manages the process of informing the RSK bridge news about the bitcoin blockchain
@@ -770,7 +783,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
         // If the tx is a peg-out it means we are receiving change (or migrating funds)
         // so it should be processable
-        return BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(federation), activationConfig.forBlock(bestBlockNumber))
+        return PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(federation), activationConfig.forBlock(bestBlockNumber))
             || activationConfig.isActive(ConsensusRule.RSKIP170, bestBlockNumber)
             || BridgeUtils.txIsProcessableInLegacyVersion(txSenderAddressType, activationConfig.forBlock(bestBlockNumber));
     }
