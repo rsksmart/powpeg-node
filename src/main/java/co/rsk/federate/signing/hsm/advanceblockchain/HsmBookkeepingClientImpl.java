@@ -89,7 +89,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         }
         // If HSM has an advanceBlockchain or updateAncestorBlock in progress, then it can't be called.
         if (getHSMPointer().isInProgress()) {
-            logger.trace("[{}] HSM is already updating its state. Not going to proceed with this request", actualMethod);
+            logger.trace("[sendBlockHeadersChunks] [{}] HSM is already updating its state. Not going to proceed with this request", actualMethod);
             return;
         }
         List<String[]> blockHeadersChunks = getChunks(
@@ -98,7 +98,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
                 keepPreviousChunkLastItem
         );
 
-        logger.trace("[{}] Payload total size: {}", actualMethod, blockHeaders.size());
+        logger.trace("[sendBlockHeadersChunks] [{}] Payload total size: {}", actualMethod, blockHeaders.size());
 
         for (int i = 0; i < blockHeadersChunks.size(); i++) {
             try {

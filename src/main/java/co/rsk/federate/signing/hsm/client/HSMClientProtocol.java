@@ -104,13 +104,13 @@ public class HSMClientProtocol {
             try {
                 client = clientProvider.acquire();
                 String commandName = command.get("command").toString();
-                logger.trace("Sending command to hsm: {}", commandName);
-                Future future = getExecutor().submit(new HSMRequest(client, command));
+                logger.trace("[send] Sending command to hsm: {}", commandName);
+                Future<JsonNode> future = getExecutor().submit(new HSMRequest(client, command));
+
                 JsonNode result = null;
                 try {
-                    logger.trace("Fetching response for command: {}", commandName);
-                    result = (JsonNode) future.get();
-                    logger.trace("Got response for command: {}", commandName);
+                    logger.trace("[send] Fetching response for command: {}", commandName);
+                    result = future.get();
                 } catch (ExecutionException e) {
                     Throwable cause = e.getCause();
                     if (cause instanceof JsonRpcException) {
@@ -124,31 +124,33 @@ public class HSMClientProtocol {
                     }
                 }
                 int responseCode = validateResponse(command.get("command").textValue(), result);
-                logger.trace("HSM responds with code {} to command {}", responseCode, commandName);
+                logger.trace("[send] HSM responds with code {} to command {}", responseCode, commandName);
                 return result;
             } catch (JsonRpcException e) {
+                logger.trace("[send] catch JsonRpcException e: {}", e.getMessage());
                 attempts++;
                 if(attempts == this.maxConnectionAttempts) {
                     String message = String.format(
-                        "There was a connection error trying to contact the HSM gateway. Details: '%s'",
+                        "[send] There was a connection error trying to contact the HSM gateway. Details: '%s'",
                         e.getMessage()
                     );
                     logger.error(message, e);
                     throw new HSMGatewayIrresponsiveException(message, e);
                 }
-                logger.debug("retrying send, attempt {}", attempts);
+                logger.debug("[send] retrying send, attempt {}", attempts);
             } catch (HSMDeviceNotReadyException e) {
+                logger.trace("[send] catch HSMDeviceNotReadyException e: {}", e.getMessage());
                 attempts++;
                 if (attempts == this.maxConnectionAttempts) {
-                    logger.error("HSM device not ready after {} attempts", attempts, e);
+                    logger.error("[send] HSM device not ready after {} attempts", attempts, e);
                     throw e;
                 }
-                logger.debug("retrying send, attempt {}", attempts);
+                logger.debug("[send] retrying send, attempt {}", attempts);
             } catch (HSMClientException e) {
-                logger.debug("HSMClientException {}", e.getClass(), e.getMessage());
+                logger.debug("[send] HSMClientException {}, {}", e.getClass(), e.getMessage());
                 throw e;
             } catch (InterruptedException e) {
-                logger.debug("Thread exception {}", e.getClass(), e.getMessage());
+                logger.debug("[send] Thread exception {}, {}", e.getClass(), e.getMessage());
                 throw new HSMUnknownErrorException("There was an error with the thread of the HSM request", e);
             } finally {
                 clientProvider.release(client);
@@ -158,7 +160,7 @@ public class HSMClientProtocol {
                 Thread.sleep(this.waitTimeForReconnection);
             } catch (InterruptedException ie){
                 String message = String.format(
-                        "There was an interrupted exception when trying to contact the HSM gateway. Details: '%s'",
+                        "[send] There was an interrupted exception when trying to contact the HSM gateway. Details: '%s'",
                         ie.getMessage()
                 );
                 logger.error(message, ie);

@@ -157,9 +157,11 @@ public class HSMBookkeepingService {
                 return;
             }
             logger.debug(
-                "[informConfirmedBlockHeaders] Going to inform {} block headers. From {} to {}",
+                "[informConfirmedBlockHeaders] Going to inform {} block headers. From block number {} with hash {} to block number {} with hash {}",
                 blockHeaders.size(),
+                blockHeaders.get(0).getNumber(),
                 blockHeaders.get(0).getHash(),
+                blockHeaders.get(blockHeaders.size() - 1).getNumber(),
                 blockHeaders.get(blockHeaders.size() - 1).getHash()
             );
             hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders));
