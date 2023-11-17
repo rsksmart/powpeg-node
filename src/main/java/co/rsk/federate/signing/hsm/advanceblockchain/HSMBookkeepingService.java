@@ -155,12 +155,16 @@ public class HSMBookkeepingService {
                 informing = false;
                 return;
             }
+
             logger.debug(
-                "[informConfirmedBlockHeaders] Going to inform {} block headers. From {} to {}",
-                blocks.size(),
-                blocks.get(0).getHash(),
-                blocks.get(blocks.size() - 1).getHash()
+                    "[informConfirmedBlockHeaders] Going to inform {} block headers. From block number {} with hash {} to block number {} with hash {}",
+                    blocks.size(),
+                    blocks.get(0).getNumber(),
+                    blocks.get(0).getHash(),
+                    blocks.get(blocks.size() - 1).getNumber(),
+                    blocks.get(blocks.size() - 1).getHash()
             );
+
             hsmBookkeepingClient.advanceBlockchain(blocks);
             hsmCurrentBestBlock = getHsmBestBlock();
             logger.debug(

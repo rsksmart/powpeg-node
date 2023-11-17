@@ -104,11 +104,11 @@ public class HSMClientProtocol {
                 client = clientProvider.acquire();
                 String commandName = command.get(COMMAND.getFieldName()).toString();
                 logger.trace("[send] Sending command to hsm: {}", commandName);
-                Future future = getExecutor().submit(new HSMRequest(client, command));
+                Future<JsonNode> future = getExecutor().submit(new HSMRequest(client, command));
                 JsonNode result = null;
                 try {
                     logger.trace("[send] Fetching response for command: {}", commandName);
-                    result = (JsonNode) future.get();
+                    result = future.get();
                     logger.trace("[send] Got response for command: {}", commandName);
                 } catch (ExecutionException e) {
                     Throwable cause = e.getCause();

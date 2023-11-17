@@ -90,7 +90,7 @@ public class ECDSAHSMSigner implements ECDSASigner {
                 client.getPublicKey(mapping.getValue());
             } catch (HSMClientException e) {
                 messages.add(e.getMessage());
-                LOGGER.error("Unable to retrieve public key", e);
+                LOGGER.error("[check] Unable to retrieve public key", e);
             }
         }
 
