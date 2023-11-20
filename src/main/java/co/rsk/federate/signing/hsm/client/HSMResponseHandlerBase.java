@@ -24,12 +24,16 @@ import co.rsk.federate.signing.hsm.HSMInvalidResponseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static co.rsk.federate.signing.HSMField.ERROR;
 import static co.rsk.federate.signing.HSMField.ERROR_CODE;
 import static co.rsk.federate.signing.hsm.client.HSMResponseCode.*;
 
 public class HSMResponseHandlerBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(HSMResponseHandlerBase.class);
 
     //When a `getVersion` request is sent to HSM a `device error` can occur
     //Since the HSM version is yet undefined we need to handle error codes for both versions at this stage
@@ -41,9 +45,11 @@ public class HSMResponseHandlerBase {
     }
 
     protected final int validateResponse(String methodName, JsonNode response) throws HSMClientException {
+        logger.trace("[validateResponse] validating response for HSM method {}. Response: {}", methodName, response.asText());
         validatePresenceOf(response, ERROR_CODE.getFieldName());
 
         int errorCode = response.get(ERROR_CODE.getFieldName()).asInt();
+        logger.trace("[validateResponse] response error code: {}", errorCode);
         if (getOkErrorCodes().contains(errorCode)) {
             return errorCode;
         }
