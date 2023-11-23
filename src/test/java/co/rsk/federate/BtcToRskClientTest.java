@@ -39,6 +39,7 @@ import co.rsk.federate.mock.SimpleBtcTransaction;
 import co.rsk.federate.mock.SimpleFederatorSupport;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.Federation;
+import co.rsk.peg.FederationMember;
 import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.btcLockSender.BtcLockSender;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
