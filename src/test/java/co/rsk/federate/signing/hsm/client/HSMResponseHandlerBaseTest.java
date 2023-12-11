@@ -18,12 +18,15 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static co.rsk.federate.signing.HSMCommand.VERSION;
+import static co.rsk.federate.signing.HSMField.ERROR_CODE;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import co.rsk.federate.signing.HSMField;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +45,7 @@ class HSMResponseHandlerBaseTest {
     @Test
     void validateResponseDeviceNotReadyErrorForVersion1() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -2);
+        response.put(ERROR_CODE.getFieldName(), -2);
 
         assertThrows(HSMDeviceNotReadyException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -53,7 +56,7 @@ class HSMResponseHandlerBaseTest {
     @Test
     void validateResponseDeviceNotReadyErrorForVersion2() {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", -905);
+        response.put(ERROR_CODE.getFieldName(), -905);
 
         assertThrows(HSMDeviceNotReadyException.class, () -> responseHandler.validateResponse(
             "a-random-command-name",
@@ -62,50 +65,47 @@ class HSMResponseHandlerBaseTest {
     }
 
     @Test
-    void handleErrorResponseDeviceNotReadyForVersion1() {
-        int errcode = -2;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errcode);
+    void handleErrorResponseDeviceNotReadyForVersion1() throws HSMClientException {
+        int errorCode = -2;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMDeviceNotReadyException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
     void handleErrorResponseDeviceNotReadyForVersion2() throws HSMClientException {
-        int errcode = -905;
-        String method = "version";
-        ObjectNode sendResponse = buildResponse(errcode);
+        int errorCode = -905;
+        ObjectNode sendResponse = buildResponse(errorCode);
 
         assertThrows(HSMDeviceNotReadyException.class, () -> responseHandler.handleErrorResponse(
-            method,
-            errcode,
+            VERSION.getCommand(),
+            errorCode,
             sendResponse
         ));
     }
 
     @Test
-    void validatePresenceOf() throws HSMClientException {
-        int errcode = -1;
-        ObjectNode sendResponse = buildResponse(errcode);
-        
-        assertDoesNotThrow(() -> responseHandler.validatePresenceOf(sendResponse, "errorcode"));
+    void validatePresenceOf() {
+        int errorCode = -1;
+        ObjectNode sendResponse = buildResponse(errorCode);
+
+        assertDoesNotThrow(() -> responseHandler.validatePresenceOf(sendResponse, ERROR_CODE.getFieldName()));
     }
 
     @Test
-    void validatePresenceOfError()  {
-        int errcode = -1;
-        String field = "version";
-        ObjectNode sendResponse = buildResponse(errcode);
+    void validatePresenceOfError() {
+        int errorCode = -1;
+        ObjectNode sendResponse = buildResponse(errorCode);
         try {
-            responseHandler.validatePresenceOf(sendResponse, field);
+            responseHandler.validatePresenceOf(sendResponse, HSMField.VERSION.getFieldName());
             fail();
-        } catch(HSMClientException e) {
+        } catch (HSMClientException e) {
             assertTrue(e.getMessage().contains("field to be present in response"));
-            assertTrue(e.getMessage().contains(field));
+            assertTrue(e.getMessage().contains(HSMField.VERSION.getFieldName()));
         }
     }
 
@@ -115,9 +115,9 @@ class HSMResponseHandlerBaseTest {
         assertEquals(0, responseHandler.validateResponse("a-random-command-name", response));
     }
 
-    private ObjectNode buildResponse(int errorcode) {
+    private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = new ObjectMapper().createObjectNode();
-        response.put("errorcode", errorcode);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 }

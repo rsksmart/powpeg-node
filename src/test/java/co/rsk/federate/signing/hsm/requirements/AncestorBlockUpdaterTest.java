@@ -18,10 +18,13 @@ import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import co.rsk.federate.signing.utils.TestUtils;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.bouncycastle.util.encoders.Hex;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
+import org.ethereum.core.BlockHeaderBuilder;
 import org.ethereum.db.BlockStore;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -90,9 +93,15 @@ class AncestorBlockUpdaterTest {
     }
 
     @Test
-    void ensureSignerAncestorBlockInPosition_hsm_throws_exception()
-        throws Exception {
-        Block block = TestUtils.mockBlock(Keccak256.ZERO_HASH);
+    void ensureSignerAncestorBlockInPosition_hsm_throws_exception() throws Exception {
+        BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
+        Block block = new Block(
+            blockHeaderBuilder.setNumber(1).build(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            true,
+            true
+        );
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
         when(signer.getHSMPointer()).thenThrow(new HSMDeviceException("test", 1));

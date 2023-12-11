@@ -4,25 +4,24 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
-import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
 import co.rsk.net.NodeBlockProcessor;
+import org.ethereum.core.Block;
+import org.ethereum.db.BlockStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
-import org.ethereum.db.BlockStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HSMBookkeepingService {
     private static final Logger logger = LoggerFactory.getLogger(HSMBookkeepingService.class);
 
     private final BlockStore blockStore;
     private final HSMBookkeepingClient hsmBookkeepingClient;
-    private final ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider;
+    private final ConfirmedBlocksProvider confirmedBlocksProvider;
     private final long advanceBlockchainTimeInterval;
     private final List<HSMBookeepingServiceListener> listeners;
     private final NodeBlockProcessor nodeBlockProcessor;
@@ -37,14 +36,14 @@ public class HSMBookkeepingService {
     public HSMBookkeepingService(
         BlockStore blockStore,
         HSMBookkeepingClient hsmBookkeepingClient,
-        ConfirmedBlockHeadersProvider confirmedBlockHeadersProvider,
+        ConfirmedBlocksProvider confirmedBlocksProvider,
         NodeBlockProcessor nodeBlockProcessor,
         long advanceBlockchainTimeInterval,
         boolean stopBookkeepingScheduler
     ) {
         this.blockStore = blockStore;
         this.hsmBookkeepingClient = hsmBookkeepingClient;
-        this.confirmedBlockHeadersProvider = confirmedBlockHeadersProvider;
+        this.confirmedBlocksProvider = confirmedBlocksProvider;
         this.advanceBlockchainTimeInterval = advanceBlockchainTimeInterval;
         this.listeners = new ArrayList<>();
         this.nodeBlockProcessor = nodeBlockProcessor;
@@ -100,7 +99,7 @@ public class HSMBookkeepingService {
             return;
         }
         this.setStopSending();
-        logger.info("[stop] Stop HSMBookkeepingService");;
+        logger.info("[stop] Stop HSMBookkeepingService");
         // TODO: IS THIS TRULY CALLED AND IF SO, IS IT STOPPING THE SCHEDULED TASKS?
         if (updateAdvanceBlockchain != null) {
             updateAdvanceBlockchain.shutdown();
@@ -149,20 +148,24 @@ public class HSMBookkeepingService {
                 hsmCurrentBestBlock.getNumber()
             );
 
-            List<BlockHeader> blockHeaders = this.confirmedBlockHeadersProvider.getConfirmedBlockHeaders(hsmCurrentBestBlock.getHash());
-            if (blockHeaders.isEmpty()) {
+            List<Block> blocks = this.confirmedBlocksProvider.getConfirmedBlocks(hsmCurrentBestBlock.getHash());
+            if (blocks.isEmpty()) {
                 logger.debug("[informConfirmedBlockHeaders] No new block headers to inform");
                 logger.info("[informConfirmedBlockHeaders] Finished HSM bookkeeping process");
                 informing = false;
                 return;
             }
+
             logger.debug(
-                "[informConfirmedBlockHeaders] Going to inform {} block headers. From {} to {}",
-                blockHeaders.size(),
-                blockHeaders.get(0).getHash(),
-                blockHeaders.get(blockHeaders.size() - 1).getHash()
+                    "[informConfirmedBlockHeaders] Going to inform {} block headers. From block number {} with hash {} to block number {} with hash {}",
+                    blocks.size(),
+                    blocks.get(0).getNumber(),
+                    blocks.get(0).getHash(),
+                    blocks.get(blocks.size() - 1).getNumber(),
+                    blocks.get(blocks.size() - 1).getHash()
             );
-            hsmBookkeepingClient.advanceBlockchain(new AdvanceBlockchainMessage(blockHeaders));
+
+            hsmBookkeepingClient.advanceBlockchain(blocks);
             hsmCurrentBestBlock = getHsmBestBlock();
             logger.debug(
                 "[informConfirmedBlockHeaders] HSM best block after informing {} (height: {})",

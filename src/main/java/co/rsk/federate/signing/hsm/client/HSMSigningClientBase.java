@@ -22,11 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public abstract class HSMSigningClientBase implements HSMSigningClient {
-    protected static final String KEYID_FIELD = "keyId";
-    protected static final String AUTH_FIELD = "auth";
-    protected static final String GETPUBKEY_METHOD_NAME = "getPubKey";
-    protected static final String SIGN_METHOD_NAME = "sign";
-
     protected final HSMClientProtocol hsmClientProtocol;
     protected final int version;
     // Local caching of public keys

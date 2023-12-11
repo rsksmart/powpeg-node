@@ -46,7 +46,7 @@ public class HSMSigningClientProvider {
     public HSMSigningClient getSigningClient() throws HSMClientException {
         int version = this.hsmClientProtocol.getVersion();
         HSMSigningClient client;
-        logger.debug("[getClient] version: {}, keyId: {}", version, keyId);
+        logger.debug("[getSigningClient] version: {}, keyId: {}", version, keyId);
         if (version == 1) {
             client = new HSMSigningClientV1(this.hsmClientProtocol);
         } else if (version >= 2) {
