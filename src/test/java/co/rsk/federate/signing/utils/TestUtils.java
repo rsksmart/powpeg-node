@@ -17,6 +17,7 @@ import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
+import co.rsk.peg.StandardMultisigFederation;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.security.SecureRandom;
