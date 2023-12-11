@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import co.rsk.peg.StandardMultisigFederation;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
@@ -30,21 +31,21 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 
 class FederationWatcherTest {
-    private final Federation federation1 = new Federation(
+    private final Federation federation1 = new StandardMultisigFederation(
             getFederationMembersFromPksForBtc(1000, 2000, 3000, 4000),
             Instant.ofEpochMilli(5005L),
             0L,
             NetworkParameters.fromID(NetworkParameters.ID_REGTEST)
     );
 
-    private final Federation federation2 = new Federation(
+    private final Federation federation2 = new StandardMultisigFederation(
             getFederationMembersFromPksForBtc(2000, 3000, 4000, 5000, 6000, 7000),
             Instant.ofEpochMilli(15300L),
             0L,
             NetworkParameters.fromID(NetworkParameters.ID_REGTEST)
     );
 
-    private final Federation federation3 = new Federation(
+    private final Federation federation3 = new StandardMultisigFederation(
             getFederationMembersFromPksForBtc(5000, 6000, 7000),
             Instant.ofEpochMilli(7400L),
             0L,

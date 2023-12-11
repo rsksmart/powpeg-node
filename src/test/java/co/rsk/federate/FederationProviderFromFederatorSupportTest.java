@@ -15,10 +15,13 @@ import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.config.BridgeConstants;
 import co.rsk.config.BridgeTestNetConstants;
-import co.rsk.peg.ErpFederation;
-import co.rsk.peg.Federation;
 import co.rsk.peg.FederationMember;
+import co.rsk.peg.Federation;
+import co.rsk.peg.StandardMultisigFederation;
+import co.rsk.peg.ErpFederation;
+import co.rsk.peg.LegacyErpFederation;
 import co.rsk.peg.P2shErpFederation;
+
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Arrays;
@@ -807,7 +810,7 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     private Federation createFederation(List<FederationMember> members) {
-        return new Federation(
+        return new StandardMultisigFederation(
             members,
             creationTime,
             0L,
@@ -816,7 +819,7 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     private Federation createErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
-        return new ErpFederation(
+        return new LegacyErpFederation(
             members,
             creationTime,
             0L,

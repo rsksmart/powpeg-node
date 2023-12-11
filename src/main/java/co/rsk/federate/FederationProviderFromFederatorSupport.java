@@ -21,10 +21,11 @@ package co.rsk.federate;
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.config.BridgeConstants;
-import co.rsk.peg.ErpFederation;
 import co.rsk.peg.Federation;
-import co.rsk.peg.FederationMember;
+import co.rsk.peg.StandardMultisigFederation;
+import co.rsk.peg.LegacyErpFederation;
 import co.rsk.peg.P2shErpFederation;
+import co.rsk.peg.FederationMember;
 import org.ethereum.crypto.ECKey;
 
 import java.time.Instant;
@@ -76,7 +77,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         Instant creationTime = federatorSupport.getFederationCreationTime();
         long creationBlockNumber = federatorSupport.getFederationCreationBlockNumber();
 
-        Federation initialFederation = new Federation(
+        Federation initialFederation = new StandardMultisigFederation(
             members,
             creationTime,
             creationBlockNumber,
@@ -126,7 +127,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         Instant creationTime = federatorSupport.getRetiringFederationCreationTime();
         long creationBlockNumber = federatorSupport.getRetiringFederationCreationBlockNumber();
 
-        Federation initialFederation = new Federation(
+        Federation initialFederation = new StandardMultisigFederation(
             members,
             creationTime,
             creationBlockNumber,
@@ -159,7 +160,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         }
 
         // If addresses do not match build an ERP federation
-        Federation erpFederation = new ErpFederation(
+        Federation erpFederation = new LegacyErpFederation(
             initialFederation.getMembers(),
             initialFederation.getCreationTime(),
             initialFederation.getCreationBlockNumber(),

@@ -86,7 +86,7 @@ public class TestUtils {
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
 
-        return new Federation(
+        return new StandardMultisigFederation(
             FederationMember.getFederationMembersFromKeys(keys),
             Instant.now(),
             0,
