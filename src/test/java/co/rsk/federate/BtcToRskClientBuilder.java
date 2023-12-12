@@ -10,7 +10,7 @@ import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.io.BtcToRskClientFileData;
 import co.rsk.federate.io.BtcToRskClientFileReadResult;
 import co.rsk.federate.io.BtcToRskClientFileStorage;
-import co.rsk.peg.Federation;
+import co.rsk.peg.federation.Federation;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;

@@ -15,9 +15,13 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
-import co.rsk.peg.Federation;
-import co.rsk.peg.FederationMember;
-import co.rsk.peg.StandardMultisigFederation;
+import co.rsk.peg.federation.Federation;
+import co.rsk.peg.federation.FederationFactory;
+import co.rsk.peg.federation.FederationMember;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.ethereum.core.Block;
+import org.ethereum.core.BlockHeader;
+
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -26,9 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.reflect.FieldUtils;
-import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
 
 public class TestUtils {
 
@@ -87,11 +88,11 @@ public class TestUtils {
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
 
-        return new StandardMultisigFederation(
-            FederationMember.getFederationMembersFromKeys(keys),
-            Instant.now(),
-            0,
-            params
+        return FederationFactory.buildStandardMultiSigFederation(
+                FederationMember.getFederationMembersFromKeys(keys),
+                Instant.now(),
+                0,
+                params
         );
     }
 

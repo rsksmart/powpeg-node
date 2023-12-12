@@ -10,7 +10,7 @@ import co.rsk.bitcoinj.core.TransactionOutPoint;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.config.BridgeRegTestConstants;
-import co.rsk.peg.Federation;
+import co.rsk.peg.federation.Federation;
 import org.junit.jupiter.api.Test;
 
 class SignerMessageBuilderV1Test {
