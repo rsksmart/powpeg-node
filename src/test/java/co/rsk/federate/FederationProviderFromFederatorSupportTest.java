@@ -35,6 +35,9 @@ class FederationProviderFromFederatorSupportTest {
     private BridgeConstants bridgeConstants;
     private NetworkParameters testnetParams;
     private Instant creationTime;
+
+    private static final int STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION = FederationFormatVersion.STANDARD_MULTISIG_FEDERATION.getFormatVersion();
+    private static final int NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.NON_STANDARD_ERP_FEDERATION.getFormatVersion();
     private static final int P2SH_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.P2SH_ERP_FEDERATION.getFormatVersion();
 
     private static final Address HARDCODED_TESTNET_FED_ADDRESS = Address.fromBase58(
@@ -79,7 +82,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -108,7 +111,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -138,7 +141,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        assertTrue(obtainedFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -170,7 +173,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        assertTrue(obtainedFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(HARDCODED_TESTNET_FED_ADDRESS, obtainedFederation.getAddress());
         assertEquals(HARDCODED_TESTNET_FED_REDEEM_SCRIPT, obtainedFederation.getRedeemScript());
@@ -259,7 +262,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -291,7 +294,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -324,7 +327,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        assertTrue(obtainedFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -387,7 +390,7 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
@@ -419,7 +422,7 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
@@ -452,7 +455,7 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
@@ -528,12 +531,12 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
@@ -580,12 +583,12 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
@@ -634,12 +637,12 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
@@ -687,12 +690,12 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
@@ -746,7 +749,7 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
