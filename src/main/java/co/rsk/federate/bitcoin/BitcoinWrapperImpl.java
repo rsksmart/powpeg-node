@@ -1,11 +1,13 @@
 package co.rsk.federate.bitcoin;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.wallet.Wallet;
 import co.rsk.config.BridgeConstants;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
-import co.rsk.peg.BridgeUtils;
+import co.rsk.peg.BridgeBtcWallet;
 import co.rsk.peg.Federation;
+import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
@@ -323,7 +325,8 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             for (FederationListener watched : watchedFederations) {
                 Federation watchedFederation = watched.getFederation();
                 TransactionListener listener = watched.getListener();
-                if (BridgeUtils.isValidPegInTx(btcTx, watchedFederation, btcContextThin, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
+                Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
+                if (PegUtilsLegacy.isValidPegInTx(btcTx, watchedFederation, watchedFederationWallet, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
 
                     PeginInformation peginInformation = new PeginInformation(
                         btcLockSenderProvider,
@@ -345,7 +348,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                     LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a lock", tx.getWTxId());
                     listener.onTransaction(tx);
                 }
-                if (BridgeUtils.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
+                if (PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
                     LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a release", tx.getWTxId());
                     listener.onTransaction(tx);
                 }
