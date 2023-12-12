@@ -35,9 +35,6 @@ class FederationProviderFromFederatorSupportTest {
     private BridgeConstants bridgeConstants;
     private NetworkParameters testnetParams;
     private Instant creationTime;
-
-    private static final int STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION = FederationFormatVersion.STANDARD_MULTISIG_FEDERATION.getFormatVersion();
-    private static final int NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.NON_STANDARD_ERP_FEDERATION.getFormatVersion();
     private static final int P2SH_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.P2SH_ERP_FEDERATION.getFormatVersion();
 
     private static final Address HARDCODED_TESTNET_FED_ADDRESS = Address.fromBase58(
