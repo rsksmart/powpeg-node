@@ -3,7 +3,7 @@ package co.rsk.federate.mock;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BlockListener;
 import co.rsk.federate.bitcoin.TransactionListener;
-import co.rsk.peg.Federation;
+import co.rsk.peg.federation.Federation;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
