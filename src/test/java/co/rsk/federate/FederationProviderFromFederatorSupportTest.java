@@ -121,7 +121,7 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedFederation = createErpFederation(
+        Federation expectedFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
@@ -152,7 +152,7 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
         when(configMock.isActive(RSKIP284)).thenReturn(false);
 
-        Federation expectedFederation = createErpFederation(
+        Federation expectedFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
@@ -304,7 +304,7 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedFederation = createErpFederation(
+        Federation expectedFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
@@ -432,7 +432,7 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedActiveFederation = createErpFederation(
+        Federation expectedActiveFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1,1000, 2000, 3000, 4000),
             configMock
         );
@@ -598,13 +598,13 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedActiveFederation = createErpFederation(
+        Federation expectedActiveFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
         Address expectedActiveFederationAddress = expectedActiveFederation.getAddress();
 
-        Federation expectedRetiringFederation = createErpFederation(
+        Federation expectedRetiringFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000),
             configMock
         );
@@ -652,7 +652,7 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedActiveFederation = createErpFederation(
+        Federation expectedActiveFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
@@ -711,7 +711,7 @@ class FederationProviderFromFederatorSupportTest {
         );
         Address expectedActiveFederationAddress = expectedActiveFederation.getAddress();
 
-        Federation expectedRetiringFederation = createErpFederation(
+        Federation expectedRetiringFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000),
             configMock
         );
@@ -809,35 +809,26 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     private Federation createFederation(List<FederationMember> members) {
-        return FederationFactory.buildStandardMultiSigFederation(
-            members,
-            creationTime,
-            0L,
-            testnetParams
-        );
+        FederationArgs federationArgs = new FederationArgs(members, creationTime, 0L, testnetParams);
+        return FederationFactory.buildStandardMultiSigFederation(federationArgs);
     }
 
-    private Federation createErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
-        return FederationFactory.buildNonStandardErpFederation(
-            members,
-            creationTime,
-            0L,
-            testnetParams,
-            bridgeConstants.getErpFedPubKeysList(),
-            bridgeConstants.getErpFedActivationDelay(),
-            activations
-        );
+    private ErpFederation createNonStandardErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
+        List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
+        long activationDelay = bridgeConstants.getErpFedActivationDelay();
+        ErpFederationArgs erpFederationArgs =
+            new ErpFederationArgs(members, creationTime, 0L, testnetParams, erpPubKeys, activationDelay);
+
+        return FederationFactory.buildNonStandardErpFederation(erpFederationArgs, activations);
     }
 
-    private Federation createP2shErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
-        return FederationFactory.buildP2shErpFederation(
-            members,
-            creationTime,
-            0L,
-            testnetParams,
-            bridgeConstants.getErpFedPubKeysList(),
-            bridgeConstants.getErpFedActivationDelay()
-        );
+    private ErpFederation createP2shErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
+        List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
+        long activationDelay = bridgeConstants.getErpFedActivationDelay();
+        ErpFederationArgs erpFederationArgs =
+            new ErpFederationArgs(members, creationTime, 0L, testnetParams, erpPubKeys, activationDelay);
+        
+        return FederationFactory.buildP2shErpFederation(erpFederationArgs);
     }
 
     private List<FederationMember> getFederationMembersFromPks(int offset, Integer... pks) {

@@ -14,6 +14,7 @@ import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.federation.Federation;
+import co.rsk.peg.federation.FederationArgs;
 import co.rsk.peg.federation.FederationFactory;
 import co.rsk.peg.federation.FederationMember;
 import java.math.BigInteger;
@@ -31,26 +32,23 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 
 class FederationWatcherTest {
-    private final Federation federation1 = FederationFactory.buildStandardMultiSigFederation(
-            getFederationMembersFromPksForBtc(1000, 2000, 3000, 4000),
-            Instant.ofEpochMilli(5005L),
-            0L,
-            NetworkParameters.fromID(NetworkParameters.ID_REGTEST)
-    );
+    List<FederationMember> federation1Members = getFederationMembersFromPksForBtc(1000, 2000, 3000, 4000);
+    Instant federation1CreationTime = Instant.ofEpochMilli(5005L);
+    long creationBlockNumber = 0L;
+    NetworkParameters btcParams = NetworkParameters.fromID(NetworkParameters.ID_REGTEST);
 
-    private final Federation federation2 = FederationFactory.buildStandardMultiSigFederation(
-            getFederationMembersFromPksForBtc(2000, 3000, 4000, 5000, 6000, 7000),
-            Instant.ofEpochMilli(15300L),
-            0L,
-            NetworkParameters.fromID(NetworkParameters.ID_REGTEST)
-    );
+    FederationArgs federation1Args = new FederationArgs(federation1Members, federation1CreationTime, creationBlockNumber, btcParams);
+    private final Federation federation1 = FederationFactory.buildStandardMultiSigFederation(federation1Args);
 
-    private final Federation federation3 = FederationFactory.buildStandardMultiSigFederation(
-            getFederationMembersFromPksForBtc(5000, 6000, 7000),
-            Instant.ofEpochMilli(7400L),
-            0L,
-            NetworkParameters.fromID(NetworkParameters.ID_REGTEST)
-    );
+    List<FederationMember> federation2Members = getFederationMembersFromPksForBtc(2000, 3000, 4000, 5000, 6000, 7000);
+    Instant federation2CreationTime = Instant.ofEpochMilli(15300L);
+    FederationArgs federation2Args = new FederationArgs(federation2Members, federation2CreationTime, creationBlockNumber, btcParams);
+    private final Federation federation2 = FederationFactory.buildStandardMultiSigFederation(federation2Args);
+
+    List<FederationMember> federation3Members = getFederationMembersFromPksForBtc(5000, 6000, 7000);
+    Instant federation3CreationTime = Instant.ofEpochMilli(7400L);
+    FederationArgs federation3Args = new FederationArgs(federation3Members, federation3CreationTime, creationBlockNumber, btcParams);
+    private final Federation federation3 = FederationFactory.buildStandardMultiSigFederation(federation3Args);
 
     private FederationProvider federationProvider;
     private Ethereum ethereumMock;
