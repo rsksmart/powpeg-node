@@ -16,6 +16,7 @@ import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.peg.federation.Federation;
+import co.rsk.peg.federation.FederationArgs;
 import co.rsk.peg.federation.FederationFactory;
 import co.rsk.peg.federation.FederationMember;
 
@@ -87,13 +88,10 @@ public class TestUtils {
 
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
+        List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
+        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), 0, params);
 
-        return FederationFactory.buildStandardMultiSigFederation(
-            FederationMember.getFederationMembersFromKeys(keys),
-            Instant.now(),
-            0,
-            params
-        );
+        return FederationFactory.buildStandardMultiSigFederation(federationArgs);
     }
 
     public static TransactionInput createTransactionInput(

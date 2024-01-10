@@ -20,10 +20,10 @@ package co.rsk.federate;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
+import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.config.BridgeConstants;
-import co.rsk.peg.federation.Federation;
-import co.rsk.peg.federation.FederationFactory;
-import co.rsk.peg.federation.FederationMember;
+import co.rsk.peg.federation.*;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.crypto.ECKey;
 
 import java.time.Instant;
@@ -74,13 +74,10 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         }
         Instant creationTime = federatorSupport.getFederationCreationTime();
         long creationBlockNumber = federatorSupport.getFederationCreationBlockNumber();
+        NetworkParameters btcParams = federatorSupport.getBtcParams();
+        FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, btcParams);
 
-        Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(
-            members,
-            creationTime,
-            creationBlockNumber,
-            federatorSupport.getBtcParams()
-        );
+        Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
 
         return getExpectedFederation(initialFederation, getActiveFederationAddress());
     }
@@ -124,13 +121,10 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
 
         Instant creationTime = federatorSupport.getRetiringFederationCreationTime();
         long creationBlockNumber = federatorSupport.getRetiringFederationCreationBlockNumber();
+        NetworkParameters btcParams = federatorSupport.getBtcParams();
+        FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, btcParams);
 
-        Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(
-            members,
-            creationTime,
-            creationBlockNumber,
-            federatorSupport.getBtcParams()
-        );
+        Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
 
         return Optional.of(getExpectedFederation(initialFederation, retiringFederationAddress));
     }
@@ -156,31 +150,26 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         if (initialFederation.getAddress().equals(expectedFederationAddress)) {
             return initialFederation;
         }
+        List<FederationMember> members = initialFederation.getMembers();
+        Instant creationTime = initialFederation.getCreationTime();
+        long creationBlockNumber = initialFederation.getCreationBlockNumber();
+        NetworkParameters btcParams = federatorSupport.getBtcParams();
+        List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
+        long activationDelay = bridgeConstants.getErpFedActivationDelay();
+        ActivationConfig.ForBlock activations = federatorSupport.getConfigForBestBlock();
 
-        // If addresses do not match build an ERP federation
-        Federation erpFederation = FederationFactory.buildNonStandardErpFederation(
-            initialFederation.getMembers(),
-            initialFederation.getCreationTime(),
-            initialFederation.getCreationBlockNumber(),
-            federatorSupport.getBtcParams(),
-            bridgeConstants.getErpFedPubKeysList(),
-            bridgeConstants.getErpFedActivationDelay(),
-            federatorSupport.getConfigForBestBlock()
-        );
+        ErpFederationArgs erpFederationArgs =
+            new ErpFederationArgs(members, creationTime, creationBlockNumber, btcParams, erpPubKeys, activationDelay);
 
-        if (erpFederation.getAddress().equals(expectedFederationAddress)) {
-            return erpFederation;
+        // If addresses match build a Non-Standard ERP federation
+        ErpFederation nonStandardErpFederation = FederationFactory.buildNonStandardErpFederation(erpFederationArgs, activations);
+
+        if (nonStandardErpFederation.getAddress().equals(expectedFederationAddress)) {
+            return nonStandardErpFederation;
         }
 
         // Finally, try building a P2SH ERP federation
-        return FederationFactory.buildP2shErpFederation(
-            initialFederation.getMembers(),
-            initialFederation.getCreationTime(),
-            initialFederation.getCreationBlockNumber(),
-            federatorSupport.getBtcParams(),
-            bridgeConstants.getErpFedPubKeysList(),
-            bridgeConstants.getErpFedActivationDelay()
-        );
+        return FederationFactory.buildP2shErpFederation(erpFederationArgs);
 
         // TODO: what if no federation built matches the expected address?
         //  It could mean that there is a different type of federation in the Bridge that we are not considering here
