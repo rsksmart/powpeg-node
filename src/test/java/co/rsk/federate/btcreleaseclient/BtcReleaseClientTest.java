@@ -596,8 +596,8 @@ class BtcReleaseClientTest {
     void validateTxCanBeSigned_erp_fed_ok() throws Exception {
         Federation federation = TestUtils.createFederation(params, 3);
         FederationArgs federationArgs = federation.getArgs();
-        ErpFederationArgs erpFederationArgs = ErpFederationArgs.fromFederationArgs(federationArgs, erpFedKeys, 5063);
-        ErpFederation nonStandardErpFederation = FederationFactory.buildNonStandardErpFederation(erpFederationArgs, mock(ActivationConfig.ForBlock.class));
+        ErpFederation nonStandardErpFederation =
+            FederationFactory.buildNonStandardErpFederation(federationArgs, erpFedKeys, 5063, mock(ActivationConfig.ForBlock.class));
 
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx = createReleaseTxAndAddInput(federation);
@@ -785,9 +785,9 @@ class BtcReleaseClientTest {
     void extractStandardRedeemScript_erp_redeem_script() {
         Federation federation = TestUtils.createFederation(params, 1);
         FederationArgs federationArgs = federation.getArgs();
-        ErpFederationArgs erpFederationArgs = ErpFederationArgs.fromFederationArgs(federationArgs, erpFedKeys, 5063);
 
-        ErpFederation nonStandardErpFederation = FederationFactory.buildNonStandardErpFederation(erpFederationArgs, mock(ActivationConfig.ForBlock.class));
+        ErpFederation nonStandardErpFederation =
+            FederationFactory.buildNonStandardErpFederation(federationArgs, erpFedKeys, 5063, mock(ActivationConfig.ForBlock.class));
 
         test_extractStandardRedeemScript(federation.getRedeemScript(), nonStandardErpFederation.getRedeemScript());
     }
