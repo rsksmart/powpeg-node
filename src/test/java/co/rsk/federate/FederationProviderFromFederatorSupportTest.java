@@ -185,8 +185,7 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
-            configMock
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000)
         );
         Address expectedFederationAddress = expectedFederation.getAddress();
 
@@ -338,8 +337,7 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
-            configMock
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000)
         );
         Address expectedFederationAddress = expectedFederation.getAddress();
 
@@ -466,8 +464,7 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedActiveFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1,1000, 2000, 3000, 4000),
-            configMock
+            getFederationMembersFromPks(1,1000, 2000, 3000, 4000)
         );
         Address expectedActiveFederationAddress = expectedActiveFederation.getAddress();
 
@@ -706,8 +703,7 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedActiveFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
-            configMock
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000)
         );
         Address expectedActiveFederationAddress = expectedActiveFederation.getAddress();
 
@@ -760,14 +756,12 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedActiveFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
-            configMock
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000)
         );
         Address expectedActiveFederationAddress = expectedActiveFederation.getAddress();
 
         Federation expectedRetiringFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000),
-            configMock
+            getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000)
         );
         Address expectedRetiringFederationAddress = expectedRetiringFederation.getAddress();
 
@@ -816,19 +810,19 @@ class FederationProviderFromFederatorSupportTest {
     private ErpFederation createNonStandardErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
         List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
         long activationDelay = bridgeConstants.getErpFedActivationDelay();
-        ErpFederationArgs erpFederationArgs =
-            new ErpFederationArgs(members, creationTime, 0L, testnetParams, erpPubKeys, activationDelay);
+        FederationArgs federationArgs =
+            new FederationArgs(members, creationTime, 0L, testnetParams);
 
-        return FederationFactory.buildNonStandardErpFederation(erpFederationArgs, activations);
+        return FederationFactory.buildNonStandardErpFederation(federationArgs, erpPubKeys, activationDelay, activations);
     }
 
-    private ErpFederation createP2shErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
+    private ErpFederation createP2shErpFederation(List<FederationMember> members) {
         List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
         long activationDelay = bridgeConstants.getErpFedActivationDelay();
-        ErpFederationArgs erpFederationArgs =
-            new ErpFederationArgs(members, creationTime, 0L, testnetParams, erpPubKeys, activationDelay);
+        FederationArgs federationArgs =
+            new FederationArgs(members, creationTime, 0L, testnetParams);
         
-        return FederationFactory.buildP2shErpFederation(erpFederationArgs);
+        return FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
     }
 
     private List<FederationMember> getFederationMembersFromPks(int offset, Integer... pks) {

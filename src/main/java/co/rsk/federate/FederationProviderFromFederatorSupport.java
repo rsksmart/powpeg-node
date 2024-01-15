@@ -158,18 +158,19 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         long activationDelay = bridgeConstants.getErpFedActivationDelay();
         ActivationConfig.ForBlock activations = federatorSupport.getConfigForBestBlock();
 
-        ErpFederationArgs erpFederationArgs =
-            new ErpFederationArgs(members, creationTime, creationBlockNumber, btcParams, erpPubKeys, activationDelay);
+        FederationArgs federationArgs =
+            new FederationArgs(members, creationTime, creationBlockNumber, btcParams);
 
         // If addresses match build a Non-Standard ERP federation
-        ErpFederation nonStandardErpFederation = FederationFactory.buildNonStandardErpFederation(erpFederationArgs, activations);
+        ErpFederation nonStandardErpFederation =
+            FederationFactory.buildNonStandardErpFederation(federationArgs, erpPubKeys, activationDelay, activations);
 
         if (nonStandardErpFederation.getAddress().equals(expectedFederationAddress)) {
             return nonStandardErpFederation;
         }
 
         // Finally, try building a P2SH ERP federation
-        return FederationFactory.buildP2shErpFederation(erpFederationArgs);
+        return FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
 
         // TODO: what if no federation built matches the expected address?
         //  It could mean that there is a different type of federation in the Bridge that we are not considering here
