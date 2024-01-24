@@ -104,7 +104,7 @@ public class CoinbaseInformation {
     }
 
     public static CoinbaseInformation fromRlp(byte[] input, NetworkParameters parameters) throws Exception {
-        RLPList rlpList = (RLPList) RLP.decode2(input).get(0);
+        RLPList rlpList = RLP.decodeList(input);
         Transaction tx = new Transaction(parameters, rlpList.get(0).getRLPData());
         Sha256Hash witnessRoot = Sha256Hash.wrap(rlpList.get(1).getRLPData());
         Sha256Hash blockHash = Sha256Hash.wrap(rlpList.get(2).getRLPData());

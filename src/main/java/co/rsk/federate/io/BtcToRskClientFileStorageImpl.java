@@ -62,7 +62,7 @@ public class BtcToRskClientFileStorageImpl implements BtcToRskClientFileStorage 
         BtcToRskClientFileData data = new BtcToRskClientFileData();
 
         try {
-            ArrayList<RLPElement> elements = RLP.decode2(fileData);
+            ArrayList<RLPElement> elements = RLP.decodeListElements(fileData);
             if (elements.isEmpty()) {
                 return new BtcToRskClientFileReadResult(Boolean.TRUE, data);
             }
@@ -87,7 +87,7 @@ public class BtcToRskClientFileStorageImpl implements BtcToRskClientFileStorage 
     }
 
     private Map<Sha256Hash, CoinbaseInformation> deserializeCoinbaseInformation(byte[] rlpData, NetworkParameters networkParameters) throws Exception {
-        RLPList rlpList = (RLPList) RLP.decode2(rlpData).get(0);
+        RLPList rlpList = RLP.decodeList(rlpData);
         Map<Sha256Hash, CoinbaseInformation> result = new HashMap<>();
 
         for (int k = 0; k < rlpList.size(); k++) {

@@ -235,7 +235,7 @@ public class BtcReleaseClient {
         }
 
         private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
-            RLPList dataElements = (RLPList)RLP.decode2(dataFromBtcReleaseTopic).get(0);
+            RLPList dataElements = RLP.decodeList(dataFromBtcReleaseTopic);
 
             return new BtcTransaction(bridgeConstants.getBtcParams(), dataElements.get(1).getRLPData());
         }
