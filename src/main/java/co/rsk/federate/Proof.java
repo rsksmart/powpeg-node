@@ -28,7 +28,7 @@ public class Proof {
     }
 
     public Proof(byte[] rlpData, NetworkParameters parameters) {
-        RLPList rlpList = (RLPList) RLP.decode2(rlpData).get(0);
+        RLPList rlpList = RLP.decodeList(rlpData);
         byte[] encodedHash = rlpList.get(0).getRLPData();
         byte[] encodedMerkle = rlpList.get(1).getRLPData();
 
@@ -68,7 +68,7 @@ public class Proof {
             return list;
         }
 
-        RLPList rlpList = (RLPList)RLP.decode2(rlpData).get(0);
+        RLPList rlpList = RLP.decodeList(rlpData);
 
         for (int k = 0; k < rlpList.size(); k++) {
             RLPElement rlpElement = rlpList.get(k);
@@ -82,7 +82,7 @@ public class Proof {
         Map<Sha256Hash, List<Proof>> newProofs = new ConcurrentHashMap<>();
 
         if (rlpData != null && rlpData.length > 0) {
-            RLPList rlpList = (RLPList)RLP.decode2(rlpData).get(0);
+            RLPList rlpList = RLP.decodeList(rlpData);
             int ntxs = rlpList.size() / 2;
             for (int k = 0; k < ntxs; k++) {
                 Sha256Hash hash = Sha256Hash.wrap(rlpList.get(k * 2).getRLPData());
