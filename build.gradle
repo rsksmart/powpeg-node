@@ -73,7 +73,7 @@ ext {
     junitVersion = '5.8.1'
     junitSuiteVersion = '1.9.0'
     mockitoVersion = '4.6.1'
-    rskjcoreVersion = '6.0.0-RC'
+    rskjcoreVersion = '5.4.0-RC'
 }
 
 dependencies {
