@@ -15,12 +15,7 @@ import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.config.BridgeConstants;
 import co.rsk.config.BridgeTestNetConstants;
-import co.rsk.peg.FederationMember;
-import co.rsk.peg.Federation;
-import co.rsk.peg.StandardMultisigFederation;
-import co.rsk.peg.ErpFederation;
-import co.rsk.peg.LegacyErpFederation;
-import co.rsk.peg.P2shErpFederation;
+import co.rsk.peg.federation.*;
 
 import java.math.BigInteger;
 import java.time.Instant;
@@ -40,6 +35,10 @@ class FederationProviderFromFederatorSupportTest {
     private BridgeConstants bridgeConstants;
     private NetworkParameters testnetParams;
     private Instant creationTime;
+
+    private static final int STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION = FederationFormatVersion.STANDARD_MULTISIG_FEDERATION.getFormatVersion();
+    private static final int NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.NON_STANDARD_ERP_FEDERATION.getFormatVersion();
+    private static final int P2SH_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.P2SH_ERP_FEDERATION.getFormatVersion();
 
     private static final Address HARDCODED_TESTNET_FED_ADDRESS = Address.fromBase58(
         NetworkParameters.fromID(NetworkParameters.ID_TESTNET),
@@ -83,7 +82,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -112,7 +111,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -122,7 +121,7 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedFederation = createErpFederation(
+        Federation expectedFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
@@ -142,7 +141,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        assertTrue(obtainedFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -153,7 +152,7 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
         when(configMock.isActive(RSKIP284)).thenReturn(false);
 
-        Federation expectedFederation = createErpFederation(
+        Federation expectedFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
@@ -174,7 +173,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        assertTrue(obtainedFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(HARDCODED_TESTNET_FED_ADDRESS, obtainedFederation.getAddress());
         assertEquals(HARDCODED_TESTNET_FED_REDEEM_SCRIPT, obtainedFederation.getRedeemScript());
@@ -186,8 +185,7 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
-            configMock
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000)
         );
         Address expectedFederationAddress = expectedFederation.getAddress();
 
@@ -205,7 +203,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
-        assertTrue(obtainedFederation instanceof P2shErpFederation);
+        assertEquals(P2SH_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -263,7 +261,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -295,7 +293,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        assertTrue(obtainedFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -305,7 +303,7 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedFederation = createErpFederation(
+        Federation expectedFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
@@ -328,7 +326,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        assertTrue(obtainedFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -339,8 +337,7 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
-            configMock
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000)
         );
         Address expectedFederationAddress = expectedFederation.getAddress();
 
@@ -361,7 +358,7 @@ class FederationProviderFromFederatorSupportTest {
 
         Federation obtainedFederation = obtainedFederationOptional.get();
 
-        assertTrue(obtainedFederation instanceof P2shErpFederation);
+        assertEquals(P2SH_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
@@ -391,7 +388,7 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
@@ -423,7 +420,7 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
@@ -433,7 +430,7 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedActiveFederation = createErpFederation(
+        Federation expectedActiveFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1,1000, 2000, 3000, 4000),
             configMock
         );
@@ -456,7 +453,7 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
@@ -467,8 +464,7 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedActiveFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1,1000, 2000, 3000, 4000),
-            configMock
+            getFederationMembersFromPks(1,1000, 2000, 3000, 4000)
         );
         Address expectedActiveFederationAddress = expectedActiveFederation.getAddress();
 
@@ -489,7 +485,7 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(1, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof P2shErpFederation);
+        assertEquals(P2SH_ERP_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
     }
@@ -532,12 +528,12 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
@@ -584,12 +580,12 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
@@ -599,13 +595,13 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedActiveFederation = createErpFederation(
+        Federation expectedActiveFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
         Address expectedActiveFederationAddress = expectedActiveFederation.getAddress();
 
-        Federation expectedRetiringFederation = createErpFederation(
+        Federation expectedRetiringFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000),
             configMock
         );
@@ -638,12 +634,12 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
@@ -653,7 +649,7 @@ class FederationProviderFromFederatorSupportTest {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
-        Federation expectedActiveFederation = createErpFederation(
+        Federation expectedActiveFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
             configMock
         );
@@ -691,12 +687,12 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof Federation);
+        assertEquals(STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
@@ -707,12 +703,11 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedActiveFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
-            configMock
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000)
         );
         Address expectedActiveFederationAddress = expectedActiveFederation.getAddress();
 
-        Federation expectedRetiringFederation = createErpFederation(
+        Federation expectedRetiringFederation = createNonStandardErpFederation(
             getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000),
             configMock
         );
@@ -745,12 +740,12 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof P2shErpFederation);
+        assertEquals(P2SH_ERP_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof ErpFederation);
+        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
@@ -761,14 +756,12 @@ class FederationProviderFromFederatorSupportTest {
         when(configMock.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedActiveFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000),
-            configMock
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000)
         );
         Address expectedActiveFederationAddress = expectedActiveFederation.getAddress();
 
         Federation expectedRetiringFederation = createP2shErpFederation(
-            getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000),
-            configMock
+            getFederationMembersFromPks(1,2000, 4000, 6000, 8000, 10000)
         );
         Address expectedRetiringFederationAddress = expectedRetiringFederation.getAddress();
 
@@ -799,47 +792,37 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(2, liveFederations.size());
 
         Federation activeFederation = liveFederations.get(0);
-        assertTrue(activeFederation instanceof P2shErpFederation);
+        assertEquals(P2SH_ERP_FEDERATION_FORMAT_VERSION, activeFederation.getFormatVersion());
         assertEquals(expectedActiveFederation, activeFederation);
         assertEquals(expectedActiveFederationAddress, activeFederation.getAddress());
 
         Federation retiringFederation = liveFederations.get(1);
-        assertTrue(retiringFederation instanceof P2shErpFederation);
+        assertEquals(P2SH_ERP_FEDERATION_FORMAT_VERSION, retiringFederation.getFormatVersion());
         assertEquals(expectedRetiringFederation, retiringFederation);
         assertEquals(expectedRetiringFederationAddress, retiringFederation.getAddress());
     }
 
     private Federation createFederation(List<FederationMember> members) {
-        return new StandardMultisigFederation(
-            members,
-            creationTime,
-            0L,
-            testnetParams
-        );
+        FederationArgs federationArgs = new FederationArgs(members, creationTime, 0L, testnetParams);
+        return FederationFactory.buildStandardMultiSigFederation(federationArgs);
     }
 
-    private Federation createErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
-        return new LegacyErpFederation(
-            members,
-            creationTime,
-            0L,
-            testnetParams,
-            bridgeConstants.getErpFedPubKeysList(),
-            bridgeConstants.getErpFedActivationDelay(),
-            activations
-        );
+    private ErpFederation createNonStandardErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
+        List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
+        long activationDelay = bridgeConstants.getErpFedActivationDelay();
+        FederationArgs federationArgs =
+            new FederationArgs(members, creationTime, 0L, testnetParams);
+
+        return FederationFactory.buildNonStandardErpFederation(federationArgs, erpPubKeys, activationDelay, activations);
     }
 
-    private Federation createP2shErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
-        return new P2shErpFederation(
-            members,
-            creationTime,
-            0L,
-            testnetParams,
-            bridgeConstants.getErpFedPubKeysList(),
-            bridgeConstants.getErpFedActivationDelay(),
-            activations
-        );
+    private ErpFederation createP2shErpFederation(List<FederationMember> members) {
+        List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
+        long activationDelay = bridgeConstants.getErpFedActivationDelay();
+        FederationArgs federationArgs =
+            new FederationArgs(members, creationTime, 0L, testnetParams);
+        
+        return FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
     }
 
     private List<FederationMember> getFederationMembersFromPks(int offset, Integer... pks) {

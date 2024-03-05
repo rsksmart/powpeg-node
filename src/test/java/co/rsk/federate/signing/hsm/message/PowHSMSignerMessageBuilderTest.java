@@ -17,7 +17,7 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.crypto.Keccak256;
-import co.rsk.peg.Federation;
+import co.rsk.peg.federation.Federation;
 import co.rsk.trie.Trie;
 import java.util.Collections;
 import java.util.List;

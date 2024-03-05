@@ -32,8 +32,8 @@ import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.BridgeUtils;
-import co.rsk.peg.Federation;
-import co.rsk.peg.ErpFederation;
+import co.rsk.peg.federation.Federation;
+import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -352,7 +352,7 @@ public class BtcReleaseClient {
                 observedFederations.stream()
                         .forEach(f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
                 List<Federation> spendingFedFilter = observedFederations.stream()
-                        .filter(f -> (f instanceof ErpFederation ? ((ErpFederation) f).getStandardRedeemScript() : f.getRedeemScript()).equals(standardRedeemScript)).collect(Collectors.toList());
+                        .filter(f -> (extractDefaultRedeemScript(f)).equals(standardRedeemScript)).collect(Collectors.toList());
                 logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
                 if (spendingFedFilter.isEmpty()) {
                     String message = String.format(
@@ -451,6 +451,13 @@ public class BtcReleaseClient {
         return parser.extractStandardRedeemScript();
     }
 
+    private Script extractDefaultRedeemScript(Federation federation) {
+        if (federation instanceof ErpFederation) {
+            return ((ErpFederation) federation).getDefaultRedeemScript();
+        }
+        return federation.getRedeemScript();
+    }
+
     protected Script getRedeemScriptFromInput(TransactionInput txInput) {
         Script inputScript = txInput.getScriptSig();
         List<ScriptChunk> chunks = inputScript.getChunks();
@@ -464,7 +471,8 @@ public class BtcReleaseClient {
         Script redeemScript = extractStandardRedeemScript(getRedeemScriptFromInput(firstInput));
 
         List<Federation> spendingFedFilter = observedFederations.stream()
-                .filter(f -> (f instanceof ErpFederation ? ((ErpFederation) f).getStandardRedeemScript() : f.getRedeemScript()).equals(redeemScript)).collect(Collectors.toList());
+                .filter(f -> (extractDefaultRedeemScript(f)).equals(redeemScript)).collect(Collectors.toList());
+
 
         return spendingFedFilter.get(0);
     }
