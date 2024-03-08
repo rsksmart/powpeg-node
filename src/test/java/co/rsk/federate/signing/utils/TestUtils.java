@@ -48,7 +48,6 @@ public class TestUtils {
         when(block.getUncleList()).thenReturn(Collections.emptyList());
         BlockHeader blockHeader = mock(BlockHeader.class);
         when(blockHeader.getHash()).thenReturn(hash);
-        when(blockHeader.getFullEncoded()).thenReturn(hash.getBytes());
         when(block.getHeader()).thenReturn(blockHeader);
 
         return block;
@@ -60,8 +59,7 @@ public class TestUtils {
         when(block.getNumber()).thenReturn(number);
         when(block.getParentHash()).thenReturn(parentHash);
         BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getEncoded(true, false)).thenReturn(hash.getBytes());
-        when(blockHeader.getFullEncoded()).thenReturn(hash.getBytes());
+        when(blockHeader.getEncoded(true, false, true)).thenReturn(hash.getBytes());
         when(block.getHeader()).thenReturn(blockHeader);
 
         return block;
@@ -72,7 +70,6 @@ public class TestUtils {
         when(block.getHash()).thenReturn(hash);
         when(block.getNumber()).thenReturn(number);
         BlockHeader blockHeader = mock(BlockHeader.class);
-        when(blockHeader.getFullEncoded()).thenReturn(hash.getBytes());
         when(blockHeader.getHash()).thenReturn(hash);
         when(block.getHeader()).thenReturn(blockHeader);
         when(block.getDifficulty()).thenReturn(new BlockDifficulty(BigInteger.valueOf(difficultyValue)));

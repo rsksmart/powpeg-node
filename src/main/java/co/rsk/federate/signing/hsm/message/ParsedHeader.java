@@ -27,7 +27,7 @@ public class ParsedHeader {
     }
 
     private String serializeBlockHeader(BlockHeader blockHeader) {
-        return Hex.toHexString(blockHeader.getFullEncoded());
+        return Hex.toHexString(blockHeader.getEncoded(true, true, true));
     }
 
     private String[] serializeBrothers(List<BlockHeader> brothers) {
