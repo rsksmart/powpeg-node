@@ -67,7 +67,7 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
         }
 
         try {
-            ArrayList<RLPElement> elements = RLP.decode2(fileData);
+            ArrayList<RLPElement> elements = RLP.decodeListElements(fileData);
             if (elements.isEmpty()) {
                 return new BtcReleaseClientFileReadResult(Boolean.TRUE, data);
             }
@@ -77,7 +77,7 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
             }
             // Map
             byte[] mapData = rlpList.get(0).getRLPData();
-            RLPList mapList = (RLPList)RLP.decode2(mapData).get(0);
+            RLPList mapList = RLP.decodeList(mapData);
             data.getReleaseHashesMap().putAll(this.deserializeReleaseHashes(mapList));
             // Block hash
             if (rlpList.size() == 2) {
