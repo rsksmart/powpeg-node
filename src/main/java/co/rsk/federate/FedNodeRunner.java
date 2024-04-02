@@ -315,6 +315,7 @@ public class FedNodeRunner implements NodeRunner {
             federateLogger.log();
             BtcReleaseClientStorageAccessor btcReleaseClientStorageAccessor = new BtcReleaseClientStorageAccessor(config);
             btcReleaseClient.setup(
+                bitcoinWrapper,
                 signer,
                 config.getActivationConfig(),
                 new SignerMessageBuilderFactory(

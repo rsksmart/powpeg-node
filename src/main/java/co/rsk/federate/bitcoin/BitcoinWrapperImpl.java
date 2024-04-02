@@ -225,6 +225,11 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     }
 
     @Override
+    public Transaction getTransaction(Sha256Hash sha256Hash) {
+        return kit.wallet().getTransaction(sha256Hash);
+    }
+
+    @Override
     public Map<Sha256Hash, Transaction> getTransactionMap(int minConfirmations) {
         Map<Sha256Hash, Transaction> result = new HashMap<>();
         Set<Transaction> txs = getTransactions(minConfirmations);

@@ -2,7 +2,9 @@ package co.rsk.federate.btcreleaseclient;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.core.TransactionOutPoint;
 import co.rsk.bitcoinj.script.RedeemScriptParser;
 import co.rsk.bitcoinj.script.RedeemScriptParserFactory;
 import co.rsk.bitcoinj.script.Script;
@@ -12,6 +14,7 @@ import co.rsk.config.BridgeConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
+import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.FederationCantSignException;
@@ -99,6 +102,7 @@ public class BtcReleaseClient {
 
     private BtcReleaseClientStorageAccessor storageAccessor;
     private BtcReleaseClientStorageSynchronizer storageSynchronizer;
+    private BitcoinWrapper bitcoinWrapper;
 
     public BtcReleaseClient(
         Ethereum ethereum,
@@ -117,6 +121,7 @@ public class BtcReleaseClient {
     }
 
     public void setup(
+        BitcoinWrapper bitcoinWrapper,
         ECDSASigner signer,
         ActivationConfig activationConfig,
         SignerMessageBuilderFactory signerMessageBuilderFactory,
@@ -125,6 +130,7 @@ public class BtcReleaseClient {
         BtcReleaseClientStorageAccessor storageAccessor,
         BtcReleaseClientStorageSynchronizer storageSynchronizer
     ) throws BtcReleaseClientException {
+        this.bitcoinWrapper = bitcoinWrapper;
         this.signer = signer;
         this.activationConfig = activationConfig;
         logger.debug("[setup] Signer: {}", signer.getClass());
@@ -254,6 +260,13 @@ public class BtcReleaseClient {
             List<ReleaseCreationInformation> releasesReadyToSign = new ArrayList<>();
             for (Map.Entry<Keccak256, BtcTransaction> release : releases) {
                 BtcTransaction releaseTx = release.getValue();
+
+                // Proving an utxo can be fetched from the bitcoin node
+                TransactionOutPoint outpoint = releaseTx.getInput(0).getOutpoint();
+                Sha256Hash hash = outpoint.getHash();
+                Transaction transaction = bitcoinWrapper.getTransaction(org.bitcoinj.core.Sha256Hash.wrapReversed(hash.getReversedBytes()));
+                System.out.println(transaction.getOutput(outpoint.getIndex()).getValue());
+
                 tryGetReleaseInformation(version, release.getKey(), releaseTx)
                     .ifPresent(releasesReadyToSign::add);
             }

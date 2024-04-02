@@ -29,6 +29,8 @@ public interface BitcoinWrapper {
 
     Set<Transaction> getTransactions(int minConfirmations);
 
+    Transaction getTransaction(Sha256Hash sha256Hash);
+
     Map<Sha256Hash, Transaction> getTransactionMap(int minConfirmations);
 
     void addFederationListener(Federation federation, TransactionListener listener);
