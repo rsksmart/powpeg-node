@@ -11,6 +11,8 @@ import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.peg.Bridge;
 import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.StateForFederator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Sha256Hash;
@@ -20,8 +22,14 @@ import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -151,6 +159,80 @@ public class FederatorSupport {
         return new StateForFederator(result, this.parameters);
     }
 
+    public List<Utxo> getUtxosAtBlock(long atBlockNumber) {
+
+        String utxosJson = getUtxoJsonAtBlockRcpCall(atBlockNumber);
+
+        LOGGER.trace("utxosJson: {}", utxosJson);
+
+        List<Utxo> utxos = Utxo.parseRLPToActiveFederationUtxos(utxosJson);
+
+        return utxos;
+
+    }
+
+    private String getUtxoJsonAtBlockRcpCall(long atBlockNumber) {
+        try {
+
+            URL url = new URL("http://localhost:4450");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setDoOutput(true);
+
+            long id = System.currentTimeMillis();
+            String bridgeAddress = "0x0000000000000000000000000000000001000006";
+
+            LOGGER.trace("atBlockNumber: {}", atBlockNumber);
+
+            // This storage key is only for newFederationBtcUTXOs.
+            String bridgeUtxoStorageKey = "0x00000000000000000000006e657746656465726174696f6e4274635554584f73";
+
+            String requestBody = String.format(
+                "{" +
+                    "\"jsonrpc\":\"2.0\"," +
+                    "\"id\":%d," +
+                    "\"method\":\"rsk_getStorageBytesAt\"," +
+                    "\"params\":[\"%s\",\"%s\",\"0x%s\"]" +
+                "}",
+                id, bridgeAddress, bridgeUtxoStorageKey, Long.toHexString(atBlockNumber));
+
+            // Send request
+            OutputStream os = connection.getOutputStream();
+            os.write(requestBody.getBytes());
+            os.flush();
+
+            // Read response
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String inputLine;
+                StringBuilder response = new StringBuilder();
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+                // Close connection
+                connection.disconnect();
+
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode rootNode = mapper.readTree(response.toString());
+
+                return rootNode.get("result").asText();
+
+            } else {
+                System.out.println("RPC request failed with response code: " + responseCode);
+            }
+
+            // Close connection
+            connection.disconnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
 
     public void addSignature(List<byte[]> signatures, byte[] rskTxHash) {
         byte[] federatorPublicKeyBytes = federationMember.getBtcPublicKey().getPubKey();

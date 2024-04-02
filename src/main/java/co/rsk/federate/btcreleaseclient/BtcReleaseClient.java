@@ -11,6 +11,7 @@ import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.config.BridgeConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
+import co.rsk.federate.Utxo;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
@@ -301,12 +302,33 @@ public class BtcReleaseClient {
             // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
             // -- Get Real Block where release_requested was emmited
             logger.trace("[tryGetReleaseInformation] Getting release information");
-            return Optional.of(releaseCreationInformationGetter.getTxInfoToSign(
+            Optional<ReleaseCreationInformation> releaseCreationInformationOptional = Optional.of(releaseCreationInformationGetter.getTxInfoToSign(
                 signerVersion,
                 actualRskTxHash,
                 releaseTx,
                 rskTxHash
             ));
+
+            ReleaseCreationInformation releaseCreationInformation = releaseCreationInformationOptional.get();
+
+            long releaseCreationInformationBlockNumber = releaseCreationInformation.getBlock().getNumber();
+
+            List<Utxo> utxosBeforeRelease = federatorSupport.getUtxosAtBlock(releaseCreationInformationBlockNumber - 1);
+
+            logger.trace("utxosBeforeRelease: {}", utxosBeforeRelease);
+
+            List<TransactionInput> inputs = releaseCreationInformation.getBtcTransaction().getInputs();
+
+            List<Utxo> releaseCreationInformationBridgeUtxoInfo = utxosBeforeRelease.stream()
+                    .filter(utxo -> inputs.stream().anyMatch(input -> input.toString().equals(utxo.getBtcTxHash())))
+                    .collect(Collectors.toList());
+
+            logger.trace("releaseCreationInformationBridgeUtxoInfo: {}", releaseCreationInformationBridgeUtxoInfo);
+
+            // Append the outpoint data to the inputs for the HSM
+
+            return releaseCreationInformationOptional;
+
         } catch (HSMReleaseCreationInformationException | FederationCantSignException e) {
             String message = String.format(
                 "[tryGetReleaseInformation] There was an error trying to process release for BTC tx %s",
