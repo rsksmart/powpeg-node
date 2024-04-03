@@ -19,7 +19,7 @@ package co.rsk.federate;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.BtcECKey;
-import co.rsk.config.BridgeConstants;
+import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;

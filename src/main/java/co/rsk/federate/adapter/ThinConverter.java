@@ -3,7 +3,7 @@ package co.rsk.federate.adapter;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Context;
 import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.config.BridgeConstants;
+import co.rsk.peg.constants.BridgeConstants;
 
 import java.nio.ByteBuffer;
 
