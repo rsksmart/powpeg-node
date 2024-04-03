@@ -32,7 +32,9 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Helps the federator communication with the RSK blockchain.
@@ -159,15 +161,15 @@ public class FederatorSupport {
         return new StateForFederator(result, this.parameters);
     }
 
-    public List<Utxo> getUtxosAtBlock(long atBlockNumber) {
+    public Map<String, Utxo> getUtxosAtBlock(long atBlockNumber) {
 
         String utxosJson = getUtxoJsonAtBlockRcpCall(atBlockNumber);
 
-        LOGGER.trace("utxosJson: {}", utxosJson);
-
         List<Utxo> utxos = Utxo.parseRLPToActiveFederationUtxos(utxosJson);
 
-        return utxos;
+        Map<String, Utxo> utxoMap = utxos.stream().collect(Collectors.toMap(Utxo::getBtcTxHash, utxo -> utxo));
+
+        return utxoMap;
 
     }
 

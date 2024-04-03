@@ -36,15 +36,8 @@ import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.PreDestroy;
@@ -313,18 +306,16 @@ public class BtcReleaseClient {
 
             long releaseCreationInformationBlockNumber = releaseCreationInformation.getBlock().getNumber();
 
-            List<Utxo> utxosBeforeRelease = federatorSupport.getUtxosAtBlock(releaseCreationInformationBlockNumber - 1);
-
-            logger.trace("utxosBeforeRelease: {}", utxosBeforeRelease);
+            Map<String, Utxo> utxosBeforeRelease = federatorSupport.getUtxosAtBlock(releaseCreationInformationBlockNumber - 1);
 
             List<TransactionInput> inputs = releaseCreationInformation.getBtcTransaction().getInputs();
 
-            List<Utxo> releaseCreationInformationBridgeUtxoInfo = utxosBeforeRelease.stream()
-                    .filter(utxo -> inputs.stream().anyMatch(input -> input.toString().equals(utxo.getBtcTxHash())))
-                    .collect(Collectors.toList());
-
-            logger.trace("releaseCreationInformationBridgeUtxoInfo: {}", releaseCreationInformationBridgeUtxoInfo);
-
+            // Proving we can get the releaseCreationInformation utxos from the bridge storage.
+            inputs.forEach(input -> {
+                Utxo inputUtxo = utxosBeforeRelease.get("0x" + input.getOutpoint().getHash().toString());
+                logger.trace("Found utxo: {}, for input: {}", inputUtxo, input);
+            });
+            //
             // Append the outpoint data to the inputs for the HSM
 
             return releaseCreationInformationOptional;
