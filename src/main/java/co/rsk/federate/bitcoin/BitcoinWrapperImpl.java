@@ -2,7 +2,7 @@ package co.rsk.federate.bitcoin;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.wallet.Wallet;
-import co.rsk.config.BridgeConstants;
+import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.peg.BridgeBtcWallet;

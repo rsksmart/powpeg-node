@@ -8,7 +8,7 @@ import co.rsk.bitcoinj.script.RedeemScriptParserFactory;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.bitcoinj.wallet.RedeemData;
-import co.rsk.config.BridgeConstants;
+import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;

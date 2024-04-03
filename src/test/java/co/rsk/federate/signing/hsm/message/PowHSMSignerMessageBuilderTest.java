@@ -14,7 +14,7 @@ import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.core.TransactionOutPoint;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.Script;
-import co.rsk.config.BridgeRegTestConstants;
+import co.rsk.peg.constants.BridgeRegTestConstants;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.crypto.Keccak256;
 import co.rsk.peg.federation.Federation;
