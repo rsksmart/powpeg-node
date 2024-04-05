@@ -265,8 +265,10 @@ public class BtcReleaseClient {
                 TransactionOutPoint outpoint = releaseTx.getInput(0).getOutpoint();
                 Sha256Hash hash = outpoint.getHash();
                 Transaction transaction = bitcoinWrapper.getTransaction(org.bitcoinj.core.Sha256Hash.wrapReversed(hash.getReversedBytes()));
-                System.out.println(transaction.getOutput(outpoint.getIndex()).getValue());
 
+                logger.debug("[processReleases] UTXO tx hash {}", transaction.getOutput(outpoint.getIndex()).getHash());
+                logger.debug("[processReleases] UTXO index {}", transaction.getOutput(outpoint.getIndex()).getIndex());
+                logger.debug("[processReleases] UTXO value {}", transaction.getOutput(outpoint.getIndex()).getValue());
                 tryGetReleaseInformation(version, release.getKey(), releaseTx)
                     .ifPresent(releasesReadyToSign::add);
             }
