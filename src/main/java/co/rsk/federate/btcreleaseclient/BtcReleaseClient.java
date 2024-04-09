@@ -2,7 +2,6 @@ package co.rsk.federate.btcreleaseclient;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.core.TransactionOutPoint;
 import co.rsk.bitcoinj.script.RedeemScriptParser;
@@ -14,8 +13,10 @@ import co.rsk.config.BridgeConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
+import co.rsk.federate.bitcoin.BitcoinRpcClient;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.FederationCantSignException;
 import co.rsk.federate.signing.FederatorAlreadySignedException;
@@ -38,6 +39,8 @@ import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,6 +58,7 @@ import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.script.ScriptPattern;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
@@ -262,13 +266,29 @@ public class BtcReleaseClient {
                 BtcTransaction releaseTx = release.getValue();
 
                 // Proving an utxo can be fetched from the bitcoin node
-                TransactionOutPoint outpoint = releaseTx.getInput(0).getOutpoint();
-                Sha256Hash hash = outpoint.getHash();
-                Transaction transaction = bitcoinWrapper.getTransaction(org.bitcoinj.core.Sha256Hash.wrapReversed(hash.getReversedBytes()));
+                String rpcUser = "user";
+                String rpcPassword = "pass";
+                getTransactionUsingBitcoinRpcClient(rpcUser, rpcPassword, "http://127.0.0.1:32591");
 
-                logger.debug("[processReleases] UTXO tx hash {}", transaction.getOutput(outpoint.getIndex()).getHash());
-                logger.debug("[processReleases] UTXO index {}", transaction.getOutput(outpoint.getIndex()).getIndex());
-                logger.debug("[processReleases] UTXO value {}", transaction.getOutput(outpoint.getIndex()).getValue());
+                Transaction btcTransaction = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString(), releaseTx);
+                Transaction randomTx = bitcoinWrapper.getTransaction(org.bitcoinj.core.Sha256Hash.wrap("2227ea59130c7270e3c7b2af502bb76e0327a8b423a9419f115f3bb2c63f0600"));
+                printTx(randomTx, "random tx");
+
+                Transaction fedTx = bitcoinWrapper.getTransaction(org.bitcoinj.core.Sha256Hash.wrap("d1eb41686b5ff57b7322f38148c68a6362a42bc99f06478dbfa1274f3b030c5f"));
+                printTx(fedTx, "fed tx");
+
+                List<Transaction> utxos = btcTransaction.getInputs().stream().map(transactionInput -> bitcoinWrapper.getTransaction(transactionInput.getOutpoint().getHash())).collect(Collectors.toList());
+                logger.debug("[processReleases] POC - UTXOs found {}, for a number of inputs of:  {}", utxos.size(), btcTransaction.getInputs().size());
+                for (int i = 0; i < utxos.size(); i++) {
+                    TransactionInput releaseTxInput = releaseTx.getInput(i);
+                    long utxoIdx = releaseTxInput.getOutpoint().getIndex();
+                    Transaction utxo = utxos.get(i);
+                    TransactionOutput utxoOutput = utxo.getOutput(utxoIdx);
+                    logger.debug("[processReleases] POC - UTXO tx hash {}.", releaseTxInput.getOutpoint().getHash());
+                    logger.debug("[processReleases] POC - UTXO index {}", utxoOutput.getIndex());
+                    logger.debug("[processReleases] POC - UTXO value {}", utxoOutput.getValue());
+                }
+
                 tryGetReleaseInformation(version, release.getKey(), releaseTx)
                     .ifPresent(releasesReadyToSign::add);
             }
@@ -284,6 +304,32 @@ public class BtcReleaseClient {
             logger.error("[processReleases] There was an error trying to process releases", e);
         }
         logger.trace("[processReleases] Finished processing releases");
+    }
+
+    private void printTx(Transaction randomTx, String prefixMessage) {
+        if (randomTx == null) {
+            logger.debug("[processReleases] POC - {} tx could not be found.", prefixMessage);
+        } else {
+            logger.debug("[processReleases] POC - {} tx could be found.", prefixMessage);
+
+            TransactionOutput txOutput = randomTx.getOutput(0);
+            logger.debug("[processReleases] POC - UTXO tx hash {}.", randomTx.getTxId());
+            logger.debug("[processReleases] POC - UTXO index {}", txOutput.getIndex());
+            logger.debug("[processReleases] POC - UTXO value {}", txOutput.getValue());
+        }
+    }
+
+    private void getTransactionUsingBitcoinRpcClient(String rpcUser, String rpcPassword, String rpcUrl) throws IOException, JsonRpcException {
+        logger.debug("[processReleases] POC - bitcoin rpc connection params: rpcUser {}, rpcPassword {}, rpcUrl {}", rpcUser, rpcPassword, rpcUrl);
+        BitcoinRpcClient rpcClient = new BitcoinRpcClient(rpcUrl, rpcUser, rpcPassword);
+
+        String transactionId = "2227ea59130c7270e3c7b2af502bb76e0327a8b423a9419f115f3bb2c63f0600";
+        try {
+            String result = rpcClient.executeRPC("gettransaction", "\"" + transactionId + "\"");
+            logger.debug("[processReleases] POC - transaction info {}", result);
+        } catch (IOException e) {
+            logger.error("[processReleases] POC - Error trying to get transaction info.", e);
+        }
     }
 
     protected Optional<ReleaseCreationInformation> tryGetReleaseInformation(

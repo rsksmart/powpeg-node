@@ -71,6 +71,11 @@ public class SimpleBitcoinWrapper implements BitcoinWrapper {
     }
 
     @Override
+    public Transaction getTransaction(Sha256Hash sha256Hash) {
+        return null;
+    }
+
+    @Override
     public Map<Sha256Hash, Transaction> getTransactionMap(int minConfirmations) {
         Map<Sha256Hash, Transaction> result = new HashMap<>();
         Set<Transaction> txs = getTransactions(minConfirmations);

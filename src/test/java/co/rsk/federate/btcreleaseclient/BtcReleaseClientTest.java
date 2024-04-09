@@ -35,6 +35,8 @@ import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.config.BridgeConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
+import co.rsk.federate.bitcoin.BitcoinWrapper;
+import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.mock.SimpleEthereumImpl;
 import co.rsk.federate.signing.ECDSASigner;
@@ -251,6 +253,7 @@ class BtcReleaseClientTest {
         )).thenReturn(releaseCreationInformation);
 
         client.setup(
+            mock(BitcoinWrapperImpl.class),
             signer,
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
@@ -360,6 +363,7 @@ class BtcReleaseClientTest {
         );
 
         btcReleaseClient.setup(
+            mock(BitcoinWrapperImpl.class),
             signer,
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
@@ -409,6 +413,7 @@ class BtcReleaseClientTest {
             nodeBlockProcessor
         );
         btcReleaseClient.setup(
+            mock(BitcoinWrapperImpl.class),
             mock(ECDSASigner.class),
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
@@ -455,6 +460,7 @@ class BtcReleaseClientTest {
             nodeBlockProcessor
         );
         btcReleaseClient.setup(
+            mock(BitcoinWrapperImpl.class),
             mock(ECDSASigner.class),
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
@@ -652,6 +658,7 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
         client.setup(
+            mock(BitcoinWrapperImpl.class),
             signer,
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
@@ -691,6 +698,7 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
         client.setup(
+            mock(BitcoinWrapperImpl.class),
             signer,
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
@@ -826,6 +834,7 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
         client.setup(
+            mock(BitcoinWrapperImpl.class),
             signer,
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
@@ -992,6 +1001,7 @@ class BtcReleaseClientTest {
         when(synchronizer.isSynced()).thenReturn(true);
 
         btcReleaseClient.setup(
+            mock(BitcoinWrapperImpl.class),
             signer,
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
