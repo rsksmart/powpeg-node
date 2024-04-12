@@ -19,7 +19,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class BtcReleaseClientFileStorageImplTest {
+class BtcPegoutClientFileStorageImplTest {
 
     private static final String DIRECTORY_PATH = "src/test/java/co/rsk/federate/io" + File.separator + "peg";
     private static final String FILE_PATH = DIRECTORY_PATH + File.separator + "btcReleaseClient.rlp";

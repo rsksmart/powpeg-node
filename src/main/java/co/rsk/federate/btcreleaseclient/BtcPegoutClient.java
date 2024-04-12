@@ -73,8 +73,8 @@ import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
  * Manages signing and broadcasting pegouts
  * @author Oscar Guindzberg
  */
-public class BtcReleaseClient {
-    private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClient.class);
+public class BtcPegoutClient {
+    private static final Logger logger = LoggerFactory.getLogger(BtcPegoutClient.class);
     private static final PanicProcessor panicProcessor = new PanicProcessor();
     private static final List<DataWord> SINGLE_RELEASE_BTC_TOPIC_RLP = Collections.singletonList(Bridge.RELEASE_BTC_TOPIC);
     private static final DataWord SINGLE_RELEASE_BTC_TOPIC_SOLIDITY = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
@@ -100,7 +100,7 @@ public class BtcReleaseClient {
     private BtcReleaseClientStorageAccessor storageAccessor;
     private BtcReleaseClientStorageSynchronizer storageSynchronizer;
 
-    public BtcReleaseClient(
+    public BtcPegoutClient(
         Ethereum ethereum,
         FederatorSupport federatorSupport,
         FedNodeSystemProperties systemProperties,
@@ -231,7 +231,7 @@ public class BtcReleaseClient {
                     convertToBtcTxFromSolidityData(info.getData()) :
                     convertToBtcTxFromRLPData(info.getData()));
 
-            pegoutBtcTxs.forEach(BtcReleaseClient.this::onBroadcastingSignedPegout);
+            pegoutBtcTxs.forEach(BtcPegoutClient.this::onBroadcastingSignedPegout);
         }
 
         private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
@@ -402,7 +402,8 @@ public class BtcReleaseClient {
             panicProcessor.panic(topic, e.getMessage());
         } catch (Exception e) {
             String message = String.format(
-                "[signConfirmedPegout] There was an error trying to sign pegout with btcTxHash: %s",
+                "[signConfirmedPegout] There was an error trying to sign pegout with createRskTxHash: %s and btcTxHash: %s",
+                pegoutCreationInformation.getPegoutCreationRskTxHash(),
                 pegoutCreationInformation.getPegoutBtcTx().getHash()
             );
             logger.error(message, e);

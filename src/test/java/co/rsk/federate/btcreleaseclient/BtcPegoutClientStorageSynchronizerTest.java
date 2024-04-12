@@ -40,7 +40,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 
-class BtcReleaseClientStorageSynchronizerTest {
+class BtcPegoutClientStorageSynchronizerTest {
 
     @Test
     void isSynced_returns_false_after_instantiation() {

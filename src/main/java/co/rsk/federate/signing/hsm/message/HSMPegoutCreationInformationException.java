@@ -1,7 +1,7 @@
 package co.rsk.federate.signing.hsm.message;
 
 /**
- * An exception produced when the the event from the release can not be found.
+ * An exception produced when the event from the pegout can not be found.
  *
  * @author Pamela Gonzalezt
  */

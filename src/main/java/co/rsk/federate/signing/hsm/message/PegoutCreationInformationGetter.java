@@ -183,7 +183,7 @@ public class PegoutCreationInformationGetter {
         if (hasLogs) {
             List<LogInfo> logs = transactionReceipt.getLogInfoList();
             for (LogInfo logInfo : logs) {
-                // You should check that the event is Release and contains the hash of the transaction.
+                // You should check that the event is a RELEASE_REQUESTED and contains the hash of the transaction.
                 boolean hasReleaseRequestEvent = Arrays.equals(logInfo.getTopics().get(0).getData(), releaseRequestedSignatureTopic);
                 if (hasReleaseRequestEvent && (Arrays.equals(logInfo.getTopics().get(2).getData(), pegoutBtcTx.getHash().getBytes()))) {
                     logger.debug(

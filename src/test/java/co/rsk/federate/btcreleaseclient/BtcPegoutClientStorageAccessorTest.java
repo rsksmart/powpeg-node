@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 
-class BtcReleaseClientStorageAccessorTest {
+class BtcPegoutClientStorageAccessorTest {
 
     @Test
     void invalid_file() throws IOException {

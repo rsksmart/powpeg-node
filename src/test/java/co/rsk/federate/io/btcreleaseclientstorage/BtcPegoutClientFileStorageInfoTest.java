@@ -8,7 +8,7 @@ import co.rsk.federate.config.FedNodeSystemProperties;
 import java.io.File;
 import org.junit.jupiter.api.Test;
 
-class BtcReleaseClientFileStorageInfoTest {
+class BtcPegoutClientFileStorageInfoTest {
 
     @Test
     void test() {
