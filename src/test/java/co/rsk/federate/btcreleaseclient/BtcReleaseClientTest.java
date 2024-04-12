@@ -46,7 +46,7 @@ import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.HSMPegoutCreationInformationException;
 import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
@@ -242,8 +242,8 @@ class BtcReleaseClientTest {
             pegoutBtcTx,
             rskTxHash
         );
-        ReleaseCreationInformationGetter releaseCreationInformationGetter = mock(ReleaseCreationInformationGetter.class);
-        when(releaseCreationInformationGetter.getPegoutCreationInformationToSign(
+        PegoutCreationInformationGetter pegoutCreationInformationGetter = mock(PegoutCreationInformationGetter.class);
+        when(pegoutCreationInformationGetter.getPegoutCreationInformationToSign(
             anyInt(),
             any(),
             any(),
@@ -254,7 +254,7 @@ class BtcReleaseClientTest {
             signer,
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
-            releaseCreationInformationGetter,
+            pegoutCreationInformationGetter,
             mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
@@ -265,7 +265,7 @@ class BtcReleaseClientTest {
         releases.put(rskTxHash, pegoutBtcTx);
 
         // Act
-        client.processReleases(releases.entrySet());
+        client.processPegouts(releases.entrySet());
 
         // Assert
         Mockito.verify(signer, Mockito.times(amountOfInputs))
@@ -344,8 +344,8 @@ class BtcReleaseClientTest {
         when(txInfo2.getBlockHash()).thenReturn(blockHash2.getBytes());
         when(receiptStore.getInMainChain(hash2.getBytes(), blockStore)).thenReturn(Optional.of(txInfo2));
 
-        ReleaseCreationInformationGetter releaseCreationInformationGetter =
-            new ReleaseCreationInformationGetter(
+        PegoutCreationInformationGetter pegoutCreationInformationGetter =
+            new PegoutCreationInformationGetter(
                 receiptStore, blockStore
             );
 
@@ -363,7 +363,7 @@ class BtcReleaseClientTest {
             signer,
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
-            releaseCreationInformationGetter,
+            pegoutCreationInformationGetter,
             mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             storageSynchronizer
@@ -412,7 +412,7 @@ class BtcReleaseClientTest {
             mock(ECDSASigner.class),
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
-            mock(ReleaseCreationInformationGetter.class),
+            mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
@@ -458,7 +458,7 @@ class BtcReleaseClientTest {
             mock(ECDSASigner.class),
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
-            mock(ReleaseCreationInformationGetter.class),
+            mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
@@ -655,7 +655,7 @@ class BtcReleaseClientTest {
             signer,
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
-            mock(ReleaseCreationInformationGetter.class),
+            mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
@@ -694,7 +694,7 @@ class BtcReleaseClientTest {
             signer,
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
-            mock(ReleaseCreationInformationGetter.class),
+            mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
@@ -829,7 +829,7 @@ class BtcReleaseClientTest {
             signer,
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
-            mock(ReleaseCreationInformationGetter.class),
+            mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
             mock(BtcReleaseClientStorageAccessor.class),
             mock(BtcReleaseClientStorageSynchronizer.class)
@@ -958,14 +958,14 @@ class BtcReleaseClientTest {
         Block block = mock(Block.class);
         when(block.getNumber()).thenReturn(1L);
 
-        ReleaseCreationInformationGetter releaseCreationInformationGetter = mock(ReleaseCreationInformationGetter.class);
+        PegoutCreationInformationGetter pegoutCreationInformationGetter = mock(PegoutCreationInformationGetter.class);
         doReturn(new PegoutCreationInformation(
             block,
             mock(TransactionReceipt.class),
             rskTxHash,
             new BtcTransaction(bridgeConstants.getBtcParams()),
             otherRskTxHash
-        )).when(releaseCreationInformationGetter).getPegoutCreationInformationToSign(anyInt(), any(), any(), any());
+        )).when(pegoutCreationInformationGetter).getPegoutCreationInformationToSign(anyInt(), any(), any(), any());
 
         PegoutSigningRequirementsEnforcer pegoutSigningRequirementsEnforcer = mock(PegoutSigningRequirementsEnforcer.class);
         doNothing().when(pegoutSigningRequirementsEnforcer).enforce(anyInt(), any());
@@ -995,7 +995,7 @@ class BtcReleaseClientTest {
             signer,
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
-            releaseCreationInformationGetter,
+            pegoutCreationInformationGetter,
             pegoutSigningRequirementsEnforcer,
             accessor,
             synchronizer
@@ -1007,7 +1007,7 @@ class BtcReleaseClientTest {
         ethereumImpl.addBestBlockWithReceipts(mock(Block.class), new ArrayList<>());
 
         // Verify the rsk tx hash was updated
-        verify(releaseCreationInformationGetter, times(1)).getPegoutCreationInformationToSign(
+        verify(pegoutCreationInformationGetter, times(1)).getPegoutCreationInformationToSign(
             anyInt(),
             eq(shouldHaveDataInFile ? rskTxHash: otherRskTxHash),
             any(),

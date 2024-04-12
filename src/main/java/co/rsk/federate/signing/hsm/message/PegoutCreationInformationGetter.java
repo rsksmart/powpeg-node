@@ -21,14 +21,14 @@ import java.util.stream.Collectors;
 
 // First the class tries to find the event associated with the transaction. If it cannot find it, it requests the following
 // events until it is found or until it reaches the last block.
-public class ReleaseCreationInformationGetter {
-    private static final Logger logger = LoggerFactory.getLogger(ReleaseCreationInformationGetter.class);
+public class PegoutCreationInformationGetter {
+    private static final Logger logger = LoggerFactory.getLogger(PegoutCreationInformationGetter.class);
 
     private final BlockStore blockStore;
     private final ReceiptStore receiptStore;
     private final byte[] releaseRequestedSignatureTopic;
 
-    public ReleaseCreationInformationGetter(
+    public PegoutCreationInformationGetter(
         ReceiptStore receiptStore,
         BlockStore blockStore
     ) {

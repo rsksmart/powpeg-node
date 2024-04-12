@@ -43,7 +43,7 @@ import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
 import co.rsk.federate.signing.hsm.requirements.AncestorBlockUpdater;
 import co.rsk.federate.signing.hsm.requirements.PegoutSigningRequirementsEnforcer;
@@ -320,7 +320,7 @@ public class FedNodeRunner implements NodeRunner {
                 new SignerMessageBuilderFactory(
                     fedNodeContext.getReceiptStore()
                 ),
-                new ReleaseCreationInformationGetter(
+                new PegoutCreationInformationGetter(
                     fedNodeContext.getReceiptStore(),
                     fedNodeContext.getBlockStore()
                 ),

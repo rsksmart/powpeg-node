@@ -70,7 +70,7 @@ class PegoutCreationInformationGetterTest {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        PegoutCreationInformationGetter information = new PegoutCreationInformationGetter(
                 receiptStore,
                 blockStore
         );
@@ -84,12 +84,12 @@ class PegoutCreationInformationGetterTest {
         createGetTxInfoToSign_returnOK(information, rskTxHash, btcTransaction, block, transactionReceipt, 4);
     }
 
-    private void createGetTxInfoToSign_returnOK(ReleaseCreationInformationGetter information,
-                                               Keccak256 pegoutCreationRskTxHash,
-                                               BtcTransaction pegoutBtcTx,
-                                               Block pegoutCreationRskBlock,
-                                               TransactionReceipt transactionReceipt,
-                                               int hsmVersion) throws HSMPegoutCreationInformationException {
+    private void createGetTxInfoToSign_returnOK(PegoutCreationInformationGetter information,
+                                                Keccak256 pegoutCreationRskTxHash,
+                                                BtcTransaction pegoutBtcTx,
+                                                Block pegoutCreationRskBlock,
+                                                TransactionReceipt transactionReceipt,
+                                                int hsmVersion) throws HSMPegoutCreationInformationException {
         PegoutCreationInformation pegoutCreationInformation = information.getPegoutCreationInformationToSign(
             hsmVersion,
             pegoutCreationRskTxHash,
@@ -165,7 +165,7 @@ class PegoutCreationInformationGetterTest {
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
         when(receiptStore.getInMainChain(rskTxHashInSecondBlock.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfoInSecondBlock));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        PegoutCreationInformationGetter information = new PegoutCreationInformationGetter(
             receiptStore,
             blockStore
         );
@@ -202,7 +202,7 @@ class PegoutCreationInformationGetterTest {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(pegoutRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        PegoutCreationInformationGetter information = new PegoutCreationInformationGetter(
             receiptStore,
             blockStore
         );
@@ -243,7 +243,7 @@ class PegoutCreationInformationGetterTest {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(pegoutRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        PegoutCreationInformationGetter information = new PegoutCreationInformationGetter(
             receiptStore,
             blockStore
         );
@@ -287,7 +287,7 @@ class PegoutCreationInformationGetterTest {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        PegoutCreationInformationGetter information = new PegoutCreationInformationGetter(
                 receiptStore,
                 blockStore
         );
