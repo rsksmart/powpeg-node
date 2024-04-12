@@ -52,8 +52,8 @@ import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderV1;
-import co.rsk.federate.signing.hsm.requirements.PegoutRequirementsEnforcer;
-import co.rsk.federate.signing.hsm.requirements.PegoutRequirementsEnforcer;
+import co.rsk.federate.signing.hsm.requirements.PegoutSigningRequirementsEnforcer;
+import co.rsk.federate.signing.hsm.requirements.PegoutSigningRequirementsEnforcerException;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.federation.*;
@@ -605,7 +605,7 @@ class BtcReleaseClientTest {
         BtcECKey fed1Key = nonStandardErpFederation.getBtcPublicKeys().get(0);
         ECPublicKey signerPublicKey = new ECPublicKey(fed1Key.getPubKey());
 
-        test_validatePegoutBtcTxCanBeSigned(nonStandardErpFederation, releaseTx, signerPublicKey);
+        test_validatePegoutBtcTxCanBeSigned(nonStandardErpFederation, pegoutBtcTx, signerPublicKey);
     }
 
     @Test

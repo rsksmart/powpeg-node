@@ -15,12 +15,12 @@ import org.junit.jupiter.api.Test;
 class PegoutSigningRequirementsEnforcerTest {
 
     private AncestorBlockUpdater ancestorBlockUpdater;
-    private ReleaseRequirementsEnforcer enforcer;
+    private PegoutSigningRequirementsEnforcer enforcer;
 
     @BeforeEach
     void setup() {
         ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
-        enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+        enforcer = new PegoutSigningRequirementsEnforcer(ancestorBlockUpdater);
     }
 
     @Test
@@ -48,7 +48,7 @@ class PegoutSigningRequirementsEnforcerTest {
         test_enforce_version(ancestorBlockUpdater, enforcer, 4);
     }
 
-    void test_enforce_version(AncestorBlockUpdater ancestorBlockUpdater, ReleaseRequirementsEnforcer enforcer, int version) throws Exception {
+    void test_enforce_version(AncestorBlockUpdater ancestorBlockUpdater, PegoutSigningRequirementsEnforcer enforcer, int version) throws Exception {
         enforcer.enforce(version, mock(PegoutCreationInformation.class));
 
         verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
@@ -60,13 +60,13 @@ class PegoutSigningRequirementsEnforcerTest {
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
         PegoutSigningRequirementsEnforcer enforcer = new PegoutSigningRequirementsEnforcer(ancestorBlockUpdater);
 
-        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(2, mock(PegoutCreationInformation.class)));
+        assertThrows(PegoutSigningRequirementsEnforcerException.class, () -> enforcer.enforce(2, mock(PegoutCreationInformation.class)));
     }
 
     @Test
     void enforce_invalid_version() {
-        PegoutRequirementsEnforcer enforcer = new PegoutRequirementsEnforcer(mock(AncestorBlockUpdater.class));
+        PegoutSigningRequirementsEnforcer enforcer = new PegoutSigningRequirementsEnforcer(mock(AncestorBlockUpdater.class));
 
-        assertThrows(PegoutSigningRequirementsEnforcer.class, () -> enforcer.enforce(-5, mock(PegoutCreationInformation.class)));
+        assertThrows(PegoutSigningRequirementsEnforcerException.class, () -> enforcer.enforce(-5, mock(PegoutCreationInformation.class)));
     }
 }

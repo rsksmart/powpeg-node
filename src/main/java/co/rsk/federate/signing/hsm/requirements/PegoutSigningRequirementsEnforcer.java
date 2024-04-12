@@ -21,7 +21,7 @@ public class PegoutSigningRequirementsEnforcer {
             logger.trace("[enforce] Version 2+ requires ancestor in position. ENFORCING");
             enforceReleaseRequirements(pegoutCreationInformation);
         } else {
-            throw new PegoutRequirementsEnforcerException("Unsupported version " + version);
+            throw new PegoutSigningRequirementsEnforcerException("Unsupported version " + version);
         }
     }
 

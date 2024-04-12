@@ -20,7 +20,7 @@ public class SignerMessageBuilderFactory {
     ) throws HSMUnsupportedVersionException {
         SignerMessageBuilder messageBuilder;
         if (version == 1) {
-            messageBuilder = new SignerMessageBuilderV1(pegoutCreationInformation.getBtcTransaction());
+            messageBuilder = new SignerMessageBuilderV1(pegoutCreationInformation.getPegoutBtcTx());
         } else if (version >= 2) {
             messageBuilder = new PowHSMSignerMessageBuilder(receiptStore, pegoutCreationInformation);
         } else {

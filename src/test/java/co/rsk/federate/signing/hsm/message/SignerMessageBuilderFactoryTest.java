@@ -31,7 +31,7 @@ class SignerMessageBuilderFactoryTest {
     void buildWithWrongVersion() {
         assertThrows(HSMUnsupportedVersionException.class, () -> factory.buildFromConfig(
             -5,
-            mock(ReleaseCreationInformation.class)
+            mock(PegoutCreationInformation.class)
         ));
 
     }
@@ -40,7 +40,7 @@ class SignerMessageBuilderFactoryTest {
     void buildFromHSMVersion1() throws HSMClientException {
         SignerMessageBuilder sigMessVersion1 = factory.buildFromConfig(
             1,
-            mock(ReleaseCreationInformation.class)
+            mock(PegoutCreationInformation.class)
         );
         assertTrue(sigMessVersion1 instanceof SignerMessageBuilderV1);
     }
