@@ -349,7 +349,7 @@ In order to run the powpeg-node from the command line you will have to provide t
 java -cp /<PATH-TO-POW-PEG-SOURCE-CODE>/build/libs/<JAR-NAME>.jar -Drsk.conf.file=/<PATH-TO-CONF-FILE>/<CONF-FILE-NAME>.conf co.rsk.federate.FederateRunner --regtest --reset
 ```
 
--**Note:** Change PATH-TO-RSKJ-SOURCE-CODE value to your local Rskj path.
+-**Note:** Change PATH-TO-POW-PEG-SOURCE-CODE value to your local powpeg-node directory path.
 If you want to specify a directory to save the logs, add -Dlogback.configurationFile=/<PATH-TO-LOG-DIR>/logback.xml to the command.
 
 ---
