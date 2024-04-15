@@ -145,15 +145,17 @@ public class PegoutCreationInformationGetter {
             block.getTransactionsList().size()
         );
         for (Transaction transaction : block.getTransactionsList()) {
-            TransactionInfo transactionInfo = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore).orElse(null);
-            TransactionReceipt transactionReceipt = transactionInfo.getReceipt();
-            transactionReceipt.setTransaction(transaction);
-            Optional<PegoutCreationInformation> optionalPegoutCreationInformation =
-                getPegoutCreationInformationFromEvent(block, transactionReceipt, pegoutBtcTx, pegoutCreationRskTxHash, pegoutConfirmationRskTxHash);
-            if (optionalPegoutCreationInformation.isPresent()) {
-                return optionalPegoutCreationInformation.get();
+            Optional<TransactionInfo> transactionInfo = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore);
+            if (transactionInfo.isPresent()) {
+                TransactionInfo txInfoFound = transactionInfo.get();
+                TransactionReceipt transactionReceipt = txInfoFound.getReceipt();
+                transactionReceipt.setTransaction(transaction);
+                Optional<PegoutCreationInformation> optionalPegoutCreationInformation =
+                    getPegoutCreationInformationFromEvent(block, transactionReceipt, pegoutBtcTx, pegoutCreationRskTxHash, pegoutConfirmationRskTxHash);
+                if (optionalPegoutCreationInformation.isPresent()) {
+                    return optionalPegoutCreationInformation.get();
+                }
             }
-
         }
         // If the block being checked is the last block, and was not found, then the event does not exist.
         if (block.getNumber() == (blockStore.getBestBlock().getNumber())) {
