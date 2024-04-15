@@ -172,7 +172,7 @@ public class HSMBookkeepingService {
                 hsmCurrentBestBlock.getHash(),
                 hsmCurrentBestBlock.getNumber()
             );
-            // TODO: contact BtcReleaseClient to let it try to sign transactions now
+            // TODO: contact BtcPegoutClient to let it try to sign transactions now
         } catch (HSMBlockchainBookkeepingRelatedException e) {
             logger.error("[informConfirmedBlockHeaders] {}", e.getMessage());
         } catch (Exception exception) {

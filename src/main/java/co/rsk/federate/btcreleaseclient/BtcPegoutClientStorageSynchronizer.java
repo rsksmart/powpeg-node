@@ -20,8 +20,8 @@ import org.ethereum.vm.LogInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BtcReleaseClientStorageSynchronizer {
-    private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClientStorageSynchronizer.class);
+public class BtcPegoutClientStorageSynchronizer {
+    private static final Logger logger = LoggerFactory.getLogger(BtcPegoutClientStorageSynchronizer.class);
 
     private static final DataWord RELEASE_REQUESTED_TOPIC = DataWord.valueOf(
         BridgeEvents.RELEASE_REQUESTED.getEvent().encodeSignatureLong());
@@ -34,16 +34,16 @@ public class BtcReleaseClientStorageSynchronizer {
     private final int timerDelay;
     private final int maxInitializationDepth;
 
-    private BtcReleaseClientStorageAccessor storageAccessor;
+    private BtcPegoutClientStorageAccessor storageAccessor;
     private ScheduledExecutorService syncTimer;
 
     private boolean isSynced;
 
-    public BtcReleaseClientStorageSynchronizer(
+    public BtcPegoutClientStorageSynchronizer(
         BlockStore blockStore,
         ReceiptStore receiptStore,
         NodeBlockProcessor nodeBlockProcessor,
-        BtcReleaseClientStorageAccessor storageAccessor,
+        BtcPegoutClientStorageAccessor storageAccessor,
         int maxInitializationDepth
     ) {
         this(
@@ -57,11 +57,11 @@ public class BtcReleaseClientStorageSynchronizer {
             maxInitializationDepth);
     }
 
-    public BtcReleaseClientStorageSynchronizer(
+    public BtcPegoutClientStorageSynchronizer(
         BlockStore blockStore,
         ReceiptStore receiptStore,
         NodeBlockProcessor nodeBlockProcessor,
-        BtcReleaseClientStorageAccessor storageAccessor,
+        BtcPegoutClientStorageAccessor storageAccessor,
         ScheduledExecutorService executorService,
         int timerInitialDelayInMs,
         int timerDelayInMs,
@@ -98,7 +98,7 @@ public class BtcReleaseClientStorageSynchronizer {
                 storageBestBlock = blockStore.getBlockByHash(storageBestBlockHash.get().getBytes());
                 if (storageBestBlock == null) {
                     logger.warn(
-                        "BtcReleaseClientStorage best block hash doesn't exist in blockchain. {}",
+                        "BtcPegoutClientStorage best block hash doesn't exist in blockchain. {}",
                         storageBestBlockHash.get()
                     );
                 } else {
@@ -107,7 +107,7 @@ public class BtcReleaseClientStorageSynchronizer {
                         !blockInMainchain.getHash().equals(storageBestBlockHash.get())
                     ) {
                         logger.warn(
-                            "BtcReleaseClientStorage best block hash doesn't belong to mainchain. ({})",
+                            "BtcPegoutClientStorage best block hash doesn't belong to mainchain. ({})",
                             storageBestBlockHash
                         );
                         storageBestBlock = null;
@@ -158,7 +158,7 @@ public class BtcReleaseClientStorageSynchronizer {
             this.isSynced = true;
             this.syncTimer.shutdown();
         } catch (Exception e) {
-            logger.error("[sync] Problem syncing BtcReleaseClientStorage", e);
+            logger.error("[sync] Problem syncing BtcPegoutClientStorage", e);
         }
     }
 

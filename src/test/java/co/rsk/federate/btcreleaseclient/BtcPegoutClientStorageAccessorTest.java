@@ -38,7 +38,7 @@ class BtcPegoutClientStorageAccessorTest {
             new BtcReleaseClientFileReadResult(false, null)
         );
 
-        assertThrows(InvalidStorageFileException.class, () -> new BtcReleaseClientStorageAccessor(
+        assertThrows(InvalidStorageFileException.class, () -> new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             10,
@@ -53,7 +53,7 @@ class BtcPegoutClientStorageAccessorTest {
             new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             10,
@@ -76,7 +76,7 @@ class BtcPegoutClientStorageAccessorTest {
             new BtcReleaseClientFileReadResult(true, btcReleaseClientFileData)
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             0,
@@ -96,7 +96,7 @@ class BtcPegoutClientStorageAccessorTest {
             new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             10,
@@ -122,7 +122,7 @@ class BtcPegoutClientStorageAccessorTest {
             new BtcReleaseClientFileReadResult(true, btcReleaseClientFileData)
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
             btcReleaseClientFileStorage,
             0,
@@ -151,7 +151,7 @@ class BtcPegoutClientStorageAccessorTest {
             new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             executorService,
             btcReleaseClientFileStorage,
             10,
@@ -185,7 +185,7 @@ class BtcPegoutClientStorageAccessorTest {
             new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             executorService,
             btcReleaseClientFileStorage,
             10,
@@ -228,7 +228,7 @@ class BtcPegoutClientStorageAccessorTest {
             new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             executorService,
             btcReleaseClientFileStorage,
             400,
@@ -280,7 +280,7 @@ class BtcPegoutClientStorageAccessorTest {
             new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             executorService,
             btcReleaseClientFileStorage,
             500,

@@ -25,8 +25,8 @@ import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
 import co.rsk.federate.bitcoin.Kit;
 import co.rsk.federate.btcreleaseclient.BtcPegoutClient;
-import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
-import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
+import co.rsk.federate.btcreleaseclient.BtcPegoutClientStorageAccessor;
+import co.rsk.federate.btcreleaseclient.BtcPegoutClientStorageSynchronizer;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.config.SignerConfig;
@@ -313,7 +313,7 @@ public class FedNodeRunner implements NodeRunner {
                 hsmBookkeepingService.start();
             }
             federateLogger.log();
-            BtcReleaseClientStorageAccessor btcReleaseClientStorageAccessor = new BtcReleaseClientStorageAccessor(config);
+            BtcPegoutClientStorageAccessor btcPegoutClientStorageAccessor = new BtcPegoutClientStorageAccessor(config);
             btcPegoutClient.setup(
                 signer,
                 config.getActivationConfig(),
@@ -330,12 +330,12 @@ public class FedNodeRunner implements NodeRunner {
                         hsmBookkeepingClient
                     )
                 ),
-                btcReleaseClientStorageAccessor,
-                new BtcReleaseClientStorageSynchronizer(
+                btcPegoutClientStorageAccessor,
+                new BtcPegoutClientStorageSynchronizer(
                     fedNodeContext.getBlockStore(),
                     fedNodeContext.getReceiptStore(),
                     fedNodeContext.getNodeBlockProcessor(),
-                    btcReleaseClientStorageAccessor,
+                    btcPegoutClientStorageAccessor,
                     config.getBtcReleaseClientInitializationMaxDepth()
                 )
             );
@@ -388,7 +388,7 @@ public class FedNodeRunner implements NodeRunner {
         // Only start if this federator is part of the new federation
         if (federation.isPresent() && federation.get().isMember(this.member)) {
             String federationAddress = federation.get().getAddress().toString();
-            LOGGER.debug("[triggerClientChange] Starting lock and release clients since I belong to federation {}", federationAddress);
+            LOGGER.debug("[triggerClientChange] Starting pegin and pegout clients since I belong to federation {}", federationAddress);
             LOGGER.info("[triggerClientChange] Joined to {} federation", federationAddress);
             client.start(federation.get());
             btcPegoutClient.start(federation.get());

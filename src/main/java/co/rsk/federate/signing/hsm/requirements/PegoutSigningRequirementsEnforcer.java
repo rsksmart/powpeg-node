@@ -19,13 +19,13 @@ public class PegoutSigningRequirementsEnforcer {
             logger.trace("[enforce] Version 1 doesn't have pegout requirements to enforce");
         } else if (version >= 2) {
             logger.trace("[enforce] Version 2+ requires ancestor in position. ENFORCING");
-            enforceReleaseRequirements(pegoutCreationInformation);
+            enforcePegoutRequirements(pegoutCreationInformation);
         } else {
             throw new PegoutSigningRequirementsEnforcerException("Unsupported version " + version);
         }
     }
 
-    private void enforceReleaseRequirements(PegoutCreationInformation pegoutCreationInformation) throws PegoutSigningRequirementsEnforcerException {
+    private void enforcePegoutRequirements(PegoutCreationInformation pegoutCreationInformation) throws PegoutSigningRequirementsEnforcerException {
         try {
             ancestorBlockUpdater.ensureAncestorBlockInPosition(pegoutCreationInformation.getPegoutCreationRskBlock());
         } catch (Exception e) {

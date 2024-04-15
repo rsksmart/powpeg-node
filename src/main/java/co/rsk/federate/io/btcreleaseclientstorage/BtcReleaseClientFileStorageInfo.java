@@ -12,7 +12,7 @@ public class BtcReleaseClientFileStorageInfo implements FileStorageInfo {
 
     public BtcReleaseClientFileStorageInfo(FedNodeSystemProperties config) {
         this.pegDirectoryPath = config.databaseDir() + File.separator + "peg";
-        this.filePath = this.pegDirectoryPath + File.separator + "btcReleaseClient.rlp";
+        this.filePath = this.pegDirectoryPath + File.separator + "BtcPegoutClient.rlp";
     }
 
     @Override

@@ -97,8 +97,8 @@ public class BtcPegoutClient {
     private PegoutCreationInformationGetter pegoutCreationInformationGetter;
     private PegoutSigningRequirementsEnforcer pegoutSigningRequirementsEnforcer;
 
-    private BtcReleaseClientStorageAccessor storageAccessor;
-    private BtcReleaseClientStorageSynchronizer storageSynchronizer;
+    private BtcPegoutClientStorageAccessor storageAccessor;
+    private BtcPegoutClientStorageSynchronizer storageSynchronizer;
 
     public BtcPegoutClient(
         Ethereum ethereum,
@@ -122,9 +122,9 @@ public class BtcPegoutClient {
         SignerMessageBuilderFactory signerMessageBuilderFactory,
         PegoutCreationInformationGetter pegoutCreationInformationGetter,
         PegoutSigningRequirementsEnforcer pegoutSigningRequirementsEnforcer,
-        BtcReleaseClientStorageAccessor storageAccessor,
-        BtcReleaseClientStorageSynchronizer storageSynchronizer
-    ) throws BtcReleaseClientException {
+        BtcPegoutClientStorageAccessor storageAccessor,
+        BtcPegoutClientStorageSynchronizer storageSynchronizer
+    ) throws BtcPegoutClientException {
         this.signer = signer;
         this.activationConfig = activationConfig;
         logger.debug("[setup] Signer: {}", signer.getClass());
@@ -139,7 +139,7 @@ public class BtcPegoutClient {
                 peerGroup.setMaxConnections(federatorSupport.getBitcoinPeerAddresses().size());
             }
         } catch(Exception e) {
-            throw new BtcReleaseClientException("Error configuring peerSupport", e);
+            throw new BtcPegoutClientException("Error configuring peerSupport", e);
         }
         peerGroup.start();
 
@@ -160,7 +160,7 @@ public class BtcPegoutClient {
             logger.debug("[start] observing Federation {}", federation.getAddress());
         }
         if (observedFederations.size() == 1) {
-            // If there is just one observed Federation, it means the btcReleaseClient wasn't started
+            // If there is just one observed Federation, it means the btcPegoutClient wasn't started
             logger.debug("[start] Starting");
             ethereum.addListener(this.blockListener);
         }
@@ -172,7 +172,7 @@ public class BtcPegoutClient {
             logger.debug("[stop] not observing Federation {}", federation.getAddress());
         }
         if (observedFederations.isEmpty()) {
-            // If there are no more observed Federations, the btcReleaseClient should stop
+            // If there are no more observed Federations, the btcPegoutClient should stop
             logger.debug("[stop] Stopping");
             ethereum.removeListener(this.blockListener);
         }

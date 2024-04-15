@@ -17,8 +17,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BtcReleaseClientStorageAccessor {
-    private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClientStorageAccessor.class);
+public class BtcPegoutClientStorageAccessor {
+    private static final Logger logger = LoggerFactory.getLogger(BtcPegoutClientStorageAccessor.class);
 
     private static final int DEFAULT_DELAY_IN_MS = 5;
     private static final int DEFAULT_MAX_DELAYS = 5;
@@ -31,7 +31,7 @@ public class BtcReleaseClientStorageAccessor {
     private ScheduledFuture task;
     private int delays;
 
-    public BtcReleaseClientStorageAccessor(FedNodeSystemProperties systemProperties) throws InvalidStorageFileException {
+    public BtcPegoutClientStorageAccessor(FedNodeSystemProperties systemProperties) throws InvalidStorageFileException {
         this(
             Executors.newSingleThreadScheduledExecutor(),
             new BtcReleaseClientFileStorageImpl(
@@ -42,7 +42,7 @@ public class BtcReleaseClientStorageAccessor {
         );
     }
 
-    public BtcReleaseClientStorageAccessor(
+    public BtcPegoutClientStorageAccessor(
         ScheduledExecutorService executorService,
         BtcReleaseClientFileStorage btcReleaseClientFileStorage,
         int delaysInMs,
@@ -58,13 +58,13 @@ public class BtcReleaseClientStorageAccessor {
             try {
                 readResult = this.btcReleaseClientFileStorage.read();
             } catch (Exception e) {
-                String message = "Error reading storage file for BtcReleaseClient";
+                String message = "Error reading storage file for BtcPegoutClient";
                 logger.error(message);
                 throw new InvalidStorageFileException(message, e);
             }
         }
         if (!readResult.getSuccess()) {
-            String message = "Error reading storage file for BtcReleaseClient";
+            String message = "Error reading storage file for BtcPegoutClient";
             logger.error(message);
             throw new InvalidStorageFileException(message);
         }
@@ -79,7 +79,7 @@ public class BtcReleaseClientStorageAccessor {
             try {
                 this.btcReleaseClientFileStorage.write(fileData);
             } catch(IOException e) {
-                String message = "[writeFile] Error writing storage file for BtcReleaseClient";
+                String message = "[writeFile] Error writing storage file for BtcPegoutClient";
                 logger.error(message, e);
             }
         }

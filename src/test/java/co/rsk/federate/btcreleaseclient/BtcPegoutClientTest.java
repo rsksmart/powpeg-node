@@ -256,8 +256,8 @@ class BtcPegoutClientTest {
             signerMessageBuilderFactory,
             pegoutCreationInformationGetter,
             mock(PegoutSigningRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcPegoutClientStorageAccessor.class),
+            mock(BtcPegoutClientStorageSynchronizer.class)
         );
         client.start(federation);
 
@@ -349,7 +349,7 @@ class BtcPegoutClientTest {
                 receiptStore, blockStore
             );
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer = mock(BtcReleaseClientStorageSynchronizer.class);
+        BtcPegoutClientStorageSynchronizer storageSynchronizer = mock(BtcPegoutClientStorageSynchronizer.class);
         when(storageSynchronizer.isSynced()).thenReturn(true);
 
         BtcPegoutClient btcPegoutClient = new BtcPegoutClient(
@@ -365,7 +365,7 @@ class BtcPegoutClientTest {
             signerMessageBuilderFactory,
             pegoutCreationInformationGetter,
             mock(PegoutSigningRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
+            mock(BtcPegoutClientStorageAccessor.class),
             storageSynchronizer
         );
         btcPegoutClient.start(federation);
@@ -381,7 +381,7 @@ class BtcPegoutClientTest {
     }
 
     @Test
-    void onBestBlock_return_when_node_is_syncing() throws BtcReleaseClientException {
+    void onBestBlock_return_when_node_is_syncing() throws BtcPegoutClientException {
         // Arrange
         Federation federation = TestUtils.createFederation(params, 1);
 
@@ -414,8 +414,8 @@ class BtcPegoutClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcPegoutClientStorageAccessor.class),
+            mock(BtcPegoutClientStorageSynchronizer.class)
         );
         btcPegoutClient.start(federation);
 
@@ -427,7 +427,7 @@ class BtcPegoutClientTest {
     }
 
     @Test
-    void onBestBlock_return_when_pegout_is_disabled() throws BtcReleaseClientException {
+    void onBestBlock_return_when_pegout_is_disabled() throws BtcPegoutClientException {
         // Arrange
         Federation federation = TestUtils.createFederation(params, 1);
 
@@ -460,8 +460,8 @@ class BtcPegoutClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcPegoutClientStorageAccessor.class),
+            mock(BtcPegoutClientStorageSynchronizer.class)
         );
         btcPegoutClient.start(federation);
 
@@ -657,8 +657,8 @@ class BtcPegoutClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcPegoutClientStorageAccessor.class),
+            mock(BtcPegoutClientStorageSynchronizer.class)
         );
         client.start(federation);
 
@@ -696,8 +696,8 @@ class BtcPegoutClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcPegoutClientStorageAccessor.class),
+            mock(BtcPegoutClientStorageSynchronizer.class)
         );
 
         // Act
@@ -794,7 +794,7 @@ class BtcPegoutClientTest {
 
     @Test
     void sets_rsk_tx_hash_with_file_data()
-        throws BtcReleaseClientException, SignerException,
+        throws BtcPegoutClientException, SignerException,
                    HSMPegoutCreationInformationException, PegoutSigningRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
         testUsageOfStorageWhenSigning(true);
@@ -802,7 +802,7 @@ class BtcPegoutClientTest {
 
     @Test
     void sets_default_rsk_tx_hash_if_no_file_data()
-        throws BtcReleaseClientException, SignerException,
+        throws BtcPegoutClientException, SignerException,
                    HSMPegoutCreationInformationException, PegoutSigningRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
         testUsageOfStorageWhenSigning(false);
@@ -831,8 +831,8 @@ class BtcPegoutClientTest {
             mock(SignerMessageBuilderFactory.class),
             mock(PegoutCreationInformationGetter.class),
             mock(PegoutSigningRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(BtcPegoutClientStorageAccessor.class),
+            mock(BtcPegoutClientStorageSynchronizer.class)
         );
         client.start(federation);
 
@@ -911,7 +911,7 @@ class BtcPegoutClientTest {
     }
 
     private void testUsageOfStorageWhenSigning(boolean shouldHaveDataInFile)
-        throws BtcReleaseClientException, SignerException,
+        throws BtcPegoutClientException, SignerException,
                    HSMPegoutCreationInformationException, PegoutSigningRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
         FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
@@ -984,11 +984,11 @@ class BtcPegoutClientTest {
             nodeBlockProcessor
         );
 
-        BtcReleaseClientStorageAccessor accessor = mock(BtcReleaseClientStorageAccessor.class);
+        BtcPegoutClientStorageAccessor accessor = mock(BtcPegoutClientStorageAccessor.class);
         when(accessor.hasBtcTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile);
         when(accessor.getRskTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? rskTxHash: null);
 
-        BtcReleaseClientStorageSynchronizer synchronizer = mock(BtcReleaseClientStorageSynchronizer.class);
+        BtcPegoutClientStorageSynchronizer synchronizer = mock(BtcPegoutClientStorageSynchronizer.class);
         when(synchronizer.isSynced()).thenReturn(true);
 
         btcPegoutClient.setup(
