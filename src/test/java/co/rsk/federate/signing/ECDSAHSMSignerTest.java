@@ -42,6 +42,7 @@ import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -171,12 +172,12 @@ class ECDSAHSMSignerTest {
     @Test
     void sign() throws HSMClientException, SignerException {
         HSMSignature signatureMock = mock(HSMSignature.class);
-        ECKey.ECDSASignature ethSignatureMock = mock(ECKey.ECDSASignature.class);
+        ECDSASignature ethSignatureMock = mock(ECDSASignature.class);
         when(signatureMock.toEthSignature()).thenReturn(ethSignatureMock);
         when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.sign("hsmKeyA", new SignerMessageV1( Hex.decode("aabbcc")))).thenReturn(signatureMock);
 
-        ECKey.ECDSASignature result = signer.sign(new KeyId("keyA"), new SignerMessageV1(Hex.decode("aabbcc")));
+        ECDSASignature result = signer.sign(new KeyId("keyA"), new SignerMessageV1(Hex.decode("aabbcc")));
 
         assertSame(ethSignatureMock, result);
 

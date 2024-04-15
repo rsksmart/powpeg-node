@@ -18,7 +18,7 @@
 
 package co.rsk.federate.signing.hsm.client;
 
-import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 
 /**
  * Represents a signature as gathered
@@ -64,13 +64,13 @@ public class HSMSignature {
         return publicKey;
     }
 
-    public ECKey.ECDSASignature toEthSignature() {
+    public ECDSASignature toEthSignature() {
         if (v != null) {
-            return ECKey.ECDSASignature.fromComponents(r, s, v);
+            return ECDSASignature.fromComponents(r, s, v);
         }
 
         // Calculate 'v'
-        return ECKey.ECDSASignature.fromComponentsWithRecoveryCalculation(
+        return ECDSASignature.fromComponentsWithRecoveryCalculation(
                 r, s, hash, publicKey
         );
     }

@@ -56,7 +56,7 @@ import org.bitcoinj.script.ScriptPattern;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.TransactionReceipt;
-import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
 import org.ethereum.util.RLP;
@@ -385,9 +385,9 @@ public class BtcPegoutClient {
             for (int inputIndex = 0; inputIndex < pegoutCreationInformation.getPegoutBtcTx().getInputs().size(); inputIndex++) {
                 SignerMessage messageToSign = messageBuilder.buildMessageForIndex(inputIndex);
                 logger.trace("[signConfirmedPegout] Message to sign: {}", messageToSign.getClass());
-                ECKey.ECDSASignature ethSig = signer.sign(BTC_KEY_ID.getKeyId(), messageToSign);
+                ECDSASignature ethSig = signer.sign(BTC_KEY_ID.getKeyId(), messageToSign);
                 logger.debug("[signConfirmedPegout] Message successfully signed");
-                BtcECKey.ECDSASignature sig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+                BtcECKey.ECDSASignature sig = new BtcECKey.ECDSASignature(ethSig.getR(), ethSig.getS());
                 signatures.add(sig.encodeToDER());
             }
 

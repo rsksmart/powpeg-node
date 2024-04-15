@@ -76,6 +76,7 @@ import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 import org.ethereum.db.BlockStore;
 import org.ethereum.db.ReceiptStore;
 import org.ethereum.db.TransactionInfo;
@@ -209,7 +210,7 @@ class BtcPegoutClientTest {
 
         BtcECKey fedKey = new BtcECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
-        ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
+        ECDSASignature ethSig = new ECDSASignature(BigInteger.ONE, BigInteger.TEN);
 
         ECDSASigner signer = mock(ECDSASigner.class);
         when(signer.getPublicKey(BTC_KEY_ID.getKeyId())).thenReturn(signerPublicKey);
@@ -304,7 +305,7 @@ class BtcPegoutClientTest {
         doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
 
         ECKey ecKey = new ECKey();
-        ECKey.ECDSASignature ethSig = ecKey.doSign(new byte[]{});
+        ECDSASignature ethSig = ECDSASignature.fromSignature(ecKey.doSign(new byte[]{}));
         BtcECKey fedKey = new BtcECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
@@ -952,7 +953,7 @@ class BtcPegoutClientTest {
         ECDSASigner signer = mock(ECDSASigner.class);
         when(signer.getVersionForKeyId(any())).thenReturn(2);
         when(signer.getPublicKey(any())).thenReturn(new ECPublicKey(key1.getPubKey()));
-        ECKey.ECDSASignature signature = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
+        ECDSASignature signature = new ECDSASignature(BigInteger.ONE, BigInteger.TEN);
         when(signer.sign(any(), any())).thenReturn(signature);
 
         Block block = mock(Block.class);

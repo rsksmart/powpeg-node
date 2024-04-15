@@ -21,7 +21,7 @@ package co.rsk.federate.signing;
 import co.rsk.federate.UnrecoverableErrorEventListener;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
-import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,7 +83,7 @@ public class ECDSACompositeSigner implements ECDSASigner {
     }
 
     @Override
-    public ECKey.ECDSASignature sign(KeyId keyId, SignerMessage message) throws SignerException {
+    public ECDSASignature sign(KeyId keyId, SignerMessage message) throws SignerException {
         return findSignerFor(keyId).sign(keyId, message);
     }
 

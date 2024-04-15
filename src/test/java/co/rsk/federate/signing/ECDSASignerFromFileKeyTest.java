@@ -33,6 +33,7 @@ import java.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.crypto.Keccak256Helper;
+import org.ethereum.crypto.signature.ECDSASignature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -80,12 +81,12 @@ class ECDSASignerFromFileKeyTest {
         try (MockedConstruction<KeyFileHandler> keyFileHandlerMockedConstruction = mockConstruction(KeyFileHandler.class, keyFileHandlerMockInitializer)) {
             byte[] message = Keccak256Helper.keccak256("aabbccdd");
 
-            ECKey.ECDSASignature result = signer.sign(new KeyId("an-id"), new SignerMessageV1(message));
-            ECKey.ECDSASignature expectedSignature = ECKey.fromPrivate(Hex.decode("1122334455")).sign(message);
+            ECDSASignature result = signer.sign(new KeyId("an-id"), new SignerMessageV1(message));
+            ECDSASignature expectedSignature = ECDSASignature.fromSignature(ECKey.fromPrivate(Hex.decode("1122334455")).sign(message));
 
             assertEquals(1, keyFileHandlerMockedConstruction.constructed().size());
-            assertEquals(expectedSignature.r, result.r);
-            assertEquals(expectedSignature.s, result.s);
+            assertEquals(expectedSignature.getR(), result.getR());
+            assertEquals(expectedSignature.getS(), result.getS());
         }
     }
 

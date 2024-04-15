@@ -21,7 +21,7 @@ package co.rsk.federate.signing;
 import co.rsk.federate.UnrecoverableErrorEventDispatcher;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
-import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 
 import java.util.List;
 
@@ -42,7 +42,7 @@ public interface ECDSASigner extends UnrecoverableErrorEventDispatcher {
 
     int getVersionForKeyId(KeyId keyId) throws SignerException;
 
-    ECKey.ECDSASignature sign(KeyId keyId, SignerMessage message) throws SignerException;
+    ECDSASignature sign(KeyId keyId, SignerMessage message) throws SignerException;
 
     String getVersionString() throws SignerException;
 

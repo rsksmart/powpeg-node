@@ -11,7 +11,7 @@ import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import co.rsk.federate.signing.hsm.SignerException;
 import org.ethereum.core.*;
-import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.vm.PrecompiledContracts;
 import org.ethereum.vm.program.ProgramResult;
@@ -111,7 +111,7 @@ public class BridgeTransactionSender {
                         functionArgs);
                 try {
                     SignerMessageV1 messageToSign = new SignerMessageV1(rskTx.getRawHash().getBytes());
-                    ECKey.ECDSASignature txSignature = signer.sign(RSK_KEY_ID.getKeyId(), messageToSign);
+                    ECDSASignature txSignature = signer.sign(RSK_KEY_ID.getKeyId(), messageToSign);
                     rskTx.setSignature(txSignature);
                     LOGGER.debug("[tx={} | nonce={} | method={}] Submit to Bridge", rskTx.getHash(), nonce, function.name);
                     ethereum.submitTransaction(rskTx);

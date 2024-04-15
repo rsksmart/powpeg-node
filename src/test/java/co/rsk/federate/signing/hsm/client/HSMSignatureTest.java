@@ -22,50 +22,51 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import co.rsk.federate.signing.utils.TestUtils;
 import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class HSMSignatureTest {
     private ECKey key;
-    private ECKey.ECDSASignature signature;
+    private ECDSASignature signature;
     private byte[] hash;
 
     @BeforeEach
     void createSignature() {
         key = new ECKey();
         hash = TestUtils.randomHash();
-        signature = key.sign(hash);
+        signature = ECDSASignature.fromSignature(key.sign(hash));
     }
 
     @Test
     void toEthWithV() {
         HSMSignature s = new HSMSignature(
-            signature.r.toByteArray(),
-            signature.s.toByteArray(),
+            signature.getR().toByteArray(),
+            signature.getS().toByteArray(),
             hash,
             key.getPubKey(),
-            signature.v
+            signature.getV()
         );
-        ECKey.ECDSASignature output = s.toEthSignature();
+        ECDSASignature output = s.toEthSignature();
 
-        assertEquals(signature.r, output.r);
-        assertEquals(signature.s, output.s);
-        assertEquals(signature.v, output.v);
+        assertEquals(signature.getR(), output.getR());
+        assertEquals(signature.getS(), output.getS());
+        assertEquals(signature.getV(), output.getV());
     }
 
     @Test
     void toEthWithoutV() {
         HSMSignature s = new HSMSignature(
-            signature.r.toByteArray(),
-            signature.s.toByteArray(),
+            signature.getR().toByteArray(),
+            signature.getS().toByteArray(),
             hash,
             key.getPubKey(),
             null
         );
-        ECKey.ECDSASignature output = s.toEthSignature();
+        ECDSASignature output = s.toEthSignature();
 
-        assertEquals(signature.r, output.r);
-        assertEquals(signature.s, output.s);
-        assertEquals(signature.v, output.v);
+        assertEquals(signature.getR(), output.getR());
+        assertEquals(signature.getS(), output.getS());
+        assertEquals(signature.getV(), output.getV());
     }
 }
