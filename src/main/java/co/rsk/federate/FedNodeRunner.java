@@ -336,7 +336,7 @@ public class FedNodeRunner implements NodeRunner {
                     fedNodeContext.getReceiptStore(),
                     fedNodeContext.getNodeBlockProcessor(),
                     btcPegoutClientStorageAccessor,
-                    config.getBtcReleaseClientInitializationMaxDepth()
+                    config.getBtcPegoutClientInitializationMaxDepth()
                 )
             );
             federationWatcher.setup(federationProvider);

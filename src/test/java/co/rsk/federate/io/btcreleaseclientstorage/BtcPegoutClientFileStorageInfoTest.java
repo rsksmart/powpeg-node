@@ -14,7 +14,7 @@ class BtcPegoutClientFileStorageInfoTest {
     void test() {
         FedNodeSystemProperties fnsp = mock(FedNodeSystemProperties.class);
         when(fnsp.databaseDir()).thenReturn("test");
-        BtcReleaseClientFileStorageInfo info = new BtcReleaseClientFileStorageInfo(fnsp);
+        BtcPegoutClientFileStorageInfo info = new BtcPegoutClientFileStorageInfo(fnsp);
         String directoryPath = fnsp.databaseDir() + File.separator + "peg";
         String filePath = directoryPath + File.separator + "btcReleaseClient.rlp";
         assertEquals(directoryPath, info.getPegDirectoryPath());

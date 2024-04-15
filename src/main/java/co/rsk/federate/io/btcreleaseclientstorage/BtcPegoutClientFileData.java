@@ -6,17 +6,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class BtcReleaseClientFileData {
+public class BtcPegoutClientFileData {
 
-    private final Map<Sha256Hash, Keccak256> releaseHashesMap;
+    private final Map<Sha256Hash, Keccak256> pegoutHashesMap;
     private Keccak256 bestBlockHash;
 
-    public BtcReleaseClientFileData() {
-        releaseHashesMap = new ConcurrentHashMap<>();
+    public BtcPegoutClientFileData() {
+        pegoutHashesMap = new ConcurrentHashMap<>();
     }
 
-    public Map<Sha256Hash, Keccak256> getReleaseHashesMap() {
-        return this.releaseHashesMap;
+    public Map<Sha256Hash, Keccak256> getPegoutHashesMap() {
+        return this.pegoutHashesMap;
     }
 
     public void setBestBlockHash(Keccak256 bestBlockHash) {

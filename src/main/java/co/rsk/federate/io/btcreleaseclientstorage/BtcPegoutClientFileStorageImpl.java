@@ -14,11 +14,11 @@ import org.ethereum.util.RLP;
 import org.ethereum.util.RLPElement;
 import org.ethereum.util.RLPList;
 
-public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStorage {
+public class BtcPegoutClientFileStorageImpl implements BtcPegoutClientFileStorage {
 
     private final FileStorageInfo storageInfo;
 
-    public BtcReleaseClientFileStorageImpl(FileStorageInfo storageInfo) {
+    public BtcPegoutClientFileStorageImpl(FileStorageInfo storageInfo) {
         this.storageInfo = storageInfo;
     }
 
@@ -28,7 +28,7 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
     }
 
     @Override
-    public void write(BtcReleaseClientFileData data) throws IOException {
+    public void write(BtcPegoutClientFileData data) throws IOException {
         if (data == null) {
             throw new IOException("Data is null");
         }
@@ -39,7 +39,7 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
 
         File dataFile = new File(storageInfo.getFilePath());
 
-        byte[] serializedMap = this.serializeReleaseHashes(data.getReleaseHashesMap());
+        byte[] serializedMap = this.serializePegoutHashes(data.getPegoutHashesMap());
         Optional<Keccak256> optionalblockHash = data.getBestBlockHash();
         byte[] serializedBlockHash = RLP.encodeElement(
             optionalblockHash.isPresent() ? optionalblockHash.get().getBytes() : new byte[]{}
@@ -51,34 +51,34 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
     }
 
     @Override
-    public BtcReleaseClientFileReadResult read() throws IOException {
+    public BtcPegoutClientFileReadResult read() throws IOException {
         File file = new File(this.storageInfo.getFilePath());
         if (!file.exists()) {
-            return new BtcReleaseClientFileReadResult(Boolean.TRUE, new BtcReleaseClientFileData());
+            return new BtcPegoutClientFileReadResult(Boolean.TRUE, new BtcPegoutClientFileData());
         }
 
         return this.readFromRlp(FileUtils.readFileToByteArray(file));
     }
 
-    private BtcReleaseClientFileReadResult readFromRlp(byte[] fileData) {
-        BtcReleaseClientFileData data = new BtcReleaseClientFileData();
+    private BtcPegoutClientFileReadResult readFromRlp(byte[] fileData) {
+        BtcPegoutClientFileData data = new BtcPegoutClientFileData();
         if (fileData.length == 0) {
-            return new BtcReleaseClientFileReadResult(Boolean.TRUE, data);
+            return new BtcPegoutClientFileReadResult(Boolean.TRUE, data);
         }
 
         try {
             ArrayList<RLPElement> elements = RLP.decode2(fileData);
             if (elements.isEmpty()) {
-                return new BtcReleaseClientFileReadResult(Boolean.TRUE, data);
+                return new BtcPegoutClientFileReadResult(Boolean.TRUE, data);
             }
             RLPList rlpList = (RLPList)elements.get(0);
             if (rlpList.size() == 0) {
-                return new BtcReleaseClientFileReadResult(Boolean.TRUE, data);
+                return new BtcPegoutClientFileReadResult(Boolean.TRUE, data);
             }
             // Map
             byte[] mapData = rlpList.get(0).getRLPData();
             RLPList mapList = (RLPList)RLP.decode2(mapData).get(0);
-            data.getReleaseHashesMap().putAll(this.deserializeReleaseHashes(mapList));
+            data.getPegoutHashesMap().putAll(this.deserializePegoutHashes(mapList));
             // Block hash
             if (rlpList.size() == 2) {
                 byte[] blockHashData = rlpList.get(1).getRLPData();
@@ -87,17 +87,17 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
                 }
             }
         } catch (Exception e) {
-            return new BtcReleaseClientFileReadResult(Boolean.FALSE, null);
+            return new BtcPegoutClientFileReadResult(Boolean.FALSE, null);
         }
 
-        return new BtcReleaseClientFileReadResult(Boolean.TRUE, data);
+        return new BtcPegoutClientFileReadResult(Boolean.TRUE, data);
     }
 
-    private byte[] serializeReleaseHashes(Map<Sha256Hash, Keccak256> releaseHashesMap) {
-        int items = releaseHashesMap.size();
+    private byte[] serializePegoutHashes(Map<Sha256Hash, Keccak256> pegoutHashesMap) {
+        int items = pegoutHashesMap.size();
         byte[][] bytes = new byte[items * 2][];
         int n = 0;
-        for (Map.Entry<Sha256Hash, Keccak256> entry : releaseHashesMap.entrySet()) {
+        for (Map.Entry<Sha256Hash, Keccak256> entry : pegoutHashesMap.entrySet()) {
             bytes[n] = RLP.encodeElement(entry.getKey().getBytes());
             bytes[n + 1] = RLP.encodeElement(entry.getValue().getBytes());
             n += 2;
@@ -105,7 +105,7 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
         return RLP.encodeList(bytes);
     }
 
-    private Map<Sha256Hash, Keccak256> deserializeReleaseHashes(RLPList rlpList) {
+    private Map<Sha256Hash, Keccak256> deserializePegoutHashes(RLPList rlpList) {
         Map<Sha256Hash, Keccak256> result = new HashMap<>();
 
         for (int k = 0; k < rlpList.size(); k += 2) {
