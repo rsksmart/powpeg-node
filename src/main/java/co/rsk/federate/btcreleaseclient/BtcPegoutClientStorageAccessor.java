@@ -28,7 +28,7 @@ public class BtcPegoutClientStorageAccessor {
     private final int delayInMs;
     // Delay writing to avoid slowing down operations
     private final ScheduledExecutorService writeTimer;
-    private ScheduledFuture task;
+    private ScheduledFuture<?> task;
     private int delays;
 
     public BtcPegoutClientStorageAccessor(FedNodeSystemProperties systemProperties) throws InvalidStorageFileException {
@@ -63,7 +63,7 @@ public class BtcPegoutClientStorageAccessor {
                 throw new InvalidStorageFileException(message, e);
             }
         }
-        if (!readResult.getSuccess()) {
+        if (Boolean.FALSE.equals(readResult.getSuccess())) {
             String message = "Error reading storage file for BtcPegoutClient";
             logger.error(message);
             throw new InvalidStorageFileException(message);

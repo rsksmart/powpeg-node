@@ -9,13 +9,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
 import org.apache.commons.io.FileUtils;
 import org.ethereum.util.RLP;
 import org.ethereum.util.RLPElement;
 import org.ethereum.util.RLPList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BtcPegoutClientFileStorageImpl implements BtcPegoutClientFileStorage {
 
+    private static final Logger logger = LoggerFactory.getLogger(BtcPegoutClientFileStorageImpl.class);
     private final FileStorageInfo storageInfo;
 
     public BtcPegoutClientFileStorageImpl(FileStorageInfo storageInfo) {
@@ -87,6 +91,7 @@ public class BtcPegoutClientFileStorageImpl implements BtcPegoutClientFileStorag
                 }
             }
         } catch (Exception e) {
+            logger.error("[readFromRlp] error trying to file data.", e);
             return new BtcPegoutClientFileReadResult(Boolean.FALSE, null);
         }
 

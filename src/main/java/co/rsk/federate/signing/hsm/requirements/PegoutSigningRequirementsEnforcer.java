@@ -30,7 +30,7 @@ public class PegoutSigningRequirementsEnforcer {
             ancestorBlockUpdater.ensureAncestorBlockInPosition(pegoutCreationInformation.getPegoutCreationRskBlock());
         } catch (Exception e) {
             String message = "error trying to enforce ancestor";
-            logger.error("[enforce]" + message, e);
+            logger.error("[enforce] " + message, e);
             throw new PegoutSigningRequirementsEnforcerException(message, e);
         }
     }
