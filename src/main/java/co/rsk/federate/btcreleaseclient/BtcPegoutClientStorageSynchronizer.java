@@ -106,7 +106,14 @@ public class BtcPegoutClientStorageSynchronizer {
                 return;
             }
 
-            Block fromBlock = findBlockToSearch(storageBestBlock);
+            Block fromBlock;
+            /* If there is no data in the file, set a limit to avoid looking up all the blockchain */
+            if (storageBestBlock == null) {
+                long lastBlockNumberToSearch = blockStore.getBestBlock().getNumber() - this.maxInitializationDepth;
+                fromBlock = blockStore.getChainBlockByNumber(Math.max(lastBlockNumberToSearch, 0));
+            } else {
+                fromBlock = blockStore.getChainBlockByNumber(storageBestBlock.getNumber() + 1);
+            }
 
             logger.info(
                 "[sync] going to sync from block {} ({})",
@@ -150,16 +157,6 @@ public class BtcPegoutClientStorageSynchronizer {
             return true;
         }
         return false;
-    }
-
-    private Block findBlockToSearch(Block storageBestBlock) {
-        /* If there is no data in the file, set a limit to avoid looking up all the blockchain */
-        if (storageBestBlock == null) {
-            long lastBlockNumberToSearch = blockStore.getBestBlock().getNumber() - this.maxInitializationDepth;
-            return blockStore.getChainBlockByNumber(Math.max(lastBlockNumberToSearch, 0));
-        } else {
-            return blockStore.getChainBlockByNumber(storageBestBlock.getNumber() + 1);
-        }
     }
 
     private Block getStorageBestBlock(Keccak256 storageBestBlockHash) {

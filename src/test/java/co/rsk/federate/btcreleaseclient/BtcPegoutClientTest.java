@@ -558,7 +558,7 @@ class BtcPegoutClientTest {
     }
 
     @Test
-    void validateConfirmedPegoutCanBeSigned_ok() throws Exception {
+    void validatePegoutBtcTxCanBeSigned_ok() throws Exception {
         // Arrange
         Federation federation = TestUtils.createFederation(params, 1);
 
@@ -574,7 +574,7 @@ class BtcPegoutClientTest {
     }
 
     @Test
-    void validateConfirmedPegoutCanBeSigned_fast_bridge_ok() throws Exception {
+    void validatePegoutBtcTxCanBeSigned_fast_bridge_ok() throws Exception {
         // Create a StandardMultisigFederation
         Federation federation = TestUtils.createFederation(params, 1);
 
@@ -594,7 +594,7 @@ class BtcPegoutClientTest {
     }
 
     @Test
-    void validateConfirmedPegoutCanBeSigned_erp_fed_ok() throws Exception {
+    void validatePegoutBtcTxCanBeSigned_erp_fed_ok() throws Exception {
         Federation federation = TestUtils.createFederation(params, 3);
         FederationArgs federationArgs = federation.getArgs();
         ErpFederation nonStandardErpFederation =
@@ -610,7 +610,7 @@ class BtcPegoutClientTest {
     }
 
     @Test
-    void validateConfirmedPegoutCanBeSigned_federatorAlreadySigned() throws Exception {
+    void validatePegoutBtcTxCanBeSigned_federatorAlreadySigned() throws Exception {
         // Arrange
         BtcECKey federator1PrivKey = new BtcECKey();
         BtcECKey federator2PrivKey = new BtcECKey();
@@ -664,11 +664,11 @@ class BtcPegoutClientTest {
         client.start(federation);
 
         // Act
-        assertThrows(FederatorAlreadySignedException.class, () -> client.validateConfirmedPegoutCanBeSigned(pegoutBtcTx));
+        assertThrows(FederatorAlreadySignedException.class, () -> client.validatePegoutBtcTxCanBeSigned(pegoutBtcTx));
     }
 
     @Test
-    void validateConfirmedPegoutCanBeSigned_federationCantSign() throws Exception {
+    void validatePegoutBtcTxCanBeSigned_federationCantSign() throws Exception {
         // Arrange
         Federation federation = TestUtils.createFederation(params, 1);
 
@@ -702,7 +702,7 @@ class BtcPegoutClientTest {
         );
 
         // Act
-        assertThrows(FederationCantSignException.class, () -> client.validateConfirmedPegoutCanBeSigned(pegoutBtcTx));
+        assertThrows(FederationCantSignException.class, () -> client.validatePegoutBtcTxCanBeSigned(pegoutBtcTx));
     }
 
     @Test
@@ -751,7 +751,7 @@ class BtcPegoutClientTest {
         Sha256Hash signedTxHash = pegoutBtcTx.getHash();
 
         // Act
-        client.removeSignaturesFromPegoutBtxTx(pegoutBtcTx, federation);
+        client.removeSignaturesFromPegoutBtcTx(pegoutBtcTx, federation);
         Sha256Hash removedSignaturesTxHash = pegoutBtcTx.getHash();
 
         // Assert
@@ -838,7 +838,7 @@ class BtcPegoutClientTest {
         client.start(federation);
 
         // Act
-        client.validateConfirmedPegoutCanBeSigned(pegoutBtcTx);
+        client.validatePegoutBtcTxCanBeSigned(pegoutBtcTx);
     }
 
     private void test_extractStandardRedeemScript(

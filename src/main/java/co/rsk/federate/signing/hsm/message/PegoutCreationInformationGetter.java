@@ -189,7 +189,7 @@ public class PegoutCreationInformationGetter {
                 boolean hasReleaseRequestEvent = Arrays.equals(logInfo.getTopics().get(0).getData(), releaseRequestedSignatureTopic);
                 if (hasReleaseRequestEvent && (Arrays.equals(logInfo.getTopics().get(2).getData(), pegoutBtcTx.getHash().getBytes()))) {
                     logger.debug(
-                        "[getInformationFromEvent] Found transaction {} and block {}",
+                        "[getPegoutCreationInformationFromEvent] Found transaction {} and block {}",
                         transactionReceipt.getTransaction().getHash(),
                         block.getHash()
                     );

@@ -91,7 +91,7 @@ public class BtcPegoutClientFileStorageImpl implements BtcPegoutClientFileStorag
                 }
             }
         } catch (Exception e) {
-            logger.error("[readFromRlp] error trying to file data.", e);
+            logger.error("[readFromRlp] error trying to read file data.", e);
             return new BtcPegoutClientFileReadResult(Boolean.FALSE, null);
         }
 
