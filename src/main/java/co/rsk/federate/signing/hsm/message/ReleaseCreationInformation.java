@@ -6,74 +6,73 @@ import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
 
 public class ReleaseCreationInformation {
-    private final Block block;
+    private final Block pegoutCreationRskBlock;
     private final TransactionReceipt transactionReceipt;
-    private final Keccak256 releaseRskTxHash;
-    private final Keccak256 informingRskTxHash;
-    private final BtcTransaction btcTransaction;
-
+    private final Keccak256 pegoutCreationRskTxHash;
+    private final BtcTransaction pegoutBtcTx;
+    private final Keccak256 pegoutConfirmationRskTxHash;
 
     /**
      *
-     * @param block                 The rsk block where the BTC transaction was created
-     * @param transactionReceipt    The rsk transaction receipt where the btc transaction was created
-     * @param releaseRskTxHash      The rsk transaction hash where the release was requested
-     * @param btcTransaction        The BTC transaction to sign
+     * @param pegoutCreationRskBlock                 The rsk block where pegout was created
+     * @param transactionReceipt    The rsk transaction receipt where pegout was created
+     * @param pegoutCreationRskTxHash      The rsk transaction hash where the pegout was created
+     * @param pegoutBtcTx        The BTC transaction to sign
      **/
     public ReleaseCreationInformation(
-        Block block,
+        Block pegoutCreationRskBlock,
         TransactionReceipt transactionReceipt,
-        Keccak256 releaseRskTxHash,
-        BtcTransaction btcTransaction
+        Keccak256 pegoutCreationRskTxHash,
+        BtcTransaction pegoutBtcTx
     ) {
-        this(block, transactionReceipt, releaseRskTxHash, btcTransaction, releaseRskTxHash);
+        this(pegoutCreationRskBlock, transactionReceipt, pegoutCreationRskTxHash, pegoutBtcTx, pegoutCreationRskTxHash);
     }
 
     /**
      *
-     * @param block                 The rsk block where the BTC transaction was created
-     * @param transactionReceipt    The rsk transaction receipt where the btc transaction was created
-     * @param releaseRskTxHash      The rsk transaction hash where the release was requested
-     * @param btcTransaction        The BTC transaction to sign
-     * @param informingRskTxHash    The rsk transaction hash where the release was confirmed to be signed
+     * @param pegoutCreationRskBlock                 The rsk block where the pegout was created
+     * @param transactionReceipt    The rsk transaction receipt where the pegout was created
+     * @param pegoutCreationRskTxHash      The rsk transaction hash where the pegout was created
+     * @param pegoutBtcTx        The BTC transaction to sign
+     * @param pegoutConfirmationRskTxHash  The rsk transaction hash where the pegout was confirmed to be signed
      **/
     public ReleaseCreationInformation(
-        Block block,
+        Block pegoutCreationRskBlock,
         TransactionReceipt transactionReceipt,
-        Keccak256 releaseRskTxHash,
-        BtcTransaction btcTransaction,
-        Keccak256 informingRskTxHash
+        Keccak256 pegoutCreationRskTxHash,
+        BtcTransaction pegoutBtcTx,
+        Keccak256 pegoutConfirmationRskTxHash
     ) {
-        this.block = block;
+        this.pegoutCreationRskBlock = pegoutCreationRskBlock;
         this.transactionReceipt = transactionReceipt;
-        this.releaseRskTxHash = releaseRskTxHash;
-        this.btcTransaction = btcTransaction;
-        this.informingRskTxHash = informingRskTxHash;
+        this.pegoutCreationRskTxHash = pegoutCreationRskTxHash;
+        this.pegoutBtcTx = pegoutBtcTx;
+        this.pegoutConfirmationRskTxHash = pegoutConfirmationRskTxHash;
     }
 
-    public Block getBlock() {
-        return block;
+    public Block getPegoutCreationRskBlock() {
+        return pegoutCreationRskBlock;
     }
 
     /**
-     * gets the receipt of the rsk transaction that created the release BTC transaction
+     * gets the receipt of the rsk transaction that created the pegout BTC transaction
      **/
     public TransactionReceipt getTransactionReceipt() {
         return transactionReceipt;
     }
 
     /**
-     * gets the hash of the rsk transaction that originated the release
+     * gets the hash of the rsk transaction that originated the pegout
      **/
-    public Keccak256 getReleaseRskTxHash() {
-        return releaseRskTxHash;
+    public Keccak256 getPegoutCreationRskTxHash() {
+        return pegoutCreationRskTxHash;
     }
 
-    public Keccak256 getInformingRskTxHash() {
-        return informingRskTxHash;
+    public Keccak256 getPegoutConfirmationRskTxHash() {
+        return pegoutConfirmationRskTxHash;
     }
 
-    public BtcTransaction getBtcTransaction() {
-        return btcTransaction;
+    public BtcTransaction getPegoutBtcTx() {
+        return pegoutBtcTx;
     }
 }

@@ -13,9 +13,12 @@ import org.apache.commons.io.FileUtils;
 import org.ethereum.util.RLP;
 import org.ethereum.util.RLPElement;
 import org.ethereum.util.RLPList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStorage {
 
+    private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClientFileStorageImpl.class);
     private final FileStorageInfo storageInfo;
 
     public BtcReleaseClientFileStorageImpl(FileStorageInfo storageInfo) {
@@ -87,6 +90,7 @@ public class BtcReleaseClientFileStorageImpl implements BtcReleaseClientFileStor
                 }
             }
         } catch (Exception e) {
+            logger.error("[readFromRlp] error trying to read file data.", e);
             return new BtcReleaseClientFileReadResult(Boolean.FALSE, null);
         }
 

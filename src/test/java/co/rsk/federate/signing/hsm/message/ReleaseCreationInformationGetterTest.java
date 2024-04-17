@@ -15,13 +15,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.ethereum.core.Block;
-import org.ethereum.core.CallTransaction;
-import org.ethereum.core.Transaction;
-import org.ethereum.core.TransactionReceipt;
-import org.ethereum.db.BlockStore;
-import org.ethereum.db.ReceiptStore;
-import org.ethereum.db.TransactionInfo;
+import org.ethereum.core.*;
+import org.ethereum.db.*;
 import org.ethereum.vm.DataWord;
 import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
@@ -96,10 +91,10 @@ class ReleaseCreationInformationGetterTest {
             pegoutBtcTransaction
         );
 
-        assertEquals(releaseCreationInformation.getBlock(), block);
+        assertEquals(releaseCreationInformation.getPegoutCreationRskBlock(), block);
         assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
-        assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
-        assertEquals(pegoutBtcTransaction, releaseCreationInformation.getBtcTransaction());
+        assertEquals(rskTxHash, releaseCreationInformation.getPegoutCreationRskTxHash());
+        assertEquals(pegoutBtcTransaction, releaseCreationInformation.getPegoutBtcTx());
     }
 
     @Test
@@ -171,10 +166,10 @@ class ReleaseCreationInformationGetterTest {
         );
         ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(2, rskTxHash, pegoutBtcTransaction);
 
-        assertEquals(secondBlock, releaseCreationInformation.getBlock());
+        assertEquals(secondBlock, releaseCreationInformation.getPegoutCreationRskBlock());
         assertEquals(transactionReceiptInSecondBlock, releaseCreationInformation.getTransactionReceipt());
-        assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
-        assertEquals(pegoutBtcTransaction, releaseCreationInformation.getBtcTransaction());
+        assertEquals(rskTxHash, releaseCreationInformation.getPegoutCreationRskTxHash());
+        assertEquals(pegoutBtcTransaction, releaseCreationInformation.getPegoutBtcTx());
 
     }
 
