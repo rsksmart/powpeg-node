@@ -8,13 +8,13 @@ import co.rsk.federate.config.FedNodeSystemProperties;
 import java.io.File;
 import org.junit.jupiter.api.Test;
 
-class BtcReleaseClientFileStorageInfoTest {
+class BtcPegoutClientFileStorageInfoTest {
 
     @Test
     void test() {
         FedNodeSystemProperties fnsp = mock(FedNodeSystemProperties.class);
         when(fnsp.databaseDir()).thenReturn("test");
-        BtcReleaseClientFileStorageInfo info = new BtcReleaseClientFileStorageInfo(fnsp);
+        BtcPegoutClientFileStorageInfo info = new BtcPegoutClientFileStorageInfo(fnsp);
         String directoryPath = fnsp.databaseDir() + File.separator + "peg";
         String filePath = directoryPath + File.separator + "btcReleaseClient.rlp";
         assertEquals(directoryPath, info.getPegDirectoryPath());

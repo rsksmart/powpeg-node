@@ -18,9 +18,9 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileData;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileReadResult;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorage;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcPegoutClientFileData;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcPegoutClientFileReadResult;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcPegoutClientFileStorage;
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -29,18 +29,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 
-class BtcReleaseClientStorageAccessorTest {
+class BtcPegoutClientStorageAccessorTest {
 
     @Test
     void invalid_file() throws IOException {
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
-        when(btcReleaseClientFileStorage.read()).thenReturn(
-            new BtcReleaseClientFileReadResult(false, null)
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage = mock(BtcPegoutClientFileStorage.class);
+        when(btcPegoutClientFileStorage.read()).thenReturn(
+            new BtcPegoutClientFileReadResult(false, null)
         );
 
-        assertThrows(InvalidStorageFileException.class, () -> new BtcReleaseClientStorageAccessor(
+        assertThrows(InvalidStorageFileException.class, () -> new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
-            btcReleaseClientFileStorage,
+            btcPegoutClientFileStorage,
             10,
             1
         ));
@@ -48,14 +48,14 @@ class BtcReleaseClientStorageAccessorTest {
 
     @Test
     void works_with_no_file() throws InvalidStorageFileException, IOException {
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
-        when(btcReleaseClientFileStorage.read()).thenReturn(
-            new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage = mock(BtcPegoutClientFileStorage.class);
+        when(btcPegoutClientFileStorage.read()).thenReturn(
+            new BtcPegoutClientFileReadResult(true, new BtcPegoutClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
-            btcReleaseClientFileStorage,
+            btcPegoutClientFileStorage,
             10,
             1
         );
@@ -68,17 +68,17 @@ class BtcReleaseClientStorageAccessorTest {
     void getBestBlockHash_ok() throws IOException, InvalidStorageFileException {
         Keccak256 bestBlockHash = createHash(1);
 
-        BtcReleaseClientFileData btcReleaseClientFileData = new BtcReleaseClientFileData();
-        btcReleaseClientFileData.setBestBlockHash(bestBlockHash);
+        BtcPegoutClientFileData btcPegoutClientFileData = new BtcPegoutClientFileData();
+        btcPegoutClientFileData.setBestBlockHash(bestBlockHash);
 
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
-        when(btcReleaseClientFileStorage.read()).thenReturn(
-            new BtcReleaseClientFileReadResult(true, btcReleaseClientFileData)
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage = mock(BtcPegoutClientFileStorage.class);
+        when(btcPegoutClientFileStorage.read()).thenReturn(
+            new BtcPegoutClientFileReadResult(true, btcPegoutClientFileData)
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
-            btcReleaseClientFileStorage,
+            btcPegoutClientFileStorage,
             0,
             0
         );
@@ -91,14 +91,14 @@ class BtcReleaseClientStorageAccessorTest {
     void setBestBlockHash_ok() throws InvalidStorageFileException, IOException {
         Keccak256 bestBlockHash = createHash(1);
 
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
-        when(btcReleaseClientFileStorage.read()).thenReturn(
-            new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage = mock(BtcPegoutClientFileStorage.class);
+        when(btcPegoutClientFileStorage.read()).thenReturn(
+            new BtcPegoutClientFileReadResult(true, new BtcPegoutClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
-            btcReleaseClientFileStorage,
+            btcPegoutClientFileStorage,
             10,
             1
         );
@@ -114,17 +114,17 @@ class BtcReleaseClientStorageAccessorTest {
         Sha256Hash btcTxHash = Sha256Hash.of(new byte[]{1});
         Keccak256 rskTxHash = createHash(1);
 
-        BtcReleaseClientFileData btcReleaseClientFileData = new BtcReleaseClientFileData();
-        btcReleaseClientFileData.getReleaseHashesMap().put(btcTxHash, rskTxHash);
+        BtcPegoutClientFileData btcPegoutClientFileData = new BtcPegoutClientFileData();
+        btcPegoutClientFileData.getPegoutHashesMap().put(btcTxHash, rskTxHash);
 
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
-        when(btcReleaseClientFileStorage.read()).thenReturn(
-            new BtcReleaseClientFileReadResult(true, btcReleaseClientFileData)
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage = mock(BtcPegoutClientFileStorage.class);
+        when(btcPegoutClientFileStorage.read()).thenReturn(
+            new BtcPegoutClientFileReadResult(true, btcPegoutClientFileData)
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             getImmediateTaskExecutor(),
-            btcReleaseClientFileStorage,
+            btcPegoutClientFileStorage,
             0,
             0
         );
@@ -146,21 +146,21 @@ class BtcReleaseClientStorageAccessorTest {
             return null;
         }).when(executorService).schedule(any(Runnable.class), anyLong(), any());
 
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
-        when(btcReleaseClientFileStorage.read()).thenReturn(
-            new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage = mock(BtcPegoutClientFileStorage.class);
+        when(btcPegoutClientFileStorage.read()).thenReturn(
+            new BtcPegoutClientFileReadResult(true, new BtcPegoutClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             executorService,
-            btcReleaseClientFileStorage,
+            btcPegoutClientFileStorage,
             10,
             1
         );
 
         storageAccessor.putBtcTxHashRskTxHash(btcTxHash, rskTxHash);
 
-        verify(btcReleaseClientFileStorage, times(1)).write(any(BtcReleaseClientFileData.class));
+        verify(btcPegoutClientFileStorage, times(1)).write(any(BtcPegoutClientFileData.class));
 
         assertEquals(1, storageAccessor.getMapSize());
         assertTrue(storageAccessor.hasBtcTxHash(btcTxHash));
@@ -180,14 +180,14 @@ class BtcReleaseClientStorageAccessorTest {
             return null;
         }).when(executorService).schedule(any(Runnable.class), anyLong(), any());
 
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
-        when(btcReleaseClientFileStorage.read()).thenReturn(
-            new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage = mock(BtcPegoutClientFileStorage.class);
+        when(btcPegoutClientFileStorage.read()).thenReturn(
+            new BtcPegoutClientFileReadResult(true, new BtcPegoutClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             executorService,
-            btcReleaseClientFileStorage,
+            btcPegoutClientFileStorage,
             10,
             2
         );
@@ -196,7 +196,7 @@ class BtcReleaseClientStorageAccessorTest {
         storageAccessor.setBestBlockHash(bestBlockHash);
 
         // As we are not using delays it writes for each call to the storage changing methods
-        verify(btcReleaseClientFileStorage, times(2)).write(any(BtcReleaseClientFileData.class));
+        verify(btcPegoutClientFileStorage, times(2)).write(any(BtcPegoutClientFileData.class));
     }
 
     @Test
@@ -223,14 +223,14 @@ class BtcReleaseClientStorageAccessorTest {
             return task;
         }).when(executorService).schedule(any(Runnable.class), anyLong(), any());
 
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
-        when(btcReleaseClientFileStorage.read()).thenReturn(
-            new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage = mock(BtcPegoutClientFileStorage.class);
+        when(btcPegoutClientFileStorage.read()).thenReturn(
+            new BtcPegoutClientFileReadResult(true, new BtcPegoutClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             executorService,
-            btcReleaseClientFileStorage,
+            btcPegoutClientFileStorage,
             400,
             maxDelays
         );
@@ -240,12 +240,12 @@ class BtcReleaseClientStorageAccessorTest {
 
         storageAccessor.putBtcTxHashRskTxHash(btcTxHash2, rskTxHash2);
 
-        verify(btcReleaseClientFileStorage, never()).write(any(BtcReleaseClientFileData.class));
+        verify(btcPegoutClientFileStorage, never()).write(any(BtcPegoutClientFileData.class));
 
         // the forth call should trigger the writing
         storageAccessor.setBestBlockHash(bestBlockHash2);
 
-        verify(btcReleaseClientFileStorage, times(1)).write(any(BtcReleaseClientFileData.class));
+        verify(btcPegoutClientFileStorage, times(1)).write(any(BtcPegoutClientFileData.class));
 
         // It should have cancelled the overlapping tasks
         verify(task, times(3)).cancel(anyBoolean());
@@ -275,14 +275,14 @@ class BtcReleaseClientStorageAccessorTest {
             return task;
         }).when(executorService).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
 
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage = mock(BtcReleaseClientFileStorage.class);
-        when(btcReleaseClientFileStorage.read()).thenReturn(
-            new BtcReleaseClientFileReadResult(true, new BtcReleaseClientFileData())
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage = mock(BtcPegoutClientFileStorage.class);
+        when(btcPegoutClientFileStorage.read()).thenReturn(
+            new BtcPegoutClientFileReadResult(true, new BtcPegoutClientFileData())
         );
 
-        BtcReleaseClientStorageAccessor storageAccessor = new BtcReleaseClientStorageAccessor(
+        BtcPegoutClientStorageAccessor storageAccessor = new BtcPegoutClientStorageAccessor(
             executorService,
-            btcReleaseClientFileStorage,
+            btcPegoutClientFileStorage,
             500,
             maxDelays
         );

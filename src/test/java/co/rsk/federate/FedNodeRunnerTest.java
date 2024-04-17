@@ -15,7 +15,7 @@ import static org.mockito.Mockito.when;
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.config.BridgeConstants;
-import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
+import co.rsk.federate.btcreleaseclient.BtcPegoutClient;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.config.SignerConfig;
 import co.rsk.federate.log.FederateLogger;
@@ -85,7 +85,7 @@ class FedNodeRunnerTest {
         fedNodeRunner = new FedNodeRunner(
             mock(BtcToRskClient.class),
             mock(BtcToRskClient.class),
-            mock(BtcReleaseClient.class),
+            mock(BtcPegoutClient.class),
             mock(FederationWatcher.class),
             mock(FederatorSupport.class),
             mock(FederateLogger.class),
@@ -145,7 +145,7 @@ class FedNodeRunnerTest {
         fedNodeRunner = new FedNodeRunner(
             mock(BtcToRskClient.class),
             mock(BtcToRskClient.class),
-            mock(BtcReleaseClient.class),
+            mock(BtcPegoutClient.class),
             mock(FederationWatcher.class),
             mock(FederatorSupport.class),
             mock(FederateLogger.class),

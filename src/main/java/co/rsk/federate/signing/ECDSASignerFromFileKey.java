@@ -25,6 +25,7 @@ import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import co.rsk.federate.signing.keyfile.KeyFileChecker;
 import co.rsk.federate.signing.keyfile.KeyFileHandler;
 import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,14 +99,14 @@ public class ECDSASignerFromFileKey implements ECDSASigner {
     }
 
     @Override
-    public ECKey.ECDSASignature sign(KeyId keyId, SignerMessage message) throws SignerException {
+    public ECDSASignature sign(KeyId keyId, SignerMessage message) throws SignerException {
         if (!canSignWith(keyId)) {
             logger.error("Can't sign with that key id. Requested {}", keyId);
             throw new SignerException(String.format("Can't sign with the requested signing key: %s", keyId));
         }
 
         // Sign and return the wrapped signature.
-        return getPrivateKey().sign(((SignerMessageV1)message).getBytes());
+        return ECDSASignature.fromSignature(getPrivateKey().sign(((SignerMessageV1)message).getBytes()));
     }
 
     @Override

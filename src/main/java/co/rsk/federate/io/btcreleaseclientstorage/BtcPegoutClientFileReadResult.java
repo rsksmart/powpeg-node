@@ -1,12 +1,12 @@
 package co.rsk.federate.io.btcreleaseclientstorage;
 
-public class BtcReleaseClientFileReadResult {
+public class BtcPegoutClientFileReadResult {
 
     private final Boolean success;
 
-    private final BtcReleaseClientFileData data;
+    private final BtcPegoutClientFileData data;
 
-    public BtcReleaseClientFileReadResult(Boolean success, BtcReleaseClientFileData data) {
+    public BtcPegoutClientFileReadResult(Boolean success, BtcPegoutClientFileData data) {
         this.success = success;
         this.data = data;
     }
@@ -15,7 +15,7 @@ public class BtcReleaseClientFileReadResult {
         return success;
     }
 
-    public BtcReleaseClientFileData getData() {
+    public BtcPegoutClientFileData getData() {
         return data;
     }
 }

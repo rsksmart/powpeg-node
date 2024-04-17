@@ -33,6 +33,7 @@ import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import java.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -82,10 +83,10 @@ class ECDSACompositeSignerTest {
         when(signer1.canSignWith(new KeyId("a-key"))).thenReturn(false);
         when(signer2.canSignWith(new KeyId("a-key"))).thenReturn(true);
 
-        ECKey.ECDSASignature mockedSignature = mock(ECKey.ECDSASignature.class);
+        ECDSASignature mockedSignature = mock(ECDSASignature.class);
         when(signer2.sign(new KeyId("a-key"), new SignerMessageV1(Hex.decode("aabbccdd")))).thenReturn(mockedSignature);
 
-        ECKey.ECDSASignature result = signer.sign(new KeyId("a-key"), new SignerMessageV1(Hex.decode("aabbccdd")));
+        ECDSASignature result = signer.sign(new KeyId("a-key"), new SignerMessageV1(Hex.decode("aabbccdd")));
 
         verify(signer1, never()).sign(any(), any());
         assertSame(mockedSignature, result);

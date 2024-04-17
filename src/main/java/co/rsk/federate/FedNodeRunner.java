@@ -24,9 +24,9 @@ import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
 import co.rsk.federate.bitcoin.Kit;
-import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
-import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
-import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
+import co.rsk.federate.btcreleaseclient.BtcPegoutClient;
+import co.rsk.federate.btcreleaseclient.BtcPegoutClientStorageAccessor;
+import co.rsk.federate.btcreleaseclient.BtcPegoutClientStorageSynchronizer;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.config.SignerConfig;
@@ -43,10 +43,10 @@ import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
 import co.rsk.federate.signing.hsm.requirements.AncestorBlockUpdater;
-import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
+import co.rsk.federate.signing.hsm.requirements.PegoutSigningRequirementsEnforcer;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
@@ -75,7 +75,7 @@ public class FedNodeRunner implements NodeRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(FedNodeRunner.class);
     private final BtcToRskClient btcToRskClientActive;
     private final BtcToRskClient btcToRskClientRetiring;
-    private final BtcReleaseClient btcReleaseClient;
+    private final BtcPegoutClient btcPegoutClient;
     private final FederatorSupport federatorSupport;
     private final FederationWatcher federationWatcher;
     private final FederateLogger federateLogger;
@@ -97,7 +97,7 @@ public class FedNodeRunner implements NodeRunner {
     public FedNodeRunner(
         BtcToRskClient btcToRskClientActive,
         BtcToRskClient btcToRskClientRetiring,
-        BtcReleaseClient btcReleaseClient,
+        BtcPegoutClient btcPegoutClient,
         FederationWatcher federationWatcher,
         FederatorSupport federatorSupport,
         FederateLogger federateLogger,
@@ -110,7 +110,7 @@ public class FedNodeRunner implements NodeRunner {
     ) {
         this.btcToRskClientActive = btcToRskClientActive;
         this.btcToRskClientRetiring = btcToRskClientRetiring;
-        this.btcReleaseClient = btcReleaseClient;
+        this.btcPegoutClient = btcPegoutClient;
         this.federationWatcher = federationWatcher;
         this.federatorSupport = federatorSupport;
         this.federateLogger = federateLogger;
@@ -313,30 +313,30 @@ public class FedNodeRunner implements NodeRunner {
                 hsmBookkeepingService.start();
             }
             federateLogger.log();
-            BtcReleaseClientStorageAccessor btcReleaseClientStorageAccessor = new BtcReleaseClientStorageAccessor(config);
-            btcReleaseClient.setup(
+            BtcPegoutClientStorageAccessor btcPegoutClientStorageAccessor = new BtcPegoutClientStorageAccessor(config);
+            btcPegoutClient.setup(
                 signer,
                 config.getActivationConfig(),
                 new SignerMessageBuilderFactory(
                     fedNodeContext.getReceiptStore()
                 ),
-                new ReleaseCreationInformationGetter(
+                new PegoutCreationInformationGetter(
                     fedNodeContext.getReceiptStore(),
                     fedNodeContext.getBlockStore()
                 ),
-                new ReleaseRequirementsEnforcer(
+                new PegoutSigningRequirementsEnforcer(
                     new AncestorBlockUpdater(
                         fedNodeContext.getBlockStore(),
                         hsmBookkeepingClient
                     )
                 ),
-                btcReleaseClientStorageAccessor,
-                new BtcReleaseClientStorageSynchronizer(
+                btcPegoutClientStorageAccessor,
+                new BtcPegoutClientStorageSynchronizer(
                     fedNodeContext.getBlockStore(),
                     fedNodeContext.getReceiptStore(),
                     fedNodeContext.getNodeBlockProcessor(),
-                    btcReleaseClientStorageAccessor,
-                    config.getBtcReleaseClientInitializationMaxDepth()
+                    btcPegoutClientStorageAccessor,
+                    config.getBtcPegoutClientInitializationMaxDepth()
                 )
             );
             federationWatcher.setup(federationProvider);
@@ -384,14 +384,14 @@ public class FedNodeRunner implements NodeRunner {
     // TODO: This this method (and this whole class)
     private void triggerClientChange(BtcToRskClient client, Optional<Federation> federation) {
         client.stop();
-        federation.ifPresent(btcReleaseClient::stop);
+        federation.ifPresent(btcPegoutClient::stop);
         // Only start if this federator is part of the new federation
         if (federation.isPresent() && federation.get().isMember(this.member)) {
             String federationAddress = federation.get().getAddress().toString();
-            LOGGER.debug("[triggerClientChange] Starting lock and release clients since I belong to federation {}", federationAddress);
+            LOGGER.debug("[triggerClientChange] Starting pegin and pegout clients since I belong to federation {}", federationAddress);
             LOGGER.info("[triggerClientChange] Joined to {} federation", federationAddress);
             client.start(federation.get());
-            btcReleaseClient.start(federation.get());
+            btcPegoutClient.start(federation.get());
         } else {
             LOGGER.warn("[triggerClientChange] This federator node is not part of the new federation. Check your configuration for signers BTC, RSK and MST keys");
         }

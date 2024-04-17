@@ -26,7 +26,7 @@ import co.rsk.federate.signing.hsm.client.HSMSigningClient;
 import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
 import co.rsk.federate.signing.hsm.client.HSMSignature;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
-import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.signature.ECDSASignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +121,7 @@ public class ECDSAHSMSigner implements ECDSASigner {
     }
 
     @Override
-    public ECKey.ECDSASignature sign(KeyId keyId, SignerMessage message) throws SignerException {
+    public ECDSASignature sign(KeyId keyId, SignerMessage message) throws SignerException {
         return invokeWithVersionRetry(keyId, client1 -> {
             HSMSignature signature = client1.sign(keyIdMapping.get(keyId), message);
             return signature.toEthSignature();

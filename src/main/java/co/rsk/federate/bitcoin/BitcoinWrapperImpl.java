@@ -349,7 +349,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                     listener.onTransaction(tx);
                 }
                 if (PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
-                    LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a release", tx.getWTxId());
+                    LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a pegout", tx.getWTxId());
                     listener.onTransaction(tx);
                 }
             }

@@ -30,6 +30,7 @@ import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import org.ethereum.crypto.ECKey;
 import org.bouncycastle.util.encoders.Hex;
+import org.ethereum.crypto.signature.ECDSASignature;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -85,7 +86,7 @@ public class HSMChecker {
                 System.out.printf("Public key: %s\n", Hex.toHexString(hsmPublicKey.getPubKey()));
 
                 HSMSignature hsmSignature = client.sign(keyId, messageObject);
-                ECKey.ECDSASignature signature = hsmSignature.toEthSignature();
+                ECDSASignature signature = hsmSignature.toEthSignature();
 
                 boolean signatureValid = hsmPublicKey.verify(MESSAGE_HASH.getBytes(), signature);
 

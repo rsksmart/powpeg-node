@@ -19,7 +19,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class BtcReleaseClientFileStorageImplTest {
+class BtcPegoutClientFileStorageImplTest {
 
     private static final String DIRECTORY_PATH = "src/test/java/co/rsk/federate/io" + File.separator + "peg";
     private static final String FILE_PATH = DIRECTORY_PATH + File.separator + "btcReleaseClient.rlp";
@@ -40,92 +40,92 @@ class BtcReleaseClientFileStorageImplTest {
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
-        BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
+        BtcPegoutClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
-        BtcReleaseClientFileReadResult result = storage.read();
+        BtcPegoutClientFileReadResult result = storage.read();
 
         assertTrue(result.getSuccess());
-        assertTrue(result.getData().getReleaseHashesMap().isEmpty());
+        assertTrue(result.getData().getPegoutHashesMap().isEmpty());
     }
 
     @Test
     void read_empty_file() throws IOException {
-        BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
+        BtcPegoutClientFileStorageInfo storageInfo = mock(BtcPegoutClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         createFile(storageInfo, new byte[]{});
 
-        BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
+        BtcPegoutClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
-        BtcReleaseClientFileReadResult result = storage.read();
+        BtcPegoutClientFileReadResult result = storage.read();
 
         assertTrue(result.getSuccess());
-        assertTrue(result.getData().getReleaseHashesMap().isEmpty());
+        assertTrue(result.getData().getPegoutHashesMap().isEmpty());
     }
 
     @Test
     void read_trash_file() throws IOException {
-        BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
+        BtcPegoutClientFileStorageInfo storageInfo = mock(BtcPegoutClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         createFile(storageInfo, new byte[]{ 6, 6, 6 });
 
-        BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
+        BtcPegoutClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
-        BtcReleaseClientFileReadResult result = storage.read();
+        BtcPegoutClientFileReadResult result = storage.read();
 
         assertFalse(result.getSuccess());
     }
 
     @Test
     void write_null_data() {
-        BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
+        BtcPegoutClientFileStorageInfo storageInfo = mock(BtcPegoutClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
-        BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
+        BtcPegoutClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
         assertThrows(IOException.class, () -> storage.write(null));
     }
 
     @Test
     void write_empty_data() throws Exception {
-        BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
+        BtcPegoutClientFileStorageInfo storageInfo = mock(BtcPegoutClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
-        BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
+        BtcPegoutClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
-        storage.write(new BtcReleaseClientFileData());
+        storage.write(new BtcPegoutClientFileData());
 
-        BtcReleaseClientFileReadResult result = storage.read();
+        BtcPegoutClientFileReadResult result = storage.read();
 
         assertTrue(result.getSuccess());
 
-        assertEquals(0, result.getData().getReleaseHashesMap().size());
+        assertEquals(0, result.getData().getPegoutHashesMap().size());
     }
 
     @Test
     void write_and_read_ok() throws Exception {
-        BtcReleaseClientFileStorageInfo storageInfo = mock(BtcReleaseClientFileStorageInfo.class);
+        BtcPegoutClientFileStorageInfo storageInfo = mock(BtcPegoutClientFileStorageInfo.class);
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
-        BtcReleaseClientFileData fileData = new BtcReleaseClientFileData();
-        fileData.getReleaseHashesMap().putAll(getReleaseHashesData());
+        BtcPegoutClientFileData fileData = new BtcPegoutClientFileData();
+        fileData.getPegoutHashesMap().putAll(getReleaseHashesData());
         fileData.setBestBlockHash(createHash(1));
 
-        BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
+        BtcPegoutClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
         storage.write(fileData);
 
-        BtcReleaseClientFileReadResult result = storage.read();
+        BtcPegoutClientFileReadResult result = storage.read();
 
         assertTrue(result.getSuccess());
 
-        assertEquals(fileData.getReleaseHashesMap(), result.getData().getReleaseHashesMap());
+        assertEquals(fileData.getPegoutHashesMap(), result.getData().getPegoutHashesMap());
         assertEquals(fileData.getBestBlockHash(), result.getData().getBestBlockHash());
     }
 
@@ -135,7 +135,7 @@ class BtcReleaseClientFileStorageImplTest {
         when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
-        BtcReleaseClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
+        BtcPegoutClientFileStorage storage = getBtcReleaseClientFileStorage(storageInfo);
 
         assertEquals(storageInfo, storage.getInfo());
     }
@@ -147,8 +147,8 @@ class BtcReleaseClientFileStorageImplTest {
         return data;
     }
 
-    private BtcReleaseClientFileStorage getBtcReleaseClientFileStorage(FileStorageInfo storageInfo) {
-        return new BtcReleaseClientFileStorageImpl(storageInfo);
+    private BtcPegoutClientFileStorage getBtcReleaseClientFileStorage(FileStorageInfo storageInfo) {
+        return new BtcPegoutClientFileStorageImpl(storageInfo);
     }
 
     private void clean() throws IOException {

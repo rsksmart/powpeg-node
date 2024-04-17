@@ -20,8 +20,8 @@ import org.ethereum.vm.LogInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BtcReleaseClientStorageSynchronizer {
-    private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClientStorageSynchronizer.class);
+public class BtcPegoutClientStorageSynchronizer {
+    private static final Logger logger = LoggerFactory.getLogger(BtcPegoutClientStorageSynchronizer.class);
 
     private static final DataWord RELEASE_REQUESTED_TOPIC = DataWord.valueOf(
         BridgeEvents.RELEASE_REQUESTED.getEvent().encodeSignatureLong());
@@ -34,16 +34,16 @@ public class BtcReleaseClientStorageSynchronizer {
     private final int timerDelay;
     private final int maxInitializationDepth;
 
-    private BtcReleaseClientStorageAccessor storageAccessor;
+    private BtcPegoutClientStorageAccessor storageAccessor;
     private ScheduledExecutorService syncTimer;
 
     private boolean isSynced;
 
-    public BtcReleaseClientStorageSynchronizer(
+    public BtcPegoutClientStorageSynchronizer(
         BlockStore blockStore,
         ReceiptStore receiptStore,
         NodeBlockProcessor nodeBlockProcessor,
-        BtcReleaseClientStorageAccessor storageAccessor,
+        BtcPegoutClientStorageAccessor storageAccessor,
         int maxInitializationDepth
     ) {
         this(
@@ -57,11 +57,11 @@ public class BtcReleaseClientStorageSynchronizer {
             maxInitializationDepth);
     }
 
-    public BtcReleaseClientStorageSynchronizer(
+    public BtcPegoutClientStorageSynchronizer(
         BlockStore blockStore,
         ReceiptStore receiptStore,
         NodeBlockProcessor nodeBlockProcessor,
-        BtcReleaseClientStorageAccessor storageAccessor,
+        BtcPegoutClientStorageAccessor storageAccessor,
         ScheduledExecutorService executorService,
         int timerInitialDelayInMs,
         int timerDelayInMs,
@@ -93,63 +93,36 @@ public class BtcReleaseClientStorageSynchronizer {
 
         try {
             Optional<Keccak256> storageBestBlockHash = this.storageAccessor.getBestBlockHash();
+
             Block storageBestBlock = null;
             if (storageBestBlockHash.isPresent()) {
-                storageBestBlock = blockStore.getBlockByHash(storageBestBlockHash.get().getBytes());
-                if (storageBestBlock == null) {
-                    logger.warn(
-                        "BtcReleaseClientStorage best block hash doesn't exist in blockchain. {}",
-                        storageBestBlockHash.get()
-                    );
-                } else {
-                    Block blockInMainchain = blockStore.getChainBlockByNumber(storageBestBlock.getNumber());
-                    if (blockInMainchain == null ||
-                        !blockInMainchain.getHash().equals(storageBestBlockHash.get())
-                    ) {
-                        logger.warn(
-                            "BtcReleaseClientStorage best block hash doesn't belong to mainchain. ({})",
-                            storageBestBlockHash
-                        );
-                        storageBestBlock = null;
-                        logger.info("refreshing file");
-                    }
-                }
+                storageBestBlock = getStorageBestBlock(storageBestBlockHash.get());
             } else {
-                logger.info("no data in file");
+                logger.info("[sync] no data in file");
             }
 
-            Block blockToSearch = storageBestBlock;
-            // If there is no data in the file, set a limit to avoid looking up all the blockchain
+            if (isStorageSync(storageBestBlock)) {
+                logger.info("[sync] Storage already on sync");
+                return;
+            }
+
+            Block fromBlock;
+            /* If there is no data in the file, set a limit to avoid looking up all the blockchain */
             if (storageBestBlock == null) {
                 long lastBlockNumberToSearch = blockStore.getBestBlock().getNumber() - this.maxInitializationDepth;
-                blockToSearch = blockStore.getChainBlockByNumber(Math.max(lastBlockNumberToSearch, 0));
+                fromBlock = blockStore.getChainBlockByNumber(Math.max(lastBlockNumberToSearch, 0));
             } else {
-                if (blockToSearch.getNumber() == blockStore.getBestBlock().getNumber()) {
-                    logger.info("[sync] Storage already on sync");
-                    this.isSynced = true;
-                    this.syncTimer.shutdown();
-                    return;
-                }
-                blockToSearch = blockStore.getChainBlockByNumber(blockToSearch.getNumber() + 1);
+                fromBlock = blockStore.getChainBlockByNumber(storageBestBlock.getNumber() + 1);
             }
 
             logger.info(
-                "going to sync from block {} ({})",
-                blockToSearch.getNumber(),
-                blockToSearch.getHash()
+                "[sync] going to sync from block {} ({})",
+                fromBlock.getNumber(),
+                fromBlock.getHash()
             );
 
-            while(blockToSearch != null && blockStore.getBestBlock().getNumber() >= blockToSearch.getNumber()) {
-                logger.trace("[sync] going to fetch block {}({})", blockToSearch.getNumber(), blockToSearch.getHash());
-                List<TransactionReceipt> receipts = new ArrayList<>();
-                for(Transaction transaction: blockToSearch.getTransactionsList()) {
-                    TransactionReceipt receipt = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore).orElseThrow(NullPointerException::new).getReceipt();
-                    receipt.setTransaction(transaction);
-                    receipts.add(receipt);
-                }
-                checkLogsForReleaseRequested(blockToSearch, receipts);
-                blockToSearch = blockStore.getChainBlockByNumber(blockToSearch.getNumber() + 1);
-            }
+            fetchNewBlocks(fromBlock);
+
             logger.info(
                 "[sync] Finished sync, storage has {} elements, and its best block is {}",
                 storageAccessor.getMapSize(),
@@ -158,8 +131,55 @@ public class BtcReleaseClientStorageSynchronizer {
             this.isSynced = true;
             this.syncTimer.shutdown();
         } catch (Exception e) {
-            logger.error("[sync] Problem syncing BtcReleaseClientStorage", e);
+            logger.error("[sync] Problem syncing BtcPegoutClientStorage", e);
         }
+    }
+
+    private void fetchNewBlocks(Block blockToSearch) {
+        Block blockToFetch = blockToSearch;
+        while(blockToFetch != null && blockStore.getBestBlock().getNumber() >= blockToFetch.getNumber()) {
+            logger.trace("[sync] going to fetch block {}({})", blockToFetch.getNumber(), blockToFetch.getHash());
+            List<TransactionReceipt> receipts = new ArrayList<>();
+            for(Transaction transaction: blockToFetch.getTransactionsList()) {
+                TransactionReceipt receipt = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore).orElseThrow(NullPointerException::new).getReceipt();
+                receipt.setTransaction(transaction);
+                receipts.add(receipt);
+            }
+            checkLogsForReleaseRequested(blockToFetch, receipts);
+            blockToFetch = blockStore.getChainBlockByNumber(blockToFetch.getNumber() + 1);
+        }
+    }
+
+    private boolean isStorageSync(Block storageBestBlock) {
+        if (storageBestBlock != null && storageBestBlock.getNumber() == blockStore.getBestBlock().getNumber()) {
+            this.isSynced = true;
+            this.syncTimer.shutdown();
+            return true;
+        }
+        return false;
+    }
+
+    private Block getStorageBestBlock(Keccak256 storageBestBlockHash) {
+        Block storageBestBlock = blockStore.getBlockByHash(storageBestBlockHash.getBytes());
+        if (storageBestBlock == null) {
+            logger.warn(
+                "[sync] BtcPegoutClientStorage best block hash doesn't exist in blockchain. {}",
+                storageBestBlockHash
+            );
+        } else {
+            Block blockInMainchain = blockStore.getChainBlockByNumber(storageBestBlock.getNumber());
+            if (blockInMainchain == null ||
+                !blockInMainchain.getHash().equals(storageBestBlockHash)
+            ) {
+                logger.warn(
+                    "[sync] BtcPegoutClientStorage best block hash doesn't belong to mainchain. ({})",
+                    storageBestBlockHash
+                );
+                storageBestBlock = null;
+                logger.info("refreshing file");
+            }
+        }
+        return storageBestBlock;
     }
 
     private void checkLogsForReleaseRequested(Block block, List<TransactionReceipt> receipts) {

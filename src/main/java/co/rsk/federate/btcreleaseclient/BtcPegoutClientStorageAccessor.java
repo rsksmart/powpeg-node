@@ -3,11 +3,11 @@ package co.rsk.federate.btcreleaseclient;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.config.FedNodeSystemProperties;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileData;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileReadResult;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorage;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorageImpl;
-import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorageInfo;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcPegoutClientFileData;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcPegoutClientFileReadResult;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcPegoutClientFileStorage;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcPegoutClientFileStorageImpl;
+import co.rsk.federate.io.btcreleaseclientstorage.BtcPegoutClientFileStorageInfo;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -17,54 +17,54 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BtcReleaseClientStorageAccessor {
-    private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClientStorageAccessor.class);
+public class BtcPegoutClientStorageAccessor {
+    private static final Logger logger = LoggerFactory.getLogger(BtcPegoutClientStorageAccessor.class);
 
     private static final int DEFAULT_DELAY_IN_MS = 5;
     private static final int DEFAULT_MAX_DELAYS = 5;
-    private final BtcReleaseClientFileStorage btcReleaseClientFileStorage;
-    private final BtcReleaseClientFileData fileData;
+    private final BtcPegoutClientFileStorage btcPegoutClientFileStorage;
+    private final BtcPegoutClientFileData fileData;
     private final int maxDelays;
     private final int delayInMs;
     // Delay writing to avoid slowing down operations
     private final ScheduledExecutorService writeTimer;
-    private ScheduledFuture task;
+    private ScheduledFuture<?> task;
     private int delays;
 
-    public BtcReleaseClientStorageAccessor(FedNodeSystemProperties systemProperties) throws InvalidStorageFileException {
+    public BtcPegoutClientStorageAccessor(FedNodeSystemProperties systemProperties) throws InvalidStorageFileException {
         this(
             Executors.newSingleThreadScheduledExecutor(),
-            new BtcReleaseClientFileStorageImpl(
-                new BtcReleaseClientFileStorageInfo(systemProperties)
+            new BtcPegoutClientFileStorageImpl(
+                new BtcPegoutClientFileStorageInfo(systemProperties)
             ),
             DEFAULT_DELAY_IN_MS,
             DEFAULT_MAX_DELAYS
         );
     }
 
-    public BtcReleaseClientStorageAccessor(
+    public BtcPegoutClientStorageAccessor(
         ScheduledExecutorService executorService,
-        BtcReleaseClientFileStorage btcReleaseClientFileStorage,
+        BtcPegoutClientFileStorage btcPegoutClientFileStorage,
         int delaysInMs,
         int maxDelays
     ) throws InvalidStorageFileException {
 
-        this.btcReleaseClientFileStorage = btcReleaseClientFileStorage;
+        this.btcPegoutClientFileStorage = btcPegoutClientFileStorage;
         this.delayInMs = delaysInMs;
         this.maxDelays = maxDelays;
 
-        BtcReleaseClientFileReadResult readResult;
+        BtcPegoutClientFileReadResult readResult;
         synchronized (this) {
             try {
-                readResult = this.btcReleaseClientFileStorage.read();
+                readResult = this.btcPegoutClientFileStorage.read();
             } catch (Exception e) {
-                String message = "Error reading storage file for BtcReleaseClient";
+                String message = "Error reading storage file for BtcPegoutClient";
                 logger.error(message);
                 throw new InvalidStorageFileException(message, e);
             }
         }
-        if (!readResult.getSuccess()) {
-            String message = "Error reading storage file for BtcReleaseClient";
+        if (Boolean.FALSE.equals(readResult.getSuccess())) {
+            String message = "Error reading storage file for BtcPegoutClient";
             logger.error(message);
             throw new InvalidStorageFileException(message);
         }
@@ -77,9 +77,9 @@ public class BtcReleaseClientStorageAccessor {
     private void writeFile() {
         synchronized (this) {
             try {
-                this.btcReleaseClientFileStorage.write(fileData);
+                this.btcPegoutClientFileStorage.write(fileData);
             } catch(IOException e) {
-                String message = "[writeFile] Error writing storage file for BtcReleaseClient";
+                String message = "[writeFile] Error writing storage file for BtcPegoutClient";
                 logger.error(message, e);
             }
         }
@@ -118,20 +118,20 @@ public class BtcReleaseClientStorageAccessor {
     }
 
     public boolean hasBtcTxHash(Sha256Hash btcTxHash) {
-        return fileData.getReleaseHashesMap().containsKey(btcTxHash);
+        return fileData.getPegoutHashesMap().containsKey(btcTxHash);
     }
 
     public Keccak256 getRskTxHash(Sha256Hash btcTxHash) {
-        return fileData.getReleaseHashesMap().get(btcTxHash);
+        return fileData.getPegoutHashesMap().get(btcTxHash);
     }
 
     public void putBtcTxHashRskTxHash(Sha256Hash btcTxHash, Keccak256 rskTxHash) {
         logger.trace("[putBtcTxHashRskTxHash] btc tx hash {} => rsk tx hash {}", btcTxHash, rskTxHash);
-        fileData.getReleaseHashesMap().put(btcTxHash, rskTxHash);
+        fileData.getPegoutHashesMap().put(btcTxHash, rskTxHash);
         signalWriting();
     }
 
     public int getMapSize() {
-        return fileData.getReleaseHashesMap().size();
+        return fileData.getPegoutHashesMap().size();
     }
 }

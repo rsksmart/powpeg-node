@@ -40,16 +40,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 
-class BtcReleaseClientStorageSynchronizerTest {
+class BtcPegoutClientStorageSynchronizerTest {
 
     @Test
     void isSynced_returns_false_after_instantiation() {
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
+        BtcPegoutClientStorageSynchronizer storageSynchronizer =
+            new BtcPegoutClientStorageSynchronizer(
                 mock(BlockStore.class),
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
-                mock(BtcReleaseClientStorageAccessor.class),
+                mock(BtcPegoutClientStorageAccessor.class),
                 mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
                 1000,
                 100,
@@ -61,10 +61,10 @@ class BtcReleaseClientStorageSynchronizerTest {
 
     @Test
     void processBlock_before_sync_doesnt_do_anything() {
-        BtcReleaseClientStorageAccessor storageAccessor = mock(BtcReleaseClientStorageAccessor.class);
+        BtcPegoutClientStorageAccessor storageAccessor = mock(BtcPegoutClientStorageAccessor.class);
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
+        BtcPegoutClientStorageSynchronizer storageSynchronizer =
+            new BtcPegoutClientStorageSynchronizer(
                 mock(BlockStore.class),
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
@@ -102,12 +102,12 @@ class BtcReleaseClientStorageSynchronizerTest {
             return null;
         }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
+        BtcPegoutClientStorageSynchronizer storageSynchronizer =
+            new BtcPegoutClientStorageSynchronizer(
                 blockStore,
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
-                mock(BtcReleaseClientStorageAccessor.class),
+                mock(BtcPegoutClientStorageAccessor.class),
                 mockedExecutor,
                 0,
                 1,
@@ -133,7 +133,7 @@ class BtcReleaseClientStorageSynchronizerTest {
         when(blockStore.getChainBlockByNumber(2L)).thenReturn(bestBlock);
         when(blockStore.getBestBlock()).thenReturn(bestBlock);
 
-        BtcReleaseClientStorageAccessor storageAccessor = mock(BtcReleaseClientStorageAccessor.class);
+        BtcPegoutClientStorageAccessor storageAccessor = mock(BtcPegoutClientStorageAccessor.class);
         when(storageAccessor.getBestBlockHash()).thenReturn(Optional.of(firstHash));
 
         ScheduledExecutorService mockedExecutor = mock(ScheduledExecutorService.class);
@@ -144,8 +144,8 @@ class BtcReleaseClientStorageSynchronizerTest {
         }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
 
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
+        BtcPegoutClientStorageSynchronizer storageSynchronizer =
+            new BtcPegoutClientStorageSynchronizer(
                 blockStore,
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
@@ -218,7 +218,7 @@ class BtcReleaseClientStorageSynchronizerTest {
 
         when(blockStore.getBestBlock()).thenReturn(bestBlock);
 
-        BtcReleaseClientStorageAccessor storageAccessor = mock(BtcReleaseClientStorageAccessor.class);
+        BtcPegoutClientStorageAccessor storageAccessor = mock(BtcPegoutClientStorageAccessor.class);
 
         ScheduledExecutorService mockedExecutor = mock(ScheduledExecutorService.class);
         // Mock the executor to execute immediately
@@ -227,8 +227,8 @@ class BtcReleaseClientStorageSynchronizerTest {
             return null;
         }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
+        BtcPegoutClientStorageSynchronizer storageSynchronizer =
+            new BtcPegoutClientStorageSynchronizer(
                 blockStore,
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),
@@ -327,7 +327,7 @@ class BtcReleaseClientStorageSynchronizerTest {
 
         when(blockStore.getBestBlock()).thenReturn(bestBlock);
 
-        BtcReleaseClientStorageAccessor storageAccessor = mock(BtcReleaseClientStorageAccessor.class);
+        BtcPegoutClientStorageAccessor storageAccessor = mock(BtcPegoutClientStorageAccessor.class);
 
         ScheduledExecutorService mockedExecutor = mock(ScheduledExecutorService.class);
         // Mock the executor to execute immediately
@@ -336,8 +336,8 @@ class BtcReleaseClientStorageSynchronizerTest {
             return null;
         }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
+        BtcPegoutClientStorageSynchronizer storageSynchronizer =
+            new BtcPegoutClientStorageSynchronizer(
                 blockStore,
                 mock(ReceiptStore.class),
                 mock(NodeBlockProcessor.class),

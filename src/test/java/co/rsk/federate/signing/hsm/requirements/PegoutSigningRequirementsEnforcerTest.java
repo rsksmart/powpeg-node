@@ -8,27 +8,27 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import co.rsk.federate.signing.hsm.message.PegoutCreationInformation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class ReleaseRequirementsEnforcerTest {
+class PegoutSigningRequirementsEnforcerTest {
 
     private AncestorBlockUpdater ancestorBlockUpdater;
-    private ReleaseRequirementsEnforcer enforcer;
+    private PegoutSigningRequirementsEnforcer enforcer;
 
     @BeforeEach
     void setup() {
         ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
-        enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+        enforcer = new PegoutSigningRequirementsEnforcer(ancestorBlockUpdater);
     }
 
     @Test
     void enforce_does_nothing_if_version_one() throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+        PegoutSigningRequirementsEnforcer enforcer = new PegoutSigningRequirementsEnforcer(ancestorBlockUpdater);
 
-        enforcer.enforce(1, mock(ReleaseCreationInformation.class));
+        enforcer.enforce(1, mock(PegoutCreationInformation.class));
 
         verify(ancestorBlockUpdater, never()).ensureAncestorBlockInPosition(any());
     }
@@ -48,8 +48,8 @@ class ReleaseRequirementsEnforcerTest {
         test_enforce_version(ancestorBlockUpdater, enforcer, 4);
     }
 
-    void test_enforce_version(AncestorBlockUpdater ancestorBlockUpdater, ReleaseRequirementsEnforcer enforcer, int version) throws Exception {
-        enforcer.enforce(version, mock(ReleaseCreationInformation.class));
+    void test_enforce_version(AncestorBlockUpdater ancestorBlockUpdater, PegoutSigningRequirementsEnforcer enforcer, int version) throws Exception {
+        enforcer.enforce(version, mock(PegoutCreationInformation.class));
 
         verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
     }
@@ -58,15 +58,15 @@ class ReleaseRequirementsEnforcerTest {
     void enforce_version_two_updater_fails() throws Exception {
         AncestorBlockUpdater ancestorBlockUpdater = mock(AncestorBlockUpdater.class);
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
+        PegoutSigningRequirementsEnforcer enforcer = new PegoutSigningRequirementsEnforcer(ancestorBlockUpdater);
 
-        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(2, mock(ReleaseCreationInformation.class)));
+        assertThrows(PegoutSigningRequirementsEnforcerException.class, () -> enforcer.enforce(2, mock(PegoutCreationInformation.class)));
     }
 
     @Test
     void enforce_invalid_version() {
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(mock(AncestorBlockUpdater.class));
+        PegoutSigningRequirementsEnforcer enforcer = new PegoutSigningRequirementsEnforcer(mock(AncestorBlockUpdater.class));
 
-        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(-5, mock(ReleaseCreationInformation.class)));
+        assertThrows(PegoutSigningRequirementsEnforcerException.class, () -> enforcer.enforce(-5, mock(PegoutCreationInformation.class)));
     }
 }

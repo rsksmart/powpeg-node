@@ -67,7 +67,7 @@ class PowHSMSignerMessageBuilderTest {
         //Act
         PowHSMSignerMessageBuilder sigMessVersion2 = new PowHSMSignerMessageBuilder(
             receiptStore,
-            new ReleaseCreationInformation(
+            new PegoutCreationInformation(
                 block,
                 txReceipt,
                 rskTxHash,
@@ -112,7 +112,7 @@ class PowHSMSignerMessageBuilderTest {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.get(any(byte[].class), any(byte[].class))).thenReturn(Optional.empty());
 
-        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+        PegoutCreationInformation pegoutCreationInformation = new PegoutCreationInformation(
             block,
             transactionReceipt,
             rskTx.getHash(),
@@ -121,7 +121,7 @@ class PowHSMSignerMessageBuilderTest {
         );
         PowHSMSignerMessageBuilder sigMessVersion2 = new PowHSMSignerMessageBuilder(
             receiptStore,
-            releaseCreationInformation
+            pegoutCreationInformation
         );
         assertThrows(SignerMessageBuilderException.class, () -> sigMessVersion2.buildMessageForIndex(0));
     }
