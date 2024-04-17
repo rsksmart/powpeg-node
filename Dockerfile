@@ -1,4 +1,4 @@
-FROM openjdk:11-jdk-slim-buster AS build
+FROM openjdk:8-jdk-slim-buster AS build
 
 ARG RSK_RELEASE
 ENV RSK_VERSION $RSK_RELEASE
@@ -20,8 +20,8 @@ RUN gpg --keyserver https://secchannel.rsk.co/SUPPORT.asc --recv-keys 1DC9157991
     ./gradlew --no-daemon clean build -x test && \
     cp "build/libs/federate-node-$RSK_VERSION-all.jar" rsk.jar
 
-FROM openjdk:11-jre-slim-buster
-LABEL org.opencontainers.image.authors="ops@iovlabs.org"
+FROM openjdk:8-jre-slim-buster
+LABEL org.opencontainers.image.authors="ops@rootstocklabs.com"
 
 RUN useradd -ms /sbin/nologin -d /var/lib/rsk rsk
 USER rsk
@@ -34,4 +34,4 @@ ENV RSKJ_SYS_PROPS="-Dlogback.configurationFile='/etc/rsk/logback.xml' -Drsk.con
 ENV RSKJ_CLASS=co.rsk.federate.FederateRunner
 ENV RSKJ_OPTS=""
 
-ENTRYPOINT ["/bin/sh", "-c", "java $DEFAULT_JVM_OPTS $RSKJ_SYS_PROPS -cp rsk.jar $RSKJ_CLASS $RSKJ_OPTS \"${@}\"", "--"]
+ENTRYPOINT ["/bin/sh", "-c", "exec java $DEFAULT_JVM_OPTS $RSKJ_SYS_PROPS -cp rsk.jar $RSKJ_CLASS $RSKJ_OPTS \"${@}\"", "--"]

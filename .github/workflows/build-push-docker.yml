@@ -5,8 +5,8 @@ on:
       - '*'
 
 env:
-  GHCR_TAG: "ghcr.io/rsksmart/powpeg-node"
-  DOCKERHUB_TAG: "rsk/powpeg-node"
+  GHCR_REPO: "ghcr.io/rsksmart/powpeg-node"
+  DOCKERHUB_REPO: "rsk/powpeg-node"
 
 jobs:
   build:
@@ -24,8 +24,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.DOCKERHUB_TAG }}
-            ${{ env.GHCR_TAG }}
+            ${{ env.DOCKERHUB_REPO }}
+            ${{ env.GHCR_REPO }}
           tags: |
             type=ref,event=tag
             type=edge
@@ -60,5 +60,5 @@ jobs:
 
       - name: Push Images
         run: |
-          docker push ${{ env.DOCKERHUB_TAG }}
-          docker push ${{ env.GHCR_TAG }}
+          docker push ${{ env.DOCKERHUB_REPO }}
+          docker push ${{ env.GHCR_REPO }}
