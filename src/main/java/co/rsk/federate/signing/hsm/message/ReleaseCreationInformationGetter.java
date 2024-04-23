@@ -132,7 +132,8 @@ public class ReleaseCreationInformationGetter {
         Keccak256 informingRskTxHash
     ) throws HSMReleaseCreationInformationException {
         Block block = blockStore.getChainBlockByNumber(blockNumber);
-        // If the block cannot be found by its number, the event cannot be searched further.
+        // If the block cannot be found by its number, the event cannot be
+        // searched further.
         if (block == null) {
             throw new HSMReleaseCreationInformationException(
                     String.format("[searchEventInFollowingBlocks] Block not found. Transaction hash: [%s]", rskTxHash)
@@ -144,24 +145,30 @@ public class ReleaseCreationInformationGetter {
             blockNumber,
             block.getTransactionsList().size()
         );
-        for (Transaction transaction : block.getTransactionsList()) {
-            TransactionInfo transactionInfo = receiptStore.getInMainChain(transaction.getHash().getBytes(), blockStore).orElse(null);
-            TransactionReceipt transactionReceipt = transactionInfo.getReceipt();
-            transactionReceipt.setTransaction(transaction);
-            Optional<ReleaseCreationInformation> optionalReleaseCreationInformation =
-                getInformationFromEvent(block, transactionReceipt, btcTransaction, rskTxHash, informingRskTxHash);
-            if (optionalReleaseCreationInformation.isPresent()) {
-                return optionalReleaseCreationInformation.get();
-            }
+        for (Transaction tx : block.getTransactionsList()) {
+            TransactionReceipt txReceipt = receiptStore.getInMainChain(tx.getHash().getBytes(), blockStore)
+                .map(TransactionInfo::getReceipt)
+                .orElseThrow(() -> new HSMReleaseCreationInformationException(
+                    String.format("[searchEventInFollowingBlocks] Transaction hash [%s] should exist", tx.getHash())));
 
+            txReceipt.setTransaction(tx);
+
+            Optional<ReleaseCreationInformation> releaseCreationInformation =
+                getInformationFromEvent(block, txReceipt, btcTransaction, rskTxHash, informingRskTxHash);
+            if (releaseCreationInformation.isPresent()) {
+                return releaseCreationInformation.get();
+            }
         }
-        // If the block being checked is the last block, and was not found, then the event does not exist.
-        if (block.getNumber() == (blockStore.getBestBlock().getNumber())) {
+
+        // If the block being checked is the last block, and was not found,
+        // then the event does not exist.
+        if (block.getNumber() == blockStore.getBestBlock().getNumber()) {
             throw new HSMReleaseCreationInformationException(
                     String.format("[searchEventInFollowingBlocks] Event not found. Transaction hash: [%s]", rskTxHash)
             );
         }
-        // If the event was not found in this block, the next block is requested and the same search is performed.
+        // If the event was not found in this block, the next block is
+        // requested and the same search is performed.
         return searchEventInFollowingBlocks(blockNumber + 1, btcTransaction, rskTxHash, informingRskTxHash);
     }
 

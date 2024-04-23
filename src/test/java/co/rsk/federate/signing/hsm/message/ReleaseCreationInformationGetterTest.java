@@ -298,4 +298,61 @@ class ReleaseCreationInformationGetterTest {
             btcTransaction
         ));
     }
+
+    @Test
+    void getTxInfoToSign_whenTransactionReceiptNotFoundInSubsequentBlock_shouldThrowHSMRelaseCreationInformationException() {
+        // The event that is searched is not found in the first block
+        Keccak256 blockHash = TestUtils.createHash(3);
+        Keccak256 rskTxHash = TestUtils.createHash(1);
+
+        Transaction transaction = mock(Transaction.class);
+        when(transaction.getHash()).thenReturn(rskTxHash);
+        when(transaction.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
+
+        TransactionReceipt transactionReceipt = mock(TransactionReceipt.class);
+        when(transactionReceipt.getTransaction()).thenReturn(transaction);
+        when(transactionReceipt.getLogInfoList()).thenReturn(new ArrayList<>());
+
+        TransactionInfo transactionInfo = mock(TransactionInfo.class);
+        when(transactionInfo.getReceipt()).thenReturn(transactionReceipt);
+        when(transactionInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+
+        Block block = mock(Block.class);
+        when(block.getHash()).thenReturn(blockHash);
+        when(block.getTransactionsList()).thenReturn(Collections.singletonList(transaction));
+
+        // The event is now searched in the next block
+        Keccak256 secondBlockHash = TestUtils.createHash(5);
+        Keccak256 rskTxHashInSecondBlock = TestUtils.createHash(4);
+
+        Transaction transactionInSecondBlock = mock(Transaction.class);
+        when(transactionInSecondBlock.getHash()).thenReturn(rskTxHashInSecondBlock);
+
+        Block secondBlock = mock(Block.class);
+        when(secondBlock.getHash()).thenReturn(secondBlockHash);
+        when(secondBlock.getTransactionsList()).thenReturn(Collections.singletonList(transactionInSecondBlock));
+
+        BlockStore blockStore = mock(BlockStore.class);
+        when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
+        when(blockStore.getChainBlockByNumber(anyLong())).thenReturn(secondBlock);
+
+        ReceiptStore receiptStore = mock(ReceiptStore.class);
+        when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
+        when(receiptStore.getInMainChain(rskTxHashInSecondBlock.getBytes(), blockStore)).thenReturn(Optional.empty());
+
+        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+                receiptStore,
+                blockStore
+        );
+
+        BtcTransaction btcTransaction = mock(BtcTransaction.class);
+        byte[] btcTxHash = TestUtils.createHash(2).getBytes();
+        when(btcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
+
+        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getTxInfoToSign(
+            2,
+            rskTxHash,
+            btcTransaction
+        ));
+    }
 }
