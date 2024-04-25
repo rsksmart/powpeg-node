@@ -136,7 +136,7 @@ public class ReleaseCreationInformationGetter {
         // searched further.
         if (block == null) {
             throw new HSMReleaseCreationInformationException(
-                    String.format("[searchEventInFollowingBlocks] Block not found. Transaction hash: [%s]", rskTxHash)
+                    String.format("[searchEventInFollowingBlocks] Block not found. Rsk Transaction hash: [%s]", rskTxHash)
             );
         }
 
@@ -145,16 +145,16 @@ public class ReleaseCreationInformationGetter {
             blockNumber,
             block.getTransactionsList().size()
         );
-        for (Transaction tx : block.getTransactionsList()) {
-            TransactionReceipt txReceipt = receiptStore.getInMainChain(tx.getHash().getBytes(), blockStore)
+        for (Transaction rskTx : block.getTransactionsList()) {
+            TransactionReceipt rskTxReceipt = receiptStore.getInMainChain(rskTx.getHash().getBytes(), blockStore)
                 .map(TransactionInfo::getReceipt)
                 .orElseThrow(() -> new HSMReleaseCreationInformationException(
-                    String.format("[searchEventInFollowingBlocks] Transaction hash [%s] should exist", tx.getHash())));
+                    String.format("[searchEventInFollowingBlocks] Rsk Transaction hash [%s] should exist", rskTx.getHash())));
 
-            txReceipt.setTransaction(tx);
+            rskTxReceipt.setTransaction(rskTx);
 
             Optional<ReleaseCreationInformation> releaseCreationInformation =
-                getInformationFromEvent(block, txReceipt, btcTransaction, rskTxHash, informingRskTxHash);
+                getInformationFromEvent(block, rskTxReceipt, btcTransaction, rskTxHash, informingRskTxHash);
             if (releaseCreationInformation.isPresent()) {
                 return releaseCreationInformation.get();
             }
@@ -164,7 +164,7 @@ public class ReleaseCreationInformationGetter {
         // then the event does not exist.
         if (block.getNumber() == blockStore.getBestBlock().getNumber()) {
             throw new HSMReleaseCreationInformationException(
-                    String.format("[searchEventInFollowingBlocks] Event not found. Transaction hash: [%s]", rskTxHash)
+                    String.format("[searchEventInFollowingBlocks] Event not found. Rsk Transaction hash: [%s]", rskTxHash)
             );
         }
         // If the event was not found in this block, the next block is
