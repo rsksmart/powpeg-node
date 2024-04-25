@@ -307,11 +307,9 @@ class ReleaseCreationInformationGetterTest {
 
         Transaction transaction = mock(Transaction.class);
         when(transaction.getHash()).thenReturn(rskTxHash);
-        when(transaction.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
 
         TransactionReceipt transactionReceipt = mock(TransactionReceipt.class);
         when(transactionReceipt.getTransaction()).thenReturn(transaction);
-        when(transactionReceipt.getLogInfoList()).thenReturn(new ArrayList<>());
 
         TransactionInfo transactionInfo = mock(TransactionInfo.class);
         when(transactionInfo.getReceipt()).thenReturn(transactionReceipt);
@@ -321,7 +319,7 @@ class ReleaseCreationInformationGetterTest {
         when(block.getHash()).thenReturn(blockHash);
         when(block.getTransactionsList()).thenReturn(Collections.singletonList(transaction));
 
-        // The event is now searched in the next block
+        // The event is now searched in the following block
         Keccak256 secondBlockHash = TestUtils.createHash(5);
         Keccak256 rskTxHashInSecondBlock = TestUtils.createHash(4);
 
