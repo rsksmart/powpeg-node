@@ -227,11 +227,11 @@ public class BtcReleaseClient {
                     SINGLE_RELEASE_BTC_TOPIC_SOLIDITY.equals(info.getTopics().get(0)) :
                     SINGLE_RELEASE_BTC_TOPIC_RLP.equals(info.getTopics()));
 
-            Stream<BtcTransaction> pegoutBtcTxs = pegoutLogs.map(info -> solidityFormatIsActive ?
+            Stream<BtcTransaction> pegoutTxs = pegoutLogs.map(info -> solidityFormatIsActive ?
                     convertToBtcTxFromSolidityData(info.getData()) :
                     convertToBtcTxFromRLPData(info.getData()));
 
-            pegoutBtcTxs.forEach(BtcReleaseClient.this::onBtcRelease);
+            pegoutTxs.forEach(BtcReleaseClient.this::onBtcRelease);
         }
 
         private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
@@ -303,7 +303,7 @@ public class BtcReleaseClient {
                 storageAccessor.getRskTxHash(pegoutBtcTx.getHash()) :
                 pegoutCreationRskTxHash;
 
-            logger.debug("[tryGetReleaseInformation] Going to lookup pegoutCreationRskTxHash {} to sign", pegoutCreationRskTxHash);
+            logger.debug("[tryGetReleaseInformation] Going to lookup pegoutCreationRskTxHash {} to get pegout to sign", pegoutCreationRskTxHash);
 
             // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
             // -- Get Real Block where release_requested was emitted
