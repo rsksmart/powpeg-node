@@ -6,6 +6,7 @@ plugins {
     id 'application'
     id "jacoco"
     id "org.sonarqube" version "2.7.1"
+    id "com.diffplug.spotless" version "6.13.0"
 }
 
 def config = new ConfigSlurper().parse(new File("$projectDir/src/main/resources/version.properties").toURI().toURL())
@@ -74,6 +75,7 @@ ext {
     junitSuiteVersion = '1.9.0'
     mockitoVersion = '4.6.1'
     rskjcoreVersion = '6.2.0-SNAPSHOT'
+    // googleJavaFormatVersion = '1.7.0'
 }
 
 dependencies {
@@ -87,6 +89,7 @@ dependencies {
     implementation "javax.annotation:javax.annotation-api:${javaxAnnotationApiVersion}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDatabindVersion}"
     implementation "com.typesafe:config:${typesafeVersion}"
+  // implementation "com.google.googlejavaformat:google-java-format:${googleJavaFormatVersion}"
 
     runtimeOnly "org.slf4j:log4j-over-slf4j:${slf4jVersion}"
     runtimeOnly "ch.qos.logback:logback-core:${logbackVersion}"
@@ -187,5 +190,17 @@ static def amendPathIfNeeded(details) {
         def jarName = originalFile.parentFile.parentFile.name.split(".jar")[0]
         def newPath = originalFile.parentFile.name + "/" + jarName + "_" + originalFile.name
         details.path = newPath
+    }
+}
+
+spotless {
+    java {
+        // for demo purposes only one package
+        target 'src/*/java/**/log/*.java'
+        
+        googleJavaFormat()
+
+        indentWithSpaces()
+        trimTrailingWhitespace()
     }
 }
