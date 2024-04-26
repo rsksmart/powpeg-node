@@ -34,8 +34,8 @@ class ReleaseCreationInformationGetterTest {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
-        BtcTransaction btcTransaction = mock(BtcTransaction.class);
-        when(btcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
+        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
+        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
 
         CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
         byte[] releaseRequestedSignatureTopic = releaseRequestedEvent.encodeSignatureLong();
@@ -70,36 +70,36 @@ class ReleaseCreationInformationGetterTest {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
                 receiptStore,
                 blockStore
         );
         // HSM V2
-        createGetTxInfoToSign_returnOK(information, rskTxHash, btcTransaction, block, transactionReceipt, 2);
+        createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction, block, transactionReceipt, 2);
 
         // HSM V3
-        createGetTxInfoToSign_returnOK(information, rskTxHash, btcTransaction, block, transactionReceipt, 3);
+        createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction, block, transactionReceipt, 3);
 
         // HSM V4
-        createGetTxInfoToSign_returnOK(information, rskTxHash, btcTransaction, block, transactionReceipt, 4);
+        createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction, block, transactionReceipt, 4);
     }
 
-    private void createGetTxInfoToSign_returnOK(ReleaseCreationInformationGetter information,
+    private void createGetTxInfoToSign_returnOK(ReleaseCreationInformationGetter pegoutCreationInformation,
                                                Keccak256 rskTxHash,
-                                               BtcTransaction btcTransaction,
+                                               BtcTransaction pegoutBtcTransaction,
                                                Block block,
                                                TransactionReceipt transactionReceipt,
                                                int hsmVersion) throws HSMReleaseCreationInformationException {
-        ReleaseCreationInformation releaseCreationInformation = information.getTxInfoToSign(
+        ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(
             hsmVersion,
             rskTxHash,
-            btcTransaction
+            pegoutBtcTransaction
         );
 
         assertEquals(releaseCreationInformation.getBlock(), block);
         assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
         assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
-        assertEquals(btcTransaction, releaseCreationInformation.getBtcTransaction());
+        assertEquals(pegoutBtcTransaction, releaseCreationInformation.getBtcTransaction());
     }
 
     @Test
@@ -128,8 +128,8 @@ class ReleaseCreationInformationGetterTest {
         Keccak256 secondBlockHash = TestUtils.createHash(5);
         Keccak256 rskTxHashInSecondBlock = TestUtils.createHash(4);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
-        BtcTransaction btcTransaction = mock(BtcTransaction.class);
-        when(btcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
+        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
+        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
 
         CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
         byte[] releaseRequestedSignatureTopic = releaseRequestedEvent.encodeSignatureLong();
@@ -165,16 +165,16 @@ class ReleaseCreationInformationGetterTest {
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
         when(receiptStore.getInMainChain(rskTxHashInSecondBlock.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfoInSecondBlock));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
             receiptStore,
             blockStore
         );
-        ReleaseCreationInformation releaseCreationInformation = information.getTxInfoToSign(2, rskTxHash, btcTransaction);
+        ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(2, rskTxHash, pegoutBtcTransaction);
 
         assertEquals(secondBlock, releaseCreationInformation.getBlock());
         assertEquals(transactionReceiptInSecondBlock, releaseCreationInformation.getTransactionReceipt());
         assertEquals(rskTxHash, releaseCreationInformation.getReleaseRskTxHash());
-        assertEquals(btcTransaction, releaseCreationInformation.getBtcTransaction());
+        assertEquals(pegoutBtcTransaction, releaseCreationInformation.getBtcTransaction());
 
     }
 
@@ -183,8 +183,8 @@ class ReleaseCreationInformationGetterTest {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
-        BtcTransaction btcTransaction = mock(BtcTransaction.class);
-        when(btcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
+        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
+        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
 
         Transaction transaction = mock(Transaction.class);
         when(transaction.getHash()).thenReturn(rskTxHash);
@@ -202,15 +202,15 @@ class ReleaseCreationInformationGetterTest {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
             receiptStore,
             blockStore
         );
 
-        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getTxInfoToSign(
+        assertThrows(HSMReleaseCreationInformationException.class, () -> pegoutCreationInformation.getTxInfoToSign(
             2,
             rskTxHash,
-            btcTransaction
+            pegoutBtcTransaction
         ));
     }
 
@@ -219,8 +219,8 @@ class ReleaseCreationInformationGetterTest {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
-        BtcTransaction btcTransaction = mock(BtcTransaction.class);
-        when(btcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
+        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
+        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
 
         Transaction transaction = mock(Transaction.class);
         when(transaction.getHash()).thenReturn(rskTxHash);
@@ -243,15 +243,15 @@ class ReleaseCreationInformationGetterTest {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
             receiptStore,
             blockStore
         );
 
-        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getTxInfoToSign(
+        assertThrows(HSMReleaseCreationInformationException.class, () -> pegoutCreationInformation.getTxInfoToSign(
             2,
             rskTxHash,
-            btcTransaction
+            pegoutBtcTransaction
         ));
     }
 
@@ -260,8 +260,8 @@ class ReleaseCreationInformationGetterTest {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
         byte[] btcTxHash = TestUtils.createHash(2).getBytes();
-        BtcTransaction btcTransaction = mock(BtcTransaction.class);
-        when(btcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
+        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
+        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
 
         Transaction transaction = mock(Transaction.class);
         when(transaction.getHash()).thenReturn(rskTxHash);
@@ -287,15 +287,70 @@ class ReleaseCreationInformationGetterTest {
         ReceiptStore receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
 
-        ReleaseCreationInformationGetter information = new ReleaseCreationInformationGetter(
+        ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
                 receiptStore,
                 blockStore
         );
 
-        assertThrows(HSMReleaseCreationInformationException.class, () -> information.getTxInfoToSign(
+        assertThrows(HSMReleaseCreationInformationException.class, () -> pegoutCreationInformation.getTxInfoToSign(
             2,
             rskTxHash,
-            btcTransaction
+            pegoutBtcTransaction
+        ));
+    }
+
+    @Test
+    void getTxInfoToSign_whenTransactionReceiptNotFoundInSubsequentBlock_shouldThrowHSMReleaseCreationInformationException() {
+        // The event that is searched is not found in the first block
+        Keccak256 blockHash = TestUtils.createHash(3);
+        Keccak256 rskTxHash = TestUtils.createHash(1);
+
+        Transaction transaction = mock(Transaction.class);
+        when(transaction.getHash()).thenReturn(rskTxHash);
+
+        TransactionReceipt transactionReceipt = mock(TransactionReceipt.class);
+        when(transactionReceipt.getTransaction()).thenReturn(transaction);
+
+        TransactionInfo transactionInfo = mock(TransactionInfo.class);
+        when(transactionInfo.getReceipt()).thenReturn(transactionReceipt);
+        when(transactionInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+
+        Block block = mock(Block.class);
+        when(block.getHash()).thenReturn(blockHash);
+        when(block.getTransactionsList()).thenReturn(Collections.singletonList(transaction));
+
+        // The event is now searched in the following block
+        Keccak256 secondBlockHash = TestUtils.createHash(5);
+        Keccak256 rskTxHashInSecondBlock = TestUtils.createHash(4);
+
+        Transaction transactionInSecondBlock = mock(Transaction.class);
+        when(transactionInSecondBlock.getHash()).thenReturn(rskTxHashInSecondBlock);
+
+        Block secondBlock = mock(Block.class);
+        when(secondBlock.getHash()).thenReturn(secondBlockHash);
+        when(secondBlock.getTransactionsList()).thenReturn(Collections.singletonList(transactionInSecondBlock));
+
+        BlockStore blockStore = mock(BlockStore.class);
+        when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
+        when(blockStore.getChainBlockByNumber(anyLong())).thenReturn(secondBlock);
+
+        ReceiptStore receiptStore = mock(ReceiptStore.class);
+        when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(transactionInfo));
+        when(receiptStore.getInMainChain(rskTxHashInSecondBlock.getBytes(), blockStore)).thenReturn(Optional.empty());
+
+        ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
+                receiptStore,
+                blockStore
+        );
+
+        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
+        byte[] btcTxHash = TestUtils.createHash(2).getBytes();
+        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
+
+        assertThrows(HSMReleaseCreationInformationException.class, () -> pegoutCreationInformation.getTxInfoToSign(
+            2,
+            rskTxHash,
+            pegoutBtcTransaction
         ));
     }
 }
