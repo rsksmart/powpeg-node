@@ -217,7 +217,7 @@ spotless {
 }
 
 tasks.register('addPreCommitGitHooksOnBuild', Copy) {
-    from "$projectDir/gradle/spotless/pre_commit.sh"
+    from "$projectDir/gradle/spotless/spotless-pre-commit"
     into "$projectDir/.git/hooks"
 }
 compileJava.dependsOn addPreCommitGitHooksOnBuild
