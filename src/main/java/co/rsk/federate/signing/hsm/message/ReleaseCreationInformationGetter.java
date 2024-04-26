@@ -66,7 +66,7 @@ public class ReleaseCreationInformationGetter {
         TransactionInfo transactionInfo = receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore).orElse(null);
         if (transactionInfo == null) {
             String message = String.format(
-                "pegoutCreationRskTxHash %s could not be found in best chain",
+                "Rsk transaction %s where the pegout was created could not be found in best chain",
                 pegoutCreationRskTxHash
             );
             logger.error("[getTxInfoToSign] {}", message);
@@ -92,18 +92,18 @@ public class ReleaseCreationInformationGetter {
         try {
             ReleaseCreationInformation baseReleaseCreationInformation =
                 getBaseReleaseCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
-            Block block = baseReleaseCreationInformation.getPegoutCreationRskBlock();
+            Block block = baseReleaseCreationInformation.getPegoutCreationBlock();
             TransactionReceipt transactionReceipt = baseReleaseCreationInformation.getTransactionReceipt();
 
             // Get transaction from the block, searching by tx hash, and set it in the tx receipt
-            logger.trace("[getTxInfoToSign] Searching for pegoutCreationRskTxHash {} in block {} ({})", pegoutCreationRskTxHash, block.getHash(), block.getNumber());
+            logger.trace("[getTxInfoToSign] Searching for rsk transaction {} in block {} ({})", pegoutCreationRskTxHash, block.getHash(), block.getNumber());
             List<Transaction> transactions = block.getTransactionsList().stream()
                 .filter(t -> t.getHash().equals(pegoutCreationRskTxHash))
                 .collect(Collectors.toList());
             logger.trace("[getTxInfoToSign] Transactions found {}", transactions.size());
             if(transactions.size() != 1) {
                 String message = String.format(
-                    "pegoutCreationRskTxHash %s could not be found in block %s or more than 1 result obtained. Filter size: %d",
+                    "Rsk transaction %s could not be found in block %s or more than 1 result obtained. Filter size: %d",
                     pegoutCreationRskTxHash,
                     block.getHash().toHexString(),
                     transactions.size()
@@ -131,7 +131,7 @@ public class ReleaseCreationInformationGetter {
         // searched further.
         if (block == null) {
             throw new HSMReleaseCreationInformationException(
-                String.format("[searchEventInFollowingBlocks] Block not found. Rsk Transaction hash: [%s]", rskTxHash)
+                String.format("[searchEventInFollowingBlocks] Block not found. Rsk Transaction hash: [%s]", pegoutCreationRskTxHash)
             );
         }
 
@@ -164,7 +164,7 @@ public class ReleaseCreationInformationGetter {
         // then the event does not exist.
         if (block.getNumber() == blockStore.getBestBlock().getNumber()) {
             throw new HSMReleaseCreationInformationException(
-                String.format("[searchEventInFollowingBlocks] Event not found. pegoutCreationRskTxHash: [%s]", pegoutCreationRskTxHash)
+                String.format("[searchEventInFollowingBlocks] Event not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
             );
         }
         // If the event was not found in this block, the next block is
@@ -181,7 +181,7 @@ public class ReleaseCreationInformationGetter {
     ) {
         boolean hasLogs = !transactionReceipt.getLogInfoList().isEmpty();
         logger.trace(
-            "[getInformationFromEvent] pegoutCreationRskTxHash ({}) in block ({} - {}). has logs? {}",
+            "[getInformationFromEvent] Rsk Transaction ({}) in block ({} - {}). has logs? {}",
             transactionReceipt.getTransaction().getHash(),
             block.getNumber(),
             block.getHash(),

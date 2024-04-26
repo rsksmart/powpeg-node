@@ -266,7 +266,7 @@ public class BtcReleaseClient {
             logger.debug("[processReleases] Going to sign {} pegouts", pegoutsReadyToSign.size());
             // TODO: Sorting and then looping again is not efficient but we are making a compromise on performance here as we don't have that many release txs
             // Sort descending
-            pegoutsReadyToSign.sort((a, b) -> (int) (b.getPegoutCreationRskBlock().getNumber() - a.getPegoutCreationRskBlock().getNumber()));
+            pegoutsReadyToSign.sort((a, b) -> (int) (b.getPegoutCreationBlock().getNumber() - a.getPegoutCreationBlock().getNumber()));
             // Sign only the first element
             if (!pegoutsReadyToSign.isEmpty()) {
                 signRelease(version, pegoutsReadyToSign.get(0));
@@ -298,12 +298,12 @@ public class BtcReleaseClient {
             logger.trace("[tryGetReleaseInformation] pegout btcTxHash without signatures {}", pegoutBtcTx.getHash());
 
             logger.trace("[tryGetReleaseInformation] Is pegout btc in storage? {}", storageAccessor.hasBtcTxHash(pegoutBtcTx.getHash()));
-            // Try to get the pegoutCreationRskTxHash from the map in memory
+            // Try to get the rsk transaction from the map in memory  where the pegout was created
             Keccak256 pegoutCreationRskTxHashToUse = storageAccessor.hasBtcTxHash(pegoutBtcTx.getHash()) ?
                 storageAccessor.getRskTxHash(pegoutBtcTx.getHash()) :
                 pegoutCreationRskTxHash;
 
-            logger.debug("[tryGetReleaseInformation] Going to lookup pegoutCreationRskTxHash {} to get pegout to sign", pegoutCreationRskTxHash);
+            logger.debug("[tryGetReleaseInformation] Going to lookup rsk transaction {} to get pegout to sign", pegoutCreationRskTxHash);
 
             // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
             // -- Get Real Block where release_requested was emitted
@@ -379,9 +379,9 @@ public class BtcReleaseClient {
     protected void signRelease(int signerVersion, ReleaseCreationInformation pegoutCreationInformation) {
         final String topic = "btcrelease";
         try {
-            logger.debug("[signConfirmedPegout] HSM signer version {}", signerVersion);
-            logger.debug("[signConfirmedPegout] Going to sign pegout with creationRskTxHash: {}", pegoutCreationInformation.getPegoutCreationRskTxHash());
-            logger.trace("[signConfirmedPegout] Enforce signer requirements");
+            logger.debug("[signRelease] HSM signer version {}", signerVersion);
+            logger.debug("[signRelease] Going to sign pegout created in rsk transaction: {}", pegoutCreationInformation.getPegoutCreationRskTxHash());
+            logger.trace("[signRelease] Enforce signer requirements");
             releaseRequirementsEnforcer.enforce(signerVersion, pegoutCreationInformation);
             SignerMessageBuilder messageBuilder = signerMessageBuilderFactory.buildFromConfig(
                 signerVersion,
@@ -398,10 +398,10 @@ public class BtcReleaseClient {
                 signatures.add(sig.encodeToDER());
             }
 
-            logger.info("[signRelease] Signed pegoutCreationRskTxHash {}", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
+            logger.info("[signRelease] Signed pegout created in rsk transaction {}", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
             federatorSupport.addSignature(signatures, pegoutCreationInformation.getPegoutConfirmationRskTxHash().getBytes());
         } catch (SignerException e) {
-            String message = String.format("Error signing pegoutCreationRskTxHash %s", pegoutCreationInformation.getPegoutCreationRskTxHash());
+            String message = String.format("Error signing pegout created in rsk transaction %s", pegoutCreationInformation.getPegoutCreationRskTxHash());
             logger.error(message, e);
             panicProcessor.panic(topic, message);
         } catch (HSMClientException | SignerMessageBuilderException | ReleaseRequirementsEnforcerException e) {
@@ -409,7 +409,7 @@ public class BtcReleaseClient {
             panicProcessor.panic(topic, e.getMessage());
         } catch (Exception e) {
             String message = String.format(
-                "[signRelease] There was an error trying to sign pegout with createRskTxHash: %s and btcTxHash: %s",
+                "[signRelease] There was an error trying to sign pegout created in rsk tx: %s and btc transaction: %s",
                 pegoutCreationInformation.getPegoutCreationRskTxHash(),
                 pegoutCreationInformation.getPegoutBtcTx().getHash()
             );

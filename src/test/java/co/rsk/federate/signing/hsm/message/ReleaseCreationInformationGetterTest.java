@@ -91,7 +91,7 @@ class ReleaseCreationInformationGetterTest {
             pegoutBtcTransaction
         );
 
-        assertEquals(releaseCreationInformation.getPegoutCreationRskBlock(), block);
+        assertEquals(releaseCreationInformation.getPegoutCreationBlock(), block);
         assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
         assertEquals(rskTxHash, releaseCreationInformation.getPegoutCreationRskTxHash());
         assertEquals(pegoutBtcTransaction, releaseCreationInformation.getPegoutBtcTx());
@@ -166,7 +166,7 @@ class ReleaseCreationInformationGetterTest {
         );
         ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(2, rskTxHash, pegoutBtcTransaction);
 
-        assertEquals(secondBlock, releaseCreationInformation.getPegoutCreationRskBlock());
+        assertEquals(secondBlock, releaseCreationInformation.getPegoutCreationBlock());
         assertEquals(transactionReceiptInSecondBlock, releaseCreationInformation.getTransactionReceipt());
         assertEquals(rskTxHash, releaseCreationInformation.getPegoutCreationRskTxHash());
         assertEquals(pegoutBtcTransaction, releaseCreationInformation.getPegoutBtcTx());

@@ -27,7 +27,7 @@ public class ReleaseRequirementsEnforcer {
 
     private void enforceReleaseRequirements(ReleaseCreationInformation releaseCreationInformation) throws ReleaseRequirementsEnforcerException {
         try {
-            ancestorBlockUpdater.ensureAncestorBlockInPosition(releaseCreationInformation.getPegoutCreationRskBlock());
+            ancestorBlockUpdater.ensureAncestorBlockInPosition(releaseCreationInformation.getPegoutCreationBlock());
         } catch (Exception e) {
             String message = "error trying to enforce ancestor";
             logger.error("[enforce]" + message, e);
