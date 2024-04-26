@@ -192,13 +192,32 @@ static def amendPathIfNeeded(details) {
 }
 
 spotless {
+    // only format files which have changed since ARROWHEAD-6.1.0.0
+    ratchetFrom 'ARROWHEAD-6.1.0.0'
+
+    format 'misc', {
+        target '*.gradle', '*.sh', '*.md', 'Dockerfile', '.gitattributes', '.gitignore'
+
+        trimTrailingWhitespace()
+        indentWithSpaces()
+        endWithNewline()
+    }
+
     java {
-        // for demo purposes only one package
-        target 'src/*/java/**/log/*.java'
-        
+        // see https://google.github.io/styleguide/javaguide.html
         googleJavaFormat()
 
-        indentWithSpaces()
         trimTrailingWhitespace()
+        indentWithSpaces()
+        endWithNewline()
+
+        // see https://github.com/diffplug/spotless/tree/main/plugin-gradle#license-header
+        licenseHeaderFile("$projectDir/gradle/spotless/licenseHeaderFile")
     }
 }
+
+tasks.register('addPreCommitGitHooksOnBuild', Copy) {
+    from "$projectDir/gradle/spotless/pre_commit.sh"
+    into "$projectDir/.git/hooks"
+}
+compileJava.dependsOn addPreCommitGitHooksOnBuild
