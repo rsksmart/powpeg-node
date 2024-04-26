@@ -5,7 +5,7 @@ echo "Running git pre-commit hook. Running Spotless Apply... "
 echo "*********************************************************"
 
 # Gather the staged files - to make sure changes are saved only for these files.
-stagedFiles=$(git diff --staged --name-only)
+staged_files=$(git diff --staged --name-only)
 
 # Run spotless apply.
 ./gradlew spotlessApply -PspotlessSetLicenseHeaderYearsFromGitHistory=true
@@ -15,7 +15,7 @@ status=$?
 if [ "$status" = 0 ] ; then
     echo "Static analysis found no problems."
     # Add staged file changes to git.
-    for file in $stagedFiles; do
+    for file in $staged_files; do
       if test -f "$file"; then
         git add $file
       fi

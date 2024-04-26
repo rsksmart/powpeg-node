@@ -171,26 +171,6 @@ artifacts {
     archives fatJar
 }
 
-static def gitCurrentBranch() {
-    def process = "git rev-parse --abbrev-ref HEAD".execute()
-    return process.text.trim()
-}
-
-static def gitCommitHash() {
-    def process = "git rev-parse --short HEAD".execute()
-    return process.text.trim()
-}
-
-static def amendPathIfNeeded(details) {
-    def uPath = details.path.toUpperCase()
-    if (uPath.startsWith("META-INF/LICENSE") || uPath.startsWith("META-INF/NOTICE")) {
-        def originalFile = details.file as File
-        def jarName = originalFile.parentFile.parentFile.name.split(".jar")[0]
-        def newPath = originalFile.parentFile.name + "/" + jarName + "_" + originalFile.name
-        details.path = newPath
-    }
-}
-
 spotless {
     // only format files which have changed since ARROWHEAD-6.1.0.0
     ratchetFrom 'ARROWHEAD-6.1.0.0'
@@ -221,3 +201,23 @@ tasks.register('addPreCommitGitHooksOnBuild', Copy) {
     into "$projectDir/.git/hooks"
 }
 compileJava.dependsOn addPreCommitGitHooksOnBuild
+
+static def gitCurrentBranch() {
+    def process = "git rev-parse --abbrev-ref HEAD".execute()
+    return process.text.trim()
+}
+
+static def gitCommitHash() {
+    def process = "git rev-parse --short HEAD".execute()
+    return process.text.trim()
+}
+
+static def amendPathIfNeeded(details) {
+    def uPath = details.path.toUpperCase()
+    if (uPath.startsWith("META-INF/LICENSE") || uPath.startsWith("META-INF/NOTICE")) {
+        def originalFile = details.file as File
+        def jarName = originalFile.parentFile.parentFile.name.split(".jar")[0]
+        def newPath = originalFile.parentFile.name + "/" + jarName + "_" + originalFile.name
+        details.path = newPath
+    }
+}
