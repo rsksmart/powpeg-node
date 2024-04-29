@@ -1,12 +1,9 @@
-# Welcome to RskJ Powpeg Node
-
-
+# Welcome to RskJ PowPeg Node
 
 ## About
 
-Powpeg node is a specialized rskj node which interacts with both Rootstock and Bitcoin.
+PowPeg node is a specialized rskj node which interacts with both Rootstock and Bitcoin.
 This node is used by Rootstock PowPeg signatories to interact with the Bridge contract and to broadcast peg-out transactions to Bitcoin.
-
 
 ## Software Requirements
 
@@ -14,18 +11,17 @@ This node is used by Rootstock PowPeg signatories to interact with the Bridge co
 2. Bitcoin Core daemon (bitcoind) 24.0.1
 3. A Java compatible IDE. Recommended [IntelliJ IDEA](https://www.jetbrains.com/idea/download) as this guide covers the setup with it
 
-
 **Not sure how to install any of these? See [software installation help](#software-installation-help)**
 
-
 ## Software installation help
+
 Disclaimer: this documentation will be specific for macOS operating system.
 
-### Setup Details
+### Quick setup for macOS x64
 
-If you need a quick and easy, fool-proof way to setup the powpeg-node, you can follow the steps in the `quick_setup_samples/quick_setup_for_macos_x64.md` file.
+A quick and easy, fool-proof way to setup the powpeg-node using macOS x64 is available [here](docs/QuickSetupMacOsx64.md).
 
-#### **Java JDK 1.8**
+### **Java JDK 1.8**
 
 Although optional we recommend to install jenv to manage different Java versions, to do that run: `brew install jenv`
 
@@ -53,7 +49,7 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.351-b10, mixed mode)
 
 *If not, try closing the terminal and open a new one cause sometimes it stays cached.*
 
-#### Bitcoind
+### Bitcoind
 
 To install version `24.0.1` follow instructions listed [here](https://bitcoincore.org/en/releases/24.0.1/)
 
@@ -63,10 +59,10 @@ It should output ```Bitcoin server starting```
 
 Run `bitcoin-cli stop` afterwards.
 
-#### Setting up the project
+## Setting up the project
 Create a directory (for example, “powpeg-project”) to hold the rskj node, the powpeg node and further configurations.
 
-##### Fetch the code
+### Fetch the code
 
 Inside the `powpeg-project` directory clone the powpeg-node repository.
 
@@ -78,7 +74,7 @@ git clone https://github.com/rsksmart/powpeg-node
 cd powpeg-node
 ```
 
-##### [Optional] Verify the code
+### [Optional] Verify the code
 
 Before anything, you must ensure the security chain of the source code. For that, you must go through the following steps. For Linux based OS (Ubuntu for example) it’s recommended to install `gnupg-curl` to download the key through HTTPS.
 
@@ -143,7 +139,7 @@ configure.sh: OK
 sha256sum: WARNING: 19 lines are improperly formatted
 ```
 
-##### Configure
+### Configure
 
 Run configure script to configure secure environment.
 
@@ -151,7 +147,7 @@ Run configure script to configure secure environment.
 ./configure.sh
 ```
 
-##### Required configurations
+### Required configurations
 
 **1. Pegnatory private key**
 
@@ -253,11 +249,11 @@ includeBuild('<ABSOLUTE-PATH-TO-RSKJ-SOURCE-CODE>') {
 }
 ```
 
-##### [Optional] Import and configure the project
+### [Optional] Import and configure the project
 
 To import the project to IntelliJ IDEA go to `File > New > Project from existing sources...` Select `powpeg-node/build.gradle` and import.
 
-##### Build
+### Build
 
 Then clean and build project using:
 
@@ -265,7 +261,7 @@ Then clean and build project using:
 ./gradlew clean build
 ```
 
-##### Run bitcoind
+### Run bitcoind
 
 Create a new directory called datadir inside powpeg-project. In the next step you need to replace `<PATH_TO_DATA_DIR>` with this directory absolute path.
 
@@ -313,7 +309,7 @@ This should return an integer.
 
 - For more references, check **[https://github.com/BlockchainCommons/Learning-Bitcoin-from-the-Command-Line](https://github.com/BlockchainCommons/Learning-Bitcoin-from-the-Command-Line)**
 
-##### Run PowPeg node!
+### Run PowPeg node!
 
 You can run it either with the FedRunner configuration from IntelliJ or manually from the command line.
 
