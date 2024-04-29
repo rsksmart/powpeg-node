@@ -1,4 +1,4 @@
-# Quick Setup for macos x64
+# Quick Setup for macOS x64
 
 In case you would like to try a fool-proof setup for macos from scratch, you can try the following steps.
 You can also skip some of the steps if it is not applicable, for example, you don't need to install Java 1.8 if you have it already installed.
