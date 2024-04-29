@@ -63,7 +63,7 @@ public class BtcReleaseClientStorageAccessor {
                 throw new InvalidStorageFileException(message, e);
             }
         }
-        if (!readResult.getSuccess()) {
+        if (Boolean.FALSE.equals(readResult.getSuccess())) {
             String message = "Error reading storage file for BtcReleaseClient";
             logger.error(message);
             throw new InvalidStorageFileException(message);

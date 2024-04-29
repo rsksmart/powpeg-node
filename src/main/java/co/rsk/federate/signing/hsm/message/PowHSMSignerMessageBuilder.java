@@ -23,10 +23,10 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
     public PowHSMSignerMessageBuilder(
         ReceiptStore receiptStore,
         ReleaseCreationInformation releaseCreationInformation) {
-        super(releaseCreationInformation.getBtcTransaction());
+        super(releaseCreationInformation.getPegoutBtcTx());
 
         this.txReceipt = releaseCreationInformation.getTransactionReceipt();
-        this.rskBlock = releaseCreationInformation.getBlock();
+        this.rskBlock = releaseCreationInformation.getPegoutCreationBlock();
         this.receiptStore = receiptStore;
         this.envelopeCreated = false;
     }
