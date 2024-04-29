@@ -1,38 +1,33 @@
 # Quick Setup for macOS x64
 
-In case you would like to try a fool-proof setup for macos from scratch, you can try the following steps.
-You can also skip some of the steps if it is not applicable, for example, you don't need to install Java 1.8 if you have it already installed.
-
-You can also try your own variations. But the example provided here makes it easy for anybody to setup a powpeg node from scratch in an easy way.
+The following steps provide a quick setup guide for macOS x64. Some of the steps may be skipped if it is not applicable. For example, no need to install Java 1.8 if already installed.
 
 ## Steps
 
-1. Install Java OpenJDK 1.8 from the binaries (if it is not installed yet)
-    1. You can download it from here: `https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u-2021-05-08-08-14/OpenJDK8U-jdk_x64_mac_hotspot_2021-05-08-08-14.tar.gz`
-        1. `cd` to the directory where you want to download it. It could be like `cd /Library/Java/JavaVirtualMachines/`
-        2. Download it like this: `sudo curl -o adoptopenjdk-8.tar.gz -L https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u-2021-05-08-08-14/OpenJDK8U-jdk_x64_mac_hotspot_2021-05-08-08-14.tar.gz`
-        3. Unzip it like this: `sudo tar -zxvf adoptopenjdk-8.tar.gz`
-        4. The unzipped directory could be named like this `jdk8u302-b01`. Run an `ls` command to see it.
-    2. Add it to the `.bash_profile`.
-        1. Open the `.bash_profile` file with `nano` like this `nano ~/.bash_profile` and add the following 2 `export` lines:
-        2. `export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk8u302-b01/Contents/Home/bin`
-        3. `export PATH="$JAVA_HOME/bin:$PATH"`
-        4. Save it and run the command: `source ~/.bash_profile` and restart the terminal. After this, the `java -version` command should return info.
+1. Install Java OpenJDK 1.8 from the binaries (if not installed yet)
+    1. Download link: `https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u-2021-05-08-08-14/OpenJDK8U-jdk_x64_mac_hotspot_2021-05-08-08-14.tar.gz`
+        1. `cd` into the directory to download it. Example: `cd /Library/Java/JavaVirtualMachines/`
+        2. Download: `sudo curl -o adoptopenjdk-8.tar.gz -L https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u-2021-05-08-08-14/OpenJDK8U-jdk_x64_mac_hotspot_2021-05-08-08-14.tar.gz`
+        3. Unzip: `sudo tar -zxvf adoptopenjdk-8.tar.gz`
+    2. Add JAVA_HOME environment variable to bash
+        1. Open `.bash_profile` file with some text editor. Example: `nano ~/.bash_profile`
+        2. Add the following 2 `export` lines:
+           1. `export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk8u302-b01/Contents/Home/bin` (replace the path with the actual path)
+           2. `export PATH="$JAVA_HOME/bin:$PATH"`
+        3. Restart the terminal. Run command `java -version` to validate the system detects the installed version of Java.
 2. Install bitcoind
-    1. `cd` to the directory where you want to download it. It could be `/Library/Bitcoin` (if it doesn't exit, you can create it running the command `sudo mkdir /Library/Bitcoin`)
-    2. You can download version 0.18.1 (ideal for regtest) from here: `https://bitcoincore.org/bin/bitcoin-core-0.18.1/bitcoin-0.18.1-osx64.tar.gz`
-    3. You can download version 24.0.1 `https://bitcoincore.org/bin/bitcoin-core-24.0.1/bitcoin-24.0.1-x86_64-apple-darwin.tar.gz`
-    4. Download it like this: `sudo curl -o bitcoind18.tar.gz -L https://bitcoincore.org/bin/bitcoin-core-0.18.1/bitcoin-0.18.1-osx64.tar.gz`
-    5. Unzip it like this: `sudo tar -zxvf bitcoind18.tar.gz`
-    6. Run the `ls` command to see the actual name of the unzipped directory. It should be like `bitcoin-0.18.1`
-    7. Add the path `export PATH="$PATH:/Library/Bitcoin/bitcoin-0.18.1/bin"` to the `/.zshrc` file
+    1. `cd` into the directory to download it. Example: `cd /Library/Bitcoin/`
+    2. Download version 24.0.1: `sudo curl -o bitcoind18.tar.gz -L https://bitcoincore.org/bin/bitcoin-core-0.18.1/bitcoin-0.18.1-osx64.tar.gz`
+    3. Unzip: `sudo tar -zxvf bitcoind18.tar.gz`
+    4. Run the `ls` command to see the actual name of the unzipped directory. It should be like `bitcoin-0.18.1`
+    5. Add the path `export PATH="$PATH:/Library/Bitcoin/bitcoin-0.18.1/bin"` to the `/.zshrc` file
         1. Open the `.zshrc` file with nano like this: `nano ~/.zshrc` and add the following line in it and save it: `export PATH="$PATH:/Library/Bitcoin/bitcoin-0.18.1/bin"`
-    8. Run `source ~/.zshrc` command, close and reopen the terminal.
-    9. Running an instance of bitcoind
+    6. Run `source ~/.zshrc` command, close and reopen the terminal.
+    7. Running an instance of bitcoind
         1. To run it in regtest mode, run this command: `bitcoind -deprecatedrpc=generate -addresstype=legacy -regtest -printtoconsole -server -rpcuser=rsk -rpcpassword=rsk -rpcport=18332 -txindex -datadir=/Library/Bitcoin/data`
         2. You can also put this command into an `bitcoin-regtest.sh` file, make it executable with `sudo chmod +x bitcoin-regtest.sh` and run it like `./bitcoin-regtest.sh`
         3. To run it in regular mode, simply run the command: `bitcoind`
-    10. Generate some blocks
+    8. Generate some blocks
         1. To generate, for example, 200 regtest bitcoin blocks, run: `./btc-regtest.sh generate 200`
 3. Create a `powpeg-project` folder anywhere you like
     1. For example: `mkdir /Library/powpeg-project`
