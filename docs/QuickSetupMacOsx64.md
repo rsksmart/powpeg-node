@@ -19,16 +19,15 @@ The following steps provide a quick setup guide for macOS x64. Some of the steps
     1. `cd` into the directory to download it. Example: `cd /Library/Bitcoin/`
     2. Download version 24.0.1: `sudo curl -o bitcoind18.tar.gz -L https://bitcoincore.org/bin/bitcoin-core-0.18.1/bitcoin-0.18.1-osx64.tar.gz`
     3. Unzip: `sudo tar -zxvf bitcoind18.tar.gz`
-    4. Run the `ls` command to see the actual name of the unzipped directory. It should be like `bitcoin-0.18.1`
-    5. Add the path `export PATH="$PATH:/Library/Bitcoin/bitcoin-0.18.1/bin"` to the `/.zshrc` file
-        1. Open the `.zshrc` file with nano like this: `nano ~/.zshrc` and add the following line in it and save it: `export PATH="$PATH:/Library/Bitcoin/bitcoin-0.18.1/bin"`
-    6. Run `source ~/.zshrc` command, close and reopen the terminal.
-    7. Running an instance of bitcoind
-        1. To run it in regtest mode, run this command: `bitcoind -deprecatedrpc=generate -addresstype=legacy -regtest -printtoconsole -server -rpcuser=rsk -rpcpassword=rsk -rpcport=18332 -txindex -datadir=/Library/Bitcoin/data`
-        2. You can also put this command into an `bitcoin-regtest.sh` file, make it executable with `sudo chmod +x bitcoin-regtest.sh` and run it like `./bitcoin-regtest.sh`
-        3. To run it in regular mode, simply run the command: `bitcoind`
-    8. Generate some blocks
-        1. To generate, for example, 200 regtest bitcoin blocks, run: `./btc-regtest.sh generate 200`
+    4. Add bitcoind to bash PATH 
+       1. Open `.bash_profile` file with some text editor. Example: `nano ~/.bash_profile`
+       2. Add the following line: `export PATH="$PATH:/Library/Bitcoin/bitcoin-0.18.1/bin"` (replace the path with the actual path)
+       3. Restart the terminal
+    5. Running an instance of bitcoind
+        1. To run in regtest mode, run the following command: `bitcoind -deprecatedrpc=generate -addresstype=legacy -regtest -printtoconsole -server -rpcuser=rsk -rpcpassword=rsk -rpcport=18332 -txindex -datadir=/Library/Bitcoin/data`
+        2. To simplify, the command can be included in a bash file `bitcoin-regtest.sh`. To make it executable run `sudo chmod +x bitcoin-regtest.sh`
+    6. Generate some blocks
+        1. To generate, for example, 200 regtest bitcoin blocks, run: `./btc-regtest.sh generate 200` // TODO: where did btc-regtest.sh file come from? 
 3. Create a `powpeg-project` folder anywhere you like
     1. For example: `mkdir /Library/powpeg-project`
 4. Setup the rskj project
