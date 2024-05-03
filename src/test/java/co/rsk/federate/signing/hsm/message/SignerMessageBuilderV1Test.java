@@ -9,7 +9,9 @@ import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.core.TransactionOutPoint;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.Script;
-import co.rsk.peg.constants.BridgeRegTestConstants;
+import co.rsk.federate.signing.utils.TestUtils;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.federation.Federation;
 import org.junit.jupiter.api.Test;
 
@@ -18,8 +20,8 @@ class SignerMessageBuilderV1Test {
     @Test
     void createHSMVersion1Message() {
         NetworkParameters params = RegTestParams.get();
-        BridgeRegTestConstants bridgeConstants = BridgeRegTestConstants.getInstance();
-        Federation federation = bridgeConstants.getGenesisFederation();
+        final BridgeConstants bridgeMainNetConstants = BridgeMainNetConstants.getInstance();
+        final Federation activeFederation = TestUtils.createFederation(bridgeMainNetConstants.getBtcParams(),6);
 
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx1 = new BtcTransaction(params);
@@ -32,12 +34,12 @@ class SignerMessageBuilderV1Test {
         releaseTx1.addInput(releaseInput1);
 
         // Sign it using the Federation members
-        Script inputScript = createBaseInputScriptThatSpendsFromTheFederation(federation);
+        Script inputScript = createBaseInputScriptThatSpendsFromTheFederation(activeFederation);
         releaseInput1.setScriptSig(inputScript);
 
         Sha256Hash sigHash = releaseTx1.hashForSignature(
             0,
-            federation.getRedeemScript(),
+            activeFederation.getRedeemScript(),
             BtcTransaction.SigHash.ALL,
             false
         );
