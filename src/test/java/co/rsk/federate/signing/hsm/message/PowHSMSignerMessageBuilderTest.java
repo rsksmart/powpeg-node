@@ -62,7 +62,7 @@ class PowHSMSignerMessageBuilderTest {
         when(receiptStore.get(rskTxHash.getBytes(), Keccak256.ZERO_HASH.getBytes())).thenReturn(Optional.of(txInfo));
 
         final BridgeConstants bridgeMainNetConstants = BridgeMainNetConstants.getInstance();
-        final Federation activeFederation = TestUtils.createFederation(bridgeMainNetConstants.getBtcParams(),6);
+        final Federation activeFederation = TestUtils.createFederation(bridgeMainNetConstants.getBtcParams(),9);
         BtcTransaction releaseTx = createReleaseTx(activeFederation);
         int inputIndex = 0;
 

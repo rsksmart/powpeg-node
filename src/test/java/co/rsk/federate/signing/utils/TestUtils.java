@@ -15,6 +15,7 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
+import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationArgs;
 import co.rsk.peg.federation.FederationFactory;
@@ -32,7 +33,10 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 
-public class TestUtils {
+public final class TestUtils {
+
+    private TestUtils() {
+    }
 
     public static Keccak256 createHash(int nHash) {
         byte[] bytes = new byte[32];
@@ -91,6 +95,15 @@ public class TestUtils {
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
         FederationArgs federationArgs = new FederationArgs(members, Instant.now(), 0, params);
 
+        return FederationFactory.buildStandardMultiSigFederation(federationArgs);
+    }
+
+    public static Federation getGenesisFederation(BridgeConstants bridgeConstants) {
+        final long GENESIS_FEDERATION_CREATION_BLOCK_NUMBER = 1L;
+        final List<BtcECKey> genesisFederationPublicKeys = bridgeConstants.getGenesisFederationPublicKeys();
+        final List<FederationMember> federationMembers = FederationMember.getFederationMembersFromKeys(genesisFederationPublicKeys);
+        final Instant genesisFederationCreationTime = bridgeConstants.getGenesisFederationCreationTime();
+        final FederationArgs federationArgs = new FederationArgs(federationMembers, genesisFederationCreationTime, GENESIS_FEDERATION_CREATION_BLOCK_NUMBER, bridgeConstants.getBtcParams());
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
     }
 
