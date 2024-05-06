@@ -39,4 +39,4 @@ The output will display a diff post-formatting:
          this.minTimeBetweenLogs = minTimeBetweenLogs;
 ```
 
-To implement the formatting changes, include the `-i` flag. For further details, refer to `./fmt/google-java-format --help`.
+To introduce the formatting changes, include the `-i` flag. For further details, refer to `./fmt/google-java-format-diff.py --help`.
