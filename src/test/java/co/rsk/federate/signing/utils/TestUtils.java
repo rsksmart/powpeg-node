@@ -15,7 +15,6 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
-import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationArgs;
 import co.rsk.peg.federation.FederationFactory;
@@ -25,6 +24,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +34,7 @@ import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 
 public final class TestUtils {
+    private static final long CREATION_BLOCK_NUMBER = 0;
 
     private TestUtils() {
     }
@@ -93,18 +94,24 @@ public final class TestUtils {
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
-        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), 0, params);
+        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
 
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
     }
 
-    public static Federation getGenesisFederation(BridgeConstants bridgeConstants) {
-        final long GENESIS_FEDERATION_CREATION_BLOCK_NUMBER = 1L;
-        final List<BtcECKey> genesisFederationPublicKeys = bridgeConstants.getGenesisFederationPublicKeys();
-        final List<FederationMember> federationMembers = FederationMember.getFederationMembersFromKeys(genesisFederationPublicKeys);
-        final Instant genesisFederationCreationTime = bridgeConstants.getGenesisFederationCreationTime();
-        final FederationArgs federationArgs = new FederationArgs(federationMembers, genesisFederationCreationTime, GENESIS_FEDERATION_CREATION_BLOCK_NUMBER, bridgeConstants.getBtcParams());
+    public static Federation createFederation(NetworkParameters params, List<BtcECKey> federationPrivatekeys) {
+        List<FederationMember> federationMembers = FederationMember.getFederationMembersFromKeys(federationPrivatekeys);
+        FederationArgs federationArgs = new FederationArgs(federationMembers, Instant.now(), CREATION_BLOCK_NUMBER, params);
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
+    }
+
+    public static List<BtcECKey> getFederationPrivateKeys(int amountOfMembers) {
+        final int START_SEED_PRIVATE_KEY= 100;
+        List<BtcECKey> federationPrivateKeys = new ArrayList<>();
+        for (int i=1; i<=amountOfMembers;i++){
+            federationPrivateKeys.add(BtcECKey.fromPrivate(BigInteger.valueOf((long) i * START_SEED_PRIVATE_KEY)));
+        }
+        return federationPrivateKeys;
     }
 
     public static TransactionInput createTransactionInput(
