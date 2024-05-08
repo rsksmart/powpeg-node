@@ -34,7 +34,6 @@ import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 
 public final class TestUtils {
-    private static final long CREATION_BLOCK_NUMBER = 0;
 
     private TestUtils() {
     }
@@ -92,6 +91,7 @@ public final class TestUtils {
     }
 
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
+        final long CREATION_BLOCK_NUMBER = 0;
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
         FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
@@ -100,16 +100,17 @@ public final class TestUtils {
     }
 
     public static Federation createFederation(NetworkParameters params, List<BtcECKey> federationPrivatekeys) {
+        final long CREATION_BLOCK_NUMBER = 0;
         List<FederationMember> federationMembers = FederationMember.getFederationMembersFromKeys(federationPrivatekeys);
         FederationArgs federationArgs = new FederationArgs(federationMembers, Instant.now(), CREATION_BLOCK_NUMBER, params);
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
     }
 
     public static List<BtcECKey> getFederationPrivateKeys(int amountOfMembers) {
-        final int START_SEED_PRIVATE_KEY= 100;
+        final long START_SEED_PRIVATE_KEY= 100;
         List<BtcECKey> federationPrivateKeys = new ArrayList<>();
-        for (int i=1; i<=amountOfMembers;i++){
-            federationPrivateKeys.add(BtcECKey.fromPrivate(BigInteger.valueOf((long) i * START_SEED_PRIVATE_KEY)));
+        for (long i=1; i<=amountOfMembers;i++){
+            federationPrivateKeys.add(BtcECKey.fromPrivate(BigInteger.valueOf(i * START_SEED_PRIVATE_KEY)));
         }
         return federationPrivateKeys;
     }
