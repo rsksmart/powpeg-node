@@ -10,8 +10,9 @@ import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.script.ScriptBuilder;
+import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
-import co.rsk.peg.constants.BridgeRegTestConstants;
+import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.peg.federation.Federation;
@@ -49,7 +50,7 @@ class BitcoinWrapperImplTest {
 
     @BeforeAll
     public static void setUpBeforeClass() {
-        bridgeConstants = BridgeRegTestConstants.getInstance();
+        bridgeConstants = BridgeMainNetConstants.getInstance();
         networkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
         btcContext = new Context(networkParameters);
     }
@@ -57,8 +58,8 @@ class BitcoinWrapperImplTest {
     @Test
     void coinsReceivedOrSent_validPegInTx() throws PeginInstructionsException {
         // Arrange
-        Federation federation = bridgeConstants.getGenesisFederation();
-        Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, federation.getAddress());
+        final Federation activeFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(),9);
+        Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, activeFederation.getAddress());
 
         Transaction pegInTx = createPegInTx(federationAddress);
         BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), pegInTx);
@@ -87,7 +88,7 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.start();
 
         TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(federation, listener);
+        bitcoinWrapper.addFederationListener(activeFederation, listener);
 
         // Act
         bitcoinWrapper.coinsReceivedOrSent(pegInTx);
@@ -101,8 +102,8 @@ class BitcoinWrapperImplTest {
         throws PeginInstructionsException {
 
         // Arrange
-        Federation federation = bridgeConstants.getGenesisFederation();
-        Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, federation.getAddress());
+        final Federation activeFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), 9);
+        Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, activeFederation.getAddress());
 
         Transaction pegInTx = createPegInTx(federationAddress);
         BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), pegInTx);
@@ -132,7 +133,7 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.start();
 
         TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(federation, listener);
+        bitcoinWrapper.addFederationListener(activeFederation, listener);
 
         // Act
         bitcoinWrapper.coinsReceivedOrSent(pegInTx);
@@ -146,8 +147,8 @@ class BitcoinWrapperImplTest {
         throws PeginInstructionsException {
 
         // Arrange
-        Federation federation = bridgeConstants.getGenesisFederation();
-        Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, federation.getAddress());
+        final Federation activeFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), 9);
+        Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, activeFederation.getAddress());
 
         Transaction pegInTx = createPegInTx(federationAddress);
         BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), pegInTx);
@@ -175,7 +176,7 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.start();
 
         TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(federation, listener);
+        bitcoinWrapper.addFederationListener(activeFederation, listener);
 
         // Act
         bitcoinWrapper.coinsReceivedOrSent(pegInTx);
@@ -187,8 +188,9 @@ class BitcoinWrapperImplTest {
     @Test
     void coinsReceivedOrSent_validPegOutTx() {
         // Arrange
-        Federation federation = bridgeConstants.getGenesisFederation();
-        Transaction pegOutTx = createPegOutTx(federation, BridgeRegTestConstants.REGTEST_FEDERATION_PRIVATE_KEYS);
+        final List<BtcECKey> federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
+        final Federation activeFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), federationPrivateKeys);
+        final Transaction pegOutTx = createPegOutTx(activeFederation, federationPrivateKeys);
 
         BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
         PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
@@ -209,7 +211,7 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.start();
 
         TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(federation, listener);
+        bitcoinWrapper.addFederationListener(activeFederation, listener);
 
         // Act
         bitcoinWrapper.coinsReceivedOrSent(pegOutTx);
@@ -221,7 +223,7 @@ class BitcoinWrapperImplTest {
     @Test
     void coinsReceivedOrSent_txNotPegInNorPegOut() {
         // Arrange
-        Federation federation = bridgeConstants.getGenesisFederation();
+        final Federation activefederation = TestUtils.createFederation(bridgeConstants.getBtcParams(),9);
         Transaction tx = new Transaction(networkParameters);
 
         BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
@@ -243,7 +245,7 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.start();
 
         TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(federation, listener);
+        bitcoinWrapper.addFederationListener(activefederation, listener);
 
         // Act
         bitcoinWrapper.coinsReceivedOrSent(tx);
