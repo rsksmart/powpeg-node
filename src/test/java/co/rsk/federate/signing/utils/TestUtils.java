@@ -106,7 +106,7 @@ public final class TestUtils {
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
     }
 
-    public static List<BtcECKey> getFederationPrivateKeys(int amountOfMembers) {
+    public static List<BtcECKey> getFederationPrivateKeys(long amountOfMembers) {
         final long START_SEED_PRIVATE_KEY= 100;
         List<BtcECKey> federationPrivateKeys = new ArrayList<>();
         for (long i=1; i<=amountOfMembers;i++){
