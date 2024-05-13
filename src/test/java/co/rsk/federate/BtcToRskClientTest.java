@@ -1,5 +1,6 @@
 package co.rsk.federate;
 
+import static org.bitcoinj.core.Coin.COIN;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -38,7 +39,6 @@ import co.rsk.federate.mock.SimpleBlock;
 import co.rsk.federate.mock.SimpleBtcTransaction;
 import co.rsk.federate.mock.SimpleFederatorSupport;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
@@ -1932,7 +1932,7 @@ class BtcToRskClientTest {
             federatorSupport.getTxsSentToRegisterBtcTransaction();
 
         assertNotNull(txsSentToRegisterBtcTransaction);
-        assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
+        assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
@@ -2486,6 +2486,78 @@ class BtcToRskClientTest {
         verify(federatorSupport, never()).sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
     }
 
+    @Test
+    void updateBridgeBtcTransactions_bech32_sender_should_not_be_sent() throws Exception {
+        ActivationConfig activationConfig = mock(ActivationConfig.class);
+        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
+        when(activations.isActive(ConsensusRule.RSKIP170)).thenReturn(true);
+        when(activations.isActive(ConsensusRule.RSKIP379)).thenReturn(true);
+        when(activationConfig.forBlock(anyLong())).thenReturn(activations);
+
+        NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
+        when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
+
+        SimpleBtcTransaction fundingTx = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), false);
+
+        int outputIndex = 0;
+        fundingTx.addInput(createHash(), outputIndex, new Script(new byte[]{}));
+        fundingTx.addOutput(createBech32Output(networkParameters, COIN));
+
+        SimpleBtcTransaction bech32PeginTx = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), false);
+        bech32PeginTx.addInput(fundingTx.getOutput(outputIndex));
+        bech32PeginTx.addOutput(COIN.div(2), Address.fromString(networkParameters, genesisFederation.getAddress().toBase58()));
+
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
+        when(federatorSupport.isBtcTxHashAlreadyProcessed(bech32PeginTx.getTxId())).thenReturn(false);
+        when(federatorSupport.getBtcTxHashProcessedHeight(bech32PeginTx.getTxId())).thenReturn(-1L);
+        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+
+        BtcToRskClient btcToRskClient = new BtcToRskClient.Factory(federatorSupport, nodeBlockProcessor).build();
+
+        BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
+
+        Map<Sha256Hash, Transaction> txsInWallet = new HashMap<>();
+        txsInWallet.put(bech32PeginTx.getWTxId(), bech32PeginTx);
+        when(
+            bitcoinWrapper.getTransactionMap(
+                bridgeRegTestConstants.getBtc2RskMinimumAcceptableConfirmations()
+            )
+        ).thenReturn(txsInWallet);
+
+        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
+        BtcToRskClientFileData btcToRskClientFileData = mock(BtcToRskClientFileData.class);
+        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
+
+        HashMap<Sha256Hash, List<Proof>> transactionProofs = new HashMap<>();
+        when(btcToRskClientFileData.getTransactionProofs()).thenReturn(transactionProofs);
+
+        List<Proof> proofs = new ArrayList<>();
+        Proof proof = mock(Proof.class);
+        proofs.add(proof);
+        btcToRskClientFileData.getTransactionProofs().put(bech32PeginTx.getWTxId(), proofs);
+
+        BtcLockSenderProvider btcLockSender = new BtcLockSenderProvider();
+        PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
+
+        btcToRskClient.setup(
+            activationConfig,
+            bitcoinWrapper,
+            bridgeRegTestConstants,
+            btcToRskClientFileStorageMock,
+            btcLockSender,
+            peginInstructionsProvider,
+            false,
+            100
+        );
+        btcToRskClient.start(genesisFederation);
+        btcToRskClient.updateBridgeBtcTransactions();
+
+        assertTrue(transactionProofs.isEmpty());
+        verify(federatorSupport, never()).isBtcTxHashAlreadyProcessed(bech32PeginTx.getTxId());
+        verify(federatorSupport, never()).sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
+    }
+
     private static co.rsk.bitcoinj.script.Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
         co.rsk.bitcoinj.script.Script scriptPubKey = federation.getP2SHScript();
 
@@ -2558,7 +2630,7 @@ class BtcToRskClientTest {
     private Transaction createTransaction() {
         Transaction tx = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), false);
         tx.addInput(Sha256Hash.ZERO_HASH, 0, org.bitcoinj.script.ScriptBuilder.createInputScript(null, new ECKey()));
-        tx.addOutput(Coin.COIN, Address.fromString(networkParameters, genesisFederation.getAddress().toBase58()));
+        tx.addOutput(COIN, Address.fromString(networkParameters, genesisFederation.getAddress().toBase58()));
 
         return tx;
     }
@@ -2566,9 +2638,20 @@ class BtcToRskClientTest {
     private Transaction createSegwitTransaction() {
         Transaction tx = new SimpleBtcTransaction(networkParameters, createHash(), createHash(), true);
         tx.addInput(Sha256Hash.ZERO_HASH, 0, org.bitcoinj.script.ScriptBuilder.createInputScript(null, new ECKey()));
-        tx.addOutput(Coin.COIN, Address.fromString(networkParameters, genesisFederation.getAddress().toBase58()));
+        tx.addOutput(COIN, Address.fromString(networkParameters, genesisFederation.getAddress().toBase58()));
 
         return tx;
+    }
+
+    private TransactionOutput createBech32Output(NetworkParameters networkParameters, Coin valuesToSend) {
+        byte[] scriptBytes = networkParameters.getId().equals(
+            NetworkParameters.ID_MAINNET)?
+            Hex.decode("001437c383ea78269585c73289daa36d7b7014b65294") :
+            Hex.decode("0014ef57424d0d625cf82fabe4fd7657d24a5f13dfb2");
+        return new TransactionOutput(networkParameters, null,
+            valuesToSend,
+            scriptBytes
+        );
     }
 
     private Sha256Hash createHash() {
@@ -2656,7 +2739,7 @@ class BtcToRskClientTest {
         }
         input.setScriptSig(new Script(new byte[]{0,0}));
         tx.addInput(input);
-        TransactionOutput output = new TransactionOutput(networkParameters, null, Coin.COIN, Address.fromString(networkParameters, "mvbnrCX3bg1cDRUu8pkecrvP6vQkSLDSou"));
+        TransactionOutput output = new TransactionOutput(networkParameters, null, COIN, Address.fromString(networkParameters, "mvbnrCX3bg1cDRUu8pkecrvP6vQkSLDSou"));
         tx.addOutput(output);
 
         byte[] witnessCommitment = Sha256Hash.twiceOf(witnessRoot.getReversedBytes(), witnessReservedValue).getBytes();
@@ -2683,7 +2766,7 @@ class BtcToRskClientTest {
             input.setWitness(witness);
         }
         tx.addInput(input);
-        TransactionOutput output = new TransactionOutput(networkParameters, null, Coin.COIN, Address.fromString(networkParameters, "mvbnrCX3bg1cDRUu8pkecrvP6vQkSLDSou"));
+        TransactionOutput output = new TransactionOutput(networkParameters, null, COIN, Address.fromString(networkParameters, "mvbnrCX3bg1cDRUu8pkecrvP6vQkSLDSou"));
         tx.addOutput(output);
 
         return tx;
