@@ -37,7 +37,8 @@ public class PegoutSignedCacheFactory {
     }
 
     logger.info(
-        "[getInstance] Retrieved pegouts signed cache with TTL value: {}", ttl.toMinutes());
+        "[getInstance] Retrieved pegouts signed cache with TTL value in minutes: {}",
+        ttl.toMinutes());
     return instance;
   }
 
