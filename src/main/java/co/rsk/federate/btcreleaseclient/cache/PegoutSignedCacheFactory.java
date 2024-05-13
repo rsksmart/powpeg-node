@@ -23,10 +23,11 @@ public class PegoutSignedCacheFactory {
    * @return An instance of PegoutSignedCache.
    * @throws IllegalArgumentException If the supplied TTL value is invalid.
    */
-  public static PegoutSignedCache getInstance(Duration ttl) throws IllegalArgumentException {
+  public static PegoutSignedCache getInstance(final Duration ttl) throws IllegalArgumentException {
     if (!isValidTtl(ttl)) {
       String message = String.format(
-          "Invalid pegouts signed cache TTL value supplied: %d", ttl.toMinutes());
+          "Invalid pegouts signed cache TTL value in minutes supplied: %d",
+          ttl != null ? ttl.toMinutes() : null);
       panicProcessor.panic("PegoutSignedCache", message);
       throw new IllegalArgumentException(message);
     }
