@@ -571,14 +571,15 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         btcTx.getHash()
                     );
                     logger.warn("[updateBridgeBtcTransactions] {}", message);
-                    // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
-                    if (peginInformation.getSenderBtcAddress() != null) {
-                        logger.warn("[updateBridgeBtcTransactions] Funds will be refunded to sender.");
-                    } else {
-                        // Remove the tx from the set to be sent to the Bridge since it's not processable
-                        txsToSendToRskHashes.remove(txHash);
-                        continue;
-                    }
+                }
+
+                // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
+                if (canSenderBeRetrieved(peginInformation)) {
+                    logger.warn("[updateBridgeBtcTransactions] Funds will be refunded to sender.");
+                } else {
+                    // Remove the tx from the set to be sent to the Bridge since it's not processable
+                    txsToSendToRskHashes.remove(txHash);
+                    continue;
                 }
 
                 // Check if the tx can be processed by the Bridge
@@ -666,6 +667,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 );
             }
         }
+    }
+
+    private static boolean canSenderBeRetrieved(PeginInformation peginInformation) {
+        return !(peginInformation.getSenderBtcAddress() == null && peginInformation.getSenderBtcAddressType() == TxSenderAddressType.UNKNOWN);
     }
 
     /**
