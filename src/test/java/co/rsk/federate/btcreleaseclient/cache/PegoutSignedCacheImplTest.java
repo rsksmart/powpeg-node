@@ -88,7 +88,6 @@ class PegoutSignedCacheImplTest {
     pegoutSignedCache.put(otherPegoutCreationRskTxHash);
     Instant secondTimestamp = pegoutSignedCache.getCache().get(otherPegoutCreationRskTxHash);
 
-    // both objects should have the same reference
     assertNotSame(firstTimestamp, secondTimestamp);
   }
 
@@ -101,7 +100,6 @@ class PegoutSignedCacheImplTest {
     pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
     Instant secondTimestamp = pegoutSignedCache.getCache().get(PEGOUT_CREATION_RSK_HASH);
 
-    // both objects should have the same reference
     assertSame(firstTimestamp, secondTimestamp);
   }
 }
