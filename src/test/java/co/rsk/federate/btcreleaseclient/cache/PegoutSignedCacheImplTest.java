@@ -1,6 +1,7 @@
 package co.rsk.federate.btcreleaseclient.cache;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -78,6 +79,19 @@ class PegoutSignedCacheImplTest {
   }
 
   @Test
+  void put_shouldPutInCacheBoth_whenPegoutCreationRskTxHashAreNotSame() {
+    // first insert
+    pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
+    Instant firstTimestamp = pegoutSignedCache.getCache().get(PEGOUT_CREATION_RSK_HASH);
+    // second insert
+    Keccak256 otherPegoutCreationRskTxHash = TestUtils.createHash(2);
+    pegoutSignedCache.put(otherPegoutCreationRskTxHash);
+    Instant secondTimestamp = pegoutSignedCache.getCache().get(otherPegoutCreationRskTxHash);
+
+    assertNotSame(firstTimestamp, secondTimestamp);
+  }
+
+  @Test
   void put_shouldPutInCacheOnce_whenPegoutCreationRskTxHashIsTheSame() {
     // first insert
     pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
@@ -86,7 +100,6 @@ class PegoutSignedCacheImplTest {
     pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
     Instant secondTimestamp = pegoutSignedCache.getCache().get(PEGOUT_CREATION_RSK_HASH);
 
-    // both objects should have the same reference
     assertSame(firstTimestamp, secondTimestamp);
   }
 }
