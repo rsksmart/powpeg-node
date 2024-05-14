@@ -21,9 +21,8 @@ class PegoutSignedCacheFactoryTest {
     String expectedErrorMessage = String.format(
         "Invalid pegouts signed cache TTL value in minutes supplied: %s", ttl);
 
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      PegoutSignedCacheFactory.getInstance(invalidTtl);
-    });
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        () -> PegoutSignedCacheFactory.getInstance(invalidTtl));
     assertEquals(expectedErrorMessage, exception.getMessage());
   }
 
