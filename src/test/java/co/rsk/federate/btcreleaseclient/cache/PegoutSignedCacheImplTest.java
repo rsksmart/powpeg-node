@@ -1,19 +1,13 @@
 package co.rsk.federate.btcreleaseclient.cache;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.utils.TestUtils;
-import java.lang.reflect.Field;
 import java.time.Duration;
-import java.util.Map;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,14 +16,11 @@ class PegoutSignedCacheImplTest {
   private static final Duration DEFAULT_TTL = Duration.ofMinutes(30);
   private static final Keccak256 PEGOUT_CREATION_RSK_HASH = TestUtils.createHash(1);
 
-  private final Map<Keccak256, Long> cache = mock(Map.class);
   private final PegoutSignedCacheImpl pegoutSignedCache = new PegoutSignedCacheImpl(DEFAULT_TTL);
 
   @BeforeEach
-  void setUp() throws NoSuchFieldException, IllegalAccessException {
-    Field field = pegoutSignedCache.getClass().getDeclaredField("cache");
-    field.setAccessible(true);
-    field.set(pegoutSignedCache, cache);
+  void setUp() {
+    pegoutSignedCache.getCache().clear();
   }
 
   @Test
@@ -50,9 +41,9 @@ class PegoutSignedCacheImplTest {
 
   @Test
   void hasAlreadyBeenSigned_shouldReturnFalse_whenCacheContainsInvalidTimestamp() {
-    Long currentTimestamp = System.currentTimeMillis();
-    Long timestamp = currentTimestamp - Duration.ofMinutes(60).toMillis();
-    when(cache.get(PEGOUT_CREATION_RSK_HASH)).thenReturn(timestamp);
+    Instant currentTimestamp = Instant.now();
+    Instant timestamp = currentTimestamp.minusMillis(Duration.ofMinutes(60).toMillis());
+    pegoutSignedCache.getCache().put(PEGOUT_CREATION_RSK_HASH, timestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
 
@@ -61,9 +52,9 @@ class PegoutSignedCacheImplTest {
 
   @Test
   void hasAlreadyBeenSigned_shouldReturnTrue_whenCacheContainsValidTimestamp() {
-    Long currentTimestamp = System.currentTimeMillis();
-    Long timestamp = currentTimestamp - Duration.ofMinutes(10).toMillis();
-    when(cache.get(PEGOUT_CREATION_RSK_HASH)).thenReturn(timestamp);
+    Instant currentTimestamp = Instant.now();
+    Instant timestamp = currentTimestamp.minusMillis(Duration.ofMinutes(10).toMillis());
+    pegoutSignedCache.getCache().put(PEGOUT_CREATION_RSK_HASH, timestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
 
@@ -76,13 +67,26 @@ class PegoutSignedCacheImplTest {
 
     pegoutSignedCache.put(pegoutCreationRskTxHash);
 
-    verify(cache, never()).put(any(Keccak256.class), anyLong());
+    assertFalse(pegoutSignedCache.getCache().containsKey(PEGOUT_CREATION_RSK_HASH));
   }
 
   @Test
   void put_shouldPutInCache_whenPegoutCreationRskTxHashIsNotNull() {
     pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
 
-    verify(cache).put(any(Keccak256.class), anyLong());
+    assertTrue(pegoutSignedCache.getCache().containsKey(PEGOUT_CREATION_RSK_HASH));
+  }
+
+  @Test
+  void put_shouldPutInCacheOnce_whenPegoutCreationRskTxHashIsTheSame() {
+    // first insert
+    pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
+    Instant firstTimestamp = pegoutSignedCache.getCache().get(PEGOUT_CREATION_RSK_HASH);
+    // second insert
+    pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
+    Instant secondTimestamp = pegoutSignedCache.getCache().get(PEGOUT_CREATION_RSK_HASH);
+
+    // both objects should have the same reference
+    assertSame(firstTimestamp, secondTimestamp);
   }
 }

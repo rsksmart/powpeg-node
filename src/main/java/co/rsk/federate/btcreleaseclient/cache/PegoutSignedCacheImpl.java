@@ -2,13 +2,16 @@ package co.rsk.federate.btcreleaseclient.cache;
 
 import co.rsk.crypto.Keccak256;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.annotations.VisibleForTesting;
+
 class PegoutSignedCacheImpl implements PegoutSignedCache {
 
-  private final Map<Keccak256, Long> cache = new ConcurrentHashMap<>();
+  private final Map<Keccak256, Instant> cache = new ConcurrentHashMap<>();
   private final Duration ttl;
 
   PegoutSignedCacheImpl(Duration ttl) {
@@ -17,7 +20,7 @@ class PegoutSignedCacheImpl implements PegoutSignedCache {
 
   @Override
   public boolean hasAlreadyBeenSigned(Keccak256 pegoutCreationRskTxHash) {
-    Long currentTimestamp = System.currentTimeMillis();
+    Instant currentTimestamp = Instant.now();
 
     return Optional.ofNullable(pegoutCreationRskTxHash)
         .map(cache::get)
@@ -27,14 +30,19 @@ class PegoutSignedCacheImpl implements PegoutSignedCache {
 
   @Override
   public void put(Keccak256 pegoutCreationRskTxHash) {
-    Long currentTimestamp = System.currentTimeMillis();
+    Instant currentTimestamp = Instant.now();
 
     Optional.ofNullable(pegoutCreationRskTxHash)
-        .ifPresent(rskTxHash -> cache.put(rskTxHash, currentTimestamp));
+        .ifPresent(rskTxHash -> cache.putIfAbsent(rskTxHash, currentTimestamp));
   }
 
-  private boolean isValidTimestamp(Long currentTimestamp, Long timestamp) {
+  private boolean isValidTimestamp(Instant currentTimestamp, Instant timestamp) {
     return currentTimestamp != null && timestamp != null &&
-        currentTimestamp - timestamp <= ttl.toMillis();
+        currentTimestamp.toEpochMilli() - timestamp.toEpochMilli() <= ttl.toMillis();
+  }
+
+  @VisibleForTesting
+  Map<Keccak256, Instant> getCache() {
+    return cache;
   }
 }
