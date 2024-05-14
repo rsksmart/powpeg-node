@@ -39,7 +39,7 @@ public class PegoutSignedCacheFactory {
       String message = String.format(
           "Invalid pegouts signed cache TTL value in minutes supplied: %d",
           ttl != null ? ttl.toMinutes() : null);
-      logger.error("[getInstance] " + message);
+      logger.error("[getInstance] {}", message);
 
       throw new IllegalArgumentException(message);
     }
