@@ -1,13 +1,12 @@
 package co.rsk.federate.btcreleaseclient.cache;
 
 import co.rsk.crypto.Keccak256;
+import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.google.common.annotations.VisibleForTesting;
 
 class PegoutSignedCacheImpl implements PegoutSignedCache {
 
