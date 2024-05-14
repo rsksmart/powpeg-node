@@ -36,8 +36,13 @@ class PegoutSignedCacheImpl implements PegoutSignedCache {
   }
 
   private boolean isValidTimestamp(Instant currentTimestamp, Instant timestamp) {
-    return currentTimestamp != null && timestamp != null &&
-        currentTimestamp.toEpochMilli() - timestamp.toEpochMilli() <= ttl.toMillis();
+    if (currentTimestamp == null || timestamp == null) {
+      return false;
+    }
+
+    Long timeInCache = currentTimestamp.toEpochMilli() - timestamp.toEpochMilli();
+
+    return timeInCache <= ttl.toMillis();
   }
 
   @VisibleForTesting
