@@ -8,33 +8,27 @@ public class PegoutSignedCacheFactory {
 
   private static final Logger logger = LoggerFactory.getLogger(PegoutSignedCacheFactory.class);
 
-  private static PegoutSignedCache instance;
-
   private PegoutSignedCacheFactory() {
   }
 
   /**
    * Retrieves an instance of PegoutSignedCache with the specified Time To Live
-   * (TTL). If an instance does not already exist, it is lazily initialized.
+   * (TTL).
    * 
    * @param ttl The duration for which the cache entries are considered valid.
    * @return An instance of PegoutSignedCache.
    * @throws IllegalArgumentException If the supplied TTL value is invalid.
    */
-  public static PegoutSignedCache getInstance(final Duration ttl) throws IllegalArgumentException {
+  public static PegoutSignedCache from(Duration ttl) throws IllegalArgumentException {
     assertValidTtl(ttl);
 
-    if (instance == null) {
-      instance = new PegoutSignedCacheImpl(ttl);
-    }
-
     logger.info(
-        "[getInstance] Retrieved pegouts signed cache with TTL value in minutes: {}",
+        "[from] Retrieved pegouts signed cache with TTL value in minutes: {}",
         ttl.toMinutes());
-    return instance;
+    return new PegoutSignedCacheImpl(ttl);
   }
 
-  private static void assertValidTtl(final Duration ttl) throws IllegalArgumentException {
+  private static void assertValidTtl(Duration ttl) throws IllegalArgumentException {
     if (ttl == null || ttl.isNegative() || ttl.isZero()) {
       String message = String.format(
           "Invalid pegouts signed cache TTL value in minutes supplied: %d",

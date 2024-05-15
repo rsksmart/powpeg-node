@@ -1,7 +1,6 @@
 package co.rsk.federate.btcreleaseclient.cache;
 
 import co.rsk.crypto.Keccak256;
-import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -43,10 +42,5 @@ class PegoutSignedCacheImpl implements PegoutSignedCache {
     Long timeInCache = currentTimestamp.toEpochMilli() - timestamp.toEpochMilli();
 
     return timeInCache <= ttl.toMillis();
-  }
-
-  @VisibleForTesting
-  Map<Keccak256, Instant> getCache() {
-    return cache;
   }
 }
