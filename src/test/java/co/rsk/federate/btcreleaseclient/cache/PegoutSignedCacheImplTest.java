@@ -2,8 +2,10 @@ package co.rsk.federate.btcreleaseclient.cache;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import co.rsk.crypto.Keccak256;
@@ -15,6 +17,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class PegoutSignedCacheImplTest {
 
@@ -22,13 +27,26 @@ class PegoutSignedCacheImplTest {
   private static final Keccak256 PEGOUT_CREATION_RSK_HASH = TestUtils.createHash(1);
 
   private final Map<Keccak256, Instant> cache = new ConcurrentHashMap<>();
-  private final PegoutSignedCache pegoutSignedCache = PegoutSignedCacheFactory.from(DEFAULT_TTL);
+  private final PegoutSignedCache pegoutSignedCache = new PegoutSignedCacheImpl(DEFAULT_TTL);
 
   @BeforeEach
   void setUp() throws Exception {
     Field field = pegoutSignedCache.getClass().getDeclaredField("cache");
     field.setAccessible(true);
     field.set(pegoutSignedCache, cache);
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(longs = { -10, 0 })
+  void constructor_shouldThrowIllegalArgumentException_whenTtlIsInvalid(Long ttl) {
+    Duration invalidTtl = ttl != null ? Duration.ofMinutes(ttl) : null;
+    String expectedErrorMessage = String.format(
+        "Invalid pegouts signed cache TTL value in minutes supplied: %s", ttl);
+
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        () -> new PegoutSignedCacheImpl(invalidTtl));
+    assertEquals(expectedErrorMessage, exception.getMessage());
   }
 
   @Test
