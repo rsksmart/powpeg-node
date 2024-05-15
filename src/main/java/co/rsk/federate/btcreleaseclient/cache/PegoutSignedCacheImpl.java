@@ -20,7 +20,7 @@ class PegoutSignedCacheImpl implements PegoutSignedCache {
   public boolean hasAlreadyBeenSigned(Keccak256 pegoutCreationRskTxHash) {
     return Optional.ofNullable(pegoutCreationRskTxHash)
         .map(cache::get)
-        .map(this::hasTimestampExpired)
+        .map(this::hasTimestampNotExpired)
         .orElse(false);
   }
 
@@ -30,7 +30,7 @@ class PegoutSignedCacheImpl implements PegoutSignedCache {
         .ifPresent(rskTxHash -> cache.putIfAbsent(rskTxHash, Instant.now()));
   }
 
-  private boolean hasTimestampExpired(Instant timestampInCache) {
+  private boolean hasTimestampNotExpired(Instant timestampInCache) {
     return Optional.ofNullable(timestampInCache)
       .map(timestamp -> Instant.now().toEpochMilli() - timestamp.toEpochMilli())
       .map(timeCachedInMillis -> timeCachedInMillis <= ttl.toMillis())
