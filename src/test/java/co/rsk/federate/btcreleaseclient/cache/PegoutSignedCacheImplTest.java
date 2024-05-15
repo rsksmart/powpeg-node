@@ -30,7 +30,6 @@ class PegoutSignedCacheImplTest {
     Field field = pegoutSignedCache.getClass().getDeclaredField("cache");
     field.setAccessible(true);
     field.set(pegoutSignedCache, cache);
-    cache.clear();
   }
 
   @Test
@@ -50,7 +49,7 @@ class PegoutSignedCacheImplTest {
   }
 
   @Test
-  void hasAlreadyBeenSigned_shouldReturnFalse_whenCacheContainsInvalidTimestamp() {
+  void hasAlreadyBeenSigned_shouldReturnFalse_whenCacheContainsExpiredTimestamp() {
     Instant currentTimestamp = Instant.now();
     Instant timestamp = currentTimestamp.minusMillis(Duration.ofMinutes(60).toMillis());
     cache.put(PEGOUT_CREATION_RSK_HASH, timestamp);
@@ -61,7 +60,7 @@ class PegoutSignedCacheImplTest {
   }
 
   @Test
-  void hasAlreadyBeenSigned_shouldReturnTrue_whenCacheContainsValidTimestamp() {
+  void hasAlreadyBeenSigned_shouldReturnTrue_whenCacheContainsNotExpiredTimestamp() {
     Instant currentTimestamp = Instant.now();
     Instant timestamp = currentTimestamp.minusMillis(Duration.ofMinutes(10).toMillis());
     cache.put(PEGOUT_CREATION_RSK_HASH, timestamp);
@@ -72,43 +71,43 @@ class PegoutSignedCacheImplTest {
   }
 
   @Test
-  void put_shouldNotPutInCache_whenPegoutCreationRskTxHashIsNull() {
+  void putIfAbsent_shouldNotPutInCache_whenPegoutCreationRskTxHashIsNull() {
     Keccak256 pegoutCreationRskTxHash = null;
 
-    pegoutSignedCache.put(pegoutCreationRskTxHash);
+    pegoutSignedCache.putIfAbsent(pegoutCreationRskTxHash);
 
     assertFalse(cache.containsKey(PEGOUT_CREATION_RSK_HASH));
   }
 
   @Test
-  void put_shouldPutInCache_whenPegoutCreationRskTxHashIsNotNull() {
-    pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
+  void putIfAbsent_shouldPutInCache_whenPegoutCreationRskTxHashIsNotNull() {
+    pegoutSignedCache.putIfAbsent(PEGOUT_CREATION_RSK_HASH);
 
     assertTrue(cache.containsKey(PEGOUT_CREATION_RSK_HASH));
   }
 
   @Test
-  void put_shouldPutInCacheBoth_whenPegoutCreationRskTxHashAreNotSame() {
+  void putIfAbsent_shouldPutInCacheBoth_whenPegoutCreationRskTxHashAreNotSame() {
     // first insert
-    pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
-    Instant firstTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
+    pegoutSignedCache.putIfAbsent(PEGOUT_CREATION_RSK_HASH);
+    Instant pegoutCreationRskTxHashTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
     // second insert
     Keccak256 otherPegoutCreationRskTxHash = TestUtils.createHash(2);
-    pegoutSignedCache.put(otherPegoutCreationRskTxHash);
-    Instant secondTimestamp = cache.get(otherPegoutCreationRskTxHash);
+    pegoutSignedCache.putIfAbsent(otherPegoutCreationRskTxHash);
+    Instant otherPegoutCreationRskTxHashTimestamp = cache.get(otherPegoutCreationRskTxHash);
 
-    assertNotSame(firstTimestamp, secondTimestamp);
+    assertNotSame(pegoutCreationRskTxHashTimestamp, otherPegoutCreationRskTxHashTimestamp);
   }
 
   @Test
-  void put_shouldPutInCacheOnce_whenPegoutCreationRskTxHashIsTheSame() {
+  void putIfAbsent_shouldPutInCacheOnce_whenPegoutCreationRskTxHashIsTheSame() {
     // first insert
-    pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
-    Instant firstTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
+    pegoutSignedCache.putIfAbsent(PEGOUT_CREATION_RSK_HASH);
+    Instant pegoutCreationRskTxHashTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
     // second insert
-    pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
-    Instant secondTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
+    pegoutSignedCache.putIfAbsent(PEGOUT_CREATION_RSK_HASH);
+    Instant otherPegoutCreationRskTxHashTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
 
-    assertSame(firstTimestamp, secondTimestamp);
+    assertSame(pegoutCreationRskTxHashTimestamp, otherPegoutCreationRskTxHashTimestamp);
   }
 }
