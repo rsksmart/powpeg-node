@@ -1,5 +1,6 @@
 package co.rsk.federate.btcreleaseclient.cache;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -7,14 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.utils.TestUtils;
-
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.time.Instant;
-import org.junit.jupiter.api.BeforeEach;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class PegoutSignedCacheImplTest {
@@ -76,14 +75,14 @@ class PegoutSignedCacheImplTest {
 
     pegoutSignedCache.putIfAbsent(pegoutCreationRskTxHash);
 
-    assertTrue(cache.size() == 0);
+    assertEquals(cache.size(), 0);
   }
 
   @Test
   void putIfAbsent_shouldPutInCache_whenPegoutCreationRskTxHashIsNotNull() {
     pegoutSignedCache.putIfAbsent(PEGOUT_CREATION_RSK_HASH);
 
-    assertTrue(cache.size() == 1);
+    assertEquals(cache.size(), 1);
     assertTrue(cache.containsKey(PEGOUT_CREATION_RSK_HASH));
   }
 
