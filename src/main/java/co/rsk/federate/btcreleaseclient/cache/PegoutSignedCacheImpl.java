@@ -22,19 +22,19 @@ class PegoutSignedCacheImpl implements PegoutSignedCache {
 
     return Optional.ofNullable(pegoutCreationRskTxHash)
         .map(cache::get)
-        .map(timestamp -> isValidTimestamp(currentTimestamp, timestamp))
+        .map(timestamp -> hasTimestampExpired(currentTimestamp, timestamp))
         .orElse(false);
   }
 
   @Override
-  public void put(Keccak256 pegoutCreationRskTxHash) {
+  public void putIfAbsent(Keccak256 pegoutCreationRskTxHash) {
     Instant currentTimestamp = Instant.now();
 
     Optional.ofNullable(pegoutCreationRskTxHash)
         .ifPresent(rskTxHash -> cache.putIfAbsent(rskTxHash, currentTimestamp));
   }
 
-  private boolean isValidTimestamp(Instant currentTimestamp, Instant timestamp) {
+  private boolean hasTimestampExpired(Instant currentTimestamp, Instant timestamp) {
     if (currentTimestamp == null || timestamp == null) {
       return false;
     }

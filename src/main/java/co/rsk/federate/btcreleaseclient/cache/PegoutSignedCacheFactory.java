@@ -19,7 +19,7 @@ public class PegoutSignedCacheFactory {
    * @return An instance of PegoutSignedCache.
    * @throws IllegalArgumentException If the supplied TTL value is invalid.
    */
-  public static PegoutSignedCache from(Duration ttl) throws IllegalArgumentException {
+  public static PegoutSignedCache from(Duration ttl) {
     assertValidTtl(ttl);
 
     logger.info(
@@ -28,11 +28,11 @@ public class PegoutSignedCacheFactory {
     return new PegoutSignedCacheImpl(ttl);
   }
 
-  private static void assertValidTtl(Duration ttl) throws IllegalArgumentException {
+  private static void assertValidTtl(Duration ttl) {
     if (ttl == null || ttl.isNegative() || ttl.isZero()) {
+      Long ttlInMinutes = ttl != null ? ttl.toMinutes() : null;
       String message = String.format(
-          "Invalid pegouts signed cache TTL value in minutes supplied: %d",
-          ttl != null ? ttl.toMinutes() : null);
+          "Invalid pegouts signed cache TTL value in minutes supplied: %d", ttlInMinutes);
       logger.error("[assertValidTtl] {}", message);
 
       throw new IllegalArgumentException(message);

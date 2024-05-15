@@ -17,10 +17,10 @@ public interface PegoutSignedCache {
 
   /**
    * Stores the specified RSK transaction hash for pegout creation along with its
-   * timestamp in the cache.
+   * timestamp in the cache if absent.
    * 
    * @param pegoutCreationRskTxHash The Keccak256 hash of the RSK transaction for
    *                                pegout creation to be stored.
    */
-  void put(Keccak256 pegoutCreationRskTxHash);
+  void putIfAbsent(Keccak256 pegoutCreationRskTxHash);
 }
