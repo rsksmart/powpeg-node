@@ -76,13 +76,14 @@ class PegoutSignedCacheImplTest {
 
     pegoutSignedCache.putIfAbsent(pegoutCreationRskTxHash);
 
-    assertFalse(cache.containsKey(PEGOUT_CREATION_RSK_HASH));
+    assertTrue(cache.size() == 0);
   }
 
   @Test
   void putIfAbsent_shouldPutInCache_whenPegoutCreationRskTxHashIsNotNull() {
     pegoutSignedCache.putIfAbsent(PEGOUT_CREATION_RSK_HASH);
 
+    assertTrue(cache.size() == 1);
     assertTrue(cache.containsKey(PEGOUT_CREATION_RSK_HASH));
   }
 
