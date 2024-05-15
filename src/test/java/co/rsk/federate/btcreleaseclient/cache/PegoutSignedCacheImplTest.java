@@ -7,9 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.utils.TestUtils;
+
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.Test;
 
 class PegoutSignedCacheImplTest {
@@ -17,11 +22,15 @@ class PegoutSignedCacheImplTest {
   private static final Duration DEFAULT_TTL = Duration.ofMinutes(30);
   private static final Keccak256 PEGOUT_CREATION_RSK_HASH = TestUtils.createHash(1);
 
-  private final PegoutSignedCacheImpl pegoutSignedCache = new PegoutSignedCacheImpl(DEFAULT_TTL);
+  private final Map<Keccak256, Instant> cache = new ConcurrentHashMap<>();
+  private final PegoutSignedCache pegoutSignedCache = PegoutSignedCacheFactory.from(DEFAULT_TTL);
 
   @BeforeEach
-  void setUp() {
-    pegoutSignedCache.getCache().clear();
+  void setUp() throws Exception {
+    Field field = pegoutSignedCache.getClass().getDeclaredField("cache");
+    field.setAccessible(true);
+    field.set(pegoutSignedCache, cache);
+    cache.clear();
   }
 
   @Test
@@ -44,7 +53,7 @@ class PegoutSignedCacheImplTest {
   void hasAlreadyBeenSigned_shouldReturnFalse_whenCacheContainsInvalidTimestamp() {
     Instant currentTimestamp = Instant.now();
     Instant timestamp = currentTimestamp.minusMillis(Duration.ofMinutes(60).toMillis());
-    pegoutSignedCache.getCache().put(PEGOUT_CREATION_RSK_HASH, timestamp);
+    cache.put(PEGOUT_CREATION_RSK_HASH, timestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
 
@@ -55,7 +64,7 @@ class PegoutSignedCacheImplTest {
   void hasAlreadyBeenSigned_shouldReturnTrue_whenCacheContainsValidTimestamp() {
     Instant currentTimestamp = Instant.now();
     Instant timestamp = currentTimestamp.minusMillis(Duration.ofMinutes(10).toMillis());
-    pegoutSignedCache.getCache().put(PEGOUT_CREATION_RSK_HASH, timestamp);
+    cache.put(PEGOUT_CREATION_RSK_HASH, timestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
 
@@ -68,25 +77,25 @@ class PegoutSignedCacheImplTest {
 
     pegoutSignedCache.put(pegoutCreationRskTxHash);
 
-    assertFalse(pegoutSignedCache.getCache().containsKey(PEGOUT_CREATION_RSK_HASH));
+    assertFalse(cache.containsKey(PEGOUT_CREATION_RSK_HASH));
   }
 
   @Test
   void put_shouldPutInCache_whenPegoutCreationRskTxHashIsNotNull() {
     pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
 
-    assertTrue(pegoutSignedCache.getCache().containsKey(PEGOUT_CREATION_RSK_HASH));
+    assertTrue(cache.containsKey(PEGOUT_CREATION_RSK_HASH));
   }
 
   @Test
   void put_shouldPutInCacheBoth_whenPegoutCreationRskTxHashAreNotSame() {
     // first insert
     pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
-    Instant firstTimestamp = pegoutSignedCache.getCache().get(PEGOUT_CREATION_RSK_HASH);
+    Instant firstTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
     // second insert
     Keccak256 otherPegoutCreationRskTxHash = TestUtils.createHash(2);
     pegoutSignedCache.put(otherPegoutCreationRskTxHash);
-    Instant secondTimestamp = pegoutSignedCache.getCache().get(otherPegoutCreationRskTxHash);
+    Instant secondTimestamp = cache.get(otherPegoutCreationRskTxHash);
 
     assertNotSame(firstTimestamp, secondTimestamp);
   }
@@ -95,10 +104,10 @@ class PegoutSignedCacheImplTest {
   void put_shouldPutInCacheOnce_whenPegoutCreationRskTxHashIsTheSame() {
     // first insert
     pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
-    Instant firstTimestamp = pegoutSignedCache.getCache().get(PEGOUT_CREATION_RSK_HASH);
+    Instant firstTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
     // second insert
     pegoutSignedCache.put(PEGOUT_CREATION_RSK_HASH);
-    Instant secondTimestamp = pegoutSignedCache.getCache().get(PEGOUT_CREATION_RSK_HASH);
+    Instant secondTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
 
     assertSame(firstTimestamp, secondTimestamp);
   }
