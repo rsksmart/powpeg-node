@@ -10,7 +10,7 @@ public interface PegoutSignedCache {
    * 
    * @param pegoutCreationRskTxHash The Keccak256 hash of the RSK transaction for
    *                                pegout creation.
-   * @return {@code true} if the transaction hash has already been signed,
+   * @return {@code true} if the hash of the transaction has already been signed,
    *         {@code false} otherwise.
    */
   boolean hasAlreadyBeenSigned(Keccak256 pegoutCreationRskTxHash);
