@@ -1,9 +1,12 @@
 package co.rsk.federate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.time.Duration;
 
 import co.rsk.config.ConfigLoader;
 import co.rsk.federate.config.FedNodeSystemProperties;
@@ -142,5 +145,34 @@ class FedNodeSystemPropertiesTest {
         FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
 
         assertTrue(fedNodeSystemProperties.isUpdateBridgeTimerEnabled());
+    }
+
+    @Test
+    void getPegoutSignedCacheTtl_whenConfigurationPathExists_shouldUseCustomTtl() {
+        int customTtlInMinutes = 10;
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.pegoutSignedCacheTtl")).thenReturn(true);
+        when(config.getInt("federator.pegoutSignedCacheTtl")).thenReturn(customTtlInMinutes);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertEquals(
+            Duration.ofMinutes(customTtlInMinutes),
+            fedNodeSystemProperties.getPegoutSignedCacheTtl());
+    }
+
+    @Test
+    void getPegoutSignedCacheTtl_whenConfigurationPathDoesNotExist_shouldUseDefaultTtl() {
+        int defaultTtlInMinutes = 30;
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.pegoutSignedCacheTtl")).thenReturn(false);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertEquals(
+            Duration.ofMinutes(defaultTtlInMinutes),
+            fedNodeSystemProperties.getPegoutSignedCacheTtl());
     }
 }
