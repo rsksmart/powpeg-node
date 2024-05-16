@@ -3,7 +3,6 @@ package co.rsk.federate.config;
 import co.rsk.config.ConfigLoader;
 import co.rsk.config.RskSystemProperties;
 import com.typesafe.config.Config;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
