@@ -91,7 +91,7 @@ class PegoutSignedCacheImplTest {
     Keccak256 pegoutCreationRskTxHash = null;
 
     assertEquals(0, cache.size());
-    assertThrows(NullPointerException.class,
+    assertThrows(IllegalArgumentException.class,
         () -> pegoutSignedCache.putIfAbsent(pegoutCreationRskTxHash));
   }
 
