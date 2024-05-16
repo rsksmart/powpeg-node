@@ -3,6 +3,8 @@ package co.rsk.federate.config;
 import co.rsk.config.ConfigLoader;
 import co.rsk.config.RskSystemProperties;
 import com.typesafe.config.Config;
+
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,5 +84,18 @@ public class FedNodeSystemProperties extends RskSystemProperties {
         return configFromFiles.hasPath("federator.pegoutStorageInitializationDepth") ?
             configFromFiles.getInt("federator.pegoutStorageInitializationDepth") :
             6_000;
+    }
+
+    /**
+     * Retrieves the time to live (TTL) duration for the pegout signed cache.
+     * The TTL duration specifies the validity period for cache entries.
+     * If the TTL value is not configured, a default value of 30 minutes is used.
+     * 
+     * @return The time to live (TTL) duration for the pegout signed cache,
+     *         or a default value of 30 minutes if not configured.
+     */
+    public Duration getPegoutSignedCacheTtl() {
+        return Duration.ofMinutes(
+            getInt("federator.pegoutSignedCacheTtl", 30));
     }
 }
