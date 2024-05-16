@@ -67,8 +67,8 @@ class PegoutSignedCacheImplTest {
   @Test
   void hasAlreadyBeenSigned_shouldReturnFalse_whenCacheContainsExpiredTimestamp() {
     Instant currentTimestamp = Instant.now();
-    Instant timestamp = currentTimestamp.minusMillis(Duration.ofMinutes(60).toMillis());
-    cache.put(PEGOUT_CREATION_RSK_HASH, timestamp);
+    Instant expiredTimestamp = currentTimestamp.minusMillis(Duration.ofMinutes(60).toMillis());
+    cache.put(PEGOUT_CREATION_RSK_HASH, expiredTimestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
 
@@ -78,8 +78,8 @@ class PegoutSignedCacheImplTest {
   @Test
   void hasAlreadyBeenSigned_shouldReturnTrue_whenCacheContainsNotExpiredTimestamp() {
     Instant currentTimestamp = Instant.now();
-    Instant timestamp = currentTimestamp.minusMillis(Duration.ofMinutes(10).toMillis());
-    cache.put(PEGOUT_CREATION_RSK_HASH, timestamp);
+    Instant notExpiredTimestamp = currentTimestamp.minusMillis(Duration.ofMinutes(10).toMillis());
+    cache.put(PEGOUT_CREATION_RSK_HASH, notExpiredTimestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
 
@@ -120,11 +120,11 @@ class PegoutSignedCacheImplTest {
   void putIfAbsent_shouldPutInCacheOnce_whenPegoutCreationRskTxHashIsTheSame() {
     // first insert
     pegoutSignedCache.putIfAbsent(PEGOUT_CREATION_RSK_HASH);
-    Instant pegoutCreationRskTxHashTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
+    Instant pegoutCreationRskTxHashTimestamp1 = cache.get(PEGOUT_CREATION_RSK_HASH);
     // second insert
     pegoutSignedCache.putIfAbsent(PEGOUT_CREATION_RSK_HASH);
-    Instant otherPegoutCreationRskTxHashTimestamp = cache.get(PEGOUT_CREATION_RSK_HASH);
+    Instant pegoutCreationRskTxHashTimestamp2 = cache.get(PEGOUT_CREATION_RSK_HASH);
 
-    assertSame(pegoutCreationRskTxHashTimestamp, otherPegoutCreationRskTxHashTimestamp);
+    assertSame(pegoutCreationRskTxHashTimestamp1, pegoutCreationRskTxHashTimestamp2);
   }
 }
