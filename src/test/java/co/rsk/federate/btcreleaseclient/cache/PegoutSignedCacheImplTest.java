@@ -87,12 +87,12 @@ class PegoutSignedCacheImplTest {
   }
 
   @Test
-  void putIfAbsent_shouldNotPutInCache_whenPegoutCreationRskTxHashIsNull() {
+  void putIfAbsent_shouldThrowNullPointerException_whenPegoutCreationRskTxHashIsNull() {
     Keccak256 pegoutCreationRskTxHash = null;
 
-    pegoutSignedCache.putIfAbsent(pegoutCreationRskTxHash);
-
     assertEquals(0, cache.size());
+    assertThrows(NullPointerException.class,
+        () -> pegoutSignedCache.putIfAbsent(pegoutCreationRskTxHash));
   }
 
   @Test
