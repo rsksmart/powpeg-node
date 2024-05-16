@@ -32,7 +32,11 @@ class PegoutSignedCacheImpl implements PegoutSignedCache {
 
   @Override
   public void putIfAbsent(Keccak256 pegoutCreationRskTxHash) {
-    Optional.ofNullable(pegoutCreationRskTxHash)
+    if (pegoutCreationRskTxHash == null) {
+      throw new NullPointerException("The pegoutCreationRskTxHash argument must not be null");
+    }
+
+    Optional.of(pegoutCreationRskTxHash)
         .ifPresent(rskTxHash -> cache.putIfAbsent(rskTxHash, Instant.now()));
   }
 
