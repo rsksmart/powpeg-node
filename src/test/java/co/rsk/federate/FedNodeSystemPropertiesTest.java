@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-
 import co.rsk.config.ConfigLoader;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import com.typesafe.config.Config;
