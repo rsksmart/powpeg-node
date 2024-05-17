@@ -6,19 +6,29 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.utils.TestUtils;
+import javafx.concurrent.ScheduledService;
+
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.invocation.InvocationOnMock;
 
 class PegoutSignedCacheImplTest {
 
@@ -126,5 +136,30 @@ class PegoutSignedCacheImplTest {
     Instant pegoutCreationRskTxHashTimestamp2 = cache.get(PEGOUT_CREATION_RSK_HASH);
 
     assertSame(pegoutCreationRskTxHashTimestamp1, pegoutCreationRskTxHashTimestamp2);
+  }
+
+  @Test
+  void performCleanup_shouldRemoveOnlyExpiredPegouts_whenPerformCleanupIsTriggered() throws Exception {
+    // setup cache
+    PegoutSignedCacheImpl pegoutSignedCacheImpl = new PegoutSignedCacheImpl(DEFAULT_TTL);
+    Field field = pegoutSignedCacheImpl.getClass().getDeclaredField("cache");
+    field.setAccessible(true);
+    field.set(pegoutSignedCacheImpl, cache);
+
+    // put an expired and not expired timestamp in the cache
+    Instant currentTimestamp = Instant.now();
+    Instant notExpiredTimestamp = currentTimestamp.minusMillis(
+        Duration.ofMinutes(10).toMillis());
+    Instant expiredTimestamp = currentTimestamp.minusMillis(
+        Duration.ofMinutes(60).toMillis());
+    Keccak256 otherPegoutCreationRskHash = TestUtils.createHash(2);
+    cache.put(PEGOUT_CREATION_RSK_HASH, notExpiredTimestamp);
+    cache.put(otherPegoutCreationRskHash, expiredTimestamp);
+
+    // trigger cleanup
+    pegoutSignedCacheImpl.performCleanup();
+
+    assertEquals(1, cache.size());
+    assertTrue(cache.containsKey(PEGOUT_CREATION_RSK_HASH));
   }
 }
