@@ -150,8 +150,10 @@ class FedNodeSystemPropertiesTest {
     void getPegoutSignedCacheTtl_whenConfigurationPathExists_shouldUseCustomTtl() {
         int customTtlInMinutes = 10;
         when(configLoader.getConfig()).thenReturn(config);
-        when(config.hasPath("federator.pegoutSignedCacheTtl")).thenReturn(true);
-        when(config.getInt("federator.pegoutSignedCacheTtl")).thenReturn(customTtlInMinutes);
+        when(config.hasPath(
+            "federator.pegoutSignedCacheTtlInMinutes")).thenReturn(true);
+        when(config.getInt(
+            "federator.pegoutSignedCacheTtlInMinutes")).thenReturn(customTtlInMinutes);
         when(config.root()).thenReturn(configObject);
 
         FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
@@ -165,7 +167,8 @@ class FedNodeSystemPropertiesTest {
     void getPegoutSignedCacheTtl_whenConfigurationPathDoesNotExist_shouldUseDefaultTtl() {
         int defaultTtlInMinutes = 30;
         when(configLoader.getConfig()).thenReturn(config);
-        when(config.hasPath("federator.pegoutSignedCacheTtl")).thenReturn(false);
+        when(config.hasPath(
+            "federator.pegoutSignedCacheTtlInMinutes")).thenReturn(false);
         when(config.root()).thenReturn(configObject);
 
         FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
