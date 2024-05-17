@@ -87,7 +87,7 @@ class PegoutSignedCacheImplTest {
   }
 
   @Test
-  void putIfAbsent_shouldThrowNullPointerException_whenPegoutCreationRskTxHashIsNull() {
+  void putIfAbsent_shouldThrowIllegalArgumentException_whenPegoutCreationRskTxHashIsNull() {
     Keccak256 pegoutCreationRskTxHash = null;
 
     assertEquals(0, cache.size());
