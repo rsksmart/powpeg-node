@@ -95,6 +95,6 @@ public class FedNodeSystemProperties extends RskSystemProperties {
      */
     public Duration getPegoutSignedCacheTtl() {
         return Duration.ofMinutes(
-            getInt("federator.pegoutSignedCacheTtl", 30));
+            getInt("federator.pegoutSignedCacheTtlInMinutes", 30));
     }
 }
