@@ -24,6 +24,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,7 +33,10 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 
-public class TestUtils {
+public final class TestUtils {
+
+    private TestUtils() {
+    }
 
     public static Keccak256 createHash(int nHash) {
         byte[] bytes = new byte[32];
@@ -87,11 +91,28 @@ public class TestUtils {
     }
 
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
+        final long CREATION_BLOCK_NUMBER = 0;
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
-        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), 0, params);
+        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
 
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
+    }
+
+    public static Federation createFederation(NetworkParameters params, List<BtcECKey> federationPrivatekeys) {
+        final long CREATION_BLOCK_NUMBER = 0;
+        List<FederationMember> federationMembers = FederationMember.getFederationMembersFromKeys(federationPrivatekeys);
+        FederationArgs federationArgs = new FederationArgs(federationMembers, Instant.now(), CREATION_BLOCK_NUMBER, params);
+        return FederationFactory.buildStandardMultiSigFederation(federationArgs);
+    }
+
+    public static List<BtcECKey> getFederationPrivateKeys(long amountOfMembers) {
+        final long START_SEED_PRIVATE_KEY= 100;
+        List<BtcECKey> federationPrivateKeys = new ArrayList<>();
+        for (long i=1; i<=amountOfMembers;i++){
+            federationPrivateKeys.add(BtcECKey.fromPrivate(BigInteger.valueOf(i * START_SEED_PRIVATE_KEY)));
+        }
+        return federationPrivateKeys;
     }
 
     public static TransactionInput createTransactionInput(
