@@ -127,4 +127,29 @@ class PegoutSignedCacheImplTest {
 
     assertSame(pegoutCreationRskTxHashTimestamp1, pegoutCreationRskTxHashTimestamp2);
   }
+
+  @Test
+  void performCleanup_shouldRemoveOnlyExpiredPegouts_whenPerformCleanupIsTriggered() throws Exception {
+    // setup cache
+    PegoutSignedCacheImpl pegoutSignedCacheImpl = new PegoutSignedCacheImpl(DEFAULT_TTL);
+    Field field = pegoutSignedCacheImpl.getClass().getDeclaredField("cache");
+    field.setAccessible(true);
+    field.set(pegoutSignedCacheImpl, cache);
+
+    // put an expired and not expired timestamp in the cache
+    Instant currentTimestamp = Instant.now();
+    Instant notExpiredTimestamp = currentTimestamp.minusMillis(
+        Duration.ofMinutes(10).toMillis());
+    Instant expiredTimestamp = currentTimestamp.minusMillis(
+        Duration.ofMinutes(60).toMillis());
+    Keccak256 otherPegoutCreationRskHash = TestUtils.createHash(2);
+    cache.put(PEGOUT_CREATION_RSK_HASH, notExpiredTimestamp);
+    cache.put(otherPegoutCreationRskHash, expiredTimestamp);
+
+    // trigger cleanup
+    pegoutSignedCacheImpl.performCleanup();
+
+    assertEquals(1, cache.size());
+    assertTrue(cache.containsKey(PEGOUT_CREATION_RSK_HASH));
+  }
 }
