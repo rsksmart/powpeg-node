@@ -14,7 +14,9 @@ import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.core.TransactionOutPoint;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.Script;
-import co.rsk.config.BridgeRegTestConstants;
+import co.rsk.federate.signing.utils.TestUtils;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.crypto.Keccak256;
 import co.rsk.peg.federation.Federation;
@@ -59,9 +61,9 @@ class PowHSMSignerMessageBuilderTest {
 
         when(receiptStore.get(rskTxHash.getBytes(), Keccak256.ZERO_HASH.getBytes())).thenReturn(Optional.of(txInfo));
 
-        BridgeRegTestConstants bridgeConstants = BridgeRegTestConstants.getInstance();
-        Federation federation = bridgeConstants.getGenesisFederation();
-        BtcTransaction releaseTx = createReleaseTx(federation);
+        final BridgeConstants bridgeMainNetConstants = BridgeMainNetConstants.getInstance();
+        final Federation activeFederation = TestUtils.createFederation(bridgeMainNetConstants.getBtcParams(), 9);
+        BtcTransaction releaseTx = createReleaseTx(activeFederation);
         int inputIndex = 0;
 
         //Act
@@ -84,7 +86,7 @@ class PowHSMSignerMessageBuilderTest {
         for (int i = 0; i < encodedReceipts.length; i++) {
             encodedReceipts[i] = Hex.toHexString(receiptMerkleProof.get(i).toMessage());
         }
-        Sha256Hash sigHash = releaseTx.hashForSignature(0, federation.getRedeemScript(), BtcTransaction.SigHash.ALL, false);
+        Sha256Hash sigHash = releaseTx.hashForSignature(0, activeFederation.getRedeemScript(), BtcTransaction.SigHash.ALL, false);
 
         assertEquals(Hex.toHexString(releaseTx.bitcoinSerialize()), message.getBtcTransactionSerialized());
         assertEquals(inputIndex, message.getInputIndex());

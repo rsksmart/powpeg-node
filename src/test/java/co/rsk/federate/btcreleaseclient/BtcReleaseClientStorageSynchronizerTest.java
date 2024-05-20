@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.config.BridgeRegTestConstants;
+import co.rsk.peg.constants.BridgeRegTestConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.utils.BridgeEventLoggerImpl;
