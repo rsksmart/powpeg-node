@@ -22,14 +22,16 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
   private final Duration ttl;
 
   public PegoutSignedCacheImpl(Duration ttl) {
-    this.ttl = validateTtl(ttl);
+    validateTtl(ttl);
+    this.ttl = ttl;
 
     // Start a background thread for periodic cleanup
     cleanupScheduler.scheduleAtFixedRate(
         this::performCleanup,
         CLEANUP_INTERVAL_IN_HOURS, // initial delay
         CLEANUP_INTERVAL_IN_HOURS, // period
-        TimeUnit.HOURS);
+        TimeUnit.HOURS
+    );
   }
 
   @Override
@@ -63,7 +65,7 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
         .orElse(false);
   }
 
-  private Duration validateTtl(Duration ttl) {
+  private static void validateTtl(Duration ttl) {
     if (ttl == null || ttl.isNegative() || ttl.isZero()) {
       Long ttlInMinutes = ttl != null ? ttl.toMinutes() : null;
       String message = String.format(
@@ -72,7 +74,5 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
 
       throw new IllegalArgumentException(message);
     }
-    
-    return ttl;
   }
 }
