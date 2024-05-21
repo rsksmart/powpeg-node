@@ -54,8 +54,12 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
   }
 
   void performCleanup() {
+    logger.trace(
+        "[performCleanup] Pegouts signed cache before cleanup: {}", cache.keySet());
     cache.entrySet().removeIf(
         entry -> !hasTimestampNotExpired(entry.getValue()));
+    logger.trace(
+        "[performCleanup] Pegouts signed cache after cleanup: {}", cache.keySet());
   }
 
   private boolean hasTimestampNotExpired(Instant timestampInCache) {
@@ -70,7 +74,7 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
       Long ttlInMinutes = ttl != null ? ttl.toMinutes() : null;
       String message = String.format(
           "Invalid pegouts signed cache TTL value in minutes supplied: %d", ttlInMinutes);
-      logger.error("[assertValidTtl] {}", message);
+      logger.error("[validateTtl] {}", message);
 
       throw new IllegalArgumentException(message);
     }
