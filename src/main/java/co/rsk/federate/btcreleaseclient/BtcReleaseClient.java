@@ -12,6 +12,8 @@ import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
+import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCache;
+import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCacheImpl;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.FederationCantSignException;
@@ -84,11 +86,11 @@ public class BtcReleaseClient {
 
     private final Ethereum ethereum;
     private final FederatorSupport federatorSupport;
-    private final FedNodeSystemProperties systemProperties;
     private final Set<Federation> observedFederations;
     private final NodeBlockProcessor nodeBlockProcessor;
     private final BridgeConstants bridgeConstants;
     private final boolean isPegoutEnabled;
+    private final PegoutSignedCache pegoutSignedCache;
 
     private ECDSASigner signer;
     private BtcReleaseEthereumListener blockListener;
@@ -108,12 +110,13 @@ public class BtcReleaseClient {
     ) {
         this.ethereum = ethereum;
         this.federatorSupport = federatorSupport;
-        this.systemProperties = systemProperties;
         this.observedFederations = new HashSet<>();
         this.blockListener = new BtcReleaseEthereumListener();
-        this.bridgeConstants = this.systemProperties.getNetworkConstants().getBridgeConstants();
-        this.isPegoutEnabled = this.systemProperties.isPegoutEnabled();
+        this.bridgeConstants = systemProperties.getNetworkConstants().getBridgeConstants();
+        this.isPegoutEnabled = systemProperties.isPegoutEnabled();
         this.nodeBlockProcessor = nodeBlockProcessor;
+        this.pegoutSignedCache = new PegoutSignedCacheImpl(
+            systemProperties.getPegoutSignedCacheTtl());
     }
 
     public void setup(
@@ -283,10 +286,15 @@ public class BtcReleaseClient {
         BtcTransaction pegoutBtcTx
     ) {
         try {
+            // Discard pegout tx if processed in a previous round of execution
+            logger.trace(
+                "[tryGetReleaseInformation] Checking if pegoutCreationTxHash {} has already been signed",
+                pegoutCreationRskTxHash);
+            validateTxIsNotCached(pegoutCreationRskTxHash);
+
             // Discard pegout btc tx this fed already signed or cannot be signed by the observed federations
             logger.trace("[tryGetReleaseInformation] Validating if pegoutBtcTxHash {} can be signed by observed federations and " +
                              "that it is not already signed by current fed", pegoutBtcTx.getHash());
-
             validateTxCanBeSigned(pegoutBtcTx);
 
             // IMPORTANT: As per the current behaviour of the bridge, no pegout should have inputs to be signed
@@ -324,6 +332,15 @@ public class BtcReleaseClient {
             logger.info("[tryGetReleaseInformation] {}", e.getMessage());
         }
         return Optional.empty();
+    }
+
+    void validateTxIsNotCached(Keccak256 pegoutCreationRskTxHash) throws FederatorAlreadySignedException {
+        if (pegoutSignedCache.hasAlreadyBeenSigned(pegoutCreationRskTxHash)) {
+            String message = String.format(
+                "Rsk pegout creation tx hash %s was found in the pegouts signed cache",
+                pegoutCreationRskTxHash);
+            throw new FederatorAlreadySignedException(message);
+        }
     }
 
     protected void validateTxCanBeSigned(BtcTransaction pegoutBtcTx) throws FederatorAlreadySignedException, FederationCantSignException {
@@ -400,6 +417,12 @@ public class BtcReleaseClient {
 
             logger.info("[signRelease] Signed pegout created in rsk transaction {}", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
             federatorSupport.addSignature(signatures, pegoutCreationInformation.getPegoutConfirmationRskTxHash().getBytes());
+            // put the pegout creation rsk tx hash in the cache to avoid signing it again
+            // in the near future
+            logger.trace("[signRelease] Put pegoutCreationRskTxHash {} in the pegouts signed cache",
+                pegoutCreationInformation.getPegoutCreationRskTxHash());
+            pegoutSignedCache.putIfAbsent(
+                pegoutCreationInformation.getPegoutCreationRskTxHash());
         } catch (SignerException e) {
             String message = String.format("Error signing pegout created in rsk transaction %s", pegoutCreationInformation.getPegoutCreationRskTxHash());
             logger.error(message, e);
