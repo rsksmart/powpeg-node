@@ -91,14 +91,14 @@ public class ReleaseCreationInformation {
 
     private void decodeUtxoOutpointValues(TransactionReceipt transactionReceipt) {
         List<LogInfo> logs =  transactionReceipt.getLogInfoList();
-        System.out.println("logs: " + logs);
+
         if(logs.size() != 4) {
             return;
         }
         LogInfo expectedPegoutTransactionCreatedLog = logs.get(3);
-        System.out.println("expectedPegoutTransactionCreatedLog: " + expectedPegoutTransactionCreatedLog);
+
         List<DataWord> topics = expectedPegoutTransactionCreatedLog.getTopics();
-        System.out.println("topics: " + topics);
+
         boolean isPegoutTransactionCreatedtopic = Arrays.equals(topics.get(0).getData(), pegoutTransactionCreatedSignatureTopic);
 
         if(!isPegoutTransactionCreatedtopic) {
