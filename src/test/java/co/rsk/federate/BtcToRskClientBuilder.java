@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.config.BridgeConstants;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.io.BtcToRskClientFileData;
 import co.rsk.federate.io.BtcToRskClientFileReadResult;

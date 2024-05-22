@@ -10,7 +10,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import co.rsk.peg.constants.BridgeRegTestConstants;
+import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.config.TestSystemProperties;
 import co.rsk.peg.Bridge;

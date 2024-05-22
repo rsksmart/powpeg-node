@@ -19,6 +19,7 @@
 package co.rsk.federate.signing.hsm.message;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.trie.Trie;
 import java.util.Arrays;
@@ -33,18 +34,21 @@ public class PowHSMSignerMessage extends SignerMessage {
     private final TransactionReceipt txReceipt;
     private final List<Trie> receiptMerkleProof;
     private final Sha256Hash sigHash;
+    private final Coin outpointValue;
 
     public PowHSMSignerMessage(BtcTransaction btcTransaction,
                                int index,
                                TransactionReceipt txReceipt,
                                List<Trie> receiptMerkleProof,
-                               Sha256Hash sigHash
+                               Sha256Hash sigHash,
+                               Coin outpointValue
     ) {
         this.btcTransaction = btcTransaction;
         this.inputIndex = index;
         this.txReceipt = txReceipt;
         this.receiptMerkleProof = receiptMerkleProof;
         this.sigHash = sigHash;
+        this.outpointValue = outpointValue;
     }
 
     @Override
@@ -99,4 +103,13 @@ public class PowHSMSignerMessage extends SignerMessage {
     public int hashCode() {
         return Objects.hash(btcTransaction, inputIndex, txReceipt, receiptMerkleProof);
     }
+
+    public Coin getOutpointValue() {
+        return outpointValue;
+    }
+
+    public BtcTransaction getBtcTransaction() {
+        return btcTransaction;
+    }
+
 }

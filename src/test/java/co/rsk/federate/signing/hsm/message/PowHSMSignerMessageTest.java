@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.crypto.Keccak256;
@@ -63,9 +64,10 @@ class PowHSMSignerMessageTest {
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.wrap("0000000000000000000000000000000000000000000000000000000000000001");
 
-        SignerMessage m1 = new PowHSMSignerMessage(btcTx1, inputIndex, txReceipt, receiptMerkleProof, sigHash);
-        SignerMessage m2 = new PowHSMSignerMessage(btcTx1, inputIndex, txReceipt, receiptMerkleProof, sigHash);
-        SignerMessage m3 = new PowHSMSignerMessage(btcTx2, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage m1 = new PowHSMSignerMessage(btcTx1, inputIndex, txReceipt, receiptMerkleProof, sigHash,
+            Coin.valueOf(5));
+        SignerMessage m2 = new PowHSMSignerMessage(btcTx1, inputIndex, txReceipt, receiptMerkleProof, sigHash, Coin.valueOf(5));
+        SignerMessage m3 = new PowHSMSignerMessage(btcTx2, inputIndex, txReceipt, receiptMerkleProof, sigHash, Coin.valueOf(5));
 
         assertEquals(m1, m2);
         assertNotSame(m1, m2);
@@ -90,7 +92,7 @@ class PowHSMSignerMessageTest {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash, Coin.valueOf(5));
 
         String txSerialized = ((PowHSMSignerMessage) message).getBtcTransactionSerialized();
 
@@ -112,7 +114,7 @@ class PowHSMSignerMessageTest {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash, Coin.valueOf(5));
 
         assertEquals(inputIndex, ((PowHSMSignerMessage) message).getInputIndex());
     }
@@ -131,7 +133,7 @@ class PowHSMSignerMessageTest {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash, Coin.valueOf(5));
 
         String receipt = ((PowHSMSignerMessage) message).getTransactionReceipt();
 
@@ -153,7 +155,7 @@ class PowHSMSignerMessageTest {
         receiptMerkleProof.add(new Trie());
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash, Coin.valueOf(5));
 
         String[] encodedReceipts = new String[receiptMerkleProof.size()];
         for (int i=0; i<encodedReceipts.length; i++) {
@@ -179,7 +181,7 @@ class PowHSMSignerMessageTest {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.wrap("0000000000000000000000000000000000000000000000000000000000000001");
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash);
+        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt, receiptMerkleProof, sigHash, Coin.valueOf(5));
 
         assertEquals(sigHash, ((PowHSMSignerMessage) message).getSigHash());
     }

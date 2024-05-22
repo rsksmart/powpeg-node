@@ -1,9 +1,17 @@
 package co.rsk.federate.signing.hsm.message;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
 import co.rsk.crypto.Keccak256;
+import co.rsk.peg.BridgeEvents;
+import co.rsk.peg.bitcoin.UtxoUtils;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
+import org.ethereum.vm.DataWord;
+import org.ethereum.vm.LogInfo;
 
 public class ReleaseCreationInformation {
     private final Block pegoutCreationBlock;
@@ -11,6 +19,8 @@ public class ReleaseCreationInformation {
     private final Keccak256 pegoutCreationRskTxHash;
     private final BtcTransaction pegoutBtcTx;
     private final Keccak256 pegoutConfirmationRskTxHash;
+    private final byte[] pegoutTransactionCreatedSignatureTopic = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent().encodeSignature();
+    private List<Coin> utxoOutpointValues = Collections.emptyList();
 
     /**
      *
@@ -48,6 +58,9 @@ public class ReleaseCreationInformation {
         this.pegoutCreationRskTxHash = pegoutCreationRskTxHash;
         this.pegoutBtcTx = pegoutBtcTx;
         this.pegoutConfirmationRskTxHash = pegoutConfirmationRskTxHash;
+
+        this.decodeUtxoOutpointValues(transactionReceipt);
+
     }
 
     public Block getPegoutCreationBlock() {
@@ -75,4 +88,33 @@ public class ReleaseCreationInformation {
     public BtcTransaction getPegoutBtcTx() {
         return pegoutBtcTx;
     }
+
+    private void decodeUtxoOutpointValues(TransactionReceipt transactionReceipt) {
+        List<LogInfo> logs =  transactionReceipt.getLogInfoList();
+        System.out.println("logs: " + logs);
+        if(logs.size() != 4) {
+            return;
+        }
+        LogInfo expectedPegoutTransactionCreatedLog = logs.get(3);
+        System.out.println("expectedPegoutTransactionCreatedLog: " + expectedPegoutTransactionCreatedLog);
+        List<DataWord> topics = expectedPegoutTransactionCreatedLog.getTopics();
+        System.out.println("topics: " + topics);
+        boolean isPegoutTransactionCreatedtopic = Arrays.equals(topics.get(0).getData(), pegoutTransactionCreatedSignatureTopic);
+
+        if(!isPegoutTransactionCreatedtopic) {
+            return;
+        }
+
+        expectedPegoutTransactionCreatedLog.getData();
+
+        byte[] pegoutTransactionCreatedBytes = topics.get(1).getData();
+
+        this.utxoOutpointValues = Collections.unmodifiableList(UtxoUtils.decodeOutpointValues(pegoutTransactionCreatedBytes));
+
+    }
+
+    public List<Coin> getUtxoOutpointValues() {
+        return utxoOutpointValues;
+    }
+
 }

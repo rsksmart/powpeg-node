@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.config.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.config.SignerConfig;

@@ -1,6 +1,7 @@
 package co.rsk.federate.signing.hsm.client;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
+import co.rsk.bitcoinj.core.TransactionWitness;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.message.PowHSMSignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
@@ -45,7 +46,21 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
         messageToSend.put(TX.getFieldName(), message.getBtcTransactionSerialized());
         messageToSend.put(INPUT.getFieldName(), message.getInputIndex());
+        appendSegwitPayload(message, messageToSend);
         return messageToSend;
+    }
+
+    private void appendSegwitPayload(PowHSMSignerMessage message, ObjectNode messageToSend) {
+        if( this.version == 5) {
+            if(message.getBtcTransaction().hasWitness()) {
+                TransactionWitness witness = message.getBtcTransaction().getWitness(message.getInputIndex());
+                messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), "segwit");
+                messageToSend.put(OUTPOINT_VALUE.getFieldName(), message.getOutpointValue().getValue());
+                messageToSend.put(WITNESS_SCRIPT.getFieldName(), witness.getScriptBytes());
+            } else {
+                messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), "legacy");
+            }
+        }
     }
 
     public boolean verifySigHash(Sha256Hash sigHash, String keyId, HSMSignature signatureReturned) throws HSMClientException {
