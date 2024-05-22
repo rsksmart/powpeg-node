@@ -12,6 +12,7 @@ import co.rsk.federate.signing.utils.TestUtils;
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +68,7 @@ class PegoutSignedCacheImplTest {
   @Test
   void hasAlreadyBeenSigned_shouldReturnFalse_whenCacheContainsExpiredTimestamp() {
     Instant currentTimestamp = Instant.now();
-    Instant expiredTimestamp = currentTimestamp.minusMillis(Duration.ofMinutes(60).toMillis());
+    Instant expiredTimestamp = currentTimestamp.minus(60, ChronoUnit.MINUTES);
     cache.put(PEGOUT_CREATION_RSK_HASH, expiredTimestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
@@ -78,7 +79,7 @@ class PegoutSignedCacheImplTest {
   @Test
   void hasAlreadyBeenSigned_shouldReturnTrue_whenCacheContainsNotExpiredTimestamp() {
     Instant currentTimestamp = Instant.now();
-    Instant notExpiredTimestamp = currentTimestamp.minusMillis(Duration.ofMinutes(10).toMillis());
+    Instant notExpiredTimestamp = currentTimestamp.minus(10, ChronoUnit.MINUTES);
     cache.put(PEGOUT_CREATION_RSK_HASH, notExpiredTimestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
@@ -138,10 +139,8 @@ class PegoutSignedCacheImplTest {
 
     // put an expired and not expired timestamp in the cache
     Instant currentTimestamp = Instant.now();
-    Instant notExpiredTimestamp = currentTimestamp.minusMillis(
-        Duration.ofMinutes(10).toMillis());
-    Instant expiredTimestamp = currentTimestamp.minusMillis(
-        Duration.ofMinutes(60).toMillis());
+    Instant notExpiredTimestamp = currentTimestamp.minus(10, ChronoUnit.MINUTES);
+    Instant expiredTimestamp = currentTimestamp.minus(60, ChronoUnit.MINUTES);
     Keccak256 otherPegoutCreationRskHash = TestUtils.createHash(2);
     cache.put(PEGOUT_CREATION_RSK_HASH, notExpiredTimestamp);
     cache.put(otherPegoutCreationRskHash, expiredTimestamp);
