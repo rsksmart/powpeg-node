@@ -21,6 +21,7 @@ package co.rsk.federate.signing.hsm.message;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
+import co.rsk.bitcoinj.core.TransactionWitness;
 import co.rsk.trie.Trie;
 import java.util.Arrays;
 import java.util.List;
@@ -108,8 +109,12 @@ public class PowHSMSignerMessage extends SignerMessage {
         return outpointValue;
     }
 
-    public BtcTransaction getBtcTransaction() {
-        return btcTransaction;
+    public TransactionWitness getWitness() {
+        return btcTransaction.getWitness(inputIndex);
+    }
+
+    public boolean hasWitness() {
+        return btcTransaction.hasWitness();
     }
 
 }

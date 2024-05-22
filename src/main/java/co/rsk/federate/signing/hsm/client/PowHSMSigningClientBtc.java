@@ -51,15 +51,15 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient {
     }
 
     private void appendSegwitPayload(PowHSMSignerMessage message, ObjectNode messageToSend) {
-        if( this.version == 5) {
-            if(message.getBtcTransaction().hasWitness()) {
-                TransactionWitness witness = message.getBtcTransaction().getWitness(message.getInputIndex());
-                messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), "segwit");
-                messageToSend.put(OUTPOINT_VALUE.getFieldName(), message.getOutpointValue().getValue());
-                messageToSend.put(WITNESS_SCRIPT.getFieldName(), witness.getScriptBytes());
-            } else {
+        if(this.getVersion() == 5) {
+            if(!message.hasWitness()) {
                 messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), "legacy");
+                return;
             }
+            TransactionWitness witness = message.getWitness();
+            messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), "segwit");
+            messageToSend.put(OUTPOINT_VALUE.getFieldName(), message.getOutpointValue().getValue());
+            messageToSend.put(WITNESS_SCRIPT.getFieldName(), witness.getScriptBytes());
         }
     }
 
