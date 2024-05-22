@@ -105,9 +105,7 @@ public class ReleaseCreationInformation {
             return;
         }
 
-        expectedPegoutTransactionCreatedLog.getData();
-
-        byte[] pegoutTransactionCreatedBytes = topics.get(1).getData();
+        byte[] pegoutTransactionCreatedBytes = expectedPegoutTransactionCreatedLog.getData();
 
         this.utxoOutpointValues = Collections.unmodifiableList(UtxoUtils.decodeOutpointValues(pegoutTransactionCreatedBytes));
 
