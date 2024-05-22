@@ -38,7 +38,7 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
   public boolean hasAlreadyBeenSigned(Keccak256 pegoutCreationRskTxHash) {
     return Optional.ofNullable(pegoutCreationRskTxHash)
         .map(cache::get)
-        .map(this::hasTimestampNotExpired)
+        .map(this::isValidTimestamp)
         .orElse(false);
   }
 
@@ -57,12 +57,12 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
     logger.trace(
         "[performCleanup] Pegouts signed cache before cleanup: {}", cache.keySet());
     cache.entrySet().removeIf(
-        entry -> !hasTimestampNotExpired(entry.getValue()));
+        entry -> !isValidTimestamp(entry.getValue()));
     logger.trace(
         "[performCleanup] Pegouts signed cache after cleanup: {}", cache.keySet());
   }
 
-  private boolean hasTimestampNotExpired(Instant timestampInCache) {
+  private boolean isValidTimestamp(Instant timestampInCache) {
     return Optional.ofNullable(timestampInCache)
         .map(timestamp -> Instant.now().toEpochMilli() - timestamp.toEpochMilli())
         .map(timeCachedInMillis -> timeCachedInMillis <= ttl.toMillis())

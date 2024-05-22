@@ -66,10 +66,10 @@ class PegoutSignedCacheImplTest {
   }
 
   @Test
-  void hasAlreadyBeenSigned_shouldReturnFalse_whenCacheContainsExpiredTimestamp() {
+  void hasAlreadyBeenSigned_shouldReturnFalse_whenCacheContainsInvalidTimestamp() {
     Instant currentTimestamp = Instant.now();
-    Instant expiredTimestamp = currentTimestamp.minus(60, ChronoUnit.MINUTES);
-    cache.put(PEGOUT_CREATION_RSK_HASH, expiredTimestamp);
+    Instant invalidTimestamp = currentTimestamp.minus(60, ChronoUnit.MINUTES);
+    cache.put(PEGOUT_CREATION_RSK_HASH, invalidTimestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
 
@@ -77,10 +77,10 @@ class PegoutSignedCacheImplTest {
   }
 
   @Test
-  void hasAlreadyBeenSigned_shouldReturnTrue_whenCacheContainsNotExpiredTimestamp() {
+  void hasAlreadyBeenSigned_shouldReturnTrue_whenCacheContainsValidTimestamp() {
     Instant currentTimestamp = Instant.now();
-    Instant notExpiredTimestamp = currentTimestamp.minus(10, ChronoUnit.MINUTES);
-    cache.put(PEGOUT_CREATION_RSK_HASH, notExpiredTimestamp);
+    Instant validTimestamp = currentTimestamp.minus(10, ChronoUnit.MINUTES);
+    cache.put(PEGOUT_CREATION_RSK_HASH, validTimestamp);
 
     boolean result = pegoutSignedCache.hasAlreadyBeenSigned(PEGOUT_CREATION_RSK_HASH);
 
@@ -130,20 +130,20 @@ class PegoutSignedCacheImplTest {
   }
 
   @Test
-  void performCleanup_shouldRemoveOnlyExpiredPegouts_whenPerformCleanupIsTriggered() throws Exception {
+  void performCleanup_shouldRemoveOnlyInvalidPegouts_whenPerformCleanupIsTriggered() throws Exception {
     // setup cache
     PegoutSignedCacheImpl pegoutSignedCacheImpl = new PegoutSignedCacheImpl(DEFAULT_TTL);
     Field field = pegoutSignedCacheImpl.getClass().getDeclaredField("cache");
     field.setAccessible(true);
     field.set(pegoutSignedCacheImpl, cache);
 
-    // put an expired and not expired timestamp in the cache
+    // put a valid and invalid timestamp in the cache
     Instant currentTimestamp = Instant.now();
-    Instant notExpiredTimestamp = currentTimestamp.minus(10, ChronoUnit.MINUTES);
-    Instant expiredTimestamp = currentTimestamp.minus(60, ChronoUnit.MINUTES);
+    Instant validTimestamp = currentTimestamp.minus(10, ChronoUnit.MINUTES);
+    Instant notValidTimestamp = currentTimestamp.minus(60, ChronoUnit.MINUTES);
     Keccak256 otherPegoutCreationRskHash = TestUtils.createHash(2);
-    cache.put(PEGOUT_CREATION_RSK_HASH, notExpiredTimestamp);
-    cache.put(otherPegoutCreationRskHash, expiredTimestamp);
+    cache.put(PEGOUT_CREATION_RSK_HASH, validTimestamp);
+    cache.put(otherPegoutCreationRskHash, notValidTimestamp);
 
     // trigger cleanup
     pegoutSignedCacheImpl.performCleanup();
