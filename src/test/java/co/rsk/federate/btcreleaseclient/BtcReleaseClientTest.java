@@ -398,13 +398,13 @@ class BtcReleaseClientTest {
     }
 
     @Test
-    void whenPegoutTxIsCached_shouldNotSignSamePegoutTxAgain() throws Exception {
-        Federation federation = TestUtils.createFederation(params, 1);
-        BtcTransaction tx = TestUtils.createBtcTransaction(params, federation);
-        Keccak256 hash = createHash(0);
-        SortedMap<Keccak256, BtcTransaction> txs = new TreeMap<>();
-        txs.put(hash, tx);
-        StateForFederator stateForFederator = new StateForFederator(txs);
+    void onBestBlock_whenPegoutTxIsCached_shouldNotSignSamePegoutTxAgain() throws Exception {
+        Federation federation = TestUtils.createFederation(params, 9);
+        BtcTransaction pegoutBtcTx = TestUtils.createBtcTransaction(params, federation);
+        Keccak256 pegoutCreationRskTxHash = createHash(0);
+        SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
+        rskTxsWaitingForSignatures.put(pegoutCreationRskTxHash, pegoutBtcTx);
+        StateForFederator stateForFederator = new StateForFederator(rskTxsWaitingForSignatures);
 
         Ethereum ethereum = mock(Ethereum.class);
         AtomicReference<EthereumListener> ethereumListener = new AtomicReference<>();
@@ -446,14 +446,15 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(txInfo.getReceipt()).thenReturn(txReceipt);
         when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
-        when(receiptStore.getInMainChain(hash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
+        when(receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter =
             new ReleaseCreationInformationGetter(
                 receiptStore, blockStore
             );
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer = mock(BtcReleaseClientStorageSynchronizer.class);
+        BtcReleaseClientStorageSynchronizer storageSynchronizer =
+            mock(BtcReleaseClientStorageSynchronizer.class);
         when(storageSynchronizer.isSynced()).thenReturn(true);
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
@@ -478,7 +479,7 @@ class BtcReleaseClientTest {
         // At this point there is nothing in the pegouts signed cache,
         // so it should not throw an exception
         assertDoesNotThrow(
-            () -> btcReleaseClient.validateTxIsNotCached(hash));
+            () -> btcReleaseClient.validateTxIsNotCached(pegoutCreationRskTxHash));
 
         // Start first round of execution
         ethereumListener.get().onBestBlock(null, Collections.emptyList());
@@ -486,7 +487,7 @@ class BtcReleaseClientTest {
         // After the first round of execution, we should throw an exception
         // since we have signed the pegout and sent it to the bridge
         assertThrows(FederatorAlreadySignedException.class,
-            () -> btcReleaseClient.validateTxIsNotCached(hash));
+            () -> btcReleaseClient.validateTxIsNotCached(pegoutCreationRskTxHash));
 
         // Execute second round of execution
         ethereumListener.get().onBestBlock(null, Collections.emptyList());
