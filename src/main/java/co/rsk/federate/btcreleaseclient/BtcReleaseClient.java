@@ -417,8 +417,7 @@ public class BtcReleaseClient {
 
             logger.info("[signRelease] Signed pegout created in rsk transaction {}", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
             federatorSupport.addSignature(signatures, pegoutCreationInformation.getPegoutConfirmationRskTxHash().getBytes());
-            // put the pegout creation rsk tx hash in the cache to avoid signing it again
-            // in the near future
+
             logger.trace("[signRelease] Put pegoutCreationRskTxHash {} in the pegouts signed cache",
                 pegoutCreationInformation.getPegoutCreationRskTxHash());
             pegoutSignedCache.putIfAbsent(

@@ -400,10 +400,10 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenPegoutTxIsCached_shouldNotSignSamePegoutTxAgain() throws Exception {
         Federation federation = TestUtils.createFederation(params, 9);
-        BtcTransaction pegoutBtcTx = TestUtils.createBtcTransaction(params, federation);
+        BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
         SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
-        rskTxsWaitingForSignatures.put(pegoutCreationRskTxHash, pegoutBtcTx);
+        rskTxsWaitingForSignatures.put(pegoutCreationRskTxHash, pegout);
         StateForFederator stateForFederator = new StateForFederator(rskTxsWaitingForSignatures);
 
         Ethereum ethereum = mock(Ethereum.class);
@@ -495,6 +495,109 @@ class BtcReleaseClientTest {
         // Verify we only send the add_signature tx to the bridge once
         // throughout both rounds of execution
         verify(federatorSupport, times(1)).addSignature(
+            anyList(),
+            any(byte[].class)
+        );
+    }
+
+    @Test
+    void onBestBlock_whenPegoutTxIsCachedWithInvalidTimestamp_shouldSignSamePegoutTxAgain() throws Exception {
+        Federation federation = TestUtils.createFederation(params, 9);
+        BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
+        Keccak256 pegoutCreationRskTxHash = createHash(0);
+        SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
+        rskTxsWaitingForSignatures.put(pegoutCreationRskTxHash, pegout);
+        StateForFederator stateForFederator = new StateForFederator(rskTxsWaitingForSignatures);
+
+        Ethereum ethereum = mock(Ethereum.class);
+        AtomicReference<EthereumListener> ethereumListener = new AtomicReference<>();
+        doAnswer((InvocationOnMock invocation) -> {
+            ethereumListener.set((EthereumListener) invocation.getArguments()[0]);
+            return null;
+        }).when(ethereum).addListener(any(EthereumListener.class));
+
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
+
+        ECKey ecKey = new ECKey();
+        BtcECKey fedKey = new BtcECKey();
+        ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
+
+        ECDSASigner signer = mock(ECDSASigner.class);
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC_KEY_ID.getKeyId());
+        doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
+        doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
+
+        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
+        doReturn(true).when(fedNodeSystemProperties).isPegoutEnabled();
+        
+        // Assume a very small ttl, say 1 second
+        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+            .thenReturn(Duration.ofSeconds(1));
+
+        SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
+            mock(ReceiptStore.class)
+        );
+
+        BlockStore blockStore = mock(BlockStore.class);
+        ReceiptStore receiptStore = mock(ReceiptStore.class);
+
+        Keccak256 blockHash = createHash(2);
+        Block block = mock(Block.class);
+        TransactionReceipt txReceipt = mock(TransactionReceipt.class);
+        TransactionInfo txInfo = mock(TransactionInfo.class);
+        when(block.getHash()).thenReturn(blockHash);
+        when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
+        when(txInfo.getReceipt()).thenReturn(txReceipt);
+        when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        when(receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
+
+        ReleaseCreationInformationGetter releaseCreationInformationGetter =
+            new ReleaseCreationInformationGetter(
+                receiptStore, blockStore
+            );
+
+        BtcReleaseClientStorageSynchronizer storageSynchronizer =
+            mock(BtcReleaseClientStorageSynchronizer.class);
+        when(storageSynchronizer.isSynced()).thenReturn(true);
+
+        BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
+            ethereum,
+            federatorSupport,
+            fedNodeSystemProperties,
+            mock(NodeBlockProcessor.class)
+        );
+
+        btcReleaseClient.setup(
+            signer,
+            mock(ActivationConfig.class),
+            signerMessageBuilderFactory,
+            releaseCreationInformationGetter,
+            mock(ReleaseRequirementsEnforcer.class),
+            mock(BtcReleaseClientStorageAccessor.class),
+            storageSynchronizer
+        );
+
+        btcReleaseClient.start(federation);
+
+        // Start first round of execution
+        ethereumListener.get().onBestBlock(null, Collections.emptyList());
+    
+        // Ensure the pegout tx becomes invalid by waiting 1 second
+        Thread.sleep(1000);
+
+        // At this point the pegout tx is invalid in the pegouts signed cache,
+        // so it should not throw an exception
+        assertDoesNotThrow(
+            () -> btcReleaseClient.validateTxIsNotCached(pegoutCreationRskTxHash));
+
+        // Execute second round of execution
+        ethereumListener.get().onBestBlock(null, Collections.emptyList());
+
+        // Verify we send the add_signature tx to the bridge twice
+        // throughout both rounds of execution
+        verify(federatorSupport, times(2)).addSignature(
             anyList(),
             any(byte[].class)
         );
