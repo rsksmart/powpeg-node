@@ -532,9 +532,9 @@ class BtcReleaseClientTest {
         doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
         doReturn(true).when(fedNodeSystemProperties).isPegoutEnabled();
         
-        // Assume a very small ttl, say 1 second
+        // Assume a very small ttl, say 1 millisecond
         when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(Duration.ofSeconds(1));
+            .thenReturn(Duration.ofMillis(1));
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
@@ -584,16 +584,13 @@ class BtcReleaseClientTest {
         // Start first round of execution
         ethereumListener.get().onBestBlock(null, Collections.emptyList());
     
-        // Ensure the pegout tx becomes invalid by waiting 1 second
-        Thread.sleep(1000);
-
-        // At this point the pegout tx is invalid in the pegouts signed cache,
-        // so it should not throw an exception
-        assertDoesNotThrow(
-            () -> btcReleaseClient.validateTxIsNotCached(pegoutCreationRskTxHash));
-
         // Execute second round of execution
         ethereumListener.get().onBestBlock(null, Collections.emptyList());
+
+        // At this point the pegout tx is invalid in the pegouts signed cache,
+        // since the ttl is 1 millisecond so it should not throw an exception
+        assertDoesNotThrow(
+            () -> btcReleaseClient.validateTxIsNotCached(pegoutCreationRskTxHash));
 
         // Verify we send the add_signature tx to the bridge twice
         // throughout both rounds of execution
