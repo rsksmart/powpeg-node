@@ -37,6 +37,7 @@ import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -116,7 +117,7 @@ public class BtcReleaseClient {
         this.isPegoutEnabled = systemProperties.isPegoutEnabled();
         this.nodeBlockProcessor = nodeBlockProcessor;
         this.pegoutSignedCache = new PegoutSignedCacheImpl(
-            systemProperties.getPegoutSignedCacheTtl());
+            systemProperties.getPegoutSignedCacheTtl(), Clock.systemUTC());
     }
 
     public void setup(
@@ -146,7 +147,7 @@ public class BtcReleaseClient {
         }
         peerGroup.start();
 
-        blockListener = new BtcReleaseEthereumListener();
+        this.blockListener = new BtcReleaseEthereumListener();
         this.signerMessageBuilderFactory = signerMessageBuilderFactory;
         this.releaseCreationInformationGetter = pegoutCreationInformationGetter;
         this.releaseRequirementsEnforcer = releaseRequirementsEnforcer;

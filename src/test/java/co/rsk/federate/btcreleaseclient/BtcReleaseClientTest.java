@@ -36,6 +36,8 @@ import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
+import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCache;
+import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCacheImpl;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.mock.SimpleEthereumImpl;
 import co.rsk.federate.signing.ECDSASigner;
@@ -60,9 +62,12 @@ import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.federation.*;
 import co.rsk.peg.StateForFederator;
 
+import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -531,10 +536,8 @@ class BtcReleaseClientTest {
         FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
         doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
         doReturn(true).when(fedNodeSystemProperties).isPegoutEnabled();
-        
-        // Assume a very small ttl, say 1 second
         when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(Duration.ofSeconds(1));
+            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
@@ -569,6 +572,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
+        Clock baseClock = Clock.fixed(Instant.ofEpochMilli(0), ZoneId.systemDefault());
+        PegoutSignedCache pegoutSignedCache = new PegoutSignedCacheImpl(PEGOUT_SIGNED_CACHE_TTL, baseClock);
+        Field field = btcReleaseClient.getClass().getDeclaredField("pegoutSignedCache");
+        field.setAccessible(true);
+        field.set(btcReleaseClient, pegoutSignedCache);
+
         btcReleaseClient.setup(
             signer,
             mock(ActivationConfig.class),
@@ -583,10 +592,12 @@ class BtcReleaseClientTest {
 
         // Start first round of execution
         ethereumListener.get().onBestBlock(null, Collections.emptyList());
-    
-        // Ensure the pegout tx becomes invalid by waiting 1 second
-        Thread.sleep(1000);
 
+        // Ensure the pegout tx becomes invalid by advancing the clock 1 hour
+        field = pegoutSignedCache.getClass().getDeclaredField("clock");
+        field.setAccessible(true);
+        field.set(pegoutSignedCache, Clock.offset(baseClock, Duration.ofHours(1)));
+    
         // At this point the pegout tx is invalid in the pegouts signed cache,
         // so it should not throw an exception
         assertDoesNotThrow(

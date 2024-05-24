@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.utils.TestUtils;
 import java.lang.reflect.Field;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -27,7 +28,8 @@ class PegoutSignedCacheImplTest {
   private static final Keccak256 PEGOUT_CREATION_RSK_HASH = TestUtils.createHash(1);
 
   private final Map<Keccak256, Instant> cache = new ConcurrentHashMap<>();
-  private final PegoutSignedCache pegoutSignedCache = new PegoutSignedCacheImpl(DEFAULT_TTL);
+  private final Clock clock = Clock.systemUTC();
+  private final PegoutSignedCache pegoutSignedCache = new PegoutSignedCacheImpl(DEFAULT_TTL, clock);
 
   @BeforeEach
   void setUp() throws Exception {
@@ -45,7 +47,7 @@ class PegoutSignedCacheImplTest {
         "Invalid pegouts signed cache TTL value in minutes supplied: %s", ttl);
 
     IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-        () -> new PegoutSignedCacheImpl(invalidTtl));
+        () -> new PegoutSignedCacheImpl(invalidTtl, clock));
     assertEquals(expectedErrorMessage, exception.getMessage());
   }
 
@@ -67,7 +69,7 @@ class PegoutSignedCacheImplTest {
 
   @Test
   void hasAlreadyBeenSigned_shouldReturnFalse_whenCacheContainsInvalidTimestamp() {
-    Instant currentTimestamp = Instant.now();
+    Instant currentTimestamp = clock.instant();
     Instant invalidTimestamp = currentTimestamp.minus(60, ChronoUnit.MINUTES);
     cache.put(PEGOUT_CREATION_RSK_HASH, invalidTimestamp);
 
@@ -78,7 +80,7 @@ class PegoutSignedCacheImplTest {
 
   @Test
   void hasAlreadyBeenSigned_shouldReturnTrue_whenCacheContainsValidTimestamp() {
-    Instant currentTimestamp = Instant.now();
+    Instant currentTimestamp = clock.instant();
     Instant validTimestamp = currentTimestamp.minus(10, ChronoUnit.MINUTES);
     cache.put(PEGOUT_CREATION_RSK_HASH, validTimestamp);
 
@@ -132,13 +134,13 @@ class PegoutSignedCacheImplTest {
   @Test
   void performCleanup_shouldRemoveOnlyInvalidPegouts_whenPerformCleanupIsTriggered() throws Exception {
     // setup cache
-    PegoutSignedCacheImpl pegoutSignedCacheImpl = new PegoutSignedCacheImpl(DEFAULT_TTL);
+    PegoutSignedCacheImpl pegoutSignedCacheImpl = new PegoutSignedCacheImpl(DEFAULT_TTL, clock);
     Field field = pegoutSignedCacheImpl.getClass().getDeclaredField("cache");
     field.setAccessible(true);
     field.set(pegoutSignedCacheImpl, cache);
 
     // put a valid and invalid timestamp in the cache
-    Instant currentTimestamp = Instant.now();
+    Instant currentTimestamp = clock.instant();
     Instant validTimestamp = currentTimestamp.minus(10, ChronoUnit.MINUTES);
     Instant notValidTimestamp = currentTimestamp.minus(60, ChronoUnit.MINUTES);
     Keccak256 otherPegoutCreationRskHash = TestUtils.createHash(2);

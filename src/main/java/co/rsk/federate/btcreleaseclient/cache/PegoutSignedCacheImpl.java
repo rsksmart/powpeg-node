@@ -1,6 +1,7 @@
 package co.rsk.federate.btcreleaseclient.cache;
 
 import co.rsk.crypto.Keccak256;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -20,10 +21,13 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
   private final Map<Keccak256, Instant> cache = new ConcurrentHashMap<>();
   private final ScheduledExecutorService cleanupScheduler = Executors.newSingleThreadScheduledExecutor();
   private final Duration ttl;
+  private final Clock clock;
 
-  public PegoutSignedCacheImpl(Duration ttl) {
+  public PegoutSignedCacheImpl(Duration ttl, Clock clock) {
     validateTtl(ttl);
     this.ttl = ttl;
+
+    this.clock = clock;
 
     // Start a background thread for periodic cleanup
     cleanupScheduler.scheduleAtFixedRate(
@@ -50,7 +54,7 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
     }
 
     Optional.of(pegoutCreationRskTxHash)
-        .ifPresent(rskTxHash -> cache.putIfAbsent(rskTxHash, Instant.now()));
+        .ifPresent(rskTxHash -> cache.putIfAbsent(rskTxHash, clock.instant()));
   }
 
   void performCleanup() {
@@ -64,7 +68,7 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
 
   private boolean isValidTimestamp(Instant timestampInCache) {
     return Optional.ofNullable(timestampInCache)
-        .map(timestamp -> Instant.now().toEpochMilli() - timestamp.toEpochMilli())
+        .map(timestamp -> clock.instant().toEpochMilli() - timestamp.toEpochMilli())
         .map(timeCachedInMillis -> timeCachedInMillis <= ttl.toMillis())
         .orElse(false);
   }
