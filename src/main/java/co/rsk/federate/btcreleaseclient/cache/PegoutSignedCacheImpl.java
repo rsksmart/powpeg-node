@@ -25,8 +25,8 @@ public class PegoutSignedCacheImpl implements PegoutSignedCache {
 
   public PegoutSignedCacheImpl(Duration ttl, Clock clock) {
     validateTtl(ttl);
-    this.ttl = ttl;
 
+    this.ttl = ttl;
     this.clock = clock;
 
     // Start a background thread for periodic cleanup
