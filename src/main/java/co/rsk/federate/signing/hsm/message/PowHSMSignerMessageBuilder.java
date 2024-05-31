@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.message;
 
+import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.core.bc.BlockHashesHelperException;
@@ -16,6 +17,7 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
     private final ReceiptStore receiptStore;
     private final TransactionReceipt txReceipt;
     private final Block rskBlock;
+    private ReleaseCreationInformation releaseCreationInformation;
 
     private List<Trie> receiptMerkleProof;
     private boolean envelopeCreated;
@@ -29,6 +31,7 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
         this.rskBlock = releaseCreationInformation.getPegoutCreationBlock();
         this.receiptStore = receiptStore;
         this.envelopeCreated = false;
+        this.releaseCreationInformation = releaseCreationInformation;
     }
 
     private void buildMessageEnvelope() throws BlockHashesHelperException {
@@ -54,12 +57,15 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
 
         Sha256Hash sigHash = getSigHashByInputIndex(inputIndex);
 
+        Coin outpoint = releaseCreationInformation.getUtxoOutpointValues().get(inputIndex);
+
         return new PowHSMSignerMessage(
                 unsignedBtcTx,
                 inputIndex,
                 txReceipt,
                 receiptMerkleProof,
-                sigHash
+                sigHash,
+                outpoint
         );
     }
 }

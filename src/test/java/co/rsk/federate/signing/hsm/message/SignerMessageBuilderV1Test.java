@@ -10,8 +10,8 @@ import co.rsk.bitcoinj.core.TransactionOutPoint;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.federate.signing.utils.TestUtils;
-import co.rsk.peg.constants.BridgeConstants;
-import co.rsk.peg.constants.BridgeMainNetConstants;
+import co.rsk.config.BridgeConstants;
+import co.rsk.config.BridgeMainNetConstants;
 import co.rsk.peg.federation.Federation;
 import org.junit.jupiter.api.Test;
 
