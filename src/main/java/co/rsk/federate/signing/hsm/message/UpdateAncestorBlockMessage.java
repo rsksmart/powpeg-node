@@ -17,7 +17,7 @@ public class UpdateAncestorBlockMessage {
     }
 
     private String parseBlockHeader(BlockHeader blockHeader) {
-        return Hex.toHexString(blockHeader.getEncoded(true, false));
+        return Hex.toHexString(blockHeader.getEncoded(true, false, true));
     }
 
     public List<String> getData() {
