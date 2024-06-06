@@ -13,10 +13,10 @@ import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.bitcoinj.script.Script;
-import co.rsk.peg.constants.BridgeConstants;
-import co.rsk.peg.constants.BridgeTestNetConstants;
 import co.rsk.peg.federation.*;
 
+import co.rsk.peg.federation.constants.FederationConstants;
+import co.rsk.peg.federation.constants.FederationTestNetConstants;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Arrays;
@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 class FederationProviderFromFederatorSupportTest {
     private FederatorSupport federatorSupportMock;
     private FederationProvider federationProvider;
-    private BridgeConstants bridgeConstants;
+    private FederationConstants federationConstants;
     private NetworkParameters testnetParams;
     private Instant creationTime;
 
@@ -50,11 +50,11 @@ class FederationProviderFromFederatorSupportTest {
 
     @BeforeEach
     void createProvider() {
-        bridgeConstants = BridgeTestNetConstants.getInstance();
+        federationConstants = FederationTestNetConstants.getInstance();
         federatorSupportMock = mock(FederatorSupport.class);
         federationProvider = new FederationProviderFromFederatorSupport(
             federatorSupportMock,
-            bridgeConstants
+            federationConstants
         );
         testnetParams = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
         creationTime = Instant.ofEpochMilli(5005L);
@@ -808,8 +808,8 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     private ErpFederation createNonStandardErpFederation(List<FederationMember> members, ActivationConfig.ForBlock activations) {
-        List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
-        long activationDelay = bridgeConstants.getErpFedActivationDelay();
+        List<BtcECKey> erpPubKeys = federationConstants.getErpFedPubKeysList();
+        long activationDelay = federationConstants.getErpFedActivationDelay();
         FederationArgs federationArgs =
             new FederationArgs(members, creationTime, 0L, testnetParams);
 
@@ -817,10 +817,14 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     private ErpFederation createP2shErpFederation(List<FederationMember> members) {
-        List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
-        long activationDelay = bridgeConstants.getErpFedActivationDelay();
-        FederationArgs federationArgs =
-            new FederationArgs(members, creationTime, 0L, testnetParams);
+        List<BtcECKey> erpPubKeys = federationConstants.getErpFedPubKeysList();
+        long activationDelay = federationConstants.getErpFedActivationDelay();
+        FederationArgs federationArgs = new FederationArgs(
+            members,
+            creationTime,
+            0L,
+            testnetParams
+        );
         
         return FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
     }

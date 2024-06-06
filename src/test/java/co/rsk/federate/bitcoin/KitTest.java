@@ -26,13 +26,12 @@ import org.junit.jupiter.api.Test;
 
 class KitTest {
     private static BridgeConstants bridgeConstants;
-    private static NetworkParameters networkParameters;
     private static Context btcContext;
 
     @BeforeEach
     void setUpBeforeClass() {
-        bridgeConstants = BridgeRegTestConstants.getInstance();
-        networkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
+        bridgeConstants = new BridgeRegTestConstants();
+        NetworkParameters networkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
         btcContext = new Context(networkParameters);
     }
 

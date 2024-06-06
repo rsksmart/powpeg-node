@@ -274,7 +274,7 @@ public class FedNodeRunner implements NodeRunner {
             // btc to rsk client upon federation changes
             FederationProvider federationProvider = new FederationProviderFromFederatorSupport(
                 federatorSupport,
-                bridgeConstants
+                bridgeConstants.getFederationConstants()
             );
 
             BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();

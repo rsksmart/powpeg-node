@@ -34,7 +34,7 @@ import org.mockito.stubbing.Answer;
 
 class FederatorSupportTest {
 
-    private final NetworkParameters networkParameters = ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString());
+    private final NetworkParameters networkParameters = ThinConverter.toOriginalInstance(new BridgeRegTestConstants().getBtcParamsString());
 
     @Test
     void sendReceiveHeadersSendsBlockHeaders() {

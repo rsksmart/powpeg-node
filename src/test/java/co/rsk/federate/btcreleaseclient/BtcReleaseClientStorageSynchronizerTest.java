@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
@@ -44,17 +45,16 @@ class BtcReleaseClientStorageSynchronizerTest {
 
     @Test
     void isSynced_returns_false_after_instantiation() {
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
-                mock(BlockStore.class),
-                mock(ReceiptStore.class),
-                mock(NodeBlockProcessor.class),
-                mock(BtcReleaseClientStorageAccessor.class),
-                mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
-                1000,
-                100,
-                6_000
-            );
+        BtcReleaseClientStorageSynchronizer storageSynchronizer = new BtcReleaseClientStorageSynchronizer(
+            mock(BlockStore.class),
+            mock(ReceiptStore.class),
+            mock(NodeBlockProcessor.class),
+            mock(BtcReleaseClientStorageAccessor.class),
+            mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
+            1000,
+            100,
+            6_000
+        );
 
         assertFalse(storageSynchronizer.isSynced());
     }
@@ -63,23 +63,22 @@ class BtcReleaseClientStorageSynchronizerTest {
     void processBlock_before_sync_doesnt_do_anything() {
         BtcReleaseClientStorageAccessor storageAccessor = mock(BtcReleaseClientStorageAccessor.class);
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
-                mock(BlockStore.class),
-                mock(ReceiptStore.class),
-                mock(NodeBlockProcessor.class),
-                storageAccessor,
-                mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
-                1000,
-                100,
-                6_000
-            );
+        BtcReleaseClientStorageSynchronizer storageSynchronizer = new BtcReleaseClientStorageSynchronizer(
+            mock(BlockStore.class),
+            mock(ReceiptStore.class),
+            mock(NodeBlockProcessor.class),
+            storageAccessor,
+            mock(ScheduledExecutorService.class), // Don't specify behavior for syncing to avoid syncing
+            1000,
+            100,
+            6_000
+        );
 
         assertFalse(storageSynchronizer.isSynced());
 
         storageSynchronizer.processBlock(mock(Block.class), Collections.emptyList());
 
-        Mockito.verifyNoInteractions(storageAccessor);
+        verifyNoInteractions(storageAccessor);
     }
 
     @Test
@@ -102,16 +101,16 @@ class BtcReleaseClientStorageSynchronizerTest {
             return null;
         }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
-                blockStore,
-                mock(ReceiptStore.class),
-                mock(NodeBlockProcessor.class),
-                mock(BtcReleaseClientStorageAccessor.class),
-                mockedExecutor,
-                0,
-                1,
-                6_000);
+        BtcReleaseClientStorageSynchronizer storageSynchronizer = new BtcReleaseClientStorageSynchronizer(
+            blockStore,
+            mock(ReceiptStore.class),
+            mock(NodeBlockProcessor.class),
+            mock(BtcReleaseClientStorageAccessor.class),
+            mockedExecutor,
+            0,
+            1,
+            6_000
+        );
 
         assertTrue(storageSynchronizer.isSynced());
     }
@@ -144,16 +143,16 @@ class BtcReleaseClientStorageSynchronizerTest {
         }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
 
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
-                blockStore,
-                mock(ReceiptStore.class),
-                mock(NodeBlockProcessor.class),
-                storageAccessor,
-                mockedExecutor,
-                0,
-                1,
-                6_000);
+        BtcReleaseClientStorageSynchronizer storageSynchronizer = new BtcReleaseClientStorageSynchronizer(
+            blockStore,
+            mock(ReceiptStore.class),
+            mock(NodeBlockProcessor.class),
+            storageAccessor,
+            mockedExecutor,
+            0,
+            1,
+            6_000
+        );
 
         assertTrue(storageSynchronizer.isSynced());
 
@@ -191,7 +190,7 @@ class BtcReleaseClientStorageSynchronizerTest {
         SignatureCache signatureCache = new BlockTxSignatureCache(new ReceivedTxSignatureCache());
 
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
-            BridgeRegTestConstants.getInstance(),
+            new BridgeRegTestConstants(),
             activations,
             logs,
             signatureCache
@@ -227,16 +226,16 @@ class BtcReleaseClientStorageSynchronizerTest {
             return null;
         }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
-                blockStore,
-                mock(ReceiptStore.class),
-                mock(NodeBlockProcessor.class),
-                storageAccessor,
-                mockedExecutor,
-                0,
-                1,
-                6_000);
+        BtcReleaseClientStorageSynchronizer storageSynchronizer = new BtcReleaseClientStorageSynchronizer(
+            blockStore,
+            mock(ReceiptStore.class),
+            mock(NodeBlockProcessor.class),
+            storageAccessor,
+            mockedExecutor,
+            0,
+            1,
+            6_000
+        );
 
         // Verify sync
         assertTrue(storageSynchronizer.isSynced());
@@ -252,8 +251,6 @@ class BtcReleaseClientStorageSynchronizerTest {
         assertEquals(secondHash, calls.get(1));
         assertEquals(thirdHash, calls.get(2));
         verify(storageAccessor, times(1)).putBtcTxHashRskTxHash(key, value);
-
-
     }
 
     @Test
@@ -289,7 +286,7 @@ class BtcReleaseClientStorageSynchronizerTest {
         SignatureCache signatureCache = new BlockTxSignatureCache(new ReceivedTxSignatureCache());
 
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
-            BridgeRegTestConstants.getInstance(),
+            new BridgeRegTestConstants(),
             activations,
             logs,
             signatureCache
@@ -336,16 +333,16 @@ class BtcReleaseClientStorageSynchronizerTest {
             return null;
         }).when(mockedExecutor).scheduleAtFixedRate(any(), anyLong(), anyLong(), any());
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            new BtcReleaseClientStorageSynchronizer(
-                blockStore,
-                mock(ReceiptStore.class),
-                mock(NodeBlockProcessor.class),
-                storageAccessor,
-                mockedExecutor,
-                0,
-                1,
-                6_000);
+        BtcReleaseClientStorageSynchronizer storageSynchronizer = new BtcReleaseClientStorageSynchronizer(
+            blockStore,
+            mock(ReceiptStore.class),
+            mock(NodeBlockProcessor.class),
+            storageAccessor,
+            mockedExecutor,
+            0,
+            1,
+            6_000
+        );
 
         // Verify sync
         assertTrue(storageSynchronizer.isSynced());
@@ -362,7 +359,5 @@ class BtcReleaseClientStorageSynchronizerTest {
         assertEquals(thirdHash, calls.get(2));
         verify(storageAccessor, times(1)).putBtcTxHashRskTxHash(releaseBtcTxHash, updateCollectionsTx.getHash());
         verify(storageAccessor, times(1)).putBtcTxHashRskTxHash(secondReleaseBtcTxHash, updateCollectionsTx.getHash());
-
     }
-
 }

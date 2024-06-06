@@ -88,8 +88,6 @@ import org.spongycastle.util.encoders.Hex;
  * Created by ajlopez on 6/1/2016.
  */
 class BtcToRskClientTest {
-    private final NetworkParameters networkParameters = ThinConverter.toOriginalInstance(BridgeRegTestConstants.getInstance().getBtcParamsString());
-
     private int nhash = 0;
     private ActivationConfig activationConfig;
     private BridgeConstants bridgeRegTestConstants;
@@ -97,6 +95,7 @@ class BtcToRskClientTest {
     private FederationMember fakeMember;
     private BtcToRskClientBuilder btcToRskClientBuilder;
     private List<BtcECKey> federationPrivateKeys;
+    private NetworkParameters networkParameters;
 
     @BeforeEach
     void setup() throws PeginInstructionsException, IOException {
@@ -104,13 +103,12 @@ class BtcToRskClientTest {
         when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
         when(activationConfig.isActive(eq(ConsensusRule.RSKIP89), anyLong())).thenReturn(true);
 
-        bridgeRegTestConstants = BridgeRegTestConstants.getInstance();
+        bridgeRegTestConstants = new BridgeRegTestConstants();
+        networkParameters = ThinConverter.toOriginalInstance(bridgeRegTestConstants.getBtcParamsString());
         federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
         activeFederation = TestUtils.createFederation(bridgeRegTestConstants.getBtcParams(), federationPrivateKeys);
         fakeMember = FederationMember.getFederationMemberFromKey(
-            BtcECKey.fromPrivate(
-                HashUtil.keccak256("00".getBytes(StandardCharsets.UTF_8))
-            )
+            BtcECKey.fromPrivate(HashUtil.keccak256("00".getBytes(StandardCharsets.UTF_8)))
         );
         btcToRskClientBuilder = new BtcToRskClientBuilder();
     }
