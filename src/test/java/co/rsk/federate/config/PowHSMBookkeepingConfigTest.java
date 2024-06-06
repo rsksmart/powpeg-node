@@ -120,19 +120,18 @@ class PowHSMBookkeepingConfigTest {
     @MethodSource("provideNetworkParametersAndExpectedCaps")
     void getDifficultyCap_whenGivenNetwork_shouldMatchExpectedDifficultyCap(String networkId,
           NetworkDifficultyCap expectedNetworkDifficultyCap) {
-        PowHSMBookkeepingConfig powHsmBookkeepingConfig = new PowHSMBookkeepingConfig(signerConfig, networkId);
+        PowHSMBookkeepingConfig powHSMBookkeepingConfig = new PowHSMBookkeepingConfig(signerConfig, networkId);
 
         assertEquals(expectedNetworkDifficultyCap.getDifficultyCap(),
-            powHsmBookkeepingConfig.getDifficultyCap());
+            powHSMBookkeepingConfig.getDifficultyCap());
     }
 
     @Test
     void getDifficultyCap_whenGivenInvalidNetwork_showThrowIllegalArgumentException() {
-        PowHSMBookkeepingConfig powHsmBookkeepingConfig =
+        PowHSMBookkeepingConfig powHSMBookkeepingConfig =
             new PowHSMBookkeepingConfig(signerConfig, NetworkParameters.ID_UNITTESTNET);
 
-        assertThrows(IllegalArgumentException.class,
-            () -> powHsmBookkeepingConfig.getDifficultyCap());
+        assertThrows(IllegalArgumentException.class, powHSMBookkeepingConfig::getDifficultyCap);
     }
 
     static Stream<Arguments> provideNetworkParametersAndExpectedCaps() {
