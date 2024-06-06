@@ -21,8 +21,8 @@ package co.rsk.federate;
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.*;
+import co.rsk.peg.federation.constants.FederationConstants;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.crypto.ECKey;
 
@@ -41,11 +41,14 @@ import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
     private final FederatorSupport federatorSupport;
-    private final BridgeConstants bridgeConstants;
+    private final FederationConstants federationConstants;
 
-    public FederationProviderFromFederatorSupport(FederatorSupport federatorSupport, BridgeConstants bridgeConstants) {
+    public FederationProviderFromFederatorSupport(
+        FederatorSupport federatorSupport,
+        FederationConstants federationConstants) {
+
         this.federatorSupport = federatorSupport;
-        this.bridgeConstants = bridgeConstants;
+        this.federationConstants = federationConstants;
     }
 
     @Override
@@ -153,8 +156,8 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         Instant creationTime = initialFederation.getCreationTime();
         long creationBlockNumber = initialFederation.getCreationBlockNumber();
         NetworkParameters btcParams = federatorSupport.getBtcParams();
-        List<BtcECKey> erpPubKeys = bridgeConstants.getErpFedPubKeysList();
-        long activationDelay = bridgeConstants.getErpFedActivationDelay();
+        List<BtcECKey> erpPubKeys = federationConstants.getErpFedPubKeysList();
+        long activationDelay = federationConstants.getErpFedActivationDelay();
         ActivationConfig.ForBlock activations = federatorSupport.getConfigForBestBlock();
 
         FederationArgs federationArgs =
