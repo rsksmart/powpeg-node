@@ -38,7 +38,6 @@ import org.ethereum.db.ReceiptStore;
 import org.ethereum.vm.LogInfo;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 
 class BtcReleaseClientStorageSynchronizerTest {
