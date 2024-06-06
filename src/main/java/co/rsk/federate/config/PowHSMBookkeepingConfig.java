@@ -9,7 +9,7 @@ public class PowHSMBookkeepingConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(PowHSMBookkeepingConfig.class);
 
-    enum NetworkDifficultyCap {
+    public enum NetworkDifficultyCap {
         MAINNET(new BigInteger("7000000000000000000000")),
         TESTNET(BigInteger.valueOf(1000000000000000L)),
         REGTEST(BigInteger.valueOf(20L));
@@ -20,7 +20,7 @@ public class PowHSMBookkeepingConfig {
             this.difficultyCap = difficultyCap;
         }
 
-        BigInteger getDifficultyCap() {
+        public BigInteger getDifficultyCap() {
             return difficultyCap;
         }
     }
