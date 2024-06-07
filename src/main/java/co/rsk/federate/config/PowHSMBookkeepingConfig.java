@@ -1,13 +1,12 @@
 package co.rsk.federate.config;
 
 import co.rsk.bitcoinj.core.NetworkParameters;
+import com.typesafe.config.Config;
 import java.math.BigInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PowHSMBookkeepingConfig {
-
-    private static final Logger logger = LoggerFactory.getLogger(PowHSMBookkeepingConfig.class);
 
     public enum NetworkDifficultyCap {
         MAINNET(new BigInteger("7000000000000000000000")),
@@ -25,48 +24,59 @@ public class PowHSMBookkeepingConfig {
         }
     }
 
-    private static final BigInteger DEFAULT_DIFFICULTY_TARGET = BigInteger.valueOf(3);
-    private static final boolean DEFAULT_STOP_BOOKKEPING_SCHEDULER = false;
-    private static final int DEFAULT_MAX_AMOUNT_BLOCK_HEADERS = 7;
-    private static final int DEFAULT_MAX_CHUNK_SIZE = 10;
-    private static final long DEFAULT_INFORMER_INTERVAL = 2_000;
+    private static final Logger logger = LoggerFactory.getLogger(PowHSMBookkeepingConfig.class);
 
-    private final SignerConfig signerConfig;
+    private static final String DIFFICULTY_TARGET_PATH = "bookkeeping.difficultyTarget";
+    private static final BigInteger DIFFICULTY_TARGET_DEFAULT = BigInteger.valueOf(3);
+
+    private static final String MAX_AMOUNT_BLOCK_HEADERS_PATH = "bookkeeping.maxAmountBlockHeaders";
+    private static final int MAX_AMOUNT_BLOCK_HEADERS_DEFAULT = 7;
+
+    private static final String MAX_CHUNK_SIZE_TO_HSM_PATH = "bookkeeping.maxChunkSizeToHsm";
+    private static final int MAX_CHUNK_SIZE_TO_HSM_DEFAULT = 10;
+
+    private static final String INFORMER_INTERVAL_PATH = "bookkeeping.informerInterval";
+    private static final long INFORMER_INTERVAL_DEFAULT = 2_000;
+
+    private static final String STOP_BOOKKEPING_SCHEDULER_PATH = "bookkeeping.stopBookkeepingScheduler";
+    private static final boolean STOP_BOOKKEPING_SCHEDULER_DEFAULT = false;
+
+    private final Config signerConfig;
     private final String networkParameter;
 
     public PowHSMBookkeepingConfig(SignerConfig signerConfig, String networkParameter) {
-        this.signerConfig = signerConfig;
+        this.signerConfig = signerConfig.getConfig();
         this.networkParameter = networkParameter;
     }
 
     public BigInteger getDifficultyTarget() {
-        return signerConfig.getConfig().hasPath("bookkeeping.difficultyTarget")
-            ? new BigInteger(signerConfig.getConfig().getString("bookkeeping.difficultyTarget"))
-            : DEFAULT_DIFFICULTY_TARGET;
+        return signerConfig.hasPath(DIFFICULTY_TARGET_PATH)
+            ? new BigInteger(signerConfig.getString(DIFFICULTY_TARGET_PATH))
+            : DIFFICULTY_TARGET_DEFAULT;
     }
 
     public int getMaxAmountBlockHeaders() {
-        return signerConfig.getConfig().hasPath("bookkeeping.maxAmountBlockHeaders")
-            ? signerConfig.getConfig().getInt("bookkeeping.maxAmountBlockHeaders")
-            : DEFAULT_MAX_AMOUNT_BLOCK_HEADERS;
+        return signerConfig.hasPath(MAX_AMOUNT_BLOCK_HEADERS_PATH)
+            ? signerConfig.getInt(MAX_AMOUNT_BLOCK_HEADERS_PATH)
+            : MAX_AMOUNT_BLOCK_HEADERS_DEFAULT;
     }
 
     public long getInformerInterval() {
-        return signerConfig.getConfig().hasPath("bookkeeping.informerInterval")
-            ? signerConfig.getConfig().getLong("bookkeeping.informerInterval")
-            : DEFAULT_INFORMER_INTERVAL;
+        return signerConfig.hasPath(INFORMER_INTERVAL_PATH)
+            ? signerConfig.getLong(INFORMER_INTERVAL_PATH)
+            : INFORMER_INTERVAL_DEFAULT;
     }
 
     public boolean isStopBookkeepingScheduler() {
-        return signerConfig.getConfig().hasPath("bookkeeping.stopBookkeepingScheduler")
-            ? signerConfig.getConfig().getBoolean("bookkeeping.stopBookkeepingScheduler")
-            : DEFAULT_STOP_BOOKKEPING_SCHEDULER;
+        return signerConfig.hasPath(STOP_BOOKKEPING_SCHEDULER_PATH)
+            ? signerConfig.getBoolean(STOP_BOOKKEPING_SCHEDULER_PATH)
+            : STOP_BOOKKEPING_SCHEDULER_DEFAULT;
     }
 
     public int getMaxChunkSizeToHsm() {
-        return signerConfig.getConfig().hasPath("bookkeeping.maxChunkSizeToHsm")
-            ? signerConfig.getConfig().getInt("bookkeeping.maxChunkSizeToHsm")
-            : DEFAULT_MAX_CHUNK_SIZE;
+        return signerConfig.hasPath(MAX_CHUNK_SIZE_TO_HSM_PATH)
+            ? signerConfig.getInt(MAX_CHUNK_SIZE_TO_HSM_PATH)
+            : MAX_CHUNK_SIZE_TO_HSM_DEFAULT;
     }
 
     public BigInteger getDifficultyCap() {

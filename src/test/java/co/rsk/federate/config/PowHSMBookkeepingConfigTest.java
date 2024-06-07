@@ -20,11 +20,20 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class PowHSMBookkeepingConfigTest {
 
-    private static final BigInteger DEFAULT_DIFFICULTY_TARGET = BigInteger.valueOf(3);
-    private static final boolean DEFAULT_STOP_BOOKKEPING_SCHEDULER = false;
-    private static final int DEFAULT_MAX_AMOUNT_BLOCK_HEADERS = 7;
-    private static final int DEFAULT_MAX_CHUNK_SIZE = 10;
-    private static final long DEFAULT_INFORMER_INTERVAL = 2_000;
+    private static final String DIFFICULTY_TARGET_PATH = "bookkeeping.difficultyTarget";
+    private static final BigInteger DIFFICULTY_TARGET_DEFAULT = BigInteger.valueOf(3);
+
+    private static final String MAX_AMOUNT_BLOCK_HEADERS_PATH = "bookkeeping.maxAmountBlockHeaders";
+    private static final int MAX_AMOUNT_BLOCK_HEADERS_DEFAULT = 7;
+
+    private static final String MAX_CHUNK_SIZE_TO_HSM_PATH = "bookkeeping.maxChunkSizeToHsm";
+    private static final int MAX_CHUNK_SIZE_TO_HSM_DEFAULT = 10;
+
+    private static final String INFORMER_INTERVAL_PATH = "bookkeeping.informerInterval";
+    private static final long INFORMER_INTERVAL_DEFAULT = 2_000;
+
+    private static final String STOP_BOOKKEPING_SCHEDULER_PATH = "bookkeeping.stopBookkeepingScheduler";
+    private static final boolean STOP_BOOKKEPING_SCHEDULER_DEFAULT = false;
 
     private PowHSMBookkeepingConfig powHsmBookkeepingConfig;
     private SignerConfig signerConfig = mock(SignerConfig.class);
@@ -39,79 +48,79 @@ class PowHSMBookkeepingConfigTest {
     @Test
     void getDifficultyTarget_whenCustomConfigAvailable_shouldReturnCustomConfig() {
         BigInteger customDifficultyTarget = BigInteger.valueOf(1L); 
-        when(config.hasPath("bookkeeping.difficultyTarget")).thenReturn(true);
-        when(config.getString("bookkeeping.difficultyTarget")).thenReturn("1");
+        when(config.hasPath(DIFFICULTY_TARGET_PATH)).thenReturn(true);
+        when(config.getString(DIFFICULTY_TARGET_PATH)).thenReturn("1");
 
         assertEquals(customDifficultyTarget, powHsmBookkeepingConfig.getDifficultyTarget());
     }
 
     @Test
     void getDifficultyTarget_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath("bookkeeping.difficultyTarget")).thenReturn(false);
+        when(config.hasPath(DIFFICULTY_TARGET_PATH)).thenReturn(false);
 
-        assertEquals(DEFAULT_DIFFICULTY_TARGET, powHsmBookkeepingConfig.getDifficultyTarget());
+        assertEquals(DIFFICULTY_TARGET_DEFAULT, powHsmBookkeepingConfig.getDifficultyTarget());
     }
 
     @Test
     void getMaxAmountBlockHeaders_whenCustomConfigAvailable_shouldReturnCustomConfig() {
         int customMaxAmountBlockHeaders = 1; 
-        when(config.hasPath("bookkeeping.maxAmountBlockHeaders")).thenReturn(true);
-        when(config.getInt("bookkeeping.maxAmountBlockHeaders")).thenReturn(customMaxAmountBlockHeaders);
+        when(config.hasPath(MAX_AMOUNT_BLOCK_HEADERS_PATH)).thenReturn(true);
+        when(config.getInt(MAX_AMOUNT_BLOCK_HEADERS_PATH)).thenReturn(customMaxAmountBlockHeaders);
 
         assertEquals(customMaxAmountBlockHeaders, powHsmBookkeepingConfig.getMaxAmountBlockHeaders());
     }
 
     @Test
     void getMaxAmountBlockHeaders_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath("bookkeeping.maxAmountBlockHeaders")).thenReturn(false);
+        when(config.hasPath(MAX_AMOUNT_BLOCK_HEADERS_PATH)).thenReturn(false);
 
-        assertEquals(DEFAULT_MAX_AMOUNT_BLOCK_HEADERS, powHsmBookkeepingConfig.getMaxAmountBlockHeaders());
+        assertEquals(MAX_AMOUNT_BLOCK_HEADERS_DEFAULT, powHsmBookkeepingConfig.getMaxAmountBlockHeaders());
     }
 
     @Test
     void getMaxChunkSizeToHsm_whenCustomConfigAvailable_shouldReturnCustomConfig() {
         int customMaxChunkSize = 1; 
-        when(config.hasPath("bookkeeping.maxChunkSizeToHsm")).thenReturn(true);
-        when(config.getInt("bookkeeping.maxChunkSizeToHsm")).thenReturn(customMaxChunkSize);
+        when(config.hasPath(MAX_CHUNK_SIZE_TO_HSM_PATH)).thenReturn(true);
+        when(config.getInt(MAX_CHUNK_SIZE_TO_HSM_PATH)).thenReturn(customMaxChunkSize);
 
         assertEquals(customMaxChunkSize, powHsmBookkeepingConfig.getMaxChunkSizeToHsm());
     }
 
     @Test
     void getMaxChunkSizeToHsm_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath("bookkeeping.maxChunkSizeToHsm")).thenReturn(false);
+        when(config.hasPath(MAX_CHUNK_SIZE_TO_HSM_PATH)).thenReturn(false);
 
-        assertEquals(DEFAULT_MAX_CHUNK_SIZE, powHsmBookkeepingConfig.getMaxChunkSizeToHsm());
+        assertEquals(MAX_CHUNK_SIZE_TO_HSM_DEFAULT, powHsmBookkeepingConfig.getMaxChunkSizeToHsm());
     }
 
     @Test
     void getInformerInterval_whenCustomConfigAvailable_shouldReturnCustomConfig() {
         long customInformerInterval = 1L; 
-        when(config.hasPath("bookkeeping.informerInterval")).thenReturn(true);
-        when(config.getLong("bookkeeping.informerInterval")).thenReturn(customInformerInterval);
+        when(config.hasPath(INFORMER_INTERVAL_PATH)).thenReturn(true);
+        when(config.getLong(INFORMER_INTERVAL_PATH)).thenReturn(customInformerInterval);
 
         assertEquals(customInformerInterval, powHsmBookkeepingConfig.getInformerInterval());
     }
 
     @Test
     void getInformerInterval_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath("bookkeeping.informerInterval")).thenReturn(false);
+        when(config.hasPath(INFORMER_INTERVAL_PATH)).thenReturn(false);
 
-        assertEquals(DEFAULT_INFORMER_INTERVAL, powHsmBookkeepingConfig.getInformerInterval());
+        assertEquals(INFORMER_INTERVAL_DEFAULT, powHsmBookkeepingConfig.getInformerInterval());
     }
 
     @Test
     void isStoppingBookkepingScheduler_whenCustomConfigAvailable_shouldReturnCustomConfig() {
-        boolean customIsStoppingInformerInterval = !DEFAULT_STOP_BOOKKEPING_SCHEDULER; 
-        when(config.hasPath("bookkeeping.stopBookkeepingScheduler")).thenReturn(true);
-        when(config.getBoolean("bookkeeping.stopBookkeepingScheduler")).thenReturn(customIsStoppingInformerInterval);
+        boolean customIsStoppingInformerInterval = !STOP_BOOKKEPING_SCHEDULER_DEFAULT; 
+        when(config.hasPath(STOP_BOOKKEPING_SCHEDULER_PATH)).thenReturn(true);
+        when(config.getBoolean(STOP_BOOKKEPING_SCHEDULER_PATH)).thenReturn(customIsStoppingInformerInterval);
 
         assertTrue(powHsmBookkeepingConfig.isStopBookkeepingScheduler());
     }
 
     @Test
     void isStoppingBookkepingScheduler_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath("bookkeeping.stopBookkeepingScheduler")).thenReturn(false);
+        when(config.hasPath(STOP_BOOKKEPING_SCHEDULER_PATH)).thenReturn(false);
 
         assertFalse(powHsmBookkeepingConfig.isStopBookkeepingScheduler());
     }
