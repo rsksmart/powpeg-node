@@ -224,7 +224,7 @@ public class FedNodeRunner implements NodeRunner {
             fedNodeContext.getBlockStore(),
             bookKeepingClient,
             new ConfirmedBlocksProvider(
-                bookKeepingConfig.getDifficultyTarget(),
+                bookKeepingConfig.getDifficultyTarget(bookKeepingClient),
                 bookKeepingConfig.getMaxAmountBlockHeaders(),
                 fedNodeContext.getBlockStore(),
                 bookKeepingConfig.getDifficultyCap(),
