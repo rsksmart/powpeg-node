@@ -1,8 +1,14 @@
 package co.rsk.federate.config;
 
 import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
+import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
+
 import com.typesafe.config.Config;
 import java.math.BigInteger;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +33,6 @@ public class PowHSMBookkeepingConfig {
     private static final Logger logger = LoggerFactory.getLogger(PowHSMBookkeepingConfig.class);
 
     public static final String DIFFICULTY_TARGET_PATH = "bookkeeping.difficultyTarget";
-    public static final BigInteger DIFFICULTY_TARGET_DEFAULT = BigInteger.valueOf(3);
 
     public static final String MAX_AMOUNT_BLOCK_HEADERS_PATH = "bookkeeping.maxAmountBlockHeaders";
     public static final int MAX_AMOUNT_BLOCK_HEADERS_DEFAULT = 100;
@@ -49,10 +54,38 @@ public class PowHSMBookkeepingConfig {
         this.networkParameter = networkParameter;
     }
 
-    public BigInteger getDifficultyTarget() {
-        return signerConfig.hasPath(DIFFICULTY_TARGET_PATH)
-            ? new BigInteger(signerConfig.getString(DIFFICULTY_TARGET_PATH))
-            : DIFFICULTY_TARGET_DEFAULT;
+    /**
+     * Retrieves the difficulty target needed for the internal PowHSM blockchain.
+     * <p>
+     * The difficulty target can be obtained either from the configuration file or from the PowHSM.
+     * If the difficulty target is specified in the configuration file (indicated by the path {@code DIFFICULTY_TARGET_PATH}),
+     * and if the HSM client version is less than 3, the difficulty target will be read from the configuration file.
+     * Otherwise, the difficulty target will be retrieved from the PowHSM.
+     * </p>
+     *
+     * @param hsmClient the PowHSM client used to retrieve blockchain parameters.
+     * @return the difficulty target as a {@link BigInteger}.
+     * @throws HSMClientException if there is an error communicating with the PowHSM.
+     * @throws IllegalStateException if the difficulty target cannot be read from the configuration file or
+     *                               if it cannot be retrieved from the PowHSM.
+     */
+    public BigInteger getDifficultyTarget(HSMBookkeepingClient hsmClient)
+        throws HSMClientException {
+    System.out.println(hsmClient);
+    System.out.println(hsmClient.getVersion());
+      if (hsmClient.getVersion() < 3) {
+          return Optional.ofNullable(signerConfig.getString(DIFFICULTY_TARGET_PATH))
+              .map(BigInteger::new)
+              .orElseThrow(() -> 
+                  new IllegalStateException("Unable to read difficulty target from configuration file"));
+      }
+
+      logger.trace("[getDifficultyTarget] Retrieve minimum difficulty target from the PowHSM");
+
+      return Optional.ofNullable(hsmClient.getBlockchainParameters())
+          .map(PowHSMBlockchainParameters::getMinimumDifficulty)
+          .orElseThrow(() ->
+              new IllegalStateException("Unable to retrieve difficulty target using PowHSM"));
     }
 
     public int getMaxAmountBlockHeaders() {
