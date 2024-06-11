@@ -4,11 +4,9 @@ import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
-
 import com.typesafe.config.Config;
 import java.math.BigInteger;
 import java.util.Optional;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,8 +69,6 @@ public class PowHSMBookkeepingConfig {
      */
     public BigInteger getDifficultyTarget(HSMBookkeepingClient hsmClient)
         throws HSMClientException {
-    System.out.println(hsmClient);
-    System.out.println(hsmClient.getVersion());
       if (hsmClient.getVersion() < 3) {
           return Optional.ofNullable(signerConfig.getString(DIFFICULTY_TARGET_PATH))
               .map(BigInteger::new)
