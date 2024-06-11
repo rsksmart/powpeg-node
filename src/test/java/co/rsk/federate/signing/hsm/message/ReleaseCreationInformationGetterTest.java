@@ -1,5 +1,7 @@
 package co.rsk.federate.signing.hsm.message;
 
+import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.anyLong;
@@ -7,22 +9,62 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.*;
 import org.ethereum.db.*;
 import org.ethereum.vm.DataWord;
 import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ReleaseCreationInformationGetterTest {
+
+    private BtcTransaction pegoutBtcTx;
+    private Transaction pegoutCreationRskTx;
+    private Block pegoutCreationBlock;
+    private TransactionReceipt pegoutCreationRskTxReceipt;
+    private TransactionInfo pegoutCreationRskTxInfo;
+
+    @BeforeEach
+    void setUp() {
+        Sha256Hash pegoutBtcTxHash = BitcoinTestUtils.createHash(1);
+        pegoutBtcTx = mock(BtcTransaction.class);
+        when(pegoutBtcTx.getHash()).thenReturn(pegoutBtcTxHash);
+
+        Keccak256 pegoutCreationRskTxHash = TestUtils.createHash(2);
+        pegoutCreationRskTx = mock(Transaction.class);
+        when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
+        when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
+
+        Keccak256 pegoutCreationBlockHash = TestUtils.createHash(3);
+        pegoutCreationBlock = mock(Block.class);
+        long pegoutCreationBlockNumber = 3L;
+        when(pegoutCreationBlock.getNumber()).thenReturn(pegoutCreationBlockNumber);
+        when(pegoutCreationBlock.getHash()).thenReturn(pegoutCreationBlockHash);
+        when(pegoutCreationBlock.getTransactionsList()).thenReturn(Collections.singletonList(
+            pegoutCreationRskTx));
+
+        pegoutCreationRskTxReceipt = new TransactionReceipt();
+        pegoutCreationRskTxReceipt.setLogInfoList(Collections.emptyList());
+
+        pegoutCreationRskTxInfo = mock(TransactionInfo.class);
+        when(pegoutCreationRskTxInfo.getReceipt()).thenReturn(pegoutCreationRskTxReceipt);
+        when(pegoutCreationRskTxInfo.getBlockHash()).thenReturn(pegoutCreationBlockHash.getBytes());
+    }
 
     @Test
     void createGetTxInfoToSign_returnOK() throws HSMReleaseCreationInformationException {
@@ -79,22 +121,22 @@ class ReleaseCreationInformationGetterTest {
         createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction, block, transactionReceipt, 4);
     }
 
-    private void createGetTxInfoToSign_returnOK(ReleaseCreationInformationGetter pegoutCreationInformation,
+    private void createGetTxInfoToSign_returnOK(ReleaseCreationInformationGetter pegoutCreationInformationGetter,
                                                Keccak256 rskTxHash,
                                                BtcTransaction pegoutBtcTransaction,
                                                Block block,
                                                TransactionReceipt transactionReceipt,
                                                int hsmVersion) throws HSMReleaseCreationInformationException {
-        ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(
+        ReleaseCreationInformation pegoutCreationInfo = pegoutCreationInformationGetter.getTxInfoToSign(
             hsmVersion,
             rskTxHash,
             pegoutBtcTransaction
         );
 
-        assertEquals(releaseCreationInformation.getPegoutCreationBlock(), block);
-        assertEquals(transactionReceipt, releaseCreationInformation.getTransactionReceipt());
-        assertEquals(rskTxHash, releaseCreationInformation.getPegoutCreationRskTxHash());
-        assertEquals(pegoutBtcTransaction, releaseCreationInformation.getPegoutBtcTx());
+        assertEquals(block, pegoutCreationInfo.getPegoutCreationBlock());
+        assertEquals(transactionReceipt, pegoutCreationInfo.getTransactionReceipt());
+        assertEquals(rskTxHash, pegoutCreationInfo.getPegoutCreationRskTxHash());
+        assertEquals(pegoutBtcTransaction, pegoutCreationInfo.getPegoutBtcTx());
     }
 
     @Test
@@ -347,5 +389,79 @@ class ReleaseCreationInformationGetterTest {
             rskTxHash,
             pegoutBtcTransaction
         ));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getTxInfoToSignArgProvider")
+    void getTxInfoToSign_whenTransactionReceiptHasPegoutTransactionCreatedEvent_returnOk(
+        int version,
+        byte[] serializedOutpointValues,
+        List<Coin> expectedOutpointValues
+    )
+        throws HSMReleaseCreationInformationException {
+        // Arrange
+        List<LogInfo> logs = new ArrayList<>();
+
+        CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
+        byte[] releaseRequestedSignatureTopic = releaseRequestedEvent.encodeSignatureLong();
+        List<DataWord> topics = new ArrayList<>();
+        topics.add(DataWord.valueOf(releaseRequestedSignatureTopic));
+        topics.add(DataWord.valueOf(pegoutCreationRskTx.getHash().getBytes()));
+        topics.add(DataWord.valueOf(pegoutBtcTx.getHash().getBytes()));
+        logs.add(new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(), topics, null));
+
+        CallTransaction.Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
+        byte[] pegoutTransactionCreatedSignatureTopic = pegoutTransactionCreatedEvent.encodeSignatureLong();
+        List<DataWord> pegoutTransactionCreatedTopics = new ArrayList<>();
+        pegoutTransactionCreatedTopics.add(DataWord.valueOf(pegoutTransactionCreatedSignatureTopic));
+        pegoutTransactionCreatedTopics.add(DataWord.valueOf(pegoutBtcTx.getHash().getBytes()));
+
+        byte[] pegoutTransactionCreatedEncodedData = pegoutTransactionCreatedEvent.encodeEventData(serializedOutpointValues);
+        logs.add(new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(), pegoutTransactionCreatedTopics, pegoutTransactionCreatedEncodedData));
+
+        pegoutCreationRskTxReceipt.setLogInfoList(logs);
+
+        BlockStore blockStore = mock(BlockStore.class);
+        when(blockStore.getBlockByHash(pegoutCreationBlock.getHash().getBytes())).thenReturn(pegoutCreationBlock);
+        when(blockStore.getChainBlockByNumber(pegoutCreationBlock.getNumber())).thenReturn(pegoutCreationBlock);
+
+        ReceiptStore receiptStore = mock(ReceiptStore.class);
+        when(receiptStore.getInMainChain(pegoutCreationRskTx.getHash().getBytes(), blockStore)).thenReturn(Optional.of(
+            pegoutCreationRskTxInfo));
+
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
+            receiptStore,
+            blockStore
+        );
+
+        // act
+        ReleaseCreationInformation pegoutCreationInfo = releaseCreationInformationGetter.getTxInfoToSign(
+            version,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx
+        );
+
+        // assert
+        assertEquals(pegoutCreationBlock, pegoutCreationInfo.getPegoutCreationBlock());
+        assertEquals(pegoutCreationRskTxReceipt, pegoutCreationInfo.getTransactionReceipt());
+        assertEquals(pegoutCreationRskTx.getHash(), pegoutCreationInfo.getPegoutCreationRskTxHash());
+        assertEquals(pegoutBtcTx, pegoutCreationInfo.getPegoutBtcTx());
+        assertArrayEquals(expectedOutpointValues.toArray(), pegoutCreationInfo.getUtxoOutpointValues().toArray());
+    }
+
+    private static List<Arguments> getTxInfoToSignArgProvider() {
+        List<Arguments> arguments = new ArrayList<>();
+
+        int maxVersion = 5;
+
+        for (int version = 1; version <= maxVersion; version++) {
+            arguments.add(Arguments.of(version, Hex.decode("00"), Collections.singletonList(Coin.ZERO)));
+            arguments.add(Arguments.of(version, Hex.decode("01"), Collections.singletonList(Coin.SATOSHI)));
+            // 252 = FC, 187 = BB, 13_337 = FE9145DC00, 14_435_729 = FEDC4591
+            arguments.add(Arguments.of(version, Hex.decode("FCFCBBBBBBFD1934FE9145DC00"), coinListOf(252, 252, 187, 187, 187, 13_337, 14_435_729)));
+            arguments.add(Arguments.of(version, Hex.decode("FFFFFFFFFFFFFFFF7F"), coinListOf(Long.MAX_VALUE)));
+        }
+
+        return arguments;
     }
 }
