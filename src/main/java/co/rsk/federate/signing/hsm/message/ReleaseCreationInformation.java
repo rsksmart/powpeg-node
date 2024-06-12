@@ -68,7 +68,6 @@ public class ReleaseCreationInformation {
             .map(LogInfo::getData)
             .map(this::decodePegoutTransactionEventData)
             .map(UtxoUtils::decodeOutpointValues)
-            .map(Collections::unmodifiableList)
             .orElse(Collections.emptyList());
     }
 
@@ -82,8 +81,7 @@ public class ReleaseCreationInformation {
 
     private byte[] decodePegoutTransactionEventData(byte[] pegoutCreatedTransactionEventData) {
         Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
-        byte[] serializedOutpointValues = (byte[]) pegoutTransactionCreatedEvent.decodeEventData(pegoutCreatedTransactionEventData)[0];
-        return serializedOutpointValues;
+        return (byte[]) pegoutTransactionCreatedEvent.decodeEventData(pegoutCreatedTransactionEventData)[0];
     }
 
     public Block getPegoutCreationBlock() {
@@ -113,6 +111,6 @@ public class ReleaseCreationInformation {
     }
 
     public List<Coin> getUtxoOutpointValues() {
-        return utxoOutpointValues;
+        return Collections.unmodifiableList(utxoOutpointValues);
     }
 }
