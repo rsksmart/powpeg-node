@@ -14,9 +14,9 @@ public class HSMClientProtocolFactory {
     public static final String INTERVAL_BETWEEN_ATTEMPTS = "intervalBetweenAttempts";
     public static final String HSM_CONFIG_TYPE = "hsm";
 
-    public static final int DEFAULT_SOCKET_TIMEOUT = 10_000;
+    public static final int DEFAULT_SOCKET_TIMEOUT = 20_000;
     public static final int DEFAULT_ATTEMPTS = 2;
-    public static final int DEFAULT_INTERVAL = 1000;
+    public static final int DEFAULT_INTERVAL = 1_000;
 
     public HSMClientProtocol buildHSMClientProtocolFromConfig(SignerConfig config) throws HSMUnsupportedTypeException {
         if (!HSM_CONFIG_TYPE.equalsIgnoreCase(config.getType())) {
