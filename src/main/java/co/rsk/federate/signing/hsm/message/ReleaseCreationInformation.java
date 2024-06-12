@@ -8,7 +8,6 @@ import co.rsk.peg.bitcoin.UtxoUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import org.ethereum.core.Block;
 import org.ethereum.core.CallTransaction.Function;
 import org.ethereum.core.TransactionReceipt;
@@ -20,7 +19,7 @@ public class ReleaseCreationInformation {
     private final Keccak256 pegoutCreationRskTxHash;
     private final BtcTransaction pegoutBtcTx;
     private final Keccak256 pegoutConfirmationRskTxHash;
-    private List<Coin> utxoOutpointValues = Collections.emptyList();
+    private final List<Coin> utxoOutpointValues;
 
     /**
      *
@@ -59,28 +58,32 @@ public class ReleaseCreationInformation {
         this.pegoutBtcTx = pegoutBtcTx;
         this.pegoutConfirmationRskTxHash = pegoutConfirmationRskTxHash;
 
-        this.decodeUtxoOutpointValues(transactionReceipt);
+        this.utxoOutpointValues = this.decodeUtxoOutpointValues(transactionReceipt);
     }
 
-    private void decodeUtxoOutpointValues(TransactionReceipt transactionReceipt) {
-        List<LogInfo> logs =  transactionReceipt.getLogInfoList();
+    private List<Coin> decodeUtxoOutpointValues(TransactionReceipt transactionReceipt) {
+        return transactionReceipt.getLogInfoList().stream()
+            .filter(this::isPegoutTransactionCreatedLog)
+            .findFirst()
+            .map(LogInfo::getData)
+            .map(this::decodePegoutTransactionEventData)
+            .map(UtxoUtils::decodeOutpointValues)
+            .map(Collections::unmodifiableList)
+            .orElse(Collections.emptyList());
+    }
 
+    private boolean isPegoutTransactionCreatedLog(LogInfo log) {
         Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
         final byte[] pegoutTransactionCreatedSignatureTopic = pegoutTransactionCreatedEvent.encodeSignatureLong();
 
-        Optional<LogInfo> pegoutTransactionCreatedLog = logs.stream().filter((log ->
-            !log.getTopics().isEmpty() && Arrays.equals(log.getTopics().get(0).getData(),
-                pegoutTransactionCreatedSignatureTopic)
-        )).findFirst();
+        return !log.getTopics().isEmpty() && Arrays.equals(log.getTopics().get(0).getData(),
+            pegoutTransactionCreatedSignatureTopic);
+    }
 
-        if(!pegoutTransactionCreatedLog.isPresent()) {
-            return;
-        }
-
-        byte[] pegoutCreatedTransactionEventData = pegoutTransactionCreatedLog.get().getData();
+    private byte[] decodePegoutTransactionEventData(byte[] pegoutCreatedTransactionEventData) {
+        Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
         byte[] serializedOutpointValues = (byte[]) pegoutTransactionCreatedEvent.decodeEventData(pegoutCreatedTransactionEventData)[0];
-
-        this.utxoOutpointValues = Collections.unmodifiableList(UtxoUtils.decodeOutpointValues(serializedOutpointValues));
+        return serializedOutpointValues;
     }
 
     public Block getPegoutCreationBlock() {
