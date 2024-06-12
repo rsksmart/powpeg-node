@@ -26,20 +26,20 @@ public class PowHSMBookkeepingConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(PowHSMBookkeepingConfig.class);
 
-    private static final String DIFFICULTY_TARGET_PATH = "bookkeeping.difficultyTarget";
-    private static final BigInteger DIFFICULTY_TARGET_DEFAULT = BigInteger.valueOf(3);
+    public static final String DIFFICULTY_TARGET_PATH = "bookkeeping.difficultyTarget";
+    public static final BigInteger DIFFICULTY_TARGET_DEFAULT = BigInteger.valueOf(3);
 
-    private static final String MAX_AMOUNT_BLOCK_HEADERS_PATH = "bookkeeping.maxAmountBlockHeaders";
-    private static final int MAX_AMOUNT_BLOCK_HEADERS_DEFAULT = 7;
+    public static final String MAX_AMOUNT_BLOCK_HEADERS_PATH = "bookkeeping.maxAmountBlockHeaders";
+    public static final int MAX_AMOUNT_BLOCK_HEADERS_DEFAULT = 100;
 
-    private static final String MAX_CHUNK_SIZE_TO_HSM_PATH = "bookkeeping.maxChunkSizeToHsm";
-    private static final int MAX_CHUNK_SIZE_TO_HSM_DEFAULT = 10;
+    public static final String MAX_CHUNK_SIZE_TO_HSM_PATH = "bookkeeping.maxChunkSizeToHsm";
+    public static final int MAX_CHUNK_SIZE_TO_HSM_DEFAULT = 100;
 
-    private static final String INFORMER_INTERVAL_PATH = "bookkeeping.informerInterval";
-    private static final long INFORMER_INTERVAL_DEFAULT = 2_000;
+    public static final String INFORMER_INTERVAL_PATH = "bookkeeping.informerInterval";
+    public static final long INFORMER_INTERVAL_DEFAULT = 6 * 60 * 1000L; // 6 minutes in milliseconds
 
-    private static final String STOP_BOOKKEPING_SCHEDULER_PATH = "bookkeeping.stopBookkeepingScheduler";
-    private static final boolean STOP_BOOKKEPING_SCHEDULER_DEFAULT = false;
+    public static final String STOP_BOOKKEPING_SCHEDULER_PATH = "bookkeeping.stopBookkeepingScheduler";
+    public static final boolean STOP_BOOKKEPING_SCHEDULER_DEFAULT = false;
 
     private final Config signerConfig;
     private final String networkParameter;
