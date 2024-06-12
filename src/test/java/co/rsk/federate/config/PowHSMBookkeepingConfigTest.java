@@ -57,14 +57,14 @@ class PowHSMBookkeepingConfigTest {
 
     @Test
     void getDifficultyTarget_whenPowHSMVersionIsGreaterThanTwo_shouldRetriveConfigValueFromPowHSM() throws Exception {
-        BigInteger difficultyTarget = BigInteger.valueOf(1L); 
+        BigInteger expectedDifficultyTarget = BigInteger.valueOf(1L); 
         PowHSMBlockchainParameters response =
             new PowHSMBlockchainParameters(
-                createHash(1).toHexString(), difficultyTarget, NetworkParameters.ID_UNITTESTNET.toString());
+                createHash(1).toHexString(), expectedDifficultyTarget, NetworkParameters.ID_UNITTESTNET.toString());
         when(hsmClient.getVersion()).thenReturn(3);
         when(hsmClient.getBlockchainParameters()).thenReturn(response);
 
-        assertEquals(difficultyTarget, powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
+        assertEquals(expectedDifficultyTarget, powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
     }
 
     @Test
