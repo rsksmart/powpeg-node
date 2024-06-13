@@ -59,10 +59,10 @@ public class ReleaseCreationInformation {
         this.pegoutBtcTx = pegoutBtcTx;
         this.pegoutConfirmationRskTxHash = pegoutConfirmationRskTxHash;
 
-        this.utxoOutpointValues = decodeUtxoOutpointValues(transactionReceipt);
+        this.utxoOutpointValues = decodeUtxoOutpointValues();
     }
 
-    private List<Coin> decodeUtxoOutpointValues(TransactionReceipt transactionReceipt) {
+    private List<Coin> decodeUtxoOutpointValues() {
         return transactionReceipt.getLogInfoList().stream()
             .filter(this::isPegoutTransactionCreatedLog)
             .findFirst()
