@@ -1,5 +1,9 @@
 package co.rsk.federate.signing.hsm.message;
 
+import static co.rsk.federate.EventsTestUtils.createBatchPegoutCreatedLog;
+import static co.rsk.federate.EventsTestUtils.createPegoutTransactionCreatedLog;
+import static co.rsk.federate.EventsTestUtils.createReleaseRequestedLog;
+import static co.rsk.federate.EventsTestUtils.createUpdateCollectionsLog;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,17 +15,28 @@ import static org.mockito.Mockito.when;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
+import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.bouncycastle.util.encoders.Hex;
-import org.ethereum.core.*;
-import org.ethereum.db.*;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.core.Block;
+import org.ethereum.core.BlockHeader;
+import org.ethereum.core.BlockHeaderBuilder;
+import org.ethereum.core.CallTransaction;
+import org.ethereum.core.Transaction;
+import org.ethereum.core.TransactionReceipt;
+import org.ethereum.crypto.ECKey;
+import org.ethereum.db.BlockStore;
+import org.ethereum.db.ReceiptStore;
+import org.ethereum.db.TransactionInfo;
 import org.ethereum.vm.DataWord;
 import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
@@ -64,18 +79,14 @@ class ReleaseCreationInformationGetterTest {
         Sha256Hash pegoutBtcTxHash = BitcoinTestUtils.createHash(1);
         pegoutBtcTx = mock(BtcTransaction.class);
         when(pegoutBtcTx.getHash()).thenReturn(pegoutBtcTxHash);
+        when(pegoutBtcTx.getInputSum()).thenReturn(Coin.COIN);
 
         Keccak256 pegoutCreationRskTxHash = TestUtils.createHash(2);
         pegoutCreationRskTx = mock(Transaction.class);
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
 
-        Keccak256 pegoutCreationBlockHash = TestUtils.createHash(3);
-        pegoutCreationBlock = mock(Block.class);
-        long pegoutCreationBlockNumber = 3L;
-        when(pegoutCreationBlock.getNumber()).thenReturn(pegoutCreationBlockNumber);
-        when(pegoutCreationBlock.getHash()).thenReturn(pegoutCreationBlockHash);
-        when(pegoutCreationBlock.getTransactionsList()).thenReturn(Collections.singletonList(
+        pegoutCreationBlock = createBlock(1, Collections.singletonList(
             pegoutCreationRskTx));
 
         pegoutCreationRskTxReceipt = new TransactionReceipt();
@@ -83,7 +94,18 @@ class ReleaseCreationInformationGetterTest {
 
         pegoutCreationRskTxInfo = mock(TransactionInfo.class);
         when(pegoutCreationRskTxInfo.getReceipt()).thenReturn(pegoutCreationRskTxReceipt);
-        when(pegoutCreationRskTxInfo.getBlockHash()).thenReturn(pegoutCreationBlockHash.getBytes());
+        when(pegoutCreationRskTxInfo.getBlockHash()).thenReturn(
+            pegoutCreationBlock.getHash().getBytes());
+    }
+
+    private Block createBlock(int blockNumber, List<Transaction> rskTxs) {
+
+        int parentBlockNumber = blockNumber > 0 ? blockNumber - 1 : 0;
+        BlockHeader blockHeader = new BlockHeaderBuilder(mock(ActivationConfig.class))
+            .setNumber(blockNumber)
+            .setParentHashFromKeccak256(TestUtils.createHash(parentBlockNumber))
+            .build();
+        return new Block(blockHeader, rskTxs, Collections.emptyList(), true, true);
     }
 
     @Test
@@ -444,18 +466,23 @@ class ReleaseCreationInformationGetterTest {
         // Arrange
         List<LogInfo> logs = new ArrayList<>();
 
-        LogInfo updateCollectionsLog = getUpdateCollectionsLog();
+        ECKey senderKey = new ECKey();
+        RskAddress senderAddress = new RskAddress(senderKey.getAddress());
+        LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
 
-        LogInfo releaseRequestedLog = getReleaseRequestedLog(pegoutCreationRskTx.getHash(),
-            pegoutBtcTx.getHash(), mock(Coin.class));
+        Coin pegoutAmount = pegoutBtcTx.getInputSum();
+        LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
+            pegoutBtcTx.getHash(), pegoutAmount);
         logs.add(releaseRequestedLog);
 
-        LogInfo batchPegoutCreatedLog = getBatchPegoutCreatedLog(pegoutBtcTx.getHash());
+        List<Keccak256> pegoutRequestRskTxHashes = Arrays.asList(TestUtils.createHash(10));
+        LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(pegoutBtcTx.getHash(),
+            pegoutRequestRskTxHashes);
         logs.add(batchPegoutCreatedLog);
 
-        LogInfo pegoutTransactionCreatedLog = getPegoutTransactionCreatedLog(pegoutBtcTx.getHash(),
-            serializedOutpointValues);
+        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
+            pegoutBtcTx.getHash(), serializedOutpointValues);
         logs.add(pegoutTransactionCreatedLog);
 
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
@@ -491,58 +518,5 @@ class ReleaseCreationInformationGetterTest {
         assertEquals(pegoutBtcTx, pegoutCreationInfo.getPegoutBtcTx());
         assertArrayEquals(expectedOutpointValues.toArray(),
             pegoutCreationInfo.getUtxoOutpointValues().toArray());
-    }
-
-    private LogInfo getPegoutTransactionCreatedLog(Sha256Hash pegoutBtcTxHash,
-        byte[] serializedOutpointValues) {
-        CallTransaction.Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
-        byte[] pegoutTransactionCreatedSignatureTopic = pegoutTransactionCreatedEvent.encodeSignatureLong();
-        List<DataWord> pegoutTransactionCreatedTopics = new ArrayList<>();
-        pegoutTransactionCreatedTopics.add(
-            DataWord.valueOf(pegoutTransactionCreatedSignatureTopic));
-        pegoutTransactionCreatedTopics.add(DataWord.valueOf(pegoutBtcTxHash.getBytes()));
-
-        byte[] pegoutTransactionCreatedEncodedData = pegoutTransactionCreatedEvent.encodeEventData(
-            serializedOutpointValues);
-        return new LogInfo(
-            PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-            pegoutTransactionCreatedTopics, pegoutTransactionCreatedEncodedData);
-    }
-
-    private LogInfo getBatchPegoutCreatedLog(Sha256Hash pegoutBtcTxHash) {
-        CallTransaction.Function batchPegoutCreatedEvent = BridgeEvents.BATCH_PEGOUT_CREATED.getEvent();
-        byte[] batchPegoutEventSignatureTopic = batchPegoutCreatedEvent.encodeSignatureLong();
-        List<DataWord> topics = new ArrayList<>();
-        topics.add(
-            DataWord.valueOf(batchPegoutEventSignatureTopic));
-        topics.add(DataWord.valueOf(pegoutBtcTxHash.getBytes()));
-
-        byte[] encodedData = {};
-        return new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-            topics, encodedData);
-    }
-
-    private LogInfo getReleaseRequestedLog(Keccak256 pegoutRskTxHash, Sha256Hash pegoutBtcTxHash,
-        Coin amount) {
-        CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
-        byte[] releaseRequestedSignatureTopic = releaseRequestedEvent.encodeSignatureLong();
-        List<DataWord> topics = new ArrayList<>();
-        topics.add(DataWord.valueOf(releaseRequestedSignatureTopic));
-        topics.add(DataWord.valueOf(pegoutRskTxHash.getBytes()));
-        topics.add(DataWord.valueOf(pegoutBtcTxHash.getBytes()));
-        byte[] encodedData = releaseRequestedEvent.encodeEventData(amount.getValue());
-        return new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-            topics, encodedData);
-    }
-
-    private LogInfo getUpdateCollectionsLog() {
-        CallTransaction.Function updateCollectionsEvent = BridgeEvents.UPDATE_COLLECTIONS.getEvent();
-        byte[] updateCollectionsSignatureTopic = updateCollectionsEvent.encodeSignatureLong();
-        List<DataWord> topics = new ArrayList<>();
-        topics.add(DataWord.valueOf(updateCollectionsSignatureTopic));
-        // from rsk address(mock)
-        topics.add(DataWord.valueOf(new byte[]{}));
-        return new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-            topics, null);
     }
 }
