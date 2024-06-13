@@ -14,6 +14,7 @@ import org.ethereum.core.TransactionReceipt;
 import org.ethereum.vm.LogInfo;
 
 public class ReleaseCreationInformation {
+
     private final Block pegoutCreationBlock;
     private final TransactionReceipt transactionReceipt;
     private final Keccak256 pegoutCreationRskTxHash;
@@ -22,11 +23,10 @@ public class ReleaseCreationInformation {
     private final List<Coin> utxoOutpointValues;
 
     /**
-     *
-     * @param pegoutCreationBlock                 The rsk block where pegout was created
-     * @param transactionReceipt    The rsk transaction receipt where pegout was created
-     * @param pegoutCreationRskTxHash      The rsk transaction hash where the pegout was created
-     * @param pegoutBtcTx        The BTC transaction to sign
+     * @param pegoutCreationBlock     The rsk block where pegout was created
+     * @param transactionReceipt      The rsk transaction receipt where pegout was created
+     * @param pegoutCreationRskTxHash The rsk transaction hash where the pegout was created
+     * @param pegoutBtcTx             The BTC transaction to sign
      **/
     public ReleaseCreationInformation(
         Block pegoutCreationBlock,
@@ -34,16 +34,17 @@ public class ReleaseCreationInformation {
         Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx
     ) {
-        this(pegoutCreationBlock, transactionReceipt, pegoutCreationRskTxHash, pegoutBtcTx, pegoutCreationRskTxHash);
+        this(pegoutCreationBlock, transactionReceipt, pegoutCreationRskTxHash, pegoutBtcTx,
+            pegoutCreationRskTxHash);
     }
 
     /**
-     *
-     * @param pegoutCreationBlock                 The rsk block where the pegout was created
-     * @param transactionReceipt    The rsk transaction receipt where the pegout was created
-     * @param pegoutCreationRskTxHash      The rsk transaction hash where the pegout was created
-     * @param pegoutBtcTx        The BTC transaction to sign
-     * @param pegoutConfirmationRskTxHash  The rsk transaction hash where the pegout was confirmed to be signed
+     * @param pegoutCreationBlock         The rsk block where the pegout was created
+     * @param transactionReceipt          The rsk transaction receipt where the pegout was created
+     * @param pegoutCreationRskTxHash     The rsk transaction hash where the pegout was created
+     * @param pegoutBtcTx                 The BTC transaction to sign
+     * @param pegoutConfirmationRskTxHash The rsk transaction hash where the pegout was confirmed to
+     *                                    be signed
      **/
     public ReleaseCreationInformation(
         Block pegoutCreationBlock,
@@ -58,7 +59,7 @@ public class ReleaseCreationInformation {
         this.pegoutBtcTx = pegoutBtcTx;
         this.pegoutConfirmationRskTxHash = pegoutConfirmationRskTxHash;
 
-        this.utxoOutpointValues = this.decodeUtxoOutpointValues(transactionReceipt);
+        this.utxoOutpointValues = decodeUtxoOutpointValues(transactionReceipt);
     }
 
     private List<Coin> decodeUtxoOutpointValues(TransactionReceipt transactionReceipt) {
@@ -81,7 +82,8 @@ public class ReleaseCreationInformation {
 
     private byte[] decodePegoutTransactionEventData(byte[] pegoutCreatedTransactionEventData) {
         Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
-        return (byte[]) pegoutTransactionCreatedEvent.decodeEventData(pegoutCreatedTransactionEventData)[0];
+        return (byte[]) pegoutTransactionCreatedEvent.decodeEventData(
+            pegoutCreatedTransactionEventData)[0];
     }
 
     public Block getPegoutCreationBlock() {
