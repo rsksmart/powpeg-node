@@ -31,7 +31,12 @@ public enum HSMField {
     TX("tx"),
     UPDATING("updating"),
     V("v"),
-    VERSION("version");
+    VERSION("version"),
+    SIGHASH_COMPUTATION_MODE("sighashComputationMode"),
+    WITNESS_SCRIPT("witnessScript"),
+    OUTPOINT_VALUE("outpointValue"),
+    ;
+
 
     private final String name;
 
