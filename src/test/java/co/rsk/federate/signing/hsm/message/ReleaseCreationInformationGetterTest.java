@@ -21,9 +21,11 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
+import co.rsk.peg.bitcoin.UtxoUtils;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.pegin.RejectedPeginReason;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -50,6 +52,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ReleaseCreationInformationGetterTest {
 
+    private BridgeConstants bridgeConstants = BridgeMainNetConstants.getInstance();
     private BtcTransaction pegoutBtcTx;
     private Transaction pegoutCreationRskTx;
     private Block pegoutCreationBlock;
@@ -81,15 +84,13 @@ class ReleaseCreationInformationGetterTest {
         Sha256Hash pegoutBtcTxHash = BitcoinTestUtils.createHash(1);
         pegoutBtcTx = mock(BtcTransaction.class);
         when(pegoutBtcTx.getHash()).thenReturn(pegoutBtcTxHash);
-        when(pegoutBtcTx.getInputSum()).thenReturn(Coin.COIN);
 
         Keccak256 pegoutCreationRskTxHash = TestUtils.createHash(2);
         pegoutCreationRskTx = mock(Transaction.class);
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
 
-        pegoutCreationBlock = createBlock(1, Collections.singletonList(
-            pegoutCreationRskTx));
+        pegoutCreationBlock = createBlock(1, Collections.singletonList(pegoutCreationRskTx));
 
         pegoutCreationRskTxReceipt = new TransactionReceipt();
         pegoutCreationRskTxReceipt.setLogInfoList(Collections.emptyList());
@@ -472,12 +473,13 @@ class ReleaseCreationInformationGetterTest {
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
 
-        Coin pegoutAmount = pegoutBtcTx.getInputSum();
+        Coin pegoutAmount = bridgeConstants.getMinimumPegoutTxValue();
         LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
             pegoutBtcTx.getHash(), pegoutAmount);
         logs.add(releaseRequestedLog);
 
-        List<Keccak256> pegoutRequestRskTxHashes = Arrays.asList(TestUtils.createHash(10));
+        List<Keccak256> pegoutRequestRskTxHashes = Collections.singletonList(
+            TestUtils.createHash(10));
         LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(pegoutBtcTx.getHash(),
             pegoutRequestRskTxHashes);
         logs.add(batchPegoutCreatedLog);
@@ -529,6 +531,9 @@ class ReleaseCreationInformationGetterTest {
         List<Coin> expectedOutpointValues
     ) throws HSMReleaseCreationInformationException {
         // Arrange
+        List<Coin> outpointValues = UtxoUtils.decodeOutpointValues(serializedOutpointValues);
+        when(pegoutBtcTx.getInputSum()).thenReturn(outpointValues.stream().reduce(Coin.ZERO, Coin::add));
+
         List<LogInfo> logs = new ArrayList<>();
 
         ECKey senderKey = new ECKey();
@@ -588,6 +593,9 @@ class ReleaseCreationInformationGetterTest {
         List<Coin> expectedOutpointValues
     ) throws HSMReleaseCreationInformationException {
         // Arrange
+        List<Coin> outpointValues = UtxoUtils.decodeOutpointValues(serializedOutpointValues);
+        when(pegoutBtcTx.getInputSum()).thenReturn(outpointValues.stream().reduce(Coin.ZERO, Coin::add));
+
         List<LogInfo> logs = new ArrayList<>();
 
         LogInfo updateCollectionsLog = creatRejectedPeginLog(pegoutBtcTx.getHash(),
