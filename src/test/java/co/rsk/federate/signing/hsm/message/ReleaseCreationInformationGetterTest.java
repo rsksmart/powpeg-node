@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.message;
 
+import static co.rsk.federate.EventsTestUtils.creatRejectedPeginLog;
 import static co.rsk.federate.EventsTestUtils.createBatchPegoutCreatedLog;
 import static co.rsk.federate.EventsTestUtils.createPegoutTransactionCreatedLog;
 import static co.rsk.federate.EventsTestUtils.createReleaseRequestedLog;
@@ -20,6 +21,7 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
+import co.rsk.peg.pegin.RejectedPeginReason;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -457,12 +459,11 @@ class ReleaseCreationInformationGetterTest {
 
     @ParameterizedTest
     @MethodSource("getTxInfoToSignArgProvider")
-    void getTxInfoToSign_whenTransactionReceiptHasPegoutTransactionCreatedEvent_returnOk(
+    void getTxInfoToSign_whenBatchPegoutHasPegoutTransactionCreatedEvent_returnsOk(
         int version,
         byte[] serializedOutpointValues,
         List<Coin> expectedOutpointValues
-    )
-        throws HSMReleaseCreationInformationException {
+    ) throws HSMReleaseCreationInformationException {
         // Arrange
         List<LogInfo> logs = new ArrayList<>();
 
@@ -480,6 +481,123 @@ class ReleaseCreationInformationGetterTest {
         LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(pegoutBtcTx.getHash(),
             pegoutRequestRskTxHashes);
         logs.add(batchPegoutCreatedLog);
+
+        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
+            pegoutBtcTx.getHash(), serializedOutpointValues);
+        logs.add(pegoutTransactionCreatedLog);
+
+        pegoutCreationRskTxReceipt.setLogInfoList(logs);
+
+        BlockStore blockStore = mock(BlockStore.class);
+        when(blockStore.getBlockByHash(pegoutCreationBlock.getHash().getBytes())).thenReturn(
+            pegoutCreationBlock);
+        when(blockStore.getChainBlockByNumber(pegoutCreationBlock.getNumber())).thenReturn(
+            pegoutCreationBlock);
+
+        ReceiptStore receiptStore = mock(ReceiptStore.class);
+        when(receiptStore.getInMainChain(pegoutCreationRskTx.getHash().getBytes(),
+            blockStore)).thenReturn(Optional.of(
+            pegoutCreationRskTxInfo));
+
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
+            receiptStore,
+            blockStore
+        );
+
+        // act
+        ReleaseCreationInformation pegoutCreationInfo = releaseCreationInformationGetter.getTxInfoToSign(
+            version,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx
+        );
+
+        // assert
+        assertEquals(pegoutCreationBlock, pegoutCreationInfo.getPegoutCreationBlock());
+        assertEquals(pegoutCreationRskTxReceipt, pegoutCreationInfo.getTransactionReceipt());
+        assertEquals(pegoutCreationRskTx.getHash(),
+            pegoutCreationInfo.getPegoutCreationRskTxHash());
+        assertEquals(pegoutBtcTx, pegoutCreationInfo.getPegoutBtcTx());
+        assertArrayEquals(expectedOutpointValues.toArray(),
+            pegoutCreationInfo.getUtxoOutpointValues().toArray());
+    }
+
+    @ParameterizedTest
+    @MethodSource("getTxInfoToSignArgProvider")
+    void getTxInfoToSign_whenPegoutHasNotBatchPegoutButHasPegoutCreatedEvent_returnsOk(
+        int version,
+        byte[] serializedOutpointValues,
+        List<Coin> expectedOutpointValues
+    ) throws HSMReleaseCreationInformationException {
+        // Arrange
+        List<LogInfo> logs = new ArrayList<>();
+
+        ECKey senderKey = new ECKey();
+        RskAddress senderAddress = new RskAddress(senderKey.getAddress());
+        LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
+        logs.add(updateCollectionsLog);
+
+        Coin pegoutAmount = pegoutBtcTx.getInputSum();
+        LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
+            pegoutBtcTx.getHash(), pegoutAmount);
+        logs.add(releaseRequestedLog);
+
+        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
+            pegoutBtcTx.getHash(), serializedOutpointValues);
+        logs.add(pegoutTransactionCreatedLog);
+
+        pegoutCreationRskTxReceipt.setLogInfoList(logs);
+
+        BlockStore blockStore = mock(BlockStore.class);
+        when(blockStore.getBlockByHash(pegoutCreationBlock.getHash().getBytes())).thenReturn(
+            pegoutCreationBlock);
+        when(blockStore.getChainBlockByNumber(pegoutCreationBlock.getNumber())).thenReturn(
+            pegoutCreationBlock);
+
+        ReceiptStore receiptStore = mock(ReceiptStore.class);
+        when(receiptStore.getInMainChain(pegoutCreationRskTx.getHash().getBytes(),
+            blockStore)).thenReturn(Optional.of(
+            pegoutCreationRskTxInfo));
+
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
+            receiptStore,
+            blockStore
+        );
+
+        // act
+        ReleaseCreationInformation pegoutCreationInfo = releaseCreationInformationGetter.getTxInfoToSign(
+            version,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx
+        );
+
+        // assert
+        assertEquals(pegoutCreationBlock, pegoutCreationInfo.getPegoutCreationBlock());
+        assertEquals(pegoutCreationRskTxReceipt, pegoutCreationInfo.getTransactionReceipt());
+        assertEquals(pegoutCreationRskTx.getHash(),
+            pegoutCreationInfo.getPegoutCreationRskTxHash());
+        assertEquals(pegoutBtcTx, pegoutCreationInfo.getPegoutBtcTx());
+        assertArrayEquals(expectedOutpointValues.toArray(),
+            pegoutCreationInfo.getUtxoOutpointValues().toArray());
+    }
+
+    @ParameterizedTest
+    @MethodSource("getTxInfoToSignArgProvider")
+    void getTxInfoToSign_whenRejectedPeginHasPegoutCreatedEvent_returnsOk(
+        int version,
+        byte[] serializedOutpointValues,
+        List<Coin> expectedOutpointValues
+    ) throws HSMReleaseCreationInformationException {
+        // Arrange
+        List<LogInfo> logs = new ArrayList<>();
+
+        LogInfo updateCollectionsLog = creatRejectedPeginLog(pegoutBtcTx.getHash(),
+            RejectedPeginReason.LEGACY_PEGIN_MULTISIG_SENDER);
+        logs.add(updateCollectionsLog);
+
+        Coin pegoutAmount = pegoutBtcTx.getInputSum();
+        LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
+            pegoutBtcTx.getHash(), pegoutAmount);
+        logs.add(releaseRequestedLog);
 
         LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
             pegoutBtcTx.getHash(), serializedOutpointValues);

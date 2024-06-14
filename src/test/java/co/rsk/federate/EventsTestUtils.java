@@ -5,6 +5,7 @@ import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
 import co.rsk.peg.BridgeEvents;
+import co.rsk.peg.pegin.RejectedPeginReason;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -76,6 +77,20 @@ public final class EventsTestUtils {
         topics.add(DataWord.valueOf(updateCollectionsSignatureTopic));
 
         byte[] encodedData = updateCollectionsEvent.encodeEventData(senderAddress.toString());
+
+        return new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(),
+            topics, encodedData);
+    }
+
+    public static LogInfo creatRejectedPeginLog(Sha256Hash pegoutBtcTxHash, RejectedPeginReason reason) {
+        CallTransaction.Function rejectedPeginEvent = BridgeEvents.REJECTED_PEGIN.getEvent();
+
+        byte[] rejectedPeginSignatureTopic = rejectedPeginEvent.encodeSignatureLong();
+        List<DataWord> topics = new ArrayList<>();
+        topics.add(DataWord.valueOf(rejectedPeginSignatureTopic));
+        topics.add(DataWord.valueOf(pegoutBtcTxHash.getBytes()));
+
+        byte[] encodedData = rejectedPeginEvent.encodeEventData(reason.getValue());
 
         return new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(),
             topics, encodedData);
