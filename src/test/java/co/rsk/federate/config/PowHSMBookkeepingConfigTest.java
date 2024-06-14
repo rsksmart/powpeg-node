@@ -1,5 +1,6 @@
 package co.rsk.federate.config;
 
+import static co.rsk.federate.config.PowHSMBookkeepingConfig.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -20,24 +21,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class PowHSMBookkeepingConfigTest {
 
-    private static final String DIFFICULTY_TARGET_PATH = "bookkeeping.difficultyTarget";
-    private static final BigInteger DIFFICULTY_TARGET_DEFAULT = BigInteger.valueOf(3);
-
-    private static final String MAX_AMOUNT_BLOCK_HEADERS_PATH = "bookkeeping.maxAmountBlockHeaders";
-    private static final int MAX_AMOUNT_BLOCK_HEADERS_DEFAULT = 7;
-
-    private static final String MAX_CHUNK_SIZE_TO_HSM_PATH = "bookkeeping.maxChunkSizeToHsm";
-    private static final int MAX_CHUNK_SIZE_TO_HSM_DEFAULT = 10;
-
-    private static final String INFORMER_INTERVAL_PATH = "bookkeeping.informerInterval";
-    private static final long INFORMER_INTERVAL_DEFAULT = 2_000;
-
-    private static final String STOP_BOOKKEPING_SCHEDULER_PATH = "bookkeeping.stopBookkeepingScheduler";
-    private static final boolean STOP_BOOKKEPING_SCHEDULER_DEFAULT = false;
-
     private PowHSMBookkeepingConfig powHsmBookkeepingConfig;
-    private SignerConfig signerConfig = mock(SignerConfig.class);
-    private Config config = mock(Config.class);
+    private final SignerConfig signerConfig = mock(SignerConfig.class);
+    private final Config config = mock(Config.class);
 
     @BeforeEach
     void setup() {
