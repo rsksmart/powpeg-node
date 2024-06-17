@@ -70,8 +70,8 @@ class ReleaseCreationInformationGetterTest {
             arguments.add(
                 Arguments.of(version, Hex.decode("01"), Collections.singletonList(Coin.SATOSHI)));
             // 252 = FC, 187 = BB, 13_337 = FE9145DC00, 14_435_729 = FEDC4591
-            arguments.add(Arguments.of(version, Hex.decode("FCFCBBBBBBFD1934FE9145DC00"),
-                coinListOf(252, 252, 187, 187, 187, 13_337, 14_435_729)));
+            arguments.add(Arguments.of(version, Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
+                coinListOf(50_000_000, 75_000_000, 100_000_000)));
             arguments.add(Arguments.of(version, Hex.decode("FFFFFFFFFFFFFFFF7F"),
                 coinListOf(Long.MAX_VALUE)));
         }
@@ -532,7 +532,8 @@ class ReleaseCreationInformationGetterTest {
     ) throws HSMReleaseCreationInformationException {
         // Arrange
         List<Coin> outpointValues = UtxoUtils.decodeOutpointValues(serializedOutpointValues);
-        when(pegoutBtcTx.getInputSum()).thenReturn(outpointValues.stream().reduce(Coin.ZERO, Coin::add));
+        when(pegoutBtcTx.getInputSum()).thenReturn(
+            outpointValues.stream().reduce(Coin.ZERO, Coin::add));
 
         List<LogInfo> logs = new ArrayList<>();
 
@@ -594,13 +595,14 @@ class ReleaseCreationInformationGetterTest {
     ) throws HSMReleaseCreationInformationException {
         // Arrange
         List<Coin> outpointValues = UtxoUtils.decodeOutpointValues(serializedOutpointValues);
-        when(pegoutBtcTx.getInputSum()).thenReturn(outpointValues.stream().reduce(Coin.ZERO, Coin::add));
+        when(pegoutBtcTx.getInputSum()).thenReturn(
+            outpointValues.stream().reduce(Coin.ZERO, Coin::add));
 
         List<LogInfo> logs = new ArrayList<>();
 
-        LogInfo updateCollectionsLog = creatRejectedPeginLog(pegoutBtcTx.getHash(),
+        LogInfo rejectedPeginLog = creatRejectedPeginLog(pegoutBtcTx.getHash(),
             RejectedPeginReason.LEGACY_PEGIN_MULTISIG_SENDER);
-        logs.add(updateCollectionsLog);
+        logs.add(rejectedPeginLog);
 
         Coin pegoutAmount = pegoutBtcTx.getInputSum();
         LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
