@@ -76,7 +76,7 @@ class PowHSMSignerMessageBuilderTest {
 
         arguments.add(Arguments.of(Hex.decode("00"), Collections.singletonList(Coin.ZERO)));
         arguments.add(Arguments.of(Hex.decode("01"), Collections.singletonList(Coin.SATOSHI)));
-        // 50_000_000 = FE80F0FA02, 75_000_000= FEC0687804, 100_000_000 = FE00E1F505
+        // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
         arguments.add(Arguments.of(Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
             coinListOf(50_000_000, 75_000_000, 100_000_000)));
 
