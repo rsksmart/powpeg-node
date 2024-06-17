@@ -11,8 +11,9 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.config.PowHSMBookkeepingConfig.NetworkDifficultyCap;
+import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMUnknownErrorException;
+import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import com.typesafe.config.Config;
@@ -38,50 +39,33 @@ class PowHSMBookkeepingConfigTest {
     }
 
     @Test
-    void getDifficultyTarget_whenPowHSMVersionIsLessThanThreeAndCustomConfigIsPresent_shouldReturnCustomConfig() throws Exception {
-        BigInteger customDifficultyTarget = BigInteger.valueOf(1L); 
-        when(hsmClient.getVersion()).thenReturn(2);
-        when(config.getString(DIFFICULTY_TARGET_PATH)).thenReturn("1");
-
-        assertEquals(customDifficultyTarget, powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
-    }
-
-    @Test
-    void getDifficultyTarget_whenPowHSMVersionIsLessThanThreeAndCustomConfigIsNotPresent_shouldThrowException() throws Exception {
-        when(hsmClient.getVersion()).thenReturn(2);
-        when(config.getString(DIFFICULTY_TARGET_PATH)).thenReturn(null);
-
-        assertThrows(IllegalStateException.class,
-            () -> powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
-    }
-
-    @Test
-    void getDifficultyTarget_whenPowHSMVersionIsGreaterThanTwo_shouldRetriveConfigValueFromPowHSM() throws Exception {
+    void getDifficultyTarget_whenCallToPowHSMBlockchainParametersSucceeds_shouldRetriveConfigValueFromPowHSM()
+          throws Exception {
         BigInteger expectedDifficultyTarget = BigInteger.valueOf(1L); 
         PowHSMBlockchainParameters response =
             new PowHSMBlockchainParameters(
                 createHash(1).toHexString(), expectedDifficultyTarget, NetworkParameters.ID_UNITTESTNET.toString());
-        when(hsmClient.getVersion()).thenReturn(3);
         when(hsmClient.getBlockchainParameters()).thenReturn(response);
 
         assertEquals(expectedDifficultyTarget, powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
     }
 
     @Test
-    void getDifficultyTarget_whenPowHSMVersionIsGreaterThanTwoAndPowHSMReturnsNullValue_shouldThrowException() throws Exception {
-        when(hsmClient.getVersion()).thenReturn(3);
-        when(hsmClient.getBlockchainParameters()).thenReturn(null);
+    void getDifficultyTarget_whenPowHSMCallFailsWithHSMUnsupportedTypeExceptionAndCustomConfigIsPresent_shouldReturnCustomConfig()
+          throws Exception {
+        BigInteger customDifficultyTarget = BigInteger.valueOf(1L); 
+        when(hsmClient.getBlockchainParameters()).thenThrow(new HSMUnsupportedTypeException("error"));
+        when(config.getString(DIFFICULTY_TARGET_PATH)).thenReturn("1");
 
-        assertThrows(IllegalStateException.class,
-            () -> powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
+        assertEquals(customDifficultyTarget, powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
     }
 
     @Test
-    void getDifficultyTarget_whenFailedCallToPowHSM_shouldThrowException() throws Exception {
-        when(hsmClient.getVersion()).thenThrow(HSMUnknownErrorException.class);
+    void getDifficultyTarget_whenPowHSMCallFailsWithSomeHSMClientException_shouldThrowHSMClientException()
+          throws Exception {
+        when(hsmClient.getBlockchainParameters()).thenThrow(new HSMBlockchainBookkeepingRelatedException("error"));
 
-        assertThrows(HSMClientException.class,
-            () -> powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
+        assertThrows(HSMClientException.class, () -> powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
     }
 
     @Test
