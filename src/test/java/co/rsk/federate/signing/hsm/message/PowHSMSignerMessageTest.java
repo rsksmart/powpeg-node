@@ -280,8 +280,7 @@ class PowHSMSignerMessageTest {
         Sha256Hash sigHash = BitcoinTestUtils.createHash(1);
         int hsmVersion5 = 5;
 
-        List<String> expectedEncodedOutpointValues = Arrays.asList("80f0fa0200000000",
-            "c068780400000000", "00e1f50500000000");
+        List<Long> expectedOutpointValues = Arrays.asList(50_000_000L, 75_000_000L, 100_000_000L);
 
         int inputsToSignSize = segwitPegoutBtcTx.getInputs().size();
         for (int inputIndex = 0; inputIndex < inputsToSignSize; inputIndex++) {
@@ -310,9 +309,9 @@ class PowHSMSignerMessageTest {
                 SIGHASH_COMPUTATION_MODE.getFieldName()).textValue();
             assertEquals(SIGHASH_SEGWIT_MODE, actualSighashComputationMode);
 
-            String expectedEncodedOutpointValue = expectedEncodedOutpointValues.get(inputIndex);
-            String actualEncodedOutpointValue = actualMessageToSign.get(
-                OUTPOINT_VALUE.getFieldName()).textValue();
+            long expectedEncodedOutpointValue = expectedOutpointValues.get(inputIndex);
+            long actualEncodedOutpointValue = actualMessageToSign.get(
+                OUTPOINT_VALUE.getFieldName()).longValue();
             assertEquals(expectedEncodedOutpointValue, actualEncodedOutpointValue);
 
             String expectedWitnessScript = Hex.toHexString(
