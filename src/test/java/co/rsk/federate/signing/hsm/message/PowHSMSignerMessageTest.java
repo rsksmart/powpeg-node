@@ -24,8 +24,6 @@ import static co.rsk.federate.signing.HSMField.OUTPOINT_VALUE;
 import static co.rsk.federate.signing.HSMField.SIGHASH_COMPUTATION_MODE;
 import static co.rsk.federate.signing.HSMField.TX;
 import static co.rsk.federate.signing.HSMField.WITNESS_SCRIPT;
-import static co.rsk.federate.signing.hsm.message.PowHSMSignerMessage.SIGHASH_LEGACY_MODE;
-import static co.rsk.federate.signing.hsm.message.PowHSMSignerMessage.SIGHASH_SEGWIT_MODE;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -65,6 +63,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class PowHSMSignerMessageTest {
 
+    private static final String SIGHASH_LEGACY_MODE = "legacy";
+    private static final String SIGHASH_SEGWIT_MODE = "segwit";
     private static final BridgeConstants bridgeMainnetConstants = BridgeMainNetConstants.getInstance();
     private static final NetworkParameters btcMainnetParams = bridgeMainnetConstants.getBtcParams();
     private static final Address userAddress = BitcoinTestUtils.createP2PKHAddress(
@@ -146,13 +146,12 @@ class PowHSMSignerMessageTest {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
+        PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
             receiptMerkleProof, sigHash);
 
-        String txSerialized = ((PowHSMSignerMessage) message).getBtcTransactionSerialized();
+        String txSerialized = message.getBtcTransactionSerialized();
 
         assertEquals(Hex.toHexString(btcTx.bitcoinSerialize()), txSerialized);
-        assertNotSame(btcTx.bitcoinSerialize(), txSerialized);
     }
 
     @Test
@@ -164,10 +163,10 @@ class PowHSMSignerMessageTest {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
+        PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
             receiptMerkleProof, sigHash);
 
-        assertEquals(inputIndex, ((PowHSMSignerMessage) message).getInputIndex());
+        assertEquals(inputIndex, message.getInputIndex());
     }
 
     @Test
@@ -179,10 +178,10 @@ class PowHSMSignerMessageTest {
         List<Trie> receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
+        PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
             receiptMerkleProof, sigHash);
 
-        String receipt = ((PowHSMSignerMessage) message).getTransactionReceipt();
+        String receipt = message.getTransactionReceipt();
 
         assertEquals(Hex.toHexString(txReceipt.getEncoded()), receipt);
     }
@@ -197,7 +196,7 @@ class PowHSMSignerMessageTest {
         receiptMerkleProof.add(new Trie());
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
+        PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
             receiptMerkleProof, sigHash);
 
         String[] encodedReceipts = new String[receiptMerkleProof.size()];
@@ -205,7 +204,7 @@ class PowHSMSignerMessageTest {
             encodedReceipts[i] = Hex.toHexString(receiptMerkleProof.get(i).toMessage());
         }
 
-        String[] receipts = ((PowHSMSignerMessage) message).getReceiptMerkleProof();
+        String[] receipts = message.getReceiptMerkleProof();
 
         assertArrayEquals(encodedReceipts, receipts);
         assertNotSame(encodedReceipts, receipts);
@@ -220,10 +219,10 @@ class PowHSMSignerMessageTest {
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.wrap(
             "0000000000000000000000000000000000000000000000000000000000000001");
-        SignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
+        PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
             receiptMerkleProof, sigHash);
 
-        assertEquals(sigHash, ((PowHSMSignerMessage) message).getSigHash());
+        assertEquals(sigHash, message.getSigHash());
     }
 
     @ParameterizedTest
