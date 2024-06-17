@@ -28,6 +28,7 @@ import co.rsk.federate.signing.ECDSAHSMSigner;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.ECDSASignerFromFileKey;
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
@@ -481,6 +482,8 @@ class FedNodeRunnerTest {
             when(hsmConfig.getInt("maxAttempts")).thenReturn(3);
             when(hsmConfig.hasPath("intervalBetweenAttempts")).thenReturn(true);
             when(hsmConfig.getInt("intervalBetweenAttempts")).thenReturn(2000);
+            when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
+                new HSMUnsupportedTypeException("PowHSM version: " + version));
             when(hsmConfig.getString("bookkeeping.difficultyTarget")).thenReturn("4405500");
             when(hsmConfig.hasPath("bookkeeping.informerInterval")).thenReturn(true);
             when(hsmConfig.getLong("bookkeeping.informerInterval")).thenReturn(500000L);
