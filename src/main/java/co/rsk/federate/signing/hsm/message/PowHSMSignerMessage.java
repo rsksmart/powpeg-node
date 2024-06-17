@@ -43,10 +43,10 @@ import org.spongycastle.util.encoders.Hex;
 
 public class PowHSMSignerMessage extends SignerMessage {
 
-    public static final int OUTPOINT_VALUE_LE_FORMAT_SIZE_IN_BYTES = 8;
-    public static final int HSM_VERSION_5 = 5;
-    public static final String SIGHASH_LEGACY_MODE = "legacy";
-    public static final String SIGHASH_SEGWIT_MODE = "segwit";
+    private static final int OUTPOINT_VALUE_LE_FORMAT_SIZE_IN_BYTES = 8;
+    private static final int HSM_VERSION_5 = 5;
+    private static final String SIGHASH_LEGACY_MODE = "legacy";
+    private static final String SIGHASH_SEGWIT_MODE = "segwit";
     private final BtcTransaction btcTransaction;
     private final int inputIndex;
     private final TransactionReceipt txReceipt;
@@ -129,12 +129,11 @@ public class PowHSMSignerMessage extends SignerMessage {
         return messageToSend;
     }
 
-    private JsonNode populateWithLegacyValues(ObjectNode messageToSend) {
+    private void populateWithLegacyValues(ObjectNode messageToSend) {
         messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_LEGACY_MODE);
-        return messageToSend;
     }
 
-    private JsonNode populateWithSegwitValues(ObjectNode messageToSend) {
+    private void populateWithSegwitValues(ObjectNode messageToSend) {
         messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_SEGWIT_MODE);
 
         String outpointValueEncoded = encodeOutpointValue();
@@ -143,7 +142,6 @@ public class PowHSMSignerMessage extends SignerMessage {
         TransactionWitness witness = btcTransaction.getWitness(inputIndex);
         String encodedWitnessScript = Hex.toHexString(witness.getScriptBytes());
         messageToSend.put(WITNESS_SCRIPT.getFieldName(), encodedWitnessScript);
-        return messageToSend;
     }
 
     private String encodeOutpointValue() {
