@@ -8,6 +8,7 @@ import static co.rsk.federate.EventsTestUtils.createUpdateCollectionsLog;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -154,6 +155,8 @@ class PowHSMSignerMessageBuilderTest {
         //Assert
         List<Trie> receiptMerkleProof = BlockHashesHelper.calculateReceiptsTrieRootFor(block,
             receiptStore, rskTxHash);
+
+        assertNotNull(receiptMerkleProof);
         String[] encodedReceipts = new String[receiptMerkleProof.size()];
         for (int i = 0; i < encodedReceipts.length; i++) {
             encodedReceipts[i] = Hex.toHexString(receiptMerkleProof.get(i).toMessage());

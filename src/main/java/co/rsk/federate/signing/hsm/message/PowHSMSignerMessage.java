@@ -28,7 +28,6 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionWitness;
-import co.rsk.bitcoinj.core.Utils;
 import co.rsk.trie.Trie;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,7 +42,6 @@ import org.spongycastle.util.encoders.Hex;
 
 public class PowHSMSignerMessage extends SignerMessage {
 
-    private static final int OUTPOINT_VALUE_LE_FORMAT_SIZE_IN_BYTES = 8;
     private static final int HSM_VERSION_5 = 5;
     private static final String SIGHASH_LEGACY_MODE = "legacy";
     private static final String SIGHASH_SEGWIT_MODE = "segwit";
@@ -136,30 +134,21 @@ public class PowHSMSignerMessage extends SignerMessage {
     private void populateWithSegwitValues(ObjectNode messageToSend) {
         messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_SEGWIT_MODE);
 
-        String outpointValueEncoded = encodeOutpointValue();
-        messageToSend.put(OUTPOINT_VALUE.getFieldName(), outpointValueEncoded);
+        long outpointValue = getOutpointValueForInputIndex();
+        messageToSend.put(OUTPOINT_VALUE.getFieldName(), outpointValue);
 
         TransactionWitness witness = btcTransaction.getWitness(inputIndex);
         String encodedWitnessScript = Hex.toHexString(witness.getScriptBytes());
         messageToSend.put(WITNESS_SCRIPT.getFieldName(), encodedWitnessScript);
     }
 
-    private String encodeOutpointValue() {
+    private long getOutpointValueForInputIndex() {
         return Optional.of(outpointValues)
             .filter(values -> inputIndex >= 0 && inputIndex < outpointValues.size())
             .map(values -> values.get(inputIndex))
             .map(Coin::getValue)
-            .map(this::outpointValueToByteArrayLE)
-            .map(Hex::toHexString)
             // this exception is never supposed to be thrown unless a wrong input index is passed
             .orElseThrow(IllegalStateException::new);
-    }
-
-    private byte[] outpointValueToByteArrayLE(long outpointValue) {
-        return Utils.unsignedLongToByteArrayLE(
-            outpointValue,
-            OUTPOINT_VALUE_LE_FORMAT_SIZE_IN_BYTES
-        );
     }
 
     private boolean hasWitness() {
