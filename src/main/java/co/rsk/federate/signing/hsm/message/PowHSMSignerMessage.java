@@ -82,7 +82,7 @@ public class PowHSMSignerMessage extends SignerMessage {
         this.txReceipt = txReceipt;
         this.receiptMerkleProof = Collections.unmodifiableList(receiptMerkleProof);
         this.sigHash = sigHash;
-        this.outpointValues = outpointValues;
+        this.outpointValues = Collections.unmodifiableList(outpointValues);
     }
 
     @Override
@@ -135,12 +135,12 @@ public class PowHSMSignerMessage extends SignerMessage {
     }
 
     private JsonNode populateWithSegwitValues(ObjectNode messageToSend) {
-        TransactionWitness witness = btcTransaction.getWitness(inputIndex);
         messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_SEGWIT_MODE);
 
         String outpointValueEncoded = encodeOutpointValue();
         messageToSend.put(OUTPOINT_VALUE.getFieldName(), outpointValueEncoded);
 
+        TransactionWitness witness = btcTransaction.getWitness(inputIndex);
         String encodedWitnessScript = Hex.toHexString(witness.getScriptBytes());
         messageToSend.put(WITNESS_SCRIPT.getFieldName(), encodedWitnessScript);
         return messageToSend;
