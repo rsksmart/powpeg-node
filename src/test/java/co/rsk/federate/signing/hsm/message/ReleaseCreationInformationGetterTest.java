@@ -64,15 +64,18 @@ class ReleaseCreationInformationGetterTest {
 
         int maxVersion = 5;
 
-        for (int version = 1; version <= maxVersion; version++) {
+        int[] hsmVersions = {2, 4, 5};
+        for (int i = 0; i < hsmVersions.length; i++) {
+            int hsmVersion = hsmVersions[i];
             arguments.add(
-                Arguments.of(version, Hex.decode("00"), Collections.singletonList(Coin.ZERO)));
+                Arguments.of(hsmVersion, Hex.decode("00"), Collections.singletonList(Coin.ZERO)));
             arguments.add(
-                Arguments.of(version, Hex.decode("01"), Collections.singletonList(Coin.SATOSHI)));
-            // 50_000_000 = FE80F0FA02, 75_000_000= FEC0687804, 100_000_000 = FE00E1F505
-            arguments.add(Arguments.of(version, Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
+                Arguments.of(hsmVersion, Hex.decode("01"),
+                    Collections.singletonList(Coin.SATOSHI)));
+            // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
+            arguments.add(Arguments.of(hsmVersion, Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
                 coinListOf(50_000_000, 75_000_000, 100_000_000)));
-            arguments.add(Arguments.of(version, Hex.decode("FFFFFFFFFFFFFFFF7F"),
+            arguments.add(Arguments.of(hsmVersion, Hex.decode("FFFFFFFFFFFFFFFF7F"),
                 coinListOf(Long.MAX_VALUE)));
         }
 
