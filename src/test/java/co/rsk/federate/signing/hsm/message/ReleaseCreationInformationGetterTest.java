@@ -52,7 +52,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ReleaseCreationInformationGetterTest {
 
-    private BridgeConstants bridgeConstants = BridgeMainNetConstants.getInstance();
+    private final BridgeConstants bridgeConstants = BridgeMainNetConstants.getInstance();
     private BtcTransaction pegoutBtcTx;
     private Transaction pegoutCreationRskTx;
     private Block pegoutCreationBlock;
@@ -69,7 +69,7 @@ class ReleaseCreationInformationGetterTest {
                 Arguments.of(version, Hex.decode("00"), Collections.singletonList(Coin.ZERO)));
             arguments.add(
                 Arguments.of(version, Hex.decode("01"), Collections.singletonList(Coin.SATOSHI)));
-            // 252 = FC, 187 = BB, 13_337 = FE9145DC00, 14_435_729 = FEDC4591
+            // 50_000_000 = FE80F0FA02, 75_000_000= FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(Arguments.of(version, Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
                 coinListOf(50_000_000, 75_000_000, 100_000_000)));
             arguments.add(Arguments.of(version, Hex.decode("FFFFFFFFFFFFFFFF7F"),
