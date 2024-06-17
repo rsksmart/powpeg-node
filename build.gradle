@@ -42,6 +42,16 @@ repositories {
     }
 }
 
+sonarqube {
+    properties {
+        property "sonar.java.binaries", "build/classes/java/main"
+        property "sonar.scm.provider", "git"
+        property "sonar.projectBaseDir", project.projectDir
+        property "sonar.projectKey", "rsksmart_powpeg-node"
+        property "sonar.organization", "rsksmart"
+    }
+}
+
 sourceCompatibility = 1.8
 
 mainClassName = 'co.rsk.federate.FederateRunner'
@@ -189,3 +199,4 @@ static def amendPathIfNeeded(details) {
         details.path = newPath
     }
 }
+
