@@ -1,6 +1,9 @@
 package co.rsk.federate.config;
 
 import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
+import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import com.typesafe.config.Config;
 import java.math.BigInteger;
 import org.slf4j.Logger;
@@ -27,7 +30,6 @@ public class PowHSMBookkeepingConfig {
     private static final Logger logger = LoggerFactory.getLogger(PowHSMBookkeepingConfig.class);
 
     public static final String DIFFICULTY_TARGET_PATH = "bookkeeping.difficultyTarget";
-    public static final BigInteger DIFFICULTY_TARGET_DEFAULT = BigInteger.valueOf(3);
 
     public static final String MAX_AMOUNT_BLOCK_HEADERS_PATH = "bookkeeping.maxAmountBlockHeaders";
     public static final int MAX_AMOUNT_BLOCK_HEADERS_DEFAULT = 100;
@@ -49,10 +51,29 @@ public class PowHSMBookkeepingConfig {
         this.networkParameter = networkParameter;
     }
 
-    public BigInteger getDifficultyTarget() {
-        return signerConfig.hasPath(DIFFICULTY_TARGET_PATH)
-            ? new BigInteger(signerConfig.getString(DIFFICULTY_TARGET_PATH))
-            : DIFFICULTY_TARGET_DEFAULT;
+    /**
+     * Retrieves the difficulty target from either the PowHSM or the configuration file.
+     * <p>
+     * This method first attempts to retrieve the difficulty target from the PowHSM using the provided
+     * {@link HSMBookkeepingClient}. If the PowHSM version is unsupported, it falls back to retrieving
+     * the difficulty target from the configuration file.
+     * </p>
+     *
+     * @param hsmClient The client used to communicate with the PowHSM.
+     * @return The difficulty target as a {@link BigInteger}.
+     * @throws HSMClientException If there is an error communicating with the PowHSM.
+     */
+    public BigInteger getDifficultyTarget(HSMBookkeepingClient hsmClient) throws HSMClientException {
+      try {
+          logger.trace("[getDifficultyTarget] Retrieve minimum difficulty target from the PowHSM");
+
+          return hsmClient.getBlockchainParameters().getMinimumDifficulty();
+      } catch (HSMUnsupportedTypeException e) {
+          logger.trace(
+              "[getDifficultyTarget] Unsupported PowHSM version, retrieve difficulty target from config file", e);
+
+          return new BigInteger(signerConfig.getString(DIFFICULTY_TARGET_PATH));
+      }
     }
 
     public int getMaxAmountBlockHeaders() {
