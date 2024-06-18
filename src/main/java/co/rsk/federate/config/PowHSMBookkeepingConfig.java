@@ -56,8 +56,7 @@ public class PowHSMBookkeepingConfig {
      * <p>
      * This method first attempts to retrieve the difficulty target from the PowHSM using the provided
      * {@link HSMBookkeepingClient}. If the PowHSM version is unsupported, it falls back to retrieving
-     * the difficulty target from the configuration file. If there is a client exception, it logs the error
-     * and rethrows the exception.
+     * the difficulty target from the configuration file.
      * </p>
      *
      * @param hsmClient The client used to communicate with the PowHSM.
@@ -74,11 +73,6 @@ public class PowHSMBookkeepingConfig {
               "[getDifficultyTarget] Unsupported PowHSM version, retrieve difficulty target from config file", e);
 
           return new BigInteger(signerConfig.getString(DIFFICULTY_TARGET_PATH));
-      } catch (HSMClientException e) {
-          logger.error(
-              "[getDifficultyTarget] Unable to retrieve difficulty target from the PowHSM", e);
-
-          throw e;
       }
     }
 
