@@ -1,6 +1,7 @@
 package co.rsk.federate.config;
 
 import static co.rsk.federate.config.PowHSMBookkeepingConfig.*;
+import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,7 +11,13 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.config.PowHSMBookkeepingConfig.NetworkDifficultyCap;
+import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
+import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
+import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
+import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import java.math.BigInteger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +31,7 @@ class PowHSMBookkeepingConfigTest {
     private PowHSMBookkeepingConfig powHsmBookkeepingConfig;
     private final SignerConfig signerConfig = mock(SignerConfig.class);
     private final Config config = mock(Config.class);
+    private final HSMBookkeepingClient hsmClient = mock(HSMBookkeepingClient.class);
 
     @BeforeEach
     void setup() {
@@ -32,19 +40,44 @@ class PowHSMBookkeepingConfigTest {
     }
 
     @Test
-    void getDifficultyTarget_whenCustomConfigAvailable_shouldReturnCustomConfig() {
-        BigInteger customDifficultyTarget = BigInteger.valueOf(1L); 
-        when(config.hasPath(DIFFICULTY_TARGET_PATH)).thenReturn(true);
-        when(config.getString(DIFFICULTY_TARGET_PATH)).thenReturn("1");
+    void getDifficultyTarget_whenCallToPowHSMBlockchainParametersSucceeds_shouldRetriveConfigValueFromPowHSM()
+          throws Exception {
+        BigInteger expectedDifficultyTarget = BigInteger.valueOf(1L); 
+        PowHSMBlockchainParameters response =
+            new PowHSMBlockchainParameters(
+                createHash(1).toHexString(), expectedDifficultyTarget, NetworkParameters.ID_UNITTESTNET.toString());
+        when(hsmClient.getBlockchainParameters()).thenReturn(response);
 
-        assertEquals(customDifficultyTarget, powHsmBookkeepingConfig.getDifficultyTarget());
+        assertEquals(expectedDifficultyTarget, powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
     }
 
     @Test
-    void getDifficultyTarget_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath(DIFFICULTY_TARGET_PATH)).thenReturn(false);
+    void getDifficultyTarget_whenPowHSMCallFailsWithHSMUnsupportedTypeExceptionAndCustomConfigIsPresent_shouldReturnCustomConfig()
+          throws Exception {
+        BigInteger customDifficultyTarget = BigInteger.valueOf(1L); 
+        when(hsmClient.getBlockchainParameters()).thenThrow(new HSMUnsupportedTypeException("error"));
+        when(config.getString(DIFFICULTY_TARGET_PATH)).thenReturn("1");
 
-        assertEquals(DIFFICULTY_TARGET_DEFAULT, powHsmBookkeepingConfig.getDifficultyTarget());
+        assertEquals(customDifficultyTarget, powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
+    }
+
+    @Test
+    void getDifficultyTarget_whenPowHSMCallFailsWithHSMUnsupportedTypeExceptionAndCustomConfigIsNotPresent_shouldThrowConfigException()
+          throws Exception {
+        when(hsmClient.getBlockchainParameters()).thenThrow(new HSMUnsupportedTypeException("error"));
+        when(config.getString(DIFFICULTY_TARGET_PATH)).thenThrow(new ConfigException.Missing(DIFFICULTY_TARGET_PATH));
+
+        assertThrows(ConfigException.class,
+            () -> powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
+    }
+
+    @Test
+    void getDifficultyTarget_whenPowHSMCallFailsWithSomeHSMClientException_shouldThrowHSMClientException()
+          throws Exception {
+        when(hsmClient.getBlockchainParameters()).thenThrow(new HSMBlockchainBookkeepingRelatedException("error"));
+
+        assertThrows(HSMClientException.class,
+            () -> powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
     }
 
     @Test
