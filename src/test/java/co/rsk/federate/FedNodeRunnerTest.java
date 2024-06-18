@@ -1,12 +1,15 @@
 package co.rsk.federate;
 
+import static co.rsk.federate.config.PowHSMBookkeepingConfig.DIFFICULTY_TARGET_PATH;
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.MST_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
+import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -25,14 +28,18 @@ import co.rsk.federate.signing.ECDSAHSMSigner;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.ECDSASignerFromFileKey;
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
+import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -43,13 +50,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/**
- * Created by Kelvin Isievwore on 24/04/2023.
- */
 class FedNodeRunnerTest {
+
     private FedNodeRunner fedNodeRunner;
     private FedNodeSystemProperties fedNodeSystemProperties;
     private Config keyFileConfig;
+    private HSMBookkeepingClient hsmBookkeepingClient;
 
     @TempDir
     public Path temporaryFolder;
@@ -77,7 +83,7 @@ class FedNodeRunnerTest {
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
         when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
-        HSMBookkeepingClient hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
+        hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
         when(hsmBookkeepingClient.getVersion()).thenReturn(hsmVersion);
         HSMBookKeepingClientProvider hsmBookKeepingClientProvider = mock(HSMBookKeepingClientProvider.class);
         when(hsmBookKeepingClientProvider.getHSMBookKeepingClient(any())).thenReturn(hsmBookkeepingClient);
@@ -121,8 +127,8 @@ class FedNodeRunnerTest {
         assertEquals(3, signers.size());
         signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
 
-        HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
-        assertNotNull(hsmBookkeepingClient);
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNotNull(bookkeepingClient);
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNotNull(hsmBookkeepingService);
@@ -199,8 +205,8 @@ class FedNodeRunnerTest {
         assertEquals(2, signers.size());
         signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
 
-        HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
-        assertNull(hsmBookkeepingClient);
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNull(bookkeepingClient);
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNull(hsmBookkeepingService);
@@ -227,8 +233,8 @@ class FedNodeRunnerTest {
         assertEquals(2, signers.size());
         signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
 
-        HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
-        assertNotNull(hsmBookkeepingClient);
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNotNull(bookkeepingClient);
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNotNull(hsmBookkeepingService);
@@ -255,8 +261,8 @@ class FedNodeRunnerTest {
         assertEquals(2, signers.size());
         signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
 
-        HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
-        assertNotNull(hsmBookkeepingClient);
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNotNull(bookkeepingClient);
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNotNull(hsmBookkeepingService);
@@ -292,8 +298,8 @@ class FedNodeRunnerTest {
             assertTrue(keyFileSigner.check().getMessages().isEmpty());
         });
 
-        HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
-        assertNull(hsmBookkeepingClient);
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNull(bookkeepingClient);
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNull(hsmBookkeepingService);
@@ -321,8 +327,8 @@ class FedNodeRunnerTest {
         assertEquals(1, signers.get(0).getVersionForKeyId(RSK_KEY_ID.getKeyId()));
         assertEquals(1, signers.get(1).getVersionForKeyId(MST_KEY_ID.getKeyId()));
 
-        HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
-        assertNull(hsmBookkeepingClient);
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNull(bookkeepingClient);
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNull(hsmBookkeepingService);
@@ -350,8 +356,8 @@ class FedNodeRunnerTest {
         assertEquals(1, signers.get(0).getVersionForKeyId(BTC_KEY_ID.getKeyId()));
         assertEquals(1, signers.get(1).getVersionForKeyId(MST_KEY_ID.getKeyId()));
 
-        HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
-        assertNull(hsmBookkeepingClient);
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNull(bookkeepingClient);
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNull(hsmBookkeepingService);
@@ -379,8 +385,8 @@ class FedNodeRunnerTest {
         assertEquals(1, signers.get(0).getVersionForKeyId(BTC_KEY_ID.getKeyId()));
         assertEquals(1, signers.get(1).getVersionForKeyId(RSK_KEY_ID.getKeyId()));
 
-        HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
-        assertNull(hsmBookkeepingClient);
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNull(bookkeepingClient);
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNull(hsmBookkeepingService);
@@ -428,11 +434,21 @@ class FedNodeRunnerTest {
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(0, signers.size());
 
-        HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
-        assertNull(hsmBookkeepingClient);
+        HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
+        assertNull(bookkeepingClient);
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNull(hsmBookkeepingService);
+    }
+
+    @Test
+    void run_whenHsmVersionIsLowerThanThreeAndDifficultyTargetConfigIsNotPresent_shouldThrowException() throws Exception {
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
+        when(btcSignerConfig.getConfig().getString(DIFFICULTY_TARGET_PATH))
+           .thenThrow(new ConfigException.Missing(DIFFICULTY_TARGET_PATH));
+        when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
+
+        assertThrows(ConfigException.class, () -> fedNodeRunner.run());
     }
 
     private SignerConfig getBTCSignerConfig() {
@@ -459,7 +475,7 @@ class FedNodeRunnerTest {
         return mstSignerConfig;
     }
 
-    private SignerConfig getHSMBTCSignerConfig(int version) {
+    private SignerConfig getHSMBTCSignerConfig(int version) throws HSMClientException {
         SignerConfig btcSignerConfig = mock(SignerConfig.class);
         Config hsmConfig = mock(Config.class);
         when(btcSignerConfig.getId()).thenReturn("BTC");
@@ -468,6 +484,7 @@ class FedNodeRunnerTest {
         when(hsmConfig.getString("host")).thenReturn("127.0.0.1");
         when(hsmConfig.getInt("port")).thenReturn(9999);
         when(hsmConfig.getString("keyId")).thenReturn("m/44'/0'/0'/0/0");
+        when(hsmBookkeepingClient.getVersion()).thenReturn(version);
 
         if (version >= 2) {
             when(hsmConfig.hasPath("socketTimeout")).thenReturn(true);
@@ -476,7 +493,8 @@ class FedNodeRunnerTest {
             when(hsmConfig.getInt("maxAttempts")).thenReturn(3);
             when(hsmConfig.hasPath("intervalBetweenAttempts")).thenReturn(true);
             when(hsmConfig.getInt("intervalBetweenAttempts")).thenReturn(2000);
-            when(hsmConfig.hasPath("bookkeeping.difficultyTarget")).thenReturn(true);
+            when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
+                new HSMUnsupportedTypeException("PowHSM version: " + version));
             when(hsmConfig.getString("bookkeeping.difficultyTarget")).thenReturn("4405500");
             when(hsmConfig.hasPath("bookkeeping.informerInterval")).thenReturn(true);
             when(hsmConfig.getLong("bookkeeping.informerInterval")).thenReturn(500000L);
@@ -486,6 +504,14 @@ class FedNodeRunnerTest {
             when(hsmConfig.getInt("bookkeeping.maxChunkSizeToHsm")).thenReturn(100);
             when(hsmConfig.hasPath("bookkeeping.stopBookkeepingScheduler")).thenReturn(true);
             when(hsmConfig.getBoolean("bookkeeping.stopBookkeepingScheduler")).thenReturn(true);
+        }
+
+        if (version >= 3) {
+            when(hsmBookkeepingClient.getBlockchainParameters()).thenReturn(
+                new PowHSMBlockchainParameters(
+                    createHash(1).toHexString(),
+                    new BigInteger("4405500"),
+                    NetworkParameters.ID_UNITTESTNET.toString()));
         }
 
         return btcSignerConfig;
