@@ -17,6 +17,7 @@ import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import java.math.BigInteger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,11 +62,22 @@ class PowHSMBookkeepingConfigTest {
     }
 
     @Test
+    void getDifficultyTarget_whenPowHSMCallFailsWithHSMUnsupportedTypeExceptionAndCustomConfigIsNotPresent_shouldThrowConfigException()
+          throws Exception {
+        when(hsmClient.getBlockchainParameters()).thenThrow(new HSMUnsupportedTypeException("error"));
+        when(config.getString(DIFFICULTY_TARGET_PATH)).thenThrow(new ConfigException.Missing(DIFFICULTY_TARGET_PATH));
+
+        assertThrows(ConfigException.class,
+            () -> powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
+    }
+
+    @Test
     void getDifficultyTarget_whenPowHSMCallFailsWithSomeHSMClientException_shouldThrowHSMClientException()
           throws Exception {
         when(hsmClient.getBlockchainParameters()).thenThrow(new HSMBlockchainBookkeepingRelatedException("error"));
 
-        assertThrows(HSMClientException.class, () -> powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
+        assertThrows(HSMClientException.class,
+            () -> powHsmBookkeepingConfig.getDifficultyTarget(hsmClient));
     }
 
     @Test

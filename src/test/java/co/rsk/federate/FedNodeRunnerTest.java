@@ -1,5 +1,6 @@
 package co.rsk.federate;
 
+import static co.rsk.federate.config.PowHSMBookkeepingConfig.DIFFICULTY_TARGET_PATH;
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.MST_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
@@ -9,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -37,6 +39,7 @@ import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -438,6 +441,16 @@ class FedNodeRunnerTest {
 
         HSMBookkeepingService hsmBookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNull(hsmBookkeepingService);
+    }
+
+    @Test
+    void run_whenHsmVersionIsLowerThanThreeAndDifficultyTargetConfigIsNotPresent_shouldThrowException() throws Exception {
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
+        when(btcSignerConfig.getConfig().getString(DIFFICULTY_TARGET_PATH))
+           .thenThrow(new ConfigException.Missing(DIFFICULTY_TARGET_PATH));
+        when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
+
+        assertThrows(ConfigException.class, () -> fedNodeRunner.run());
     }
 
     private SignerConfig getBTCSignerConfig() {
