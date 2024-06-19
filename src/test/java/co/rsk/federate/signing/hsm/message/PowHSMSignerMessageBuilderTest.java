@@ -92,8 +92,8 @@ class PowHSMSignerMessageBuilderTest {
 
         Keccak256 pegoutConfirmationRskTxHash = TestUtils.createHash(3);
         pegoutConfirmationRskTx = mock(Transaction.class);
-        when(pegoutCreationRskTx.getHash()).thenReturn(pegoutConfirmationRskTxHash);
-        when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
+        when(pegoutConfirmationRskTx.getHash()).thenReturn(pegoutConfirmationRskTxHash);
+        when(pegoutConfirmationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
 
         pegoutCreationBlock = createBlock(1, Collections.singletonList(pegoutCreationRskTx));
 

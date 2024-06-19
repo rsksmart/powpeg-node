@@ -62,11 +62,8 @@ class ReleaseCreationInformationGetterTest {
     private static List<Arguments> getTxInfoToSignArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
 
-        int maxVersion = 5;
-
         int[] hsmVersions = {2, 4, 5};
-        for (int i = 0; i < hsmVersions.length; i++) {
-            int hsmVersion = hsmVersions[i];
+        for (int hsmVersion : hsmVersions) {
             arguments.add(
                 Arguments.of(hsmVersion, Hex.decode("00"), Collections.singletonList(Coin.ZERO)));
             arguments.add(
