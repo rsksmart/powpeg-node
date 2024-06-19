@@ -6,6 +6,7 @@ import static co.rsk.federate.EventsTestUtils.createPegoutTransactionCreatedLog;
 import static co.rsk.federate.EventsTestUtils.createReleaseRequestedLog;
 import static co.rsk.federate.EventsTestUtils.createUpdateCollectionsLog;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
+import static co.rsk.federate.signing.utils.TestUtils.createBlock;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,18 +23,13 @@ import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.bitcoin.UtxoUtils;
-import co.rsk.peg.constants.BridgeConstants;
-import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.pegin.RejectedPeginReason;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.bouncycastle.util.encoders.Hex;
-import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
-import org.ethereum.core.BlockHeaderBuilder;
 import org.ethereum.core.CallTransaction;
 import org.ethereum.core.Transaction;
 import org.ethereum.core.TransactionReceipt;
@@ -52,7 +48,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ReleaseCreationInformationGetterTest {
 
-    private final BridgeConstants bridgeConstants = BridgeMainNetConstants.getInstance();
     private BtcTransaction pegoutBtcTx;
     private Transaction pegoutCreationRskTx;
     private Block pegoutCreationBlock;
@@ -101,15 +96,6 @@ class ReleaseCreationInformationGetterTest {
             pegoutCreationBlock.getHash().getBytes());
     }
 
-    private Block createBlock(int blockNumber, List<Transaction> rskTxs) {
-
-        int parentBlockNumber = blockNumber > 0 ? blockNumber - 1 : 0;
-        BlockHeader blockHeader = new BlockHeaderBuilder(mock(ActivationConfig.class))
-            .setNumber(blockNumber)
-            .setParentHashFromKeccak256(TestUtils.createHash(parentBlockNumber))
-            .build();
-        return new Block(blockHeader, rskTxs, Collections.emptyList(), true, true);
-    }
 
     @Test
     void createGetTxInfoToSign_returnOK() throws HSMReleaseCreationInformationException {
@@ -473,7 +459,7 @@ class ReleaseCreationInformationGetterTest {
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
 
-        Coin pegoutAmount = bridgeConstants.getMinimumPegoutTxValue();
+        Coin pegoutAmount = mock(Coin.class);
         LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
             pegoutBtcTx.getHash(), pegoutAmount);
         logs.add(releaseRequestedLog);
@@ -542,7 +528,7 @@ class ReleaseCreationInformationGetterTest {
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
 
-        Coin pegoutAmount = pegoutBtcTx.getInputSum();
+        Coin pegoutAmount = mock(Coin.class);
         LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
             pegoutBtcTx.getHash(), pegoutAmount);
         logs.add(releaseRequestedLog);
@@ -604,7 +590,7 @@ class ReleaseCreationInformationGetterTest {
             RejectedPeginReason.LEGACY_PEGIN_MULTISIG_SENDER);
         logs.add(rejectedPeginLog);
 
-        Coin pegoutAmount = pegoutBtcTx.getInputSum();
+        Coin pegoutAmount = mock(Coin.class);
         LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
             pegoutBtcTx.getHash(), pegoutAmount);
         logs.add(releaseRequestedLog);
