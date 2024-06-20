@@ -144,7 +144,7 @@ public class PowHSMSignerMessage extends SignerMessage {
 
     private long getOutpointValueForInputIndex() {
         return Optional.of(outpointValues)
-            .filter(values -> inputIndex >= 0 && inputIndex < outpointValues.size())
+            .filter(values -> inputIndex >= 0 && inputIndex < values.size())
             .map(values -> values.get(inputIndex))
             .map(Coin::getValue)
             // this exception is never supposed to be thrown unless a wrong input index is passed
