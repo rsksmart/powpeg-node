@@ -1,6 +1,6 @@
 /*
  * This file is part of RskJ
- * Copyright (C) 2018 RSK Labs Ltd.
+ * Copyright (C) 2024 RSK Labs Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -15,27 +15,22 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
-package co.rsk.federate.config;
+package co.rsk.federate.signing.config;
 
 import com.typesafe.config.Config;
 
-/**
- * Represents the configuration for a signer.
- * Mainly has an identifier for the signer, the
- * type of signer and additional configuration options.
- *
- * @author Ariel Mendelzon
- */
 public class SignerConfig {
+
+    private static final String SIGNER_TYPE_PATH = "type";
+
     private final String id;
     private final String type;
     private final Config config;
 
     public SignerConfig(String keyId, Config config) {
         this.id = keyId;
-        this.type = config.getString("type");
-        this.config = config.withoutPath("type");
+        this.type = config.getString(SIGNER_TYPE_PATH);
+        this.config = config.withoutPath(SIGNER_TYPE_PATH);
     }
 
     public String getId() {
