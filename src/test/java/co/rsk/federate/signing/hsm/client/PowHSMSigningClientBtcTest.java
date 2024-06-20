@@ -90,8 +90,12 @@ class PowHSMSigningClientBtcTest {
     private static final Federation newFederation = TestUtils.createFederation(
         bridgeMainnetConstants.getBtcParams(), 9);
     private static final Federation oldFederation = TestUtils.createFederation(
-        bridgeMainnetConstants.getBtcParams(), 9);
+        bridgeMainnetConstants.getBtcParams(), 5);
     private static final int FIRST_OUTPUT_INDEX = 0;
+
+    private static final String R_SIGNATURE_VALUE = "223344";
+    private static final String S_SIGNATURE_VALUE = "55667788";
+    private final String publicKey = "001122334455";
     private final String keyId = "a-key-id";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -162,23 +166,23 @@ class PowHSMSigningClientBtcTest {
 
     @Test
     void signOk() throws Exception {
-        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyRequest();
+        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyCommand(HSM_VERSION);
         ObjectNode publicKeyResponse = buildResponse(0);
-        publicKeyResponse.put(PUB_KEY.getFieldName(), "001122334455");
+        publicKeyResponse.put(PUB_KEY.getFieldName(), publicKey);
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
 
         PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
 
-        ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
-        ObjectNode response = buildSignResponse("223344", "55667788", 0);
+        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION, messageForSignature);
+        ObjectNode response = buildSignResponse(0);
 
         when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
 
-        HSMSignature signature = client.sign("a-key-id", messageForSignature);
+        HSMSignature signature = client.sign(keyId, messageForSignature);
 
-        assertArrayEquals(Hex.decode("223344"), signature.getR());
-        assertArrayEquals(Hex.decode("55667788"), signature.getS());
-        assertArrayEquals(Hex.decode("001122334455"), signature.getPublicKey());
+        assertArrayEquals(Hex.decode(R_SIGNATURE_VALUE), signature.getR());
+        assertArrayEquals(Hex.decode(S_SIGNATURE_VALUE), signature.getS());
+        assertArrayEquals(Hex.decode(publicKey), signature.getPublicKey());
         verify(jsonRpcClientMock, times(1)).send(expectedSignRequest);
         verify(jsonRpcClientMock, times(1)).send(expectedPublicKeyRequest);
     }
@@ -255,31 +259,7 @@ class PowHSMSigningClientBtcTest {
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
             receiptStore, releaseCreationInformation);
 
-        final int numOfInputsToSign = expectedOutpointValues.size();
-
-        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyCommand(hsmVersion, keyId);
-        ObjectNode publicKeyResponse = buildResponse(0);
-        String publicKey = "001122334455";
-        publicKeyResponse.put(PUB_KEY.getFieldName(), publicKey);
-        when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
-
-        for (int inputIndex = 0; inputIndex < numOfInputsToSign; inputIndex++) {
-            ObjectNode response = buildSignResponse("223344", "55667788", 0);
-
-            PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) powHSMSignerMessageBuilder.buildMessageForIndex(
-                inputIndex);
-
-            ObjectNode expectedSignCommand = buildSignCommand(hsmVersion, keyId,
-                powHSMSignerMessage);
-            when(jsonRpcClientMock.send(expectedSignCommand)).thenReturn(response);
-
-            HSMSignature signature = client.sign(keyId, powHSMSignerMessage);
-
-            assertNotNull(signature);
-
-            verify(jsonRpcClientMock, times(1)).send(expectedSignCommand);
-            verify(jsonRpcClientMock, times(1)).send(expectedPublicKeyRequest);
-        }
+        signAndExecuteAssertions(hsmVersion, expectedOutpointValues, powHSMSignerMessageBuilder);
     }
 
     @ParameterizedTest
@@ -323,31 +303,7 @@ class PowHSMSigningClientBtcTest {
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
             receiptStore, releaseCreationInformation);
 
-        final int numOfInputsToSign = expectedOutpointValues.size();
-
-        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyCommand(hsmVersion, keyId);
-        ObjectNode publicKeyResponse = buildResponse(0);
-        String publicKey = "001122334455";
-        publicKeyResponse.put(PUB_KEY.getFieldName(), publicKey);
-        when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
-
-        for (int inputIndex = 0; inputIndex < numOfInputsToSign; inputIndex++) {
-            ObjectNode response = buildSignResponse("223344", "55667788", 0);
-
-            PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) powHSMSignerMessageBuilder.buildMessageForIndex(
-                inputIndex);
-
-            ObjectNode expectedSignCommand = buildSignCommand(hsmVersion, keyId,
-                powHSMSignerMessage);
-            when(jsonRpcClientMock.send(expectedSignCommand)).thenReturn(response);
-
-            HSMSignature signature = client.sign(keyId, powHSMSignerMessage);
-
-            assertNotNull(signature);
-
-            verify(jsonRpcClientMock, times(1)).send(expectedSignCommand);
-            verify(jsonRpcClientMock, times(1)).send(expectedPublicKeyRequest);
-        }
+        signAndExecuteAssertions(hsmVersion, expectedOutpointValues, powHSMSignerMessageBuilder);
     }
 
     @ParameterizedTest
@@ -387,21 +343,119 @@ class PowHSMSigningClientBtcTest {
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
             receiptStore, releaseCreationInformation);
 
+        signAndExecuteAssertions(hsmVersion, expectedOutpointValues, powHSMSignerMessageBuilder);
+    }
+
+    @Test
+    void signNoErrorCode() throws Exception {
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
+
+        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION, messageForSignature);
+
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("any", "thing");
+
+        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
+
+        try {
+            client.sign(keyId, messageForSignature);
+            fail();
+        } catch (HSMClientException e) {
+            assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
+        }
+    }
+
+    @Test
+    void signNonZeroErrorCode() throws Exception {
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
+
+        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION, messageForSignature);
+
+        ObjectNode response = buildResponse(-905);
+
+        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
+
+        try {
+            client.sign(keyId, messageForSignature);
+            fail();
+        } catch (HSMClientException e) {
+            assertTrue(e.getMessage().contains("HSM Device returned exception"));
+            assertTrue(e.getMessage().contains("Context: Running method 'sign'"));
+        }
+    }
+
+    @Test
+    void signNoSignature() throws Exception {
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
+
+        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION, messageForSignature);
+        ObjectNode response = buildResponse(0);
+
+        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
+
+        try {
+            client.sign(keyId, messageForSignature);
+            fail();
+        } catch (HSMClientException e) {
+            assertTrue(e.getMessage().contains("Expected 'signature' field to be present"));
+        }
+    }
+
+    @Test
+    void signNoR() throws Exception {
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
+
+        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION, messageForSignature);
+        ObjectNode response = buildResponse(0);
+        response.set(SIGNATURE.getFieldName(), objectMapper.createObjectNode());
+
+        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
+
+        try {
+            client.sign(keyId, messageForSignature);
+            fail();
+        } catch (HSMClientException e) {
+            assertTrue(e.getMessage().contains("Expected 'r' field to be present"));
+        }
+    }
+
+    @Test
+    void signNoS() throws Exception {
+        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
+
+        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION, messageForSignature);
+        ObjectNode response = buildResponse(0);
+        ObjectNode signatureResponse = objectMapper.createObjectNode();
+        signatureResponse.put(R.getFieldName(), "aabbcc");
+        response.set(SIGNATURE.getFieldName(), signatureResponse);
+
+        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
+
+        try {
+            client.sign(keyId, messageForSignature);
+            fail();
+        } catch (HSMClientException e) {
+            assertTrue(e.getMessage().contains("Expected 's' field to be present"));
+        }
+    }
+
+    private void signAndExecuteAssertions(int hsmVersion, List<Coin> expectedOutpointValues,
+        PowHSMSignerMessageBuilder powHSMSignerMessageBuilder)
+        throws JsonRpcException, SignerMessageBuilderException, HSMClientException {
         final int numOfInputsToSign = expectedOutpointValues.size();
 
-        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyCommand(hsmVersion, keyId);
+        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyCommand(hsmVersion);
         ObjectNode publicKeyResponse = buildResponse(0);
-        String publicKey = "001122334455";
         publicKeyResponse.put(PUB_KEY.getFieldName(), publicKey);
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
 
         for (int inputIndex = 0; inputIndex < numOfInputsToSign; inputIndex++) {
-            ObjectNode response = buildSignResponse("223344", "55667788", 0);
+            ObjectNode response = buildSignResponse(0);
 
             PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) powHSMSignerMessageBuilder.buildMessageForIndex(
                 inputIndex);
 
-            ObjectNode expectedSignCommand = buildSignCommand(hsmVersion, keyId,
+            ObjectNode expectedSignCommand = buildSignCommand(hsmVersion,
                 powHSMSignerMessage);
             when(jsonRpcClientMock.send(expectedSignCommand)).thenReturn(response);
 
@@ -414,7 +468,7 @@ class PowHSMSigningClientBtcTest {
         }
     }
 
-    private ObjectNode buildGetPublicKeyCommand(int hsmVersion, String keyId) {
+    private ObjectNode buildGetPublicKeyCommand(int hsmVersion) {
         ObjectNode request = objectMapper.createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
         request.put(VERSION.getFieldName(), hsmVersion);
@@ -423,8 +477,7 @@ class PowHSMSigningClientBtcTest {
         return request;
     }
 
-    private ObjectNode buildSignCommand(int hsmVersion, String key,
-        PowHSMSignerMessage powHSMSignerMessage) {
+    private ObjectNode buildSignCommand(int hsmVersion, PowHSMSignerMessage powHSMSignerMessage) {
         // Message child
         JsonNode message = powHSMSignerMessage.getMessageToSign(hsmVersion);
 
@@ -441,149 +494,24 @@ class PowHSMSigningClientBtcTest {
         ObjectNode request = objectMapper.createObjectNode();
         request.put(COMMAND.getFieldName(), SIGN.getCommand());
         request.put(VERSION.getFieldName(), hsmVersion);
-        request.put(KEY_ID.getFieldName(), key);
+        request.put(KEY_ID.getFieldName(), keyId);
         request.set(AUTH.getFieldName(), auth);
         request.set(MESSAGE.getFieldName(), message);
 
         return request;
     }
 
-    @Test
-    void signNoErrorCode() throws Exception {
-        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
-
-        ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
-
+    private ObjectNode buildResponse(int errorCode) {
         ObjectNode response = objectMapper.createObjectNode();
-        response.put("any", "thing");
-
-        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
-
-        try {
-            client.sign("a-key-id", messageForSignature);
-            fail();
-        } catch (HSMClientException e) {
-            assertTrue(e.getMessage().contains("Expected 'errorcode' field to be present"));
-        }
-    }
-
-    @Test
-    void signNonZeroErrorCode() throws Exception {
-        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
-
-        ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
-
-        ObjectNode response = buildResponse(-905);
-
-        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
-
-        try {
-            client.sign("a-key-id", messageForSignature);
-            fail();
-        } catch (HSMClientException e) {
-            assertTrue(e.getMessage().contains("HSM Device returned exception"));
-            assertTrue(e.getMessage().contains("Context: Running method 'sign'"));
-        }
-    }
-
-    @Test
-    void signNoSignature() throws Exception {
-        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
-
-        ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
-        ObjectNode response = buildResponse(0);
-
-        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
-
-        try {
-            client.sign("a-key-id", messageForSignature);
-            fail();
-        } catch (HSMClientException e) {
-            assertTrue(e.getMessage().contains("Expected 'signature' field to be present"));
-        }
-    }
-
-    @Test
-    void signNoR() throws Exception {
-        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
-
-        ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
-        ObjectNode response = buildResponse(0);
-        response.set(SIGNATURE.getFieldName(), objectMapper.createObjectNode());
-
-        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
-
-        try {
-            client.sign("a-key-id", messageForSignature);
-            fail();
-        } catch (HSMClientException e) {
-            assertTrue(e.getMessage().contains("Expected 'r' field to be present"));
-        }
-    }
-
-    @Test
-    void signNoS() throws Exception {
-        PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting(0);
-
-        ObjectNode expectedSignRequest = buildSignRequest(messageForSignature);
-        ObjectNode response = buildResponse(0);
-        ObjectNode signatureResponse = objectMapper.createObjectNode();
-        signatureResponse.put(R.getFieldName(), "aabbcc");
-        response.set(SIGNATURE.getFieldName(), signatureResponse);
-
-        when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
-
-        try {
-            client.sign("a-key-id", messageForSignature);
-            fail();
-        } catch (HSMClientException e) {
-            assertTrue(e.getMessage().contains("Expected 's' field to be present"));
-        }
-    }
-
-    private ObjectNode buildResponse(int errorcode) {
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put(ERROR_CODE.getFieldName(), errorcode);
+        response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
     }
 
-    private ObjectNode buildGetPublicKeyRequest() {
-        ObjectNode request = objectMapper.createObjectNode();
-        request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION.getFieldName(), HSM_VERSION);
-        request.put(KEY_ID.getFieldName(), "a-key-id");
-
-        return request;
-    }
-
-    private ObjectNode buildSignRequest(PowHSMSignerMessage messageForRequest) {
-        // Message child
-        ObjectNode message = objectMapper.createObjectNode();
-        message.put(TX.getFieldName(), messageForRequest.getBtcTransactionSerialized());
-        message.put(INPUT.getFieldName(), messageForRequest.getInputIndex());
-
-        // Auth child
-        ObjectNode auth = objectMapper.createObjectNode();
-        auth.put(RECEIPT.getFieldName(), "cccc");
-        ArrayNode receiptMerkleProofArrayNode = new ObjectMapper().createArrayNode();
-        receiptMerkleProofArrayNode.add("cccc");
-        auth.set(RECEIPT_MERKLE_PROOF.getFieldName(), receiptMerkleProofArrayNode);
-
-        ObjectNode request = objectMapper.createObjectNode();
-        request.put(COMMAND.getFieldName(), SIGN.getCommand());
-        request.put(VERSION.getFieldName(), HSM_VERSION);
-        request.put(KEY_ID.getFieldName(), "a-key-id");
-        request.set(AUTH.getFieldName(), auth);
-        request.set(MESSAGE.getFieldName(), message);
-
-        return request;
-    }
-
-    private ObjectNode buildSignResponse(String r, String s, int errorCode) {
+    private ObjectNode buildSignResponse(int errorCode) {
         ObjectNode response = objectMapper.createObjectNode();
         ObjectNode signature = objectMapper.createObjectNode();
-        signature.put(R.getFieldName(), r);
-        signature.put(S.getFieldName(), s);
+        signature.put(R.getFieldName(), R_SIGNATURE_VALUE);
+        signature.put(S.getFieldName(), S_SIGNATURE_VALUE);
         response.set(SIGNATURE.getFieldName(), signature);
         response.put(ERROR_CODE.getFieldName(), errorCode);
         return response;
