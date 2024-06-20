@@ -2,6 +2,7 @@ package co.rsk.federate.config;
 
 import co.rsk.config.ConfigLoader;
 import co.rsk.config.RskSystemProperties;
+import co.rsk.federate.signing.config.SignerConfig;
 import com.typesafe.config.Config;
 import java.util.ArrayList;
 import java.util.List;
