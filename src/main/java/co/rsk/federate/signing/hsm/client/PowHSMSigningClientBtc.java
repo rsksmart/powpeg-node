@@ -23,12 +23,11 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient {
     protected final ObjectNode createObjectToSend(String keyId, SignerMessage message) {
         PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) message;
 
-        ObjectNode objectToSign = this.hsmClientProtocol.buildCommand(SIGN.getCommand(),
-            this.getVersion());
+        ObjectNode objectToSign = hsmClientProtocol.buildCommand(SIGN.getCommand(),
+            getVersion());
         objectToSign.put(KEY_ID.getFieldName(), keyId);
         objectToSign.set(AUTH.getFieldName(), createAuthField(powHSMSignerMessage));
-        objectToSign.set(MESSAGE.getFieldName(),
-            ((PowHSMSignerMessage) message).getMessageToSign(version));
+        objectToSign.set(MESSAGE.getFieldName(), powHSMSignerMessage.getMessageToSign(version));
 
         return objectToSign;
     }
