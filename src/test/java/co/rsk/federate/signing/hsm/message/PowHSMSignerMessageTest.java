@@ -51,11 +51,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.core.TransactionReceipt;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -79,7 +81,12 @@ class PowHSMSignerMessageTest {
         Hex.decode(encodedPegoutBtcTx));
 
     private static final String simpleRawBtcTx = "020000000001017001d967a340069c0b169fcbeb9cb6e0d78a27c94a41acbce762abc695aefab10000000017160014cfa63de9979e2a8005e6cb516b86202860ff3971ffffffff0200c2eb0b0000000017a914291a7ddc558810708149a731f39cd3c3a8782cfd870896e1110000000017a91425a2e67511a0207c4387ce8d3eeef498a4782e64870247304402207e0615f440bbc50351fb5d8839b3fae6c74f652c9ffc9291008f4ea39f9565980220354c734511a0560367b300eecb1a7472317a995462622e06ee91cbe0517c17e1012102e87cd90f3cb0d64eeba797fbb8f8ceaadc09e0128afbaefb0ee9535875ea395400000000";
+    private final List<Coin> noOutpointValuesForLegacyPegouts = Collections.emptyList();
 
+    @BeforeEach
+    void setUp() {
+
+    }
 
     private static List<Arguments> getMessageToSignLegacyArgProvider() {
         String expectedEncodedPegoutBtcTx = encodedPegoutBtcTx;
@@ -124,11 +131,11 @@ class PowHSMSignerMessageTest {
             "0000000000000000000000000000000000000000000000000000000000000001");
 
         SignerMessage m1 = new PowHSMSignerMessage(btcTx1, inputIndex, txReceipt,
-            receiptMerkleProof, sigHash);
+            receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
         SignerMessage m2 = new PowHSMSignerMessage(btcTx1, inputIndex, txReceipt,
-            receiptMerkleProof, sigHash);
+            receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
         SignerMessage m3 = new PowHSMSignerMessage(btcTx2, inputIndex, txReceipt,
-            receiptMerkleProof, sigHash);
+            receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
 
         assertEquals(m1, m2);
         assertNotSame(m1, m2);
@@ -150,7 +157,7 @@ class PowHSMSignerMessageTest {
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
         PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
-            receiptMerkleProof, sigHash);
+            receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
 
         String txSerialized = message.getBtcTransactionSerialized();
 
@@ -167,7 +174,7 @@ class PowHSMSignerMessageTest {
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
         PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
-            receiptMerkleProof, sigHash);
+            receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
 
         assertEquals(inputIndex, message.getInputIndex());
     }
@@ -182,7 +189,7 @@ class PowHSMSignerMessageTest {
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
         PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
-            receiptMerkleProof, sigHash);
+            receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
 
         String receipt = message.getTransactionReceipt();
 
@@ -200,7 +207,7 @@ class PowHSMSignerMessageTest {
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
         PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
-            receiptMerkleProof, sigHash);
+            receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
 
         String[] encodedReceipts = new String[receiptMerkleProof.size()];
         for (int i = 0; i < encodedReceipts.length; i++) {
@@ -223,7 +230,7 @@ class PowHSMSignerMessageTest {
         Sha256Hash sigHash = Sha256Hash.wrap(
             "0000000000000000000000000000000000000000000000000000000000000001");
         PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, inputIndex, txReceipt,
-            receiptMerkleProof, sigHash);
+            receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
 
         assertEquals(sigHash, message.getSigHash());
     }
@@ -237,7 +244,8 @@ class PowHSMSignerMessageTest {
         receiptMerkleProof.add(new Trie());
         Sha256Hash sigHash = BitcoinTestUtils.createHash(1);
         PowHSMSignerMessage powHSMSignerMessage = new PowHSMSignerMessage(pegoutBtcTx,
-            FIRST_OUTPUT_INDEX, txReceipt, receiptMerkleProof, sigHash);
+            FIRST_OUTPUT_INDEX, txReceipt, receiptMerkleProof, sigHash,
+            noOutpointValuesForLegacyPegouts);
 
         // act
         JsonNode actualMessageToSign = powHSMSignerMessage.getMessageToSign(version);

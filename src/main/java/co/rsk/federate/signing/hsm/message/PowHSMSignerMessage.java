@@ -57,21 +57,6 @@ public class PowHSMSignerMessage extends SignerMessage {
         int index,
         TransactionReceipt txReceipt,
         List<Trie> receiptMerkleProof,
-        Sha256Hash sigHash
-    ) {
-        this.btcTransaction = btcTransaction;
-        this.inputIndex = index;
-        this.txReceipt = txReceipt;
-        this.receiptMerkleProof = Collections.unmodifiableList(receiptMerkleProof);
-        this.sigHash = sigHash;
-        this.outpointValues = Collections.emptyList();
-    }
-
-    public PowHSMSignerMessage(
-        BtcTransaction btcTransaction,
-        int index,
-        TransactionReceipt txReceipt,
-        List<Trie> receiptMerkleProof,
         Sha256Hash sigHash,
         List<Coin> outpointValues
     ) {
