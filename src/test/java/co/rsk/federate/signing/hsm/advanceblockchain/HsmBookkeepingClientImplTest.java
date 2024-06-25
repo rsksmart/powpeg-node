@@ -19,6 +19,8 @@ import static co.rsk.federate.signing.HSMField.NETWORK;
 import static co.rsk.federate.signing.HSMField.PARAMETERS;
 import static co.rsk.federate.signing.HSMField.STATE;
 import static co.rsk.federate.signing.HSMField.UPDATING;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -35,7 +37,6 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
-import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.HSMField;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
@@ -90,8 +91,8 @@ class HsmBookkeepingClientImplTest {
 
         HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(
             jsonRpcClientProviderMock,
-            ECDSASignerFactory.DEFAULT_ATTEMPTS,
-            ECDSASignerFactory.DEFAULT_INTERVAL
+            MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
+            INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
         );
         hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol);
 
