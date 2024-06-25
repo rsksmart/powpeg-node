@@ -7,12 +7,12 @@ public enum PowHSMConfigParameter {
   // general
   HOST("host", ""),
   PORT("port", ""),
-  INTERVAL_BETWEEN_ATTEMPTS("intervalBetweenAttempts", "1_000"),
+  INTERVAL_BETWEEN_ATTEMPTS("intervalBetweenAttempts", "1000"),
   MAX_ATTEMPTS("maxAttempts", "2"),
-  SOCKET_TIMEOUT("socketTimeout", "20_000"),
+  SOCKET_TIMEOUT("socketTimeout", "20000"),
   // bookkeeping
   DIFFICULTY_TARGET("bookkeeping.difficultyTarget", ""),
-  INFORMER_INTERVAL("bookkeeping.informerInterval", "360_000"), // 6 minutes in milliseconds
+  INFORMER_INTERVAL("bookkeeping.informerInterval", "360000"), // 6 minutes in milliseconds
   MAX_AMOUNT_BLOCK_HEADERS("bookkeeping.maxAmountBlockHeaders", "100"),
   MAX_CHUNK_SIZE_TO_HSM("bookkeeping.maxChunkSizeToHsm", "100"),
   STOP_BOOKKEEPING_SCHEDULER("bookkeeping.stopBookkeepingScheduler", "false");
@@ -33,7 +33,8 @@ public enum PowHSMConfigParameter {
     Objects.requireNonNull(parser);
 
     if (defaultValue.isEmpty()) {
-      throw new IllegalStateException("No default value present");
+      throw new IllegalStateException(
+        "No default value present for: " + path);
     }
     return parser.apply(defaultValue);
   }
