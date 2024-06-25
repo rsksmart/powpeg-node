@@ -1,55 +1,34 @@
 package co.rsk.federate.signing.hsm.client;
 
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.SOCKET_TIMEOUT;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import co.rsk.federate.config.SignerConfig;
+import co.rsk.federate.signing.hsm.config.PowHSMConfig;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
-import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.utils.TestUtils;
-import com.typesafe.config.Config;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class HSMClientProtocolFactoryTest {
 
-    private HSMClientProtocolFactory hsmClientProtocolFactory;
-
-    @BeforeEach
-    void setUp() {
-        hsmClientProtocolFactory = new HSMClientProtocolFactory();
-    }
+    private final HSMClientProtocolFactory hsmClientProtocolFactory = new HSMClientProtocolFactory();
+    private final PowHSMConfig powHsmConfig = mock(PowHSMConfig.class);
 
     @Test
-    void buildHSMProtocolFromUnknownConfig() {
-        Config configMock = mockConfig("random-type");
-        SignerConfig signerConfig = new SignerConfig("random-id", configMock);
+    void buildHSMProtocolFromPowHSMConfig() {
+        when(powHsmConfig.getHost()).thenReturn("localhost");
+        when(powHsmConfig.getPort()).thenReturn(9999);
+        when(powHsmConfig.getSocketTimeout()).thenReturn(5000);
+        when(powHsmConfig.getMaxAttempts()).thenReturn(3);
+        when(powHsmConfig.getIntervalBetweenAttempts()).thenReturn(3000);
 
-        assertThrows(HSMUnsupportedTypeException.class, () ->
-            hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig)
-        );
-    }
-
-    @Test
-    void buildHSMProtocolFromConfig() throws HSMUnsupportedTypeException {
-        Config configMock = mockConfig("hsm");
-        when(configMock.getString(HSMClientProtocolFactory.HOST)).thenReturn("localhost");
-        when(configMock.getInt(HSMClientProtocolFactory.PORT)).thenReturn(9999);
-        when(configMock.hasPath(HSMClientProtocolFactory.SOCKET_TIMEOUT)).thenReturn(true);
-        when(configMock.getInt(HSMClientProtocolFactory.SOCKET_TIMEOUT)).thenReturn(5000);
-        when(configMock.hasPath(HSMClientProtocolFactory.MAX_ATTEMPTS)).thenReturn(true);
-        when(configMock.getInt(HSMClientProtocolFactory.MAX_ATTEMPTS)).thenReturn(3);
-        when(configMock.hasPath(HSMClientProtocolFactory.INTERVAL_BETWEEN_ATTEMPTS)).thenReturn(true);
-        when(configMock.getInt(HSMClientProtocolFactory.INTERVAL_BETWEEN_ATTEMPTS)).thenReturn(3000);
-
-        SignerConfig signerConfig = new SignerConfig("BTC", configMock);
-        HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+        HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
         // Provider chain
         JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(protocol, "clientProvider");
@@ -63,7 +42,7 @@ class HSMClientProtocolFactoryTest {
         assertEquals(9999, inetAddress.getPort());
 
         // Timeout
-        int timeout = TestUtils.getInternalState(jsonRpcClientProvider, HSMClientProtocolFactory.SOCKET_TIMEOUT);
+        int timeout = TestUtils.getInternalState(jsonRpcClientProvider, "socketTimeout");
         assertEquals(5000, timeout);
 
         // Attempts
@@ -76,16 +55,17 @@ class HSMClientProtocolFactoryTest {
     }
 
     @Test
-    void buildHSMProtocolFromDefaultConfig() throws HSMUnsupportedTypeException {
-        Config configMock = mockConfig("hsm");
-        when(configMock.getString(HSMClientProtocolFactory.HOST)).thenReturn("localhost");
-        when(configMock.getInt(HSMClientProtocolFactory.PORT)).thenReturn(9999);
-        when(configMock.hasPath(HSMClientProtocolFactory.SOCKET_TIMEOUT)).thenReturn(false);
-        when(configMock.hasPath(HSMClientProtocolFactory.MAX_ATTEMPTS)).thenReturn(false);
-        when(configMock.hasPath(HSMClientProtocolFactory.INTERVAL_BETWEEN_ATTEMPTS)).thenReturn(false);
+    void buildHSMProtocolFromDefaultConfig() {
+        int expectedTimeout = SOCKET_TIMEOUT.getDefaultValue(Integer::parseInt);
+        int expectedAttempts = MAX_ATTEMPTS.getDefaultValue(Integer::parseInt);
+        int expectedInterval = INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt);
+        when(powHsmConfig.getHost()).thenReturn("localhost");
+        when(powHsmConfig.getPort()).thenReturn(9999);
+        when(powHsmConfig.getSocketTimeout()).thenReturn(expectedTimeout);
+        when(powHsmConfig.getMaxAttempts()).thenReturn(expectedAttempts);
+        when(powHsmConfig.getIntervalBetweenAttempts()).thenReturn(expectedInterval);
 
-        SignerConfig signerConfig = new SignerConfig("BTC", configMock);
-        HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+        HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
         // Provider chain
         JsonRpcClientProvider jsonRpcClientProvider = TestUtils.getInternalState(protocol, "clientProvider");
@@ -99,22 +79,15 @@ class HSMClientProtocolFactoryTest {
         assertEquals(9999, inetAddress.getPort());
 
         // Timeout
-        int timeout = TestUtils.getInternalState(jsonRpcClientProvider, HSMClientProtocolFactory.SOCKET_TIMEOUT);
-        assertEquals(HSMClientProtocolFactory.DEFAULT_SOCKET_TIMEOUT, timeout);
+        int timeout = TestUtils.getInternalState(jsonRpcClientProvider, "socketTimeout");
+        assertEquals(expectedTimeout, timeout);
 
         // Attempts
         int attempts = TestUtils.getInternalState(protocol, "maxConnectionAttempts");
-        assertEquals(HSMClientProtocolFactory.DEFAULT_ATTEMPTS, attempts);
+        assertEquals(expectedAttempts, attempts);
 
         // Interval
         int interval = TestUtils.getInternalState(protocol, "waitTimeForReconnection");
-        assertEquals(HSMClientProtocolFactory.DEFAULT_INTERVAL, interval);
-    }
-
-    private Config mockConfig(String type) {
-        Config configMock = mock(Config.class);
-        when(configMock.getString("type")).thenReturn(type);
-        when(configMock.withoutPath(anyString())).thenReturn(configMock);
-        return configMock;
+        assertEquals(expectedInterval, interval);
     }
 }
