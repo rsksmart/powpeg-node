@@ -275,8 +275,8 @@ class PowHSMSignerMessageBuilderTest {
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String ActualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
-        assertEquals(expectedBtcTxSerialized, ActualBtcTxSerialized);
+        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+        assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
         assertArrayEquals(expectedReceiptMerkleProof,
@@ -349,8 +349,8 @@ class PowHSMSignerMessageBuilderTest {
                 oldFederation.getRedeemScript(), BtcTransaction.SigHash.ALL, false);
             assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
-            String ActualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
-            assertEquals(expectedBtcTxSerialized, ActualBtcTxSerialized);
+            String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+            assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
             assertArrayEquals(expectedReceiptMerkleProof,
                 actualPowHSMSignerMessage.getReceiptMerkleProof());
@@ -419,8 +419,8 @@ class PowHSMSignerMessageBuilderTest {
                 oldFederation.getRedeemScript(), BtcTransaction.SigHash.ALL, false);
             assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
-            String ActualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
-            assertEquals(expectedBtcTxSerialized, ActualBtcTxSerialized);
+            String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+            assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
             assertArrayEquals(expectedReceiptMerkleProof,
                 actualPowHSMSignerMessage.getReceiptMerkleProof());
@@ -487,8 +487,8 @@ class PowHSMSignerMessageBuilderTest {
                 oldFederation.getRedeemScript(), BtcTransaction.SigHash.ALL, false);
             assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
-            String ActualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
-            assertEquals(expectedBtcTxSerialized, ActualBtcTxSerialized);
+            String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+            assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
             assertArrayEquals(expectedReceiptMerkleProof,
                 actualPowHSMSignerMessage.getReceiptMerkleProof());
