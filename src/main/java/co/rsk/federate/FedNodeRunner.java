@@ -128,9 +128,10 @@ public class FedNodeRunner implements NodeRunner {
         LOGGER.debug("[run] Starting RSK");
         signer = buildSigner();
 
-        PowHSMConfig powHsmConfig = PowHSMConfig.from(
-            config.signerConfig(BTC_KEY_ID.getId()));
-        if (powHsmConfig != null) {
+        try {
+            PowHSMConfig powHsmConfig = PowHSMConfig.from(
+                config.signerConfig(BTC_KEY_ID.getId()));
+
             HSMClientProtocol protocol =
                 hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
@@ -143,6 +144,8 @@ public class FedNodeRunner implements NodeRunner {
               hsmBookkeepingService = buildBookKeepingService(
                   hsmBookkeepingClient, powHsmConfig);
             }
+        } catch (SignerException e) {
+            LOGGER.info("[run] PowHSM config was not found", e);
         }
 
         if (!this.checkFederateRequirements()) {

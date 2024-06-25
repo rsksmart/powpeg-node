@@ -2,6 +2,7 @@ package co.rsk.federate.signing.hsm.config;
 
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.*;
 
+import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.signing.hsm.HSMClientException;
@@ -24,9 +25,9 @@ public class PowHSMConfig {
     this.config = config;
   }
 
-  public static PowHSMConfig from(SignerConfig signerConfig) {
+  public static PowHSMConfig from(SignerConfig signerConfig) throws SignerException {
     if (signerConfig == null || !signerConfig.getType().equals(SIGNER_TYPE)) {
-      return null;
+      throw new SignerException("Signer config is not for PowHSM");
     }
 
     return new PowHSMConfig(signerConfig.getConfig());
