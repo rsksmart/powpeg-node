@@ -110,26 +110,28 @@ jobs:
       - name: Get gradle wrapper and build dependencies
         if: steps.cache-gradle.outputs.cache-hit != 'true'
         run: |
-          echo "includeBuild('./rskj') {"  > DONT-COMMIT-settings.gradle
-          echo "  dependencySubstitution {" >> DONT-COMMIT-settings.gradle
-          echo "      all { DependencySubstitution dependency ->" >> DONT-COMMIT-settings.gradle
-          echo "          if (dependency.requested instanceof ModuleComponentSelector" >> DONT-COMMIT-settings.gradle
-          echo "                  && dependency.requested.group == 'co.rsk'" >> DONT-COMMIT-settings.gradle
-          echo "                  && dependency.requested.module == 'rskj-core'" >> DONT-COMMIT-settings.gradle
-          echo "                  && (dependency.requested.version.endsWith('SNAPSHOT') || dependency.requested.version.endsWith('RC'))) {" >> DONT-COMMIT-settings.gradle
-          echo "              def targetProject = project(\":\${dependency.requested.module}\")" >> DONT-COMMIT-settings.gradle
-          echo "              if (targetProject != null) {" >> DONT-COMMIT-settings.gradle
-          echo "                  println('---- USING LOCAL ' + dependency.requested.displayName +' PROJECT ----')" >> DONT-COMMIT-settings.gradle
-          echo "                  dependency.useTarget targetProject" >> DONT-COMMIT-settings.gradle
-          echo "              }" >> DONT-COMMIT-settings.gradle
-          echo "          }" >> DONT-COMMIT-settings.gradle
-          echo "      }" >> DONT-COMMIT-settings.gradle
-          echo "  }" >> DONT-COMMIT-settings.gradle
-          echo "}" >> DONT-COMMIT-settings.gradle
-          rm -rfv .gradle
+          cat <<'EOF' >temp-settings.gradle
+          includeBuild('./rskj') {
+            dependencySubstitution {
+              all { DependencySubstitution dependency ->
+                if (dependency.requested instanceof ModuleComponentSelector
+                    && dependency.requested.group == 'co.rsk'
+                    && dependency.requested.module == 'rskj-core'
+                    && (dependency.requested.version.endsWith('SNAPSHOT') || dependency.requested.version.endsWith('RC'))) {
+                  def targetProject = project(":${dependency.requested.module}")
+                  if (targetProject != null) {
+                    println('---- USING LOCAL ' + dependency.requested.displayName + ' PROJECT ----')
+                    dependency.useTarget targetProject
+                  }
+                }
+              }
+            }
+          }
+          EOF
+          if [ -d ".gradle" ]; then rm -rfv .gradle; fi
           ./configure.sh
-          ./gradlew --no-daemon dependencies
-          
+          ./gradlew --no-daemon --settings-file temp-settings.gradle dependencies
+
       - name: Build node
         run: |
           ./gradlew --no-daemon --stacktrace clean build -x test
@@ -149,6 +151,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download Build files
         uses: actions/download-artifact@v4
@@ -166,9 +170,23 @@ jobs:
         run: |
           ./gradlew --no-daemon --stacktrace test
 
+      - name: find test reports # TODO: REMOVE ME 
+        run: |
+          tree build/reports
+          tree build/test-results
+
+      - name: Persist test reports for sonar
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: |
+            build/test-results/
+            build/reports/
+            .git/
+
   sonarqube:
     runs-on: ubuntu-latest
-    needs: build_federator_node
+    needs: federator-tests
     steps:
       - name: Setup Java JDK
         uses: actions/setup-java@v3
@@ -181,12 +199,21 @@ jobs:
         with:        
           name: build_files
           path: ./
-           
+
       - name: Download rskj
         uses: actions/download-artifact@v4
         with:
           name: rskj
           path: rskj
+
+      - name: Download test reports
+        uses: actions/download-artifact@v4
+        with:
+          name: test-report
+          path: |
+            build/test-results/
+            build/reports/
+            .git/
 
       - name: Prepare PR flags for SonarQube analysis
         if: github.event_name == 'pull_request'
@@ -196,7 +223,7 @@ jobs:
           -Dsonar.pullrequest.branch=${{ github.head_ref }} \
           -Dsonar.pullrequest.key=$pr_number"
           echo EXTRA_FLAGS="$extra_flags" >> $GITHUB_ENV
-     
+
       - name: Prepare push flags for SonarQube analysis
         if: github.event_name != 'pull_request'
         run: |
@@ -208,6 +235,8 @@ jobs:
           chmod +x gradlew
           ./gradlew sonarqube --warning-mode all --no-daemon --stacktrace --info -x build -x test \
             $extra_flags \
+            -Dsonar.organization=rsksmart \
+            -Dsonar.projectKey=rsksmart_powpeg-node \
             -Dsonar.host.url="https://sonarcloud.io" \
             -Dsonar.token="${{ secrets.SONAR_TOKEN }}"
 
