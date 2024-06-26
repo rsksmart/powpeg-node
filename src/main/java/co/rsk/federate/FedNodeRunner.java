@@ -129,7 +129,7 @@ public class FedNodeRunner implements NodeRunner {
         signer = buildSigner();
 
         try {
-            PowHSMConfig powHsmConfig = PowHSMConfig.from(
+            PowHSMConfig powHsmConfig = new PowHSMConfig(
                 config.signerConfig(BTC_KEY_ID.getId()));
 
             HSMClientProtocol protocol =
