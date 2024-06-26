@@ -31,6 +31,8 @@ import static co.rsk.federate.signing.HSMField.S;
 import static co.rsk.federate.signing.HSMField.SIGNATURE;
 import static co.rsk.federate.signing.HSMField.V;
 import static co.rsk.federate.signing.HSMField.VERSION;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -44,7 +46,6 @@ import static org.mockito.Mockito.when;
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
-import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.HSMCommand;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
@@ -63,7 +64,11 @@ class HSMSigningClientV1Test {
     void createClient() throws JsonRpcException {
         JsonRpcClientProvider jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
-        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(
+            jsonRpcClientProviderMock,
+            MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
+            INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
+        );
         client = new HSMSigningClientV1(hsmClientProtocol);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
