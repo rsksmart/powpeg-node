@@ -21,16 +21,12 @@ public class PowHSMConfig {
 
   private final Config config;
 
-  private PowHSMConfig(Config config) {
-    this.config = config;
-  }
-
-  public static PowHSMConfig from(SignerConfig signerConfig) throws SignerException {
+  public PowHSMConfig(SignerConfig signerConfig) throws SignerException {
     if (signerConfig == null || !signerConfig.getType().equals(SIGNER_TYPE)) {
       throw new SignerException("Signer config is not for PowHSM");
     }
 
-    return new PowHSMConfig(signerConfig.getConfig());
+    this.config = signerConfig.getConfig();
   }
 
   public String getHost() {
