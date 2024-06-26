@@ -44,7 +44,7 @@ public class ECDSASignerFactory {
                 );
             case "hsm":
                 try {
-                    PowHSMConfig powHSMConfig = PowHSMConfig.from(config);
+                    PowHSMConfig powHSMConfig = new PowHSMConfig(config);
                     HSMClientProtocol hsmClientProtocol =
                         new HSMClientProtocolFactory().buildHSMClientProtocolFromConfig(powHSMConfig);
                     HSMSigningClientProvider hsmSigningClientProvider = new HSMSigningClientProvider(hsmClientProtocol, config.getId());
