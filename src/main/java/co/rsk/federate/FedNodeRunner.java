@@ -29,8 +29,8 @@ import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
 import co.rsk.federate.config.FedNodeSystemProperties;
-import co.rsk.federate.config.PowHSMBookkeepingConfig;
-import co.rsk.federate.config.SignerConfig;
+import co.rsk.federate.signing.config.SignerConfig;
+import co.rsk.federate.signing.hsm.config.PowHSMConfig;
 import co.rsk.federate.io.*;
 import co.rsk.federate.log.BtcLogMonitor;
 import co.rsk.federate.log.FederateLogger;
@@ -128,38 +128,41 @@ public class FedNodeRunner implements NodeRunner {
     public void run() throws Exception {
         LOGGER.debug("[run] Starting RSK");
         signer = buildSigner();
-        SignerConfig signerConfig = this.config.signerConfig(BTC_KEY_ID.getId());
-        if (signerConfig != null && "hsm".equals(signerConfig.getType())) {
-            PowHSMBookkeepingConfig bookKeepingConfig = new PowHSMBookkeepingConfig(
-                signerConfig,
-                bridgeConstants.getBtcParamsString()
-            );
 
-            HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(signerConfig);
+        try {
+            PowHSMConfig powHsmConfig = new PowHSMConfig(
+                config.signerConfig(BTC_KEY_ID.getId()));
+
+            HSMClientProtocol protocol =
+                hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
+
             int hsmVersion = protocol.getVersion();
             LOGGER.debug("[run] Using HSM version {}", hsmVersion);
 
             if (HSMVersion.isPowHSM(hsmVersion)) {
-                hsmBookkeepingClient = buildBookKeepingClient(protocol, bookKeepingConfig);
-                hsmBookkeepingService = buildBookKeepingService(
-                    hsmBookkeepingClient,
-                    bookKeepingConfig
-                );
+              hsmBookkeepingClient = buildBookKeepingClient(
+                  protocol, powHsmConfig);
+              hsmBookkeepingService = buildBookKeepingService(
+                  hsmBookkeepingClient, powHsmConfig);
             }
+        } catch (SignerException e) {
+            LOGGER.info("[run] PowHSM config was not found", e);
         }
-        if(!this.checkFederateRequirements()) {
+
+        if (!this.checkFederateRequirements()) {
             LOGGER.error("[run] Error validating Fed-Node Requirements");
             return;
         }
+
         LOGGER.info("[run] Signers: {}", signer.getVersionString());
         configureFederatorSupport();
         fullNodeRunner.run();
         startFederate();
 
-        signer.addListener((l -> {
+        signer.addListener(l -> {
             LOGGER.error("[run] Signer informed unrecoverable state, shutting down", l);
             this.shutdown();
-        }));
+        });
 
         LOGGER.info("[run] Federated node started");
         LOGGER.info("[run] RSK address: {}", Hex.toHexString(this.member.getRskPublicKey().getAddress()));
@@ -208,31 +211,31 @@ public class FedNodeRunner implements NodeRunner {
 
     private HSMBookkeepingClient buildBookKeepingClient(
         HSMClientProtocol protocol,
-        PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+        PowHSMConfig powHsmConfig) throws HSMClientException {
 
         HSMBookkeepingClient bookKeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(protocol);
-        bookKeepingClient.setMaxChunkSizeToHsm(bookKeepingConfig.getMaxChunkSizeToHsm());
+        bookKeepingClient.setMaxChunkSizeToHsm(powHsmConfig.getMaxChunkSizeToHsm());
         LOGGER.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersion());
         return bookKeepingClient;
     }
 
     private HSMBookkeepingService buildBookKeepingService(
         HSMBookkeepingClient bookKeepingClient,
-        PowHSMBookkeepingConfig bookKeepingConfig) throws HSMClientException {
+        PowHSMConfig powHsmConfig) throws HSMClientException {
 
         HSMBookkeepingService service = new HSMBookkeepingService(
             fedNodeContext.getBlockStore(),
             bookKeepingClient,
             new ConfirmedBlocksProvider(
-                bookKeepingConfig.getDifficultyTarget(bookKeepingClient),
-                bookKeepingConfig.getMaxAmountBlockHeaders(),
+                powHsmConfig.getDifficultyTarget(bookKeepingClient),
+                powHsmConfig.getMaxAmountBlockHeaders(),
                 fedNodeContext.getBlockStore(),
-                bookKeepingConfig.getDifficultyCap(),
+                powHsmConfig.getDifficultyCap(bridgeConstants.getBtcParamsString()),
                 hsmBookkeepingClient.getVersion()
             ),
             fedNodeContext.getNodeBlockProcessor(),
-            bookKeepingConfig.getInformerInterval(),
-            bookKeepingConfig.isStopBookkeepingScheduler()
+            powHsmConfig.getInformerInterval(),
+            powHsmConfig.isStopBookkeepingScheduler()
         );
         LOGGER.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersion());
         return service;
