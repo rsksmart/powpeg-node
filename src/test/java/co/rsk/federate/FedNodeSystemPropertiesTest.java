@@ -177,4 +177,97 @@ class FedNodeSystemPropertiesTest {
             Duration.ofMinutes(defaultTtlInMinutes),
             fedNodeSystemProperties.getPegoutSignedCacheTtl());
     }
+
+    @Test
+    void shouldUpdateBridgeBtcBlockchain_whenConfigPathDoesNotExist_shouldReturnTrue() {
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.updateBridgeBtcBlockchain")).thenReturn(false);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertTrue(fedNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
+    }
+
+    @Test
+    void shouldUpdateBridgeBtcBlockchain_whenConfigPathExists_shouldReturnConfigValue() {
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.updateBridgeBtcBlockchain")).thenReturn(true);
+        when(config.getBoolean("federator.updateBridgeBtcBlockchain")).thenReturn(true);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertTrue(fedNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
+    }
+
+    @Test
+    void shouldUpdateBridgeBtcCoinbaseTransactions_whenConfigPathDoesNotExist_shouldReturnTrue() {
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.updateBridgeBtcCoinbaseTransactions")).thenReturn(false);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertTrue(fedNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
+    }
+
+    @Test
+    void shouldUpdateBridgeBtcCoinbaseTransactions_whenConfigPathExists_shouldReturnConfigValue() {
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.updateBridgeBtcCoinbaseTransactions")).thenReturn(true);
+        when(config.getBoolean("federator.updateBridgeBtcCoinbaseTransactions")).thenReturn(true);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertTrue(fedNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
+    }
+
+    @Test
+    void shouldUpdateBridgeBtcTransactions_whenConfigPathDoesNotExist_shouldReturnTrue() {
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.updateBridgeBtcTransactions")).thenReturn(false);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertTrue(fedNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
+    }
+
+    @Test
+    void shouldUpdateBridgeBtcTransactions_whenConfigPathExists_shouldReturnConfigValue() {
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.updateBridgeBtcTransactions")).thenReturn(true);
+        when(config.getBoolean("federator.updateBridgeBtcTransactions")).thenReturn(true);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertTrue(fedNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
+    }
+
+    @Test
+    void shouldUpdateCollections_whenConfigPathDoesNotExist_shouldReturnTrue() {
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.updateCollections")).thenReturn(false);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertTrue(fedNodeSystemProperties.shouldUpdateCollections());
+    }
+
+    @Test
+    void shouldUpdateCollections_whenConfigPathExists_shouldReturnConfigValue() {
+        when(configLoader.getConfig()).thenReturn(config);
+        when(config.hasPath("federator.updateCollections")).thenReturn(true);
+        when(config.getBoolean("federator.updateCollections")).thenReturn(true);
+        when(config.root()).thenReturn(configObject);
+
+        FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
+
+        assertTrue(fedNodeSystemProperties.shouldUpdateCollections());
+    }
+
 }

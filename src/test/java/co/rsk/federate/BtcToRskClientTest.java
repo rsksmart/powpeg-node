@@ -25,6 +25,10 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.ScriptBuilder;
+import co.rsk.cli.CliArgs;
+import co.rsk.config.ConfigLoader;
+import co.rsk.config.NodeCliFlags;
+import co.rsk.config.NodeCliOptions;
 import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
@@ -84,6 +88,7 @@ import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.crypto.HashUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.internal.util.MockUtil;
 import org.spongycastle.util.encoders.Hex;
 
 /**
@@ -2500,6 +2505,42 @@ class BtcToRskClientTest {
     }
 
     @Test
+    void updateBridge_noUpdateBridgeConfigDefined_shouldCallUpdatesBridgeMethods() throws Exception {
+        NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
+        when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
+
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
+        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+
+        BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
+        when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
+
+        CliArgs<NodeCliOptions, NodeCliFlags> cliArgs = CliArgs.empty();
+        ConfigLoader configLoader = new ConfigLoader(cliArgs);
+        FedNodeSystemProperties config = new FedNodeSystemProperties(configLoader);
+
+        BtcToRskClient btcToRskClient = spy(buildWithFactoryAndSetup(
+            federatorSupport,
+            nodeBlockProcessor,
+            activationConfig,
+            bitcoinWrapper,
+            bridgeRegTestConstants,
+            getMockedBtcToRskClientFileStorage(),
+            mock(BtcLockSenderProvider.class),
+            mock(PeginInstructionsProvider.class),
+            config
+        ));
+
+        btcToRskClient.updateBridge();
+
+        verify(btcToRskClient, times(1)).updateBridgeBtcBlockchain();
+        verify(btcToRskClient, times(1)).updateBridgeBtcCoinbaseTransactions();
+        verify(btcToRskClient, times(1)).updateBridgeBtcTransactions();
+        verify(federatorSupport, times(1)).sendUpdateCollections();
+    }
+
+    @Test
     void updateBridgeBtcTransactions_tx_with_witness_already_informed() throws Exception {
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         when(activations.isActive(ConsensusRule.RSKIP143)).thenReturn(true);
@@ -2589,7 +2630,9 @@ class BtcToRskClientTest {
 
         FedNodeSystemProperties config = nonNull(fedNodeSystemProperties) ? fedNodeSystemProperties : getMockedFedNodeSystemProperties(true);
 
-        when(config.getActivationConfig()).thenReturn(activationConfig);
+        if(MockUtil.isMock(config)) {
+            when(config.getActivationConfig()).thenReturn(activationConfig);
+        }
 
         btcToRskClient.setup(
             bitcoinWrapper,

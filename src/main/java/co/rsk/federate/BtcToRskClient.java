@@ -96,7 +96,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         Federation federation,
         FedNodeSystemProperties config
     ) throws Exception {
-        this.activationConfig = config.getActivationConfig();
         this.bitcoinWrapper = bitcoinWrapper;
         this.federatorSupport = federatorSupport;
         this.bridgeConstants = bridgeConstants;
@@ -105,12 +104,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         this.btcLockSenderProvider = btcLockSenderProvider;
         this.peginInstructionsProvider = peginInstructionsProvider;
         this.federation = federation;
-        this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
-        this.amountOfHeadersToSend = config.getAmountOfHeadersToSend();
-        this.shouldUpdateBridgeBtcBlockchain = config.shouldUpdateBridgeBtcBlockchain();
-        this.shouldUpdateBridgeBtcCoinbaseTransactions = config.shouldUpdateBridgeBtcCoinbaseTransactions();
-        this.shouldUpdateBridgeBtcTransactions = config.shouldUpdateBridgeBtcTransactions();
-        this.shouldUpdateCollections = config.shouldUpdateCollections();
+        setConfigVariables(config);
     }
 
     public synchronized void setup(
@@ -121,21 +115,14 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         PeginInstructionsProvider peginInstructionsProvider,
         FedNodeSystemProperties config
     ) throws Exception {
-        this.activationConfig = config.getActivationConfig();
         this.bridgeConstants = bridgeConstants;
         this.btcToRskClientFileStorage = btcToRskClientFileStorage;
         this.restoreFileData();
         this.bitcoinWrapper = bitcoinWrapper;
         this.btcLockSenderProvider = btcLockSenderProvider;
         this.peginInstructionsProvider = peginInstructionsProvider;
-        this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
         bitcoinWrapper.addBlockListener(this);
-        this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
-        this.amountOfHeadersToSend = config.getAmountOfHeadersToSend();
-        this.shouldUpdateBridgeBtcBlockchain = config.shouldUpdateBridgeBtcBlockchain();
-        this.shouldUpdateBridgeBtcCoinbaseTransactions = config.shouldUpdateBridgeBtcCoinbaseTransactions();
-        this.shouldUpdateBridgeBtcTransactions = config.shouldUpdateBridgeBtcTransactions();
-        this.shouldUpdateCollections = config.shouldUpdateCollections();
+        setConfigVariables(config);
  }
 
     public void start(Federation federation) {
@@ -213,50 +200,50 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
         logger.debug("[updateBridge] Updating bridge");
 
-        // Call receiveHeaders
-        try {
-            logger.trace("shouldUpdateBridgeBtcBlockchain: " + shouldUpdateBridgeBtcBlockchain);
-            if(shouldUpdateBridgeBtcBlockchain) {
+        if(shouldUpdateBridgeBtcBlockchain) {
+            // Call receiveHeaders
+            try {
                 int numberOfBlocksSent = updateBridgeBtcBlockchain();
                 logger.debug("[updateBridge] Updated bridge blockchain with {} blocks", numberOfBlocksSent);
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+                panicProcessor.panic("btclock", e.getMessage());
             }
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            panicProcessor.panic("btclock", e.getMessage());
         }
 
-        // Call registerBtcCoinbaseTransaction
-        try {
-            if(shouldUpdateBridgeBtcCoinbaseTransactions) {
+        if(shouldUpdateBridgeBtcCoinbaseTransactions) {
+            // Call registerBtcCoinbaseTransaction
+            try {
                 logger.debug("[updateBridge] Updating transactions and sending update");
                 updateBridgeBtcCoinbaseTransactions();
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+                panicProcessor.panic("btclock", e.getMessage());
             }
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            panicProcessor.panic("btclock", e.getMessage());
         }
 
-        // Call registerBtcTransaction
-        try {
-            if(shouldUpdateBridgeBtcTransactions) {
+        if(shouldUpdateBridgeBtcTransactions) {
+            // Call registerBtcTransaction
+            try {
                 logger.debug("[updateBridge] Updating transactions and sending update");
                 updateBridgeBtcTransactions();
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+                panicProcessor.panic("btclock", e.getMessage());
             }
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            panicProcessor.panic("btclock", e.getMessage());
         }
 
-        // Call updateCollections
-        try {
-            if(shouldUpdateCollections) {
+        if(shouldUpdateCollections) {
+            // Call updateCollections
+            try {
                 logger.debug("[updateBridge] Sending updateCollections");
                 federatorSupport.sendUpdateCollections();
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+                panicProcessor.panic("btclock", e.getMessage());
             }
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            panicProcessor.panic("btclock", e.getMessage());
         }
+
     }
 
     @Override
@@ -831,6 +818,17 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     @VisibleForTesting
     protected PartialMerkleTree generatePMT(Block block, Transaction transaction) {
         return generatePMT(block, transaction, transaction.hasWitnesses());
+    }
+
+    private void setConfigVariables(FedNodeSystemProperties config) {
+        this.activationConfig = config.getActivationConfig();
+        this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
+        this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
+        this.amountOfHeadersToSend = config.getAmountOfHeadersToSend();
+        this.shouldUpdateBridgeBtcBlockchain = config.shouldUpdateBridgeBtcBlockchain();
+        this.shouldUpdateBridgeBtcCoinbaseTransactions = config.shouldUpdateBridgeBtcCoinbaseTransactions();
+        this.shouldUpdateBridgeBtcTransactions = config.shouldUpdateBridgeBtcTransactions();
+        this.shouldUpdateCollections = config.shouldUpdateCollections();
     }
 
     public static class Factory {
