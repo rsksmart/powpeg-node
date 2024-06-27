@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import java.io.File;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +12,7 @@ class BtcReleaseClientFileStorageInfoTest {
 
     @Test
     void test() {
-        FedNodeSystemProperties fnsp = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties fnsp = mock(PowpegNodeSystemProperties.class);
         when(fnsp.databaseDir()).thenReturn("test");
         BtcReleaseClientFileStorageInfo info = new BtcReleaseClientFileStorageInfo(fnsp);
         String directoryPath = fnsp.databaseDir() + File.separator + "peg";
