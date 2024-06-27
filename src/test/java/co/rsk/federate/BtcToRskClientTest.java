@@ -29,7 +29,7 @@ import co.rsk.cli.CliArgs;
 import co.rsk.config.ConfigLoader;
 import co.rsk.config.NodeCliFlags;
 import co.rsk.config.NodeCliOptions;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeRegTestConstants;
@@ -193,7 +193,7 @@ class BtcToRskClientTest {
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
         int amountOfHeadersToSend = 100;
 
-        FedNodeSystemProperties config = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
 
         return btcToRskClientBuilder
@@ -215,7 +215,7 @@ class BtcToRskClientTest {
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
         int amountOfHeadersToSend = 100;
 
-        FedNodeSystemProperties config = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
 
         return btcToRskClientBuilder
@@ -825,7 +825,7 @@ class BtcToRskClientTest {
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
         int amountOfHeadersToSend = 345;
 
-        FedNodeSystemProperties config = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
 
         BtcToRskClient client = btcToRskClientBuilder
@@ -956,7 +956,7 @@ class BtcToRskClientTest {
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
         int amountOfHeadersToSend = 345;
 
-        FedNodeSystemProperties config = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
 
         BtcToRskClient client = btcToRskClientBuilder
@@ -1002,7 +1002,7 @@ class BtcToRskClientTest {
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
         int amountOfHeadersToSend = 215;
 
-        FedNodeSystemProperties config = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
 
         BtcToRskClient client =  btcToRskClientBuilder
@@ -1696,7 +1696,7 @@ class BtcToRskClientTest {
         int amountOfHeadersToSend = 100;
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHMULTISIG);
 
-        FedNodeSystemProperties config = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
 
         BtcToRskClient client = btcToRskClientBuilder
@@ -1843,7 +1843,7 @@ class BtcToRskClientTest {
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHP2WPKH);
         int amountOfHeadersToSend = 100;
 
-        FedNodeSystemProperties config = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
 
         BtcToRskClient client = btcToRskClientBuilder
@@ -1897,7 +1897,7 @@ class BtcToRskClientTest {
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.UNKNOWN);
         int amountOfHeadersToSend = 100;
 
-        FedNodeSystemProperties config = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
 
         BtcToRskClient client = btcToRskClientBuilder
@@ -2482,7 +2482,7 @@ class BtcToRskClientTest {
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
         when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
 
-        FedNodeSystemProperties config = getMockedFedNodeSystemProperties(false);
+        PowpegNodeSystemProperties config = getMockedFedNodeSystemProperties(false);
 
         BtcToRskClient btcToRskClient = spy(buildWithFactoryAndSetup(
             federatorSupport,
@@ -2518,7 +2518,7 @@ class BtcToRskClientTest {
 
         CliArgs<NodeCliOptions, NodeCliFlags> cliArgs = CliArgs.empty();
         ConfigLoader configLoader = new ConfigLoader(cliArgs);
-        FedNodeSystemProperties config = new FedNodeSystemProperties(configLoader);
+        PowpegNodeSystemProperties config = new PowpegNodeSystemProperties(configLoader);
 
         BtcToRskClient btcToRskClient = spy(buildWithFactoryAndSetup(
             federatorSupport,
@@ -2623,12 +2623,12 @@ class BtcToRskClientTest {
         BtcToRskClientFileStorage btcToRskClientFileStorage,
         BtcLockSenderProvider btcLockSenderProvider,
         PeginInstructionsProvider peginInstructionsProvider,
-        FedNodeSystemProperties fedNodeSystemProperties
+        PowpegNodeSystemProperties fedNodeSystemProperties
         ) throws Exception {
 
         BtcToRskClient btcToRskClient = buildWithFactory(federatorSupport, nodeBlockProcessor);
 
-        FedNodeSystemProperties config = nonNull(fedNodeSystemProperties) ? fedNodeSystemProperties : getMockedFedNodeSystemProperties(true);
+        PowpegNodeSystemProperties config = nonNull(fedNodeSystemProperties) ? fedNodeSystemProperties : getMockedFedNodeSystemProperties(true);
 
         if(MockUtil.isMock(config)) {
             when(config.getActivationConfig()).thenReturn(activationConfig);
@@ -2820,9 +2820,9 @@ class BtcToRskClientTest {
         return btcLockSenderProvider;
     }
 
-    private FedNodeSystemProperties getMockedFedNodeSystemProperties(boolean defaultBooleanConfigValue) {
+    private PowpegNodeSystemProperties getMockedFedNodeSystemProperties(boolean defaultBooleanConfigValue) {
 
-        FedNodeSystemProperties config = mock(FedNodeSystemProperties.class);
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(100);
         when(config.isUpdateBridgeTimerEnabled()).thenReturn(defaultBooleanConfigValue);
         when(config.shouldUpdateBridgeBtcBlockchain()).thenReturn(defaultBooleanConfigValue);

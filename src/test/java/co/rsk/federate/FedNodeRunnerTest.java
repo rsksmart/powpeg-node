@@ -19,7 +19,7 @@ import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
@@ -53,7 +53,7 @@ import org.junit.jupiter.api.io.TempDir;
 class FedNodeRunnerTest {
 
     private FedNodeRunner fedNodeRunner;
-    private FedNodeSystemProperties fedNodeSystemProperties;
+    private PowpegNodeSystemProperties fedNodeSystemProperties;
     private Config keyFileConfig;
     private HSMBookkeepingClient hsmBookkeepingClient;
 
@@ -72,7 +72,7 @@ class FedNodeRunnerTest {
 
         BridgeConstants bridgeConstants = mock(BridgeConstants.class);
         Constants constants = mock(Constants.class);
-        fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
+        fedNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
         when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(constants);
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
