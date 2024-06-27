@@ -14,7 +14,7 @@ import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCache;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCacheImpl;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.FederationCantSignException;
 import co.rsk.federate.signing.FederatorAlreadySignedException;
@@ -106,7 +106,7 @@ public class BtcReleaseClient {
     public BtcReleaseClient(
         Ethereum ethereum,
         FederatorSupport federatorSupport,
-        FedNodeSystemProperties systemProperties,
+        PowpegNodeSystemProperties systemProperties,
         NodeBlockProcessor nodeBlockProcessor
     ) {
         this.ethereum = ethereum;

@@ -1,6 +1,6 @@
 package co.rsk.federate;
 
-import static co.rsk.federate.config.PowHSMBookkeepingConfig.DIFFICULTY_TARGET_PATH;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.DIFFICULTY_TARGET;
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.MST_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
@@ -19,8 +19,8 @@ import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
-import co.rsk.federate.config.FedNodeSystemProperties;
-import co.rsk.federate.config.SignerConfig;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
+import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
 import co.rsk.federate.signing.ECDSACompositeSigner;
@@ -53,7 +53,7 @@ import org.junit.jupiter.api.io.TempDir;
 class FedNodeRunnerTest {
 
     private FedNodeRunner fedNodeRunner;
-    private FedNodeSystemProperties fedNodeSystemProperties;
+    private PowpegNodeSystemProperties fedNodeSystemProperties;
     private Config keyFileConfig;
     private HSMBookkeepingClient hsmBookkeepingClient;
 
@@ -72,7 +72,7 @@ class FedNodeRunnerTest {
 
         BridgeConstants bridgeConstants = mock(BridgeConstants.class);
         Constants constants = mock(Constants.class);
-        fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
+        fedNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
         when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(constants);
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
@@ -444,8 +444,8 @@ class FedNodeRunnerTest {
     @Test
     void run_whenHsmVersionIsLowerThanThreeAndDifficultyTargetConfigIsNotPresent_shouldThrowException() throws Exception {
         SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
-        when(btcSignerConfig.getConfig().getString(DIFFICULTY_TARGET_PATH))
-           .thenThrow(new ConfigException.Missing(DIFFICULTY_TARGET_PATH));
+        when(btcSignerConfig.getConfig().getString(DIFFICULTY_TARGET.getPath()))
+           .thenThrow(new ConfigException.Missing(DIFFICULTY_TARGET.getPath()));
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
 
         assertThrows(ConfigException.class, () -> fedNodeRunner.run());
@@ -481,7 +481,9 @@ class FedNodeRunnerTest {
         when(btcSignerConfig.getId()).thenReturn("BTC");
         when(btcSignerConfig.getType()).thenReturn("hsm");
         when(btcSignerConfig.getConfig()).thenReturn(hsmConfig);
+        when(hsmConfig.hasPath("host")).thenReturn(true);
         when(hsmConfig.getString("host")).thenReturn("127.0.0.1");
+        when(hsmConfig.hasPath("port")).thenReturn(true);
         when(hsmConfig.getInt("port")).thenReturn(9999);
         when(hsmConfig.getString("keyId")).thenReturn("m/44'/0'/0'/0/0");
         when(hsmBookkeepingClient.getVersion()).thenReturn(version);
@@ -523,7 +525,9 @@ class FedNodeRunnerTest {
         when(rskSignerConfig.getId()).thenReturn("RSK");
         when(rskSignerConfig.getType()).thenReturn("hsm");
         when(rskSignerConfig.getConfig()).thenReturn(hsmConfig);
+        when(hsmConfig.hasPath("host")).thenReturn(true);
         when(hsmConfig.getString("host")).thenReturn("127.0.0.1");
+        when(hsmConfig.hasPath("port")).thenReturn(true);
         when(hsmConfig.getInt("port")).thenReturn(9999);
         when(hsmConfig.getString("keyId")).thenReturn("m/44'/137'/0'/0/0");
         return rskSignerConfig;
@@ -535,7 +539,9 @@ class FedNodeRunnerTest {
         when(mstSignerConfig.getId()).thenReturn("MST");
         when(mstSignerConfig.getType()).thenReturn("hsm");
         when(mstSignerConfig.getConfig()).thenReturn(hsmConfig);
+        when(hsmConfig.hasPath("host")).thenReturn(true);
         when(hsmConfig.getString("host")).thenReturn("127.0.0.1");
+        when(hsmConfig.hasPath("port")).thenReturn(true);
         when(hsmConfig.getInt("port")).thenReturn(9999);
         when(hsmConfig.getString("keyId")).thenReturn("m/44'/137'/1'/0/0");
         return mstSignerConfig;
