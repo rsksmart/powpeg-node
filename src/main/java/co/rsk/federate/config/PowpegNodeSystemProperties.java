@@ -35,6 +35,30 @@ public class PowpegNodeSystemProperties extends RskSystemProperties {
             UPDATE_BRIDGE_TIMER_ENABLED.getDefaultValue(Boolean::parseBoolean));
   }
 
+  public boolean shouldUpdateBridgeBtcBlockchain() {
+    return getBoolean(
+        UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath(),
+        UPDATE_BRIDGE_BTC_BLOCKCHAIN.getDefaultValue(Boolean::parseBoolean));
+  }
+
+  public boolean shouldUpdateBridgeBtcCoinbaseTransactions() {
+    return getBoolean(
+        UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS.getPath(),
+        UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS.getDefaultValue(Boolean::parseBoolean));
+  }
+
+  public boolean shouldUpdateBridgeBtcTransactions() {
+    return getBoolean(
+        UPDATE_BRIDGE_BTC_TRANSACTIONS.getPath(),
+        UPDATE_BRIDGE_BTC_TRANSACTIONS.getDefaultValue(Boolean::parseBoolean));
+  }
+
+  public boolean shouldUpdateCollections() {
+    return getBoolean(
+        UPDATE_COLLECTIONS.getPath(),
+        UPDATE_COLLECTIONS.getDefaultValue(Boolean::parseBoolean));
+  }
+
   public int getAmountOfHeadersToSend() {
     return getInt(
         AMOUNT_HEADERS.getPath(),
