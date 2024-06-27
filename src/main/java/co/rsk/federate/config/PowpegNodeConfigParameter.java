@@ -4,18 +4,24 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public enum PowpegNodeConfigParameter {
-  FEDARATOR_ENABLED("federator.enabled", "false"),
-  PEGOUT_ENABLED("federator.pegout.enabled", "false"),
-  UPDATE_BRIDGE_TIMER_ENABLED("federator.updateBridgeTimerEnabled", "true"),
-  UPDATE_BRIDGE_BTC_BLOCKCHAIN("federator.updateBridgeBtcBlockchain", "false"),
-  UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS("federator.updateBridgeBtcCoinbaseTransactions", "false"),
-  UPDATE_BRIDGE_BTC_TRANSACTIONS("federator.updateBridgeBtcTransactions", "false"),
-  UPDATE_COLLECTIONS("federator.updateCollections", "true"),
+  FEDERATOR_ENABLED("federator.enabled", Boolean.toString(true)),
+  PEGOUT_ENABLED("federator.pegout.enabled", Boolean.toString(true)),
+  UPDATE_BRIDGE_TIMER_ENABLED("federator.updateBridgeTimerEnabled", Boolean.toString(true)),
+  UPDATE_BRIDGE_BTC_BLOCKCHAIN("federator.updateBridgeBtcBlockchain", Boolean.toString(false)),
+  UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS("federator.updateBridgeBtcCoinbaseTransactions", Boolean.toString(false)),
+  UPDATE_BRIDGE_BTC_TRANSACTIONS("federator.updateBridgeBtcTransactions", Boolean.toString(false)),
+  UPDATE_COLLECTIONS("federator.updateCollections", Boolean.toString(true)),
   GAS_PRICE("federator.gasPrice", "0"),
   GAS_PRICE_PROVIDER("federator.gasPriceProvider", ""),
   AMOUNT_HEADERS("federator.amountOfHeadersToSend", "25"),
+  // 6000 blocks is 150% the amount of blocks the Bridge waits before confirming a
+  // peg-out. If this powpeg-node was shutdown for 48hs this depth will be enough
+  // to resync all the information. If this powpeg-node was shutdown for longer
+  // periods, most likely the transaction was signed by other pegnatories.
   BTC_INIT_MAX_DEPTH("federator.pegoutStorageInitializationDepth", "6000"),
   BTC_PEER_ADDRESSES("federator.bitcoinPeerAddresses", ""),
+  // The time to live (TTL) duration for the peg-out signed cache,
+  // specifies the validity period for the signed peg-outs.
   PEGOUT_CACHE_TTL("federator.pegoutSignedCacheTtlInMinutes", "30"),
   SIGNERS("federator.signers", "");
 
@@ -36,7 +42,7 @@ public enum PowpegNodeConfigParameter {
 
     if (defaultValue.isEmpty()) {
       throw new IllegalStateException(
-        "No default value present for: " + path);
+          "No Powpeg config default value present for: " + path);
     }
     return parser.apply(defaultValue);
   }

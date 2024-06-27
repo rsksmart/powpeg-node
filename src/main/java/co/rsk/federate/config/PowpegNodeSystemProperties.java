@@ -12,14 +12,16 @@ import java.util.List;
 
 public class PowpegNodeSystemProperties extends RskSystemProperties {
 
+  public static final String REGTEST = "regtest";
+
   public PowpegNodeSystemProperties(ConfigLoader loader) {
     super(loader);
   }
 
   public boolean isFederatorEnabled() {
     return getBoolean(
-        FEDARATOR_ENABLED.getPath(),
-        FEDARATOR_ENABLED.getDefaultValue(Boolean::parseBoolean));
+        FEDERATOR_ENABLED.getPath(),
+        FEDERATOR_ENABLED.getDefaultValue(Boolean::parseBoolean));
   }
 
   public boolean isPegoutEnabled() {
@@ -29,7 +31,7 @@ public class PowpegNodeSystemProperties extends RskSystemProperties {
   }
 
   public boolean isUpdateBridgeTimerEnabled() {
-    return !netName().equals("regtest") ||
+    return !netName().equals(REGTEST) ||
         getBoolean(
             UPDATE_BRIDGE_TIMER_ENABLED.getPath(),
             UPDATE_BRIDGE_TIMER_ENABLED.getDefaultValue(Boolean::parseBoolean));
@@ -65,14 +67,6 @@ public class PowpegNodeSystemProperties extends RskSystemProperties {
         AMOUNT_HEADERS.getDefaultValue(Integer::parseInt));
   }
 
-  /**
-   * 6000 blocks is 150% the amount of blocks the Bridge waits before confirming a
-   * peg-out.
-   * If this powpeg-node was shutdown for 48hs this depth will be enough to resync
-   * all the information.
-   * If this powpeg-node was shutdown for longer periods, most likely the
-   * transaction was signed by other functionaries.
-   */
   public int getBtcReleaseClientInitializationMaxDepth() {
     return getInt(
         BTC_INIT_MAX_DEPTH.getPath(),
@@ -85,14 +79,6 @@ public class PowpegNodeSystemProperties extends RskSystemProperties {
         : new ArrayList<>();
   }
 
-  /**
-   * Retrieves the time to live (TTL) duration for the pegout signed cache.
-   * The TTL duration specifies the validity period for cache entries.
-   * If the TTL value is not configured, a default value of 30 minutes is used.
-   * 
-   * @return The time to live (TTL) duration for the pegout signed cache,
-   *         or a default value of 30 minutes if not configured.
-   */
   public Duration getPegoutSignedCacheTtl() {
     return Duration.ofMinutes(
         getInt(
