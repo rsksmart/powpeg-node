@@ -70,25 +70,12 @@ class PowHSMSignerMessageBuilderTest {
         bridgeMainnetConstants.getBtcParams(), 9);
     private static final Federation oldFederation = TestUtils.createFederation(
         bridgeMainnetConstants.getBtcParams(), 9);
-    private final BtcECKey signerBtcPk = BtcECKey.fromPrivate(
-        org.bouncycastle.util.encoders.Hex.decode("fa01"));
+    private final BtcECKey signerBtcPk = BtcECKey.fromPrivate(Hex.decode("fa01"));
     private Transaction pegoutCreationRskTx;
     private Transaction pegoutConfirmationRskTx;
     private Block pegoutCreationBlock;
     private TransactionReceipt pegoutCreationRskTxReceipt;
-    private TransactionInfo pegoutCreationRskTxInfo;
     private ReceiptStore receiptStore;
-
-    private static List<Arguments> serializedAndDeserializedOutpointValuesArgProvider() {
-        List<Arguments> arguments = new ArrayList<>();
-        // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
-        arguments.add(Arguments.of(Hex.decode("FE80F0FA02"), coinListOf(50_000_000)));
-        arguments.add(Arguments.of(Hex.decode("FEC0687804"), coinListOf(75_000_000)));
-        arguments.add(Arguments.of(Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
-            coinListOf(50_000_000, 75_000_000, 100_000_000)));
-
-        return arguments;
-    }
 
     @BeforeEach
     void setUp() {
@@ -109,7 +96,7 @@ class PowHSMSignerMessageBuilderTest {
         pegoutCreationRskTxReceipt.setLogInfoList(Collections.emptyList());
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
-        pegoutCreationRskTxInfo = mock(TransactionInfo.class);
+        TransactionInfo pegoutCreationRskTxInfo = mock(TransactionInfo.class);
         when(pegoutCreationRskTxInfo.getReceipt()).thenReturn(pegoutCreationRskTxReceipt);
         when(pegoutCreationRskTxInfo.getBlockHash()).thenReturn(
             pegoutCreationBlock.getHash().getBytes());
@@ -354,6 +341,17 @@ class PowHSMSignerMessageBuilderTest {
         buildMessageForIndexAndExecuteAssertions(expectedOutpointValues, pegoutBtcTx);
     }
 
+    private static List<Arguments> serializedAndDeserializedOutpointValuesArgProvider() {
+        List<Arguments> arguments = new ArrayList<>();
+        // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
+        arguments.add(Arguments.of(Hex.decode("FE80F0FA02"), coinListOf(50_000_000)));
+        arguments.add(Arguments.of(Hex.decode("FEC0687804"), coinListOf(75_000_000)));
+        arguments.add(Arguments.of(Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
+            coinListOf(50_000_000, 75_000_000, 100_000_000)));
+
+        return arguments;
+    }
+
     private void buildMessageForIndexAndExecuteAssertions(List<Coin> expectedOutpointValues,
         BtcTransaction pegoutBtcTx)
         throws SignerMessageBuilderException {
@@ -391,8 +389,8 @@ class PowHSMSignerMessageBuilderTest {
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String ActualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
-        assertEquals(expectedBtcTxSerialized, ActualBtcTxSerialized);
+        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+        assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
         assertArrayEquals(expectedReceiptMerkleProof,
