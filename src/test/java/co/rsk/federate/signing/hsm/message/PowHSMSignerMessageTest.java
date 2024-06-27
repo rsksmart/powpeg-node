@@ -59,7 +59,6 @@ import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.core.TransactionReceipt;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -82,11 +81,6 @@ class PowHSMSignerMessageTest {
     private final List<Coin> noOutpointValuesForLegacyPegouts = Collections.emptyList();
 
     private final BtcECKey signerBtcPk = BtcECKey.fromPrivate(Hex.decode("fa01"));
-
-    @BeforeEach
-    void setUp() {
-
-    }
 
     @Test
     void equality() {

@@ -70,13 +70,11 @@ class PowHSMSignerMessageBuilderTest {
         bridgeMainnetConstants.getBtcParams(), 9);
     private static final Federation oldFederation = TestUtils.createFederation(
         bridgeMainnetConstants.getBtcParams(), 9);
-    private final BtcECKey signerBtcPk = BtcECKey.fromPrivate(
-        org.bouncycastle.util.encoders.Hex.decode("fa01"));
+    private final BtcECKey signerBtcPk = BtcECKey.fromPrivate(Hex.decode("fa01"));
     private Transaction pegoutCreationRskTx;
     private Transaction pegoutConfirmationRskTx;
     private Block pegoutCreationBlock;
     private TransactionReceipt pegoutCreationRskTxReceipt;
-    private TransactionInfo pegoutCreationRskTxInfo;
     private ReceiptStore receiptStore;
 
     private static List<Arguments> serializedAndDeserializedOutpointValuesArgProvider() {
@@ -109,7 +107,7 @@ class PowHSMSignerMessageBuilderTest {
         pegoutCreationRskTxReceipt.setLogInfoList(Collections.emptyList());
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
-        pegoutCreationRskTxInfo = mock(TransactionInfo.class);
+        TransactionInfo pegoutCreationRskTxInfo = mock(TransactionInfo.class);
         when(pegoutCreationRskTxInfo.getReceipt()).thenReturn(pegoutCreationRskTxReceipt);
         when(pegoutCreationRskTxInfo.getBlockHash()).thenReturn(
             pegoutCreationBlock.getHash().getBytes());
