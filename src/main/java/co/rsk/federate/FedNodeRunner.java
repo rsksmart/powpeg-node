@@ -283,24 +283,20 @@ public class FedNodeRunner implements NodeRunner {
             bitcoinWrapper = createAndSetupBitcoinWrapper(btcLockSenderProvider, peginInstructionsProvider);
 
             btcToRskClientActive.setup(
-                config.getActivationConfig(),
                 bitcoinWrapper,
                 bridgeConstants,
                 btcToRskClientFileStorage,
                 btcLockSenderProvider,
                 peginInstructionsProvider,
-                config.isUpdateBridgeTimerEnabled(),
-                config.getAmountOfHeadersToSend()
+                config
             );
             btcToRskClientRetiring.setup(
-                config.getActivationConfig(),
                 bitcoinWrapper,
                 bridgeConstants,
                 btcToRskClientFileStorage,
                 btcLockSenderProvider,
                 peginInstructionsProvider,
-                config.isUpdateBridgeTimerEnabled(),
-                config.getAmountOfHeadersToSend()
+                config
             );
             BtcLogMonitor btcLogMonitor = new BtcLogMonitor(bitcoinWrapper, federateLogger);
             btcLogMonitor.start();
