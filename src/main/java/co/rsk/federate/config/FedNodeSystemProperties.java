@@ -97,4 +97,25 @@ public class FedNodeSystemProperties extends RskSystemProperties {
         return Duration.ofMinutes(
             getInt("federator.pegoutSignedCacheTtlInMinutes", 30));
     }
+
+    public boolean shouldUpdateBridgeBtcBlockchain() {
+        return !configFromFiles.hasPath("federator.updateBridgeBtcBlockchain") ||
+            configFromFiles.getBoolean("federator.updateBridgeBtcBlockchain");
+    }
+
+    public boolean shouldUpdateBridgeBtcCoinbaseTransactions() {
+        return !configFromFiles.hasPath("federator.updateBridgeBtcCoinbaseTransactions") ||
+            configFromFiles.getBoolean("federator.updateBridgeBtcCoinbaseTransactions");
+    }
+
+    public boolean shouldUpdateBridgeBtcTransactions() {
+        return !configFromFiles.hasPath("federator.updateBridgeBtcTransactions") ||
+            configFromFiles.getBoolean("federator.updateBridgeBtcTransactions");
+    }
+
+    public boolean shouldUpdateCollections() {
+        return !configFromFiles.hasPath("federator.updateCollections") ||
+            configFromFiles.getBoolean("federator.updateCollections");
+    }
+
 }
