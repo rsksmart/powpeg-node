@@ -1,16 +1,17 @@
 package co.rsk.federate.signing.hsm.client;
 
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.federate.signing.hsm.HSMClientException;
+import static co.rsk.federate.signing.HSMCommand.SIGN;
+import static co.rsk.federate.signing.HSMField.AUTH;
+import static co.rsk.federate.signing.HSMField.KEY_ID;
+import static co.rsk.federate.signing.HSMField.MESSAGE;
+import static co.rsk.federate.signing.HSMField.RECEIPT;
+import static co.rsk.federate.signing.HSMField.RECEIPT_MERKLE_PROOF;
+
 import co.rsk.federate.signing.hsm.message.PowHSMSignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.ethereum.crypto.ECKey;
-
-import static co.rsk.federate.signing.HSMCommand.SIGN;
-import static co.rsk.federate.signing.HSMField.*;
 
 public class PowHSMSigningClientBtc extends PowHSMSigningClient {
 
@@ -22,10 +23,11 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient {
     protected final ObjectNode createObjectToSend(String keyId, SignerMessage message) {
         PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) message;
 
-        ObjectNode objectToSign = this.hsmClientProtocol.buildCommand(SIGN.getCommand(), this.getVersion());
+        ObjectNode objectToSign = hsmClientProtocol.buildCommand(SIGN.getCommand(),
+            getVersion());
         objectToSign.put(KEY_ID.getFieldName(), keyId);
         objectToSign.set(AUTH.getFieldName(), createAuthField(powHSMSignerMessage));
-        objectToSign.set(MESSAGE.getFieldName(), createMessageField(powHSMSignerMessage));
+        objectToSign.set(MESSAGE.getFieldName(), powHSMSignerMessage.getMessageToSign(version));
 
         return objectToSign;
     }
@@ -39,17 +41,5 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient {
         }
         auth.set(RECEIPT_MERKLE_PROOF.getFieldName(), receiptMerkleProof);
         return auth;
-    }
-
-    private ObjectNode createMessageField(PowHSMSignerMessage message) {
-        ObjectNode messageToSend = new ObjectMapper().createObjectNode();
-        messageToSend.put(TX.getFieldName(), message.getBtcTransactionSerialized());
-        messageToSend.put(INPUT.getFieldName(), message.getInputIndex());
-        return messageToSend;
-    }
-
-    public boolean verifySigHash(Sha256Hash sigHash, String keyId, HSMSignature signatureReturned) throws HSMClientException {
-        ECKey eckey = ECKey.fromPublicOnly(getPublicKey(keyId));
-        return eckey.verify(sigHash.getBytes(), signatureReturned.toEthSignature());
     }
 }
