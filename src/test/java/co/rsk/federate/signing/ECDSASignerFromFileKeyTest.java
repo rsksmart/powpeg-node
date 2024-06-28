@@ -131,7 +131,7 @@ class ECDSASignerFromFileKeyTest {
     @Test
     void getVersionForKeyIdOk() throws SignerException {
         KeyId key = new KeyId("an-id");
-        int version = 1;
+        int version = SignerVersion.VERSION_1.getVersionNumber();
 
         assertEquals(signer.getVersionForKeyId(key), version);
     }

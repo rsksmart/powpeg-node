@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.FedNodeSystemProperties;
@@ -71,7 +72,7 @@ class FedNodeRunnerTest {
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
 
-        int hsmVersion = 3;
+        int hsmVersion = SignerVersion.VERSION_3.getVersionNumber();
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(hsmVersion);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
