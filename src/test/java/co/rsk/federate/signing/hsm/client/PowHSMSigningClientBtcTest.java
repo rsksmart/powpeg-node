@@ -449,9 +449,6 @@ class PowHSMSigningClientBtcTest {
             }
 
             Coin amountToSend = outpointValues.get(outputIndex).minus(fee);
-            System.out.println(
-                "DestinationAddress: " + outputIndex + " - " + destinationAddresses.get(
-                    outputIndex % destinationAddresses.size()));
             pegoutBtcTx.addOutput(amountToSend,
                 destinationAddresses.get(outputIndex % destinationAddresses.size()));
         }
