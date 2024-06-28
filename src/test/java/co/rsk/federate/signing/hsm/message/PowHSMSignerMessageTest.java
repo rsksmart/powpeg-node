@@ -43,6 +43,7 @@ import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
@@ -236,18 +237,18 @@ class PowHSMSignerMessageTest {
 
         List<Arguments> arguments = new ArrayList<>();
 
-        int hsmVersion2 = 2;
-        arguments.add(Arguments.of(hsmVersion2, expectedMessageBeforeVersion5));
+        arguments.add(
+            Arguments.of(SignerVersion.VERSION_2.getVersionNumber(), expectedMessageBeforeVersion5));
 
-        int hsmVersion4 = 4;
-        arguments.add(Arguments.of(hsmVersion4, expectedMessageBeforeVersion5));
+        arguments.add(
+            Arguments.of(SignerVersion.VERSION_4.getVersionNumber(), expectedMessageBeforeVersion5));
 
-        int hsmVersion5 = 5;
         ObjectNode expectedMessageVersion5 = new ObjectMapper().createObjectNode();
         expectedMessageVersion5.put(TX.getFieldName(), expectedEncodedPegoutBtcTx);
         expectedMessageVersion5.put(INPUT.getFieldName(), FIRST_INPUT_INDEX);
         expectedMessageVersion5.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_LEGACY_MODE);
-        arguments.add(Arguments.of(hsmVersion5, expectedMessageVersion5));
+        arguments.add(
+            Arguments.of(SignerVersion.VERSION_5.getVersionNumber(), expectedMessageVersion5));
 
         return arguments;
     }
@@ -266,7 +267,7 @@ class PowHSMSignerMessageTest {
 
         Sha256Hash sigHash = BitcoinTestUtils.createHash(1);
 
-        int hsmVersion5 = 5;
+        int hsmVersion5 = SignerVersion.VERSION_5.getVersionNumber();
 
         List<Long> expectedOutpointValues = Arrays.asList(50_000_000L, 75_000_000L, 100_000_000L);
 

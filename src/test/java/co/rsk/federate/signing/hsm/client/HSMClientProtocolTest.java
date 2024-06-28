@@ -37,6 +37,7 @@ import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.HSMField;
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.federate.signing.hsm.HSMChangedVersionException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceException;
@@ -110,7 +111,7 @@ class HSMClientProtocolTest {
 
     @Test
     void sendOk() throws JsonRpcException, HSMClientException {
-        int version = 1;
+        int version = SignerVersion.VERSION_1.getVersionNumber();
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(version));
@@ -125,7 +126,7 @@ class HSMClientProtocolTest {
 
     @Test
     void sendOkWithRetries() throws JsonRpcException, HSMClientException {
-        int version = 1;
+        int version = SignerVersion.VERSION_1.getVersionNumber();
         String exceptionMessage = "Unable to connect to socket";
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());

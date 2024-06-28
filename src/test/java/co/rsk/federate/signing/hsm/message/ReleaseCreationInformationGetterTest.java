@@ -20,14 +20,17 @@ import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.bitcoin.UtxoUtils;
 import co.rsk.peg.pegin.RejectedPeginReason;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.Block;
 import org.ethereum.core.CallTransaction;
@@ -57,7 +60,8 @@ class ReleaseCreationInformationGetterTest {
     private static List<Arguments> getTxInfoToSignArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
 
-        int[] hsmVersions = {2, 4, 5};
+
+        List<Integer> hsmVersions = Arrays.stream(SignerVersion.values()).map(SignerVersion::getVersionNumber).collect(Collectors.toList());
         for (int hsmVersion : hsmVersions) {
             arguments.add(
                 Arguments.of(hsmVersion, Hex.decode("00"), Collections.singletonList(Coin.ZERO)));

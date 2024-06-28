@@ -228,7 +228,7 @@ class ECDSAHSMSignerTest {
     @Test
     void getVersionForKeyIdOk() throws HSMClientException, SignerException {
         KeyId key = new KeyId("keyA");
-        int version = 1;
+        int version = SignerVersion.VERSION_1.getVersionNumber();
         when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenReturn(version);
 
@@ -255,7 +255,7 @@ class ECDSAHSMSignerTest {
     @Test
     void getVersionForKeyId_SignerException() throws HSMClientException {
         KeyId key = new KeyId("keyAB");
-        int version = 3;
+        int version = SignerVersion.VERSION_3.getVersionNumber();
         when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenReturn( version);
 
