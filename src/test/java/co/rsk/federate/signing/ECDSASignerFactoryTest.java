@@ -25,7 +25,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import co.rsk.federate.config.SignerConfig;
+import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
 import co.rsk.federate.signing.hsm.SignerException;
@@ -62,7 +62,9 @@ class ECDSASignerFactoryTest {
     @Test
     void buildFromConfigHSM() throws SignerException {
         Config configMock = mockConfig("hsm");
+        when(configMock.hasPath("host")).thenReturn(true);
         when(configMock.getString("host")).thenReturn("remotehost");
+        when(configMock.hasPath("port")).thenReturn(true);
         when(configMock.getInt("port")).thenReturn(1234);
         when(configMock.getString("keyId")).thenReturn("a-bip32-path");
         when(configMock.hasPath("socketTimeout")).thenReturn(true);
