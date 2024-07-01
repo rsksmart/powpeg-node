@@ -1,6 +1,5 @@
 package co.rsk.federate;
 
-import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.DIFFICULTY_TARGET;
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.MST_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
@@ -22,6 +21,7 @@ import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
+import co.rsk.federate.config.TestConfigBuilder;
 import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
@@ -57,6 +57,7 @@ class FedNodeRunnerTest {
     private FedNodeRunner fedNodeRunner;
     private PowpegNodeSystemProperties fedNodeSystemProperties;
     private Config keyFileConfig;
+    private Path keyFilePath;
     private HSMBookkeepingClient hsmBookkeepingClient;
 
     @TempDir
@@ -65,7 +66,7 @@ class FedNodeRunnerTest {
     @BeforeEach
     void setUp() throws IOException, HSMClientException {
         // Create temp key file
-        Path keyFilePath = temporaryFolder.resolve("reg1.key");
+        keyFilePath = temporaryFolder.resolve("reg1.key");
         Files.write(keyFilePath, Collections.singletonList("45c5b07fc1a6f58892615b7c31dca6c96db58c4bbc538a6b8a22999aaa860c32"));
         Files.setPosixFilePermissions(keyFilePath, PosixFilePermissions.fromString("r--------")); // Add only read permission
 
@@ -272,9 +273,9 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_KeyFile_config_Ok() throws Exception {
-        SignerConfig btcSignerConfig = getBTCSignerConfig();
-        SignerConfig rskSignerConfig = getRSKSignerConfig();
-        SignerConfig mstSignerConfig = getMSTSignerConfig();
+        SignerConfig btcSignerConfig = getBTCSignerConfig(keyFilePath.toString());
+        SignerConfig rskSignerConfig = getRSKSignerConfig(keyFilePath.toString());
+        SignerConfig mstSignerConfig = getMSTSignerConfig(keyFilePath.toString());
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
         when(fedNodeSystemProperties.signerConfig(MST_KEY_ID.getId())).thenReturn(mstSignerConfig);
@@ -309,8 +310,8 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_KeyFile_config_without_btc() throws Exception {
-        SignerConfig rskSignerConfig = getRSKSignerConfig();
-        SignerConfig mstSignerConfig = getMSTSignerConfig();
+        SignerConfig rskSignerConfig = getRSKSignerConfig(keyFilePath.toString());
+        SignerConfig mstSignerConfig = getMSTSignerConfig(keyFilePath.toString());
         when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
         when(fedNodeSystemProperties.signerConfig(MST_KEY_ID.getId())).thenReturn(mstSignerConfig);
 
@@ -338,8 +339,8 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_KeyFile_config_without_rsk() throws Exception {
-        SignerConfig btcSignerConfig = getBTCSignerConfig();
-        SignerConfig mstSignerConfig = getMSTSignerConfig();
+        SignerConfig btcSignerConfig = getBTCSignerConfig(keyFilePath.toString());
+        SignerConfig mstSignerConfig = getMSTSignerConfig(keyFilePath.toString());
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(MST_KEY_ID.getId())).thenReturn(mstSignerConfig);
 
@@ -367,8 +368,8 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_KeyFile_config_without_mst() throws Exception {
-        SignerConfig btcSignerConfig = getBTCSignerConfig();
-        SignerConfig rskSignerConfig = getRSKSignerConfig();
+        SignerConfig btcSignerConfig = getBTCSignerConfig(keyFilePath.toString());
+        SignerConfig rskSignerConfig = getRSKSignerConfig(keyFilePath.toString());
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
 
@@ -396,14 +397,9 @@ class FedNodeRunnerTest {
 
     @Test
     void test_KeyFile_config_with_no_path() throws Exception {
-        Config mockConfig = mock(Config.class);
-        when(mockConfig.getString("path")).thenReturn("");
-        SignerConfig btcSignerConfig = getBTCSignerConfig();
-        when(btcSignerConfig.getConfig()).thenReturn(mockConfig);
-        SignerConfig rskSignerConfig = getRSKSignerConfig();
-        when(rskSignerConfig.getConfig()).thenReturn(mockConfig);
-        SignerConfig mstSignerConfig = getMSTSignerConfig();
-        when(mstSignerConfig.getConfig()).thenReturn(mockConfig);
+        SignerConfig btcSignerConfig = getBTCSignerConfig("");
+        SignerConfig rskSignerConfig = getRSKSignerConfig("");
+        SignerConfig mstSignerConfig = getMSTSignerConfig("");
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
         when(fedNodeSystemProperties.signerConfig(MST_KEY_ID.getId())).thenReturn(mstSignerConfig);
@@ -445,69 +441,72 @@ class FedNodeRunnerTest {
 
     @Test
     void run_whenHsmVersionIsLowerThanThreeAndDifficultyTargetConfigIsNotPresent_shouldThrowException() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
-        when(btcSignerConfig.getConfig().getString(DIFFICULTY_TARGET.getPath()))
-           .thenThrow(new ConfigException.Missing(DIFFICULTY_TARGET.getPath()));
+        int version = 2;
+        when(hsmBookkeepingClient.getVersion()).thenReturn(version);
+        when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
+            new HSMUnsupportedTypeException("PowHSM version: " + version));
+        Config config = TestConfigBuilder.builder()
+            .withValue("type", "hsm")
+            .withValue("host", "127.0.0.1")
+            .withValue("port", 9999)
+            .withValue("keyId", "m/44'/0'/0'/0/0")
+            .withValue("socketTimeout", 20000)
+            .withValue("maxAttempts", 3)
+            .withValue("intervalBetweenAttempts", 2000)
+            .withValue("bookkeeping.informerInterval", 500000L)
+            .withValue("bookkeeping.maxAmountBlockHeaders", 1000)
+            .withValue("bookkeeping.maxChunkSizeToHsm", 100)
+            .withValue("bookkeeping.stopBookkeepingScheduler", true)
+            .build();
+        SignerConfig btcSignerConfig = new SignerConfig("BTC", config);
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
 
         assertThrows(ConfigException.class, () -> fedNodeRunner.run());
     }
 
-    private SignerConfig getBTCSignerConfig() {
-        SignerConfig btcSignerConfig = mock(SignerConfig.class);
-        when(btcSignerConfig.getId()).thenReturn("BTC");
-        when(btcSignerConfig.getType()).thenReturn("keyFile");
-        when(btcSignerConfig.getConfig()).thenReturn(keyFileConfig);
-        return btcSignerConfig;
+    private SignerConfig getBTCSignerConfig(String path) {
+        Config config = TestConfigBuilder.builder()
+            .withValue("type", "keyFile")
+            .withValue("path", path)
+            .build();
+        return new SignerConfig("BTC", config);
     }
 
-    private SignerConfig getRSKSignerConfig() {
-        SignerConfig rskSignerConfig = mock(SignerConfig.class);
-        when(rskSignerConfig.getId()).thenReturn("RSK");
-        when(rskSignerConfig.getType()).thenReturn("keyFile");
-        when(rskSignerConfig.getConfig()).thenReturn(keyFileConfig);
-        return rskSignerConfig;
+    private SignerConfig getRSKSignerConfig(String path) {
+        Config config = TestConfigBuilder.builder()
+            .withValue("type", "keyFile")
+            .withValue("path", path)
+            .build();
+        return new SignerConfig("RSK", config);
     }
 
-    private SignerConfig getMSTSignerConfig() {
-        SignerConfig mstSignerConfig = mock(SignerConfig.class);
-        when(mstSignerConfig.getId()).thenReturn("MST");
-        when(mstSignerConfig.getType()).thenReturn("keyFile");
-        when(mstSignerConfig.getConfig()).thenReturn(keyFileConfig);
-        return mstSignerConfig;
+    private SignerConfig getMSTSignerConfig(String path) {
+        Config config = TestConfigBuilder.builder()
+            .withValue("type", "keyFile")
+            .withValue("path", path)
+            .build();
+        return new SignerConfig("MST", config);
     }
 
     private SignerConfig getHSMBTCSignerConfig(HSMVersion version) throws HSMClientException {
-        SignerConfig btcSignerConfig = mock(SignerConfig.class);
-        Config hsmConfig = mock(Config.class);
-        when(btcSignerConfig.getId()).thenReturn("BTC");
-        when(btcSignerConfig.getType()).thenReturn("hsm");
-        when(btcSignerConfig.getConfig()).thenReturn(hsmConfig);
-        when(hsmConfig.hasPath("host")).thenReturn(true);
-        when(hsmConfig.getString("host")).thenReturn("127.0.0.1");
-        when(hsmConfig.hasPath("port")).thenReturn(true);
-        when(hsmConfig.getInt("port")).thenReturn(9999);
-        when(hsmConfig.getString("keyId")).thenReturn("m/44'/0'/0'/0/0");
         when(hsmBookkeepingClient.getVersion()).thenReturn(version.getNumber());
+        TestConfigBuilder configBuilder = TestConfigBuilder.builder()
+            .withValue("type", "hsm")
+            .withValue("host", "127.0.0.1")
+            .withValue("port", 9999)
+            .withValue("keyId", "m/44'/0'/0'/0/0");
 
-        if (HSMVersion.isPowHSM(version)) {
-            when(hsmConfig.hasPath("socketTimeout")).thenReturn(true);
-            when(hsmConfig.getInt("socketTimeout")).thenReturn(20000);
-            when(hsmConfig.hasPath("maxAttempts")).thenReturn(true);
-            when(hsmConfig.getInt("maxAttempts")).thenReturn(3);
-            when(hsmConfig.hasPath("intervalBetweenAttempts")).thenReturn(true);
-            when(hsmConfig.getInt("intervalBetweenAttempts")).thenReturn(2000);
+        if (version.getNumber() >= 2) {
             when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
                 new HSMUnsupportedTypeException("PowHSM version: " + version));
-            when(hsmConfig.getString("bookkeeping.difficultyTarget")).thenReturn("4405500");
-            when(hsmConfig.hasPath("bookkeeping.informerInterval")).thenReturn(true);
-            when(hsmConfig.getLong("bookkeeping.informerInterval")).thenReturn(500000L);
-            when(hsmConfig.hasPath("bookkeeping.maxAmountBlockHeaders")).thenReturn(true);
-            when(hsmConfig.getInt("bookkeeping.maxAmountBlockHeaders")).thenReturn(1000);
-            when(hsmConfig.hasPath("bookkeeping.maxChunkSizeToHsm")).thenReturn(true);
-            when(hsmConfig.getInt("bookkeeping.maxChunkSizeToHsm")).thenReturn(100);
-            when(hsmConfig.hasPath("bookkeeping.stopBookkeepingScheduler")).thenReturn(true);
-            when(hsmConfig.getBoolean("bookkeeping.stopBookkeepingScheduler")).thenReturn(true);
+            configBuilder = configBuilder.withValue("socketTimeout", 20000)
+                .withValue("maxAttempts", 3)
+                .withValue("intervalBetweenAttempts", 2000)
+                .withValue("bookkeeping.difficultyTarget", "4405500")
+                .withValue("bookkeeping.informerInterval", 500000L)
+                .withValue("bookkeeping.maxAmountBlockHeaders", 1000)
+                .withValue("bookkeeping.maxChunkSizeToHsm", 100)
+                .withValue("bookkeeping.stopBookkeepingScheduler", true);
         }
 
         if (version.getNumber() >= 3) {
@@ -518,34 +517,26 @@ class FedNodeRunnerTest {
                     NetworkParameters.ID_UNITTESTNET.toString()));
         }
 
-        return btcSignerConfig;
+        return new SignerConfig("BTC", configBuilder.build());
     }
 
     private SignerConfig getHSMRSKSignerConfig() {
-        SignerConfig rskSignerConfig = mock(SignerConfig.class);
-        Config hsmConfig = mock(Config.class);
-        when(rskSignerConfig.getId()).thenReturn("RSK");
-        when(rskSignerConfig.getType()).thenReturn("hsm");
-        when(rskSignerConfig.getConfig()).thenReturn(hsmConfig);
-        when(hsmConfig.hasPath("host")).thenReturn(true);
-        when(hsmConfig.getString("host")).thenReturn("127.0.0.1");
-        when(hsmConfig.hasPath("port")).thenReturn(true);
-        when(hsmConfig.getInt("port")).thenReturn(9999);
-        when(hsmConfig.getString("keyId")).thenReturn("m/44'/137'/0'/0/0");
-        return rskSignerConfig;
+        Config config = TestConfigBuilder.builder()
+            .withValue("type", "hsm")
+            .withValue("host", "127.0.0.1")
+            .withValue("port", 9999)
+            .withValue("keyId", "m/44'/137'/0'/0/0")
+            .build();
+        return new SignerConfig("RSK", config); 
     }
 
     private SignerConfig getHSMMSTSignerConfig() {
-        Config hsmConfig = mock(Config.class);
-        SignerConfig mstSignerConfig = mock(SignerConfig.class);
-        when(mstSignerConfig.getId()).thenReturn("MST");
-        when(mstSignerConfig.getType()).thenReturn("hsm");
-        when(mstSignerConfig.getConfig()).thenReturn(hsmConfig);
-        when(hsmConfig.hasPath("host")).thenReturn(true);
-        when(hsmConfig.getString("host")).thenReturn("127.0.0.1");
-        when(hsmConfig.hasPath("port")).thenReturn(true);
-        when(hsmConfig.getInt("port")).thenReturn(9999);
-        when(hsmConfig.getString("keyId")).thenReturn("m/44'/137'/1'/0/0");
-        return mstSignerConfig;
+        Config config = TestConfigBuilder.builder()
+            .withValue("type", "hsm")
+            .withValue("host", "127.0.0.1")
+            .withValue("port", 9999)
+            .withValue("keyId", "m/44'/137'/1'/0/0")
+            .build();
+        return new SignerConfig("MST", config); 
     }
 }
