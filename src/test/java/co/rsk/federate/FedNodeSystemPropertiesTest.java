@@ -179,14 +179,14 @@ class FedNodeSystemPropertiesTest {
     }
 
     @Test
-    void shouldUpdateBridgeBtcBlockchain_whenConfigPathDoesNotExist_shouldReturnTrue() {
+    void shouldUpdateBridgeBtcBlockchain_whenConfigPathDoesNotExist_shouldReturnFalse() {
         when(configLoader.getConfig()).thenReturn(config);
         when(config.hasPath("federator.updateBridgeBtcBlockchain")).thenReturn(false);
         when(config.root()).thenReturn(configObject);
 
         FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
 
-        assertTrue(fedNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
+        assertFalse(fedNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
     }
 
     @Test
@@ -202,14 +202,14 @@ class FedNodeSystemPropertiesTest {
     }
 
     @Test
-    void shouldUpdateBridgeBtcCoinbaseTransactions_whenConfigPathDoesNotExist_shouldReturnTrue() {
+    void shouldUpdateBridgeBtcCoinbaseTransactions_whenConfigPathDoesNotExist_shouldReturnFalse() {
         when(configLoader.getConfig()).thenReturn(config);
         when(config.hasPath("federator.updateBridgeBtcCoinbaseTransactions")).thenReturn(false);
         when(config.root()).thenReturn(configObject);
 
         FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
 
-        assertTrue(fedNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
+        assertFalse(fedNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
     }
 
     @Test
@@ -225,14 +225,14 @@ class FedNodeSystemPropertiesTest {
     }
 
     @Test
-    void shouldUpdateBridgeBtcTransactions_whenConfigPathDoesNotExist_shouldReturnTrue() {
+    void shouldUpdateBridgeBtcTransactions_whenConfigPathDoesNotExist_shouldReturnFalse() {
         when(configLoader.getConfig()).thenReturn(config);
         when(config.hasPath("federator.updateBridgeBtcTransactions")).thenReturn(false);
         when(config.root()).thenReturn(configObject);
 
         FedNodeSystemProperties fedNodeSystemProperties = new FedNodeSystemProperties(configLoader);
 
-        assertTrue(fedNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
+        assertFalse(fedNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
     }
 
     @Test
