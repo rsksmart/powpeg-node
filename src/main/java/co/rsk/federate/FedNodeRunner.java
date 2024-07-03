@@ -138,7 +138,7 @@ public class FedNodeRunner implements NodeRunner {
             int hsmVersion = protocol.getVersion();
             LOGGER.debug("[run] Using HSM version {}", hsmVersion);
 
-            if (hsmVersion >= 2) {
+            if (hsmVersion >= SignerVersion.VERSION_2.getVersionNumber()) {
                 hsmBookkeepingClient = buildBookKeepingClient(protocol, bookKeepingConfig);
                 hsmBookkeepingService = buildBookKeepingService(
                     hsmBookkeepingClient,

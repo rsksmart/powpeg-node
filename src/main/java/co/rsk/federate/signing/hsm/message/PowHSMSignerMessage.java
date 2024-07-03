@@ -28,6 +28,7 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionWitness;
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.trie.Trie;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +43,6 @@ import org.spongycastle.util.encoders.Hex;
 
 public class PowHSMSignerMessage extends SignerMessage {
 
-    private static final int HSM_VERSION_5 = 5;
     private static final String SIGHASH_LEGACY_MODE = "legacy";
     private static final String SIGHASH_SEGWIT_MODE = "segwit";
     private final BtcTransaction btcTransaction;
@@ -102,7 +102,7 @@ public class PowHSMSignerMessage extends SignerMessage {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
         messageToSend.put(TX.getFieldName(), getBtcTransactionSerialized());
         messageToSend.put(INPUT.getFieldName(), inputIndex);
-        if (version == HSM_VERSION_5) {
+        if (version == SignerVersion.VERSION_5.getVersionNumber()) {
             if (hasWitness()) {
                 populateWithSegwitValues(messageToSend);
             } else {
