@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,17 +36,17 @@ class ReleaseRequirementsEnforcerTest {
 
     @Test
     void enforce_version_two_ok() throws Exception {
-        test_enforce_version(ancestorBlockUpdater, enforcer, 2);
+        test_enforce_version(ancestorBlockUpdater, enforcer, SignerVersion.VERSION_2.getVersionNumber());
     }
 
     @Test
     void enforce_version_three_ok() throws Exception {
-        test_enforce_version(ancestorBlockUpdater, enforcer, 3);
+        test_enforce_version(ancestorBlockUpdater, enforcer, SignerVersion.VERSION_3.getVersionNumber());
     }
 
     @Test
     void enforce_version_four_ok() throws Exception {
-        test_enforce_version(ancestorBlockUpdater, enforcer, 4);
+        test_enforce_version(ancestorBlockUpdater, enforcer, SignerVersion.VERSION_4.getVersionNumber());
     }
 
     void test_enforce_version(AncestorBlockUpdater ancestorBlockUpdater, ReleaseRequirementsEnforcer enforcer, int version) throws Exception {
@@ -60,7 +61,7 @@ class ReleaseRequirementsEnforcerTest {
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
 
-        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(2, mock(ReleaseCreationInformation.class)));
+        assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(SignerVersion.VERSION_2.getVersionNumber(), mock(ReleaseCreationInformation.class)));
     }
 
     @Test

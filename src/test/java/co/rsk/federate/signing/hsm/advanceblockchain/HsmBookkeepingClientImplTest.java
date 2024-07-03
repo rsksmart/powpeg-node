@@ -37,6 +37,7 @@ import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.HSMField;
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
@@ -72,8 +73,8 @@ import org.mockito.ArgumentCaptor;
  * Created by Kelvin Isievwore on 14/03/2023.
  */
 class HsmBookkeepingClientImplTest {
-    private final static int VERSION_TWO = 2;
-    private final static int VERSION_FOUR = 4;
+    private final static int VERSION_TWO = SignerVersion.VERSION_2.getVersionNumber();
+    private final static int VERSION_FOUR = SignerVersion.VERSION_4.getVersionNumber();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private JsonRpcClient jsonRpcClientMock;
     private HsmBookkeepingClientImpl hsmBookkeepingClient;

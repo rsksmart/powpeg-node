@@ -18,6 +18,7 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
@@ -47,9 +48,9 @@ public class HSMSigningClientProvider {
         int version = this.hsmClientProtocol.getVersion();
         HSMSigningClient client;
         logger.debug("[getSigningClient] version: {}, keyId: {}", version, keyId);
-        if (version == 1) {
+        if (version == SignerVersion.VERSION_1.getVersionNumber()) {
             client = new HSMSigningClientV1(this.hsmClientProtocol);
-        } else if (version >= 2) {
+        } else if (version >= SignerVersion.VERSION_2.getVersionNumber()) {
             client = buildPowHSMClient(version);
         } else {
             String message = String.format("Unsupported HSM version %d", version);

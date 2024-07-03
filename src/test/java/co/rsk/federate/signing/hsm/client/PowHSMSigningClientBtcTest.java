@@ -48,6 +48,7 @@ import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.KeyId;
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.message.PowHSMSignerMessage;
 import co.rsk.federate.signing.hsm.message.PowHSMSignerMessageBuilder;
@@ -84,7 +85,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class PowHSMSigningClientBtcTest {
 
-    private static final int HSM_VERSION_2 = 2;
+    private static final int HSM_VERSION_2 = SignerVersion.VERSION_2.getVersionNumber();
     private static final BridgeConstants bridgeMainnetConstants = BridgeMainNetConstants.getInstance();
     private static final NetworkParameters btcMainnetParams = bridgeMainnetConstants.getBtcParams();
 

@@ -20,6 +20,7 @@ import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import co.rsk.federate.signing.SignerVersion;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.bitcoin.UtxoUtils;
@@ -57,17 +58,16 @@ class ReleaseCreationInformationGetterTest {
     private static List<Arguments> getTxInfoToSignArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
 
-        int[] hsmVersions = {2, 4, 5};
-        for (int hsmVersion : hsmVersions) {
+        for (SignerVersion hsmVersion : SignerVersion.values()) {
             arguments.add(
-                Arguments.of(hsmVersion, Hex.decode("00"), Collections.singletonList(Coin.ZERO)));
+                Arguments.of(hsmVersion.getVersionNumber(), Hex.decode("00"), Collections.singletonList(Coin.ZERO)));
             arguments.add(
-                Arguments.of(hsmVersion, Hex.decode("01"),
+                Arguments.of(hsmVersion.getVersionNumber(), Hex.decode("01"),
                     Collections.singletonList(Coin.SATOSHI)));
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
-            arguments.add(Arguments.of(hsmVersion, Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
+            arguments.add(Arguments.of(hsmVersion.getVersionNumber(), Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
                 coinListOf(50_000_000, 75_000_000, 100_000_000)));
-            arguments.add(Arguments.of(hsmVersion, Hex.decode("FFFFFFFFFFFFFFFF7F"),
+            arguments.add(Arguments.of(hsmVersion.getVersionNumber(), Hex.decode("FFFFFFFFFFFFFFFF7F"),
                 coinListOf(Long.MAX_VALUE)));
         }
 
@@ -145,15 +145,15 @@ class ReleaseCreationInformationGetterTest {
         );
         // HSM V2
         createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction,
-            block, transactionReceipt, 2);
+            block, transactionReceipt, SignerVersion.VERSION_2.getVersionNumber());
 
         // HSM V3
         createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction,
-            block, transactionReceipt, 3);
+            block, transactionReceipt, SignerVersion.VERSION_3.getVersionNumber());
 
         // HSM V4
         createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction,
-            block, transactionReceipt, 4);
+            block, transactionReceipt, SignerVersion.VERSION_4.getVersionNumber());
     }
 
     private void createGetTxInfoToSign_returnOK(
@@ -248,7 +248,7 @@ class ReleaseCreationInformationGetterTest {
             blockStore
         );
         ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(
-            2, rskTxHash, pegoutBtcTransaction);
+            SignerVersion.VERSION_2.getVersionNumber(), rskTxHash, pegoutBtcTransaction);
 
         assertEquals(secondBlock, releaseCreationInformation.getPegoutCreationBlock());
         assertEquals(transactionReceiptInSecondBlock,
@@ -290,7 +290,7 @@ class ReleaseCreationInformationGetterTest {
 
         assertThrows(HSMReleaseCreationInformationException.class,
             () -> pegoutCreationInformation.getTxInfoToSign(
-                2,
+                SignerVersion.VERSION_2.getVersionNumber(),
                 rskTxHash,
                 pegoutBtcTransaction
             ));
