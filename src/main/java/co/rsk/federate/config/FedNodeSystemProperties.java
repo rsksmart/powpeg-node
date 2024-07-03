@@ -99,17 +99,17 @@ public class FedNodeSystemProperties extends RskSystemProperties {
     }
 
     public boolean shouldUpdateBridgeBtcBlockchain() {
-        return !configFromFiles.hasPath("federator.updateBridgeBtcBlockchain") ||
+        return configFromFiles.hasPath("federator.updateBridgeBtcBlockchain") &&
             configFromFiles.getBoolean("federator.updateBridgeBtcBlockchain");
     }
 
     public boolean shouldUpdateBridgeBtcCoinbaseTransactions() {
-        return !configFromFiles.hasPath("federator.updateBridgeBtcCoinbaseTransactions") ||
+        return configFromFiles.hasPath("federator.updateBridgeBtcCoinbaseTransactions") &&
             configFromFiles.getBoolean("federator.updateBridgeBtcCoinbaseTransactions");
     }
 
     public boolean shouldUpdateBridgeBtcTransactions() {
-        return !configFromFiles.hasPath("federator.updateBridgeBtcTransactions") ||
+        return configFromFiles.hasPath("federator.updateBridgeBtcTransactions") &&
             configFromFiles.getBoolean("federator.updateBridgeBtcTransactions");
     }
 
