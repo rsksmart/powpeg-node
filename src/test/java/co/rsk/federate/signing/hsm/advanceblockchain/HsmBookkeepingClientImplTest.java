@@ -73,8 +73,8 @@ import org.mockito.ArgumentCaptor;
  * Created by Kelvin Isievwore on 14/03/2023.
  */
 class HsmBookkeepingClientImplTest {
-    private final static int VERSION_TWO = SignerVersion.VERSION_2.getVersionNumber();
-    private final static int VERSION_FOUR = SignerVersion.VERSION_4.getVersionNumber();
+    private static final int VERSION_TWO = SignerVersion.VERSION_2.getVersionNumber();
+    private static final int VERSION_FOUR = SignerVersion.VERSION_4.getVersionNumber();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private JsonRpcClient jsonRpcClientMock;
     private HsmBookkeepingClientImpl hsmBookkeepingClient;
