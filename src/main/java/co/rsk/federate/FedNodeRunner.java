@@ -17,6 +17,8 @@
  */
 package co.rsk.federate;
 
+import static co.rsk.federate.signing.PowPegNodeKeyId.*;
+
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.federate.signing.hsm.HSMVersion;
@@ -28,7 +30,7 @@ import co.rsk.federate.bitcoin.Kit;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.signing.hsm.config.PowHSMConfig;
 import co.rsk.federate.io.*;
@@ -57,7 +59,6 @@ import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.annotation.PreDestroy;
 import java.io.File;
 import java.net.UnknownHostException;
@@ -65,8 +66,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-
-import static co.rsk.federate.signing.PowPegNodeKeyId.*;
 
 /**
  * Created by mario on 31/03/17.
@@ -82,7 +81,7 @@ public class FedNodeRunner implements NodeRunner {
     private final FederateLogger federateLogger;
     private final RskLogMonitor rskLogMonitor;
     private final NodeRunner fullNodeRunner;
-    private final FedNodeSystemProperties config;
+    private final PowpegNodeSystemProperties config;
     private final FedNodeContext fedNodeContext;
     private final BridgeConstants bridgeConstants;
     private final HSMClientProtocolFactory hsmClientProtocolFactory;
@@ -104,7 +103,7 @@ public class FedNodeRunner implements NodeRunner {
         FederateLogger federateLogger,
         RskLogMonitor rskLogMonitor,
         NodeRunner fullNodeRunner,
-        FedNodeSystemProperties config,
+        PowpegNodeSystemProperties config,
         HSMClientProtocolFactory hsmClientProtocolFactory,
         HSMBookKeepingClientProvider hsmBookKeepingClientProvider,
         FedNodeContext fedNodeContext

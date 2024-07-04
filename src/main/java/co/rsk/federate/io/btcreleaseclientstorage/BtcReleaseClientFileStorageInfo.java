@@ -1,6 +1,6 @@
 package co.rsk.federate.io.btcreleaseclientstorage;
 
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.io.FileStorageInfo;
 import java.io.File;
 
@@ -10,7 +10,7 @@ public class BtcReleaseClientFileStorageInfo implements FileStorageInfo {
 
     private String filePath;
 
-    public BtcReleaseClientFileStorageInfo(FedNodeSystemProperties config) {
+    public BtcReleaseClientFileStorageInfo(PowpegNodeSystemProperties config) {
         this.pegDirectoryPath = config.databaseDir() + File.separator + "peg";
         this.filePath = this.pegDirectoryPath + File.separator + "btcReleaseClient.rlp";
     }

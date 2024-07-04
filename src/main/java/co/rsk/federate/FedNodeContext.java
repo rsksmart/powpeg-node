@@ -22,7 +22,7 @@ import co.rsk.RskContext;
 import co.rsk.config.ConfigLoader;
 import co.rsk.config.RskSystemProperties;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
 import co.rsk.federate.rpc.Web3FederateImpl;
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FedNodeContext extends RskContext {
 
-    private FedNodeSystemProperties fedNodeSystemProperties;
+    private PowpegNodeSystemProperties powpegNodeSystemProperties;
     private BtcToRskClient.Factory btcToRskClientFactory;
     private BtcToRskClient btcToRskClientActive;
     private BtcToRskClient btcToRskClientRetiring;
@@ -59,7 +59,7 @@ public class FedNodeContext extends RskContext {
             new BtcReleaseClient(
                 getRsk(),
                 getFederatorSupport(),
-                getFedNodeSystemProperties(),
+                getPowpegNodeSystemProperties(),
                 getNodeBlockProcessor()
             ),
             getFederationWatcher(),
@@ -67,7 +67,7 @@ public class FedNodeContext extends RskContext {
             getFederateLogger(),
             new RskLogMonitor(getRsk(), getFederateLogger()),
             super.buildNodeRunner(),
-            getFedNodeSystemProperties(),
+            getPowpegNodeSystemProperties(),
             new HSMClientProtocolFactory(),
             new HSMBookKeepingClientProvider(),
             this
@@ -76,7 +76,7 @@ public class FedNodeContext extends RskContext {
 
     @Override
     public RskSystemProperties getRskSystemProperties() {
-        return getFedNodeSystemProperties();
+        return getPowpegNodeSystemProperties();
     }
 
     @Override
@@ -175,11 +175,11 @@ public class FedNodeContext extends RskContext {
                 getBlockchain(),
                 getTransactionPool(),
                 getReversibleTransactionExecutor(),
-                getFedNodeSystemProperties()
+                getPowpegNodeSystemProperties()
             );
             federatorSupport = new FederatorSupport(
                 getBlockchain(),
-                getFedNodeSystemProperties(),
+                getPowpegNodeSystemProperties(),
                 bridgeTransactionSender
             );
         }
@@ -187,11 +187,11 @@ public class FedNodeContext extends RskContext {
         return federatorSupport;
     }
 
-    private FedNodeSystemProperties getFedNodeSystemProperties() {
-        if (fedNodeSystemProperties == null) {
-            fedNodeSystemProperties = new FedNodeSystemProperties(new ConfigLoader(getCliArgs()));
+    private PowpegNodeSystemProperties getPowpegNodeSystemProperties() {
+        if (powpegNodeSystemProperties == null) {
+            powpegNodeSystemProperties = new PowpegNodeSystemProperties(new ConfigLoader(getCliArgs()));
         }
 
-        return fedNodeSystemProperties;
+        return powpegNodeSystemProperties;
     }
 }
