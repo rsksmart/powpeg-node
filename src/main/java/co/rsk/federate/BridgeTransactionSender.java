@@ -4,7 +4,7 @@ import co.rsk.core.Coin;
 import co.rsk.core.ReversibleTransactionExecutor;
 import co.rsk.core.RskAddress;
 import co.rsk.core.bc.PendingState;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.gas.GasPriceProviderFactory;
 import co.rsk.federate.gas.IGasPriceProvider;
 import co.rsk.federate.signing.ECDSASigner;
@@ -31,14 +31,14 @@ public class BridgeTransactionSender {
     private final TransactionPool transactionPool;
     private final ReversibleTransactionExecutor reversibleTransactionExecutor;
     private final Coin gasPrice;
-    private final FedNodeSystemProperties config;
+    private final PowpegNodeSystemProperties config;
     private final IGasPriceProvider gasPriceProvider;
 
     public BridgeTransactionSender(Ethereum ethereum,
                                    Blockchain blockchain,
                                    TransactionPool transactionPool,
                                    ReversibleTransactionExecutor reversibleTransactionExecutor,
-                                   FedNodeSystemProperties config) {
+                                   PowpegNodeSystemProperties config) {
         this.ethereum = ethereum;
         this.blockchain = blockchain;
         this.transactionPool = transactionPool;
