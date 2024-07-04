@@ -6,7 +6,7 @@ import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.core.RskAddress;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinPeerFactory;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.peg.Bridge;
 import co.rsk.peg.federation.FederationMember;
@@ -35,7 +35,7 @@ public class FederatorSupport {
     private static final Logger LOGGER = LoggerFactory.getLogger(FederatorSupport.class);
 
     private final Blockchain blockchain;
-    private final FedNodeSystemProperties config;
+    private final PowpegNodeSystemProperties config;
 
     private final NetworkParameters parameters;
 
@@ -48,7 +48,7 @@ public class FederatorSupport {
 
     public FederatorSupport(
             Blockchain blockchain,
-            FedNodeSystemProperties config,
+            PowpegNodeSystemProperties config,
             BridgeTransactionSender bridgeTransactionSender) {
         this.blockchain = blockchain;
         this.config = config;
