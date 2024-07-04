@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Test;
 
 class ConfirmedBlocksProviderTest {
 
-    private final int HSM_VERSION_2 = SignerVersion.VERSION_2.getVersionNumber();
-    private final int HSM_VERSION_4 = SignerVersion.VERSION_4.getVersionNumber();
+    private static final int HSM_VERSION_2 = SignerVersion.VERSION_2.getVersionNumber();
+    private static final int HSM_VERSION_4 = SignerVersion.VERSION_4.getVersionNumber();
     private final BigInteger difficultyCapRegTest = PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST;
     private final BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
 
