@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import co.rsk.federate.config.FedNodeSystemProperties;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.io.BtcToRskClientFileData;
@@ -27,8 +28,7 @@ public class BtcToRskClientBuilder {
     private BtcLockSenderProvider btcLockSenderProvider;
     private PeginInstructionsProvider peginInstructionsProvider;
     private Federation federation;
-    private boolean isUpdateBridgeTimerEnabled;
-    private int amountOfHeadersToSend;
+    private FedNodeSystemProperties config;
 
     public BtcToRskClientBuilder() throws PeginInstructionsException, IOException {
         this.activationConfig = mock(ActivationConfig.class);
@@ -39,13 +39,18 @@ public class BtcToRskClientBuilder {
         this.btcLockSenderProvider = mock(BtcLockSenderProvider.class);
         this.peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         this.federation = mock(Federation.class);
-        this.isUpdateBridgeTimerEnabled = true;
-        this.amountOfHeadersToSend = 100;
+        this.config = mock(FedNodeSystemProperties.class);
 
         when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
         when(btcToRskClientFileStorage.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, new BtcToRskClientFileData()));
         when(btcLockSenderProvider.tryGetBtcLockSender(any())).thenReturn(Optional.empty());
         when(peginInstructionsProvider.buildPeginInstructions(any())).thenReturn(Optional.empty());
+        when(config.getActivationConfig()).thenReturn(this.activationConfig);
+        when(config.shouldUpdateBridgeBtcBlockchain()).thenReturn(true);
+        when(config.shouldUpdateBridgeBtcTransactions()).thenReturn(true);
+        when(config.shouldUpdateBridgeBtcCoinbaseTransactions()).thenReturn(true);
+        when(config.isUpdateBridgeTimerEnabled()).thenReturn(true);
+        when(config.getAmountOfHeadersToSend()).thenReturn(100);
     }
 
     public BtcToRskClientBuilder withActivationConfig(ActivationConfig activationConfig) {
@@ -88,19 +93,14 @@ public class BtcToRskClientBuilder {
         return this;
     }
 
-    public BtcToRskClientBuilder withUpdateBridgeTimerEnabled(boolean isUpdateBridgeTimerEnabled) {
-        this.isUpdateBridgeTimerEnabled = isUpdateBridgeTimerEnabled;
-        return this;
-    }
-
-    public BtcToRskClientBuilder withAmountOfHeadersToSend(int amountOfHeadersToSend) {
-        this.amountOfHeadersToSend = amountOfHeadersToSend;
+    public BtcToRskClientBuilder withFedNodeSystemProperties(FedNodeSystemProperties config) {
+        this.config = config;
         return this;
     }
 
     public BtcToRskClient build () throws Exception {
+        when(config.getActivationConfig()).thenReturn(activationConfig);
         return new BtcToRskClient(
-            activationConfig,
             bitcoinWrapper,
             federatorSupport,
             bridgeConstants,
@@ -108,8 +108,7 @@ public class BtcToRskClientBuilder {
             btcLockSenderProvider,
             peginInstructionsProvider,
             federation,
-            isUpdateBridgeTimerEnabled,
-            amountOfHeadersToSend
+            config
         );
     }
 }
