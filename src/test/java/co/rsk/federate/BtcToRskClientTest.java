@@ -2505,7 +2505,7 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void updateBridge_noUpdateBridgeConfigDefined_shouldOnlyCallSendUpdateCollecdtions() throws Exception {
+    void updateBridge_noUpdateBridgeConfigDefined_shouldOnlyCallSendUpdateCollections() throws Exception {
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
