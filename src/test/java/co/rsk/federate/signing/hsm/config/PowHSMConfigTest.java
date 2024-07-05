@@ -28,10 +28,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class PowHSMConfigTest {
 
-  private PowHSMConfig powHsmConfig;
   private final SignerConfig signerConfig = mock(SignerConfig.class);
   private final Config config = mock(Config.class);
   private final HSMBookkeepingClient hsmClient = mock(HSMBookkeepingClient.class);
+
+  private PowHSMConfig powHsmConfig;
 
   @BeforeEach
   void setup() throws Exception {
@@ -41,11 +42,12 @@ class PowHSMConfigTest {
   }
 
   @Test
-  void getDifficultyTarget_whenCallToPowHSMBlockchainParametersSucceeds_shouldRetriveConfigValueFromPowHSM()
+  void getDifficultyTarget_whenCallToPowHSMBlockchainParametersSucceeds_shouldRetrieveConfigValueFromPowHSM()
       throws Exception {
     BigInteger expectedDifficultyTarget = BigInteger.valueOf(1L);
+    String blockCheckpoint = createHash(1).toHexString(); 
     PowHSMBlockchainParameters response = new PowHSMBlockchainParameters(
-        createHash(1).toHexString(), expectedDifficultyTarget, NetworkParameters.ID_UNITTESTNET.toString());
+        blockCheckpoint, expectedDifficultyTarget, NetworkParameters.ID_UNITTESTNET.toString());
     when(hsmClient.getBlockchainParameters()).thenReturn(response);
 
     assertEquals(expectedDifficultyTarget, powHsmConfig.getDifficultyTarget(hsmClient));
@@ -133,7 +135,7 @@ class PowHSMConfigTest {
   }
 
   @Test
-  void isStoppingBookkepingScheduler_whenCustomConfigAvailable_shouldReturnCustomConfig() {
+  void isStoppingBookkeepingScheduler_whenCustomConfigAvailable_shouldReturnCustomConfig() {
     boolean customIsStoppingInformerInterval = !STOP_BOOKKEEPING_SCHEDULER.getDefaultValue(Boolean::parseBoolean);
     when(config.hasPath(STOP_BOOKKEEPING_SCHEDULER.getPath())).thenReturn(true);
     when(config.getBoolean(STOP_BOOKKEEPING_SCHEDULER.getPath())).thenReturn(customIsStoppingInformerInterval);
@@ -142,7 +144,7 @@ class PowHSMConfigTest {
   }
 
   @Test
-  void isStoppingBookkepingScheduler_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
+  void isStoppingBookkeepingScheduler_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
     when(config.hasPath(STOP_BOOKKEEPING_SCHEDULER.getPath())).thenReturn(false);
 
     assertFalse(powHsmConfig.isStopBookkeepingScheduler());
