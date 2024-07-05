@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.federate.signing.SignerVersion;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.FedNodeSystemProperties;
@@ -72,7 +72,7 @@ class FedNodeRunnerTest {
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
 
-        int hsmVersion = SignerVersion.VERSION_3.getVersionNumber();
+        int hsmVersion = HSMVersion.V3.getNumber();
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(hsmVersion);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
@@ -470,7 +470,7 @@ class FedNodeRunnerTest {
         when(hsmConfig.getInt("port")).thenReturn(9999);
         when(hsmConfig.getString("keyId")).thenReturn("m/44'/0'/0'/0/0");
 
-        if (version >= SignerVersion.VERSION_2.getVersionNumber()) {
+        if (version >= HSMVersion.V2.getNumber()) {
             when(hsmConfig.hasPath("socketTimeout")).thenReturn(true);
             when(hsmConfig.getInt("socketTimeout")).thenReturn(20000);
             when(hsmConfig.hasPath("maxAttempts")).thenReturn(true);

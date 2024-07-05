@@ -28,7 +28,7 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionWitness;
-import co.rsk.federate.signing.SignerVersion;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.trie.Trie;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -102,7 +102,7 @@ public class PowHSMSignerMessage extends SignerMessage {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
         messageToSend.put(TX.getFieldName(), getBtcTransactionSerialized());
         messageToSend.put(INPUT.getFieldName(), inputIndex);
-        if (version == SignerVersion.VERSION_5.getVersionNumber()) {
+        if (version == HSMVersion.V5.getNumber()) {
             if (hasWitness()) {
                 populateWithSegwitValues(messageToSend);
             } else {

@@ -48,8 +48,8 @@ import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.KeyId;
-import co.rsk.federate.signing.SignerVersion;
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.PowHSMSignerMessage;
 import co.rsk.federate.signing.hsm.message.PowHSMSignerMessageBuilder;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
@@ -85,7 +85,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class PowHSMSigningClientBtcTest {
 
-    private static final int HSM_VERSION_2 = SignerVersion.VERSION_2.getVersionNumber();
+    private static final int HSM_VERSION_2 = HSMVersion.V2.getNumber();
     private static final BridgeConstants bridgeMainnetConstants = BridgeMainNetConstants.getInstance();
     private static final NetworkParameters btcMainnetParams = bridgeMainnetConstants.getBtcParams();
 
@@ -380,14 +380,14 @@ class PowHSMSigningClientBtcTest {
     private static List<Arguments> legacyPegoutArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
 
-        int[] hsmVersions = {2, 4, 5};
-        for (int hsmVersion : hsmVersions) {
+        HSMVersion[] hsmVersions = {HSMVersion.V2, HSMVersion.V4, HSMVersion.V5};
+        for (HSMVersion hsmVersion : hsmVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(
-                Arguments.of(hsmVersion, coinListOf(50_000_000)));
+                Arguments.of(hsmVersion.getNumber(), coinListOf(50_000_000)));
             arguments.add(
-                Arguments.of(hsmVersion, coinListOf(75_000_000)));
-            arguments.add(Arguments.of(hsmVersion,
+                Arguments.of(hsmVersion.getNumber(), coinListOf(75_000_000)));
+            arguments.add(Arguments.of(hsmVersion.getNumber(),
                 coinListOf(50_000_000, 75_000_000, 100_000_000)));
         }
 
@@ -397,14 +397,14 @@ class PowHSMSigningClientBtcTest {
     private static List<Arguments> signArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
 
-        int[] hsmVersions = {2, 4, 5};
-        for (int hsmVersion : hsmVersions) {
+        HSMVersion[] hsmVersions = {HSMVersion.V2, HSMVersion.V4, HSMVersion.V5};
+        for (HSMVersion hsmVersion : hsmVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(
-                Arguments.of(hsmVersion, Hex.decode("FE80F0FA02"), coinListOf(50_000_000)));
+                Arguments.of(hsmVersion.getNumber(), Hex.decode("FE80F0FA02"), coinListOf(50_000_000)));
             arguments.add(
-                Arguments.of(hsmVersion, Hex.decode("FEC0687804"), coinListOf(75_000_000)));
-            arguments.add(Arguments.of(hsmVersion, Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
+                Arguments.of(hsmVersion.getNumber(), Hex.decode("FEC0687804"), coinListOf(75_000_000)));
+            arguments.add(Arguments.of(hsmVersion.getNumber(), Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
                 coinListOf(50_000_000, 75_000_000, 100_000_000)));
         }
 

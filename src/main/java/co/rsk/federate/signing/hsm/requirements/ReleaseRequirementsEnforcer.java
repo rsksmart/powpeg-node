@@ -1,6 +1,6 @@
 package co.rsk.federate.signing.hsm.requirements;
 
-import co.rsk.federate.signing.SignerVersion;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +16,9 @@ public class ReleaseRequirementsEnforcer {
 
     public void enforce(int version, ReleaseCreationInformation releaseCreationInformation)
         throws ReleaseRequirementsEnforcerException {
-        if (version == SignerVersion.VERSION_1.getVersionNumber()) {
+        if (version == HSMVersion.V1.getNumber()) {
             logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
-        } else if (version >= SignerVersion.VERSION_2.getVersionNumber()) {
+        } else if (version >= HSMVersion.V2.getNumber()) {
             logger.trace("[enforce] Version 2+ requires ancestor in position. ENFORCING");
             enforceReleaseRequirements(releaseCreationInformation);
         } else {

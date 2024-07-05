@@ -35,6 +35,7 @@ import co.rsk.federate.signing.hsm.HSMAuthException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMSignature;
 import co.rsk.federate.signing.hsm.client.HSMSigningClient;
@@ -228,7 +229,7 @@ class ECDSAHSMSignerTest {
     @Test
     void getVersionForKeyIdOk() throws HSMClientException, SignerException {
         KeyId key = new KeyId("keyA");
-        int version = SignerVersion.VERSION_1.getVersionNumber();
+        int version = HSMVersion.V1.getNumber();
         when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenReturn(version);
 
@@ -255,7 +256,7 @@ class ECDSAHSMSignerTest {
     @Test
     void getVersionForKeyId_SignerException() throws HSMClientException {
         KeyId key = new KeyId("keyAB");
-        int version = SignerVersion.VERSION_3.getVersionNumber();
+        int version = HSMVersion.V3.getNumber();
         when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenReturn( version);
 

@@ -2,7 +2,7 @@ package co.rsk.federate.signing.hsm.message;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.signing.SignerVersion;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.BridgeEvents;
 import org.ethereum.core.*;
 import org.ethereum.db.*;
@@ -50,9 +50,9 @@ public class ReleaseCreationInformationGetter {
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutConfirmationRskTxHash
     ) throws HSMReleaseCreationInformationException {
-        if (version == SignerVersion.VERSION_1.getVersionNumber()) {
+        if (version == HSMVersion.V1.getNumber()) {
             return getBaseReleaseCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
-        } else if (version >= SignerVersion.VERSION_2.getVersionNumber()) {
+        } else if (version >= HSMVersion.V2.getNumber()) {
             return getTxInfoToSignVersion2(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
         } else {
             throw new HSMReleaseCreationInformationException("Unsupported version " + version);

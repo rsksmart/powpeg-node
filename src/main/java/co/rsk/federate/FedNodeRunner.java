@@ -19,6 +19,7 @@ package co.rsk.federate;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.BtcECKey;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
@@ -138,7 +139,7 @@ public class FedNodeRunner implements NodeRunner {
             int hsmVersion = protocol.getVersion();
             LOGGER.debug("[run] Using HSM version {}", hsmVersion);
 
-            if (hsmVersion >= SignerVersion.VERSION_2.getVersionNumber()) {
+            if (hsmVersion >= HSMVersion.V2.getNumber()) {
                 hsmBookkeepingClient = buildBookKeepingClient(protocol, bookKeepingConfig);
                 hsmBookkeepingService = buildBookKeepingService(
                     hsmBookkeepingClient,
