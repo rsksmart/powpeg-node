@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.config.PowHSMBookkeepingConfig;
-import co.rsk.federate.signing.SignerVersion;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.utils.TestUtils;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Test;
 
 class ConfirmedBlocksProviderTest {
 
-    private static final int HSM_VERSION_2 = SignerVersion.VERSION_2.getVersionNumber();
-    private static final int HSM_VERSION_4 = SignerVersion.VERSION_4.getVersionNumber();
+    private static final int HSM_VERSION_2 = HSMVersion.V2.getNumber();
+    private static final int HSM_VERSION_4 = HSMVersion.V4.getNumber();
     private final BigInteger difficultyCapRegTest = PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST;
     private final BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
 

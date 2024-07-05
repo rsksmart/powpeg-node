@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
 
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import co.rsk.federate.signing.keyfile.KeyFileChecker;
@@ -131,7 +132,7 @@ class ECDSASignerFromFileKeyTest {
     @Test
     void getVersionForKeyIdOk() throws SignerException {
         KeyId key = new KeyId("an-id");
-        int version = SignerVersion.VERSION_1.getVersionNumber();
+        int version = HSMVersion.V1.getNumber();
 
         assertEquals(signer.getVersionForKeyId(key), version);
     }
