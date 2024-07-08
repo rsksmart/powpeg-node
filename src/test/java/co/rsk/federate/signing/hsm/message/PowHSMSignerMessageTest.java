@@ -233,9 +233,9 @@ class PowHSMSignerMessageTest {
 
         BtcTransaction segwitPegoutBtcTx = createSegwitPegout(outpointValues);
 
-        TransactionReceipt txReceipt = new TransactionReceipt();
+        txReceipt = new TransactionReceipt();
 
-        List<Trie> receiptMerkleProof = new ArrayList<>();
+        receiptMerkleProof = new ArrayList<>();
         receiptMerkleProof.add(new Trie());
 
         Sha256Hash sigHash = BitcoinTestUtils.createHash(1);
@@ -270,27 +270,30 @@ class PowHSMSignerMessageTest {
             "userAddress");
         List<Address> destinationAddresses = Arrays.asList(userAddress, userAddress2);
         Coin fee = Coin.MILLICOIN;
-        for (int idx = 0; idx < outpointValues.size(); idx++) {
-            Coin outpointValue = outpointValues.get(idx);
+        for (int inputIndex = 0; inputIndex < outpointValues.size(); inputIndex++) {
+            Coin outpointValue = outpointValues.get(inputIndex);
             Coin amountToSend = outpointValue.minus(fee);
+            // Iterate over the addresses using inputIndex % addresses.size() to have outputs to different addresses
             Address destinationAddress = destinationAddresses.get(
-                idx % destinationAddresses.size());
+                inputIndex % destinationAddresses.size());
 
-            btcTransactionBuilder.addInputWithScriptSig(outpointValue,
-                inputScriptThatSpendsFromTheFederation);
-            // Iterate over the addresses using idx % addresses.size() to have outputs to different addresses
-            btcTransactionBuilder.addOutput(amountToSend, destinationAddress);
+            btcTransactionBuilder
+                .withInput(
+                    btcTransactionBuilder.new InputBuilder(outpointValue).withOutpointIndex(
+                            inputIndex)
+                        .withScriptSig(inputScriptThatSpendsFromTheFederation).build()
+                )
+                .withOutput(amountToSend, destinationAddress);
+
+            // TODO: change this dummy witness for a real witness once segwit is fully implemented in bitcoinj-thin
+            // make it a segwit tx by adding a single witness
+            TransactionWitness witness = new TransactionWitness(1);
+            witness.setPush(0, new byte[]{1});
+
+            btcTransactionBuilder.withWitness(inputIndex, witness);
         }
 
-        BtcTransaction btcTransaction = btcTransactionBuilder.build();
-
-        // make the  tx segwit by adding a single witness
-        TransactionWitness witness = new TransactionWitness(1);
-        witness.setPush(0, new byte[]{1});
-
-        int fistInputIdx = 0;
-        btcTransaction.setWitness(fistInputIdx, witness);
-        return btcTransaction;
+        return btcTransactionBuilder.build();
     }
 
     private void assertHsmMessageValues(BtcTransaction segwitPegoutBtcTx,

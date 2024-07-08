@@ -18,54 +18,33 @@ public final class BtcTransactionBuilder {
 
     private final NetworkParameters networkParameters;
     private final Map<Integer, TransactionWitness> transactionWitnesses = new HashMap<>();
-    private final List<TransactionInput> transactionInputs = new ArrayList<>();
-    private final List<TransactionOutput> transactionOutputs = new ArrayList<>();
+    private final List<TransactionInput> inputs = new ArrayList<>();
+    private final List<TransactionOutput> outputs = new ArrayList<>();
 
     public BtcTransactionBuilder(NetworkParameters networkParameters) {
         this.networkParameters = networkParameters;
     }
 
-    public BtcTransactionBuilder addInput(Coin utxoAmount) {
-        addInput(utxoAmount, null, null);
+    public BtcTransactionBuilder withInput(TransactionInput transactionInput) {
+        inputs.add(transactionInput);
         return this;
     }
 
-    public BtcTransactionBuilder addInputWithScriptSig(Coin utxoAmount, Script scriptSig) {
-        addInput(utxoAmount, scriptSig, null);
-        return this;
-    }
-
-    public BtcTransactionBuilder addInputWithWitness(Coin utxoAmount,
-        TransactionWitness transactionWitness) {
-        addInput(utxoAmount, null, transactionWitness);
-        return this;
-    }
-
-    private void addInput(Coin utxoAmount, Script scriptSig,
-        TransactionWitness transactionWitness) {
-        int idx = transactionInputs.size();
-        TransactionOutPoint transactionOutpoint = new TransactionOutPoint(networkParameters, idx,
-            BitcoinTestUtils.createHash(idx));
-        TransactionInput transactionInput = new TransactionInput(
-            networkParameters, null, new byte[]{}, transactionOutpoint, utxoAmount
-        );
-        if (scriptSig != null) {
-            transactionInput.setScriptSig(scriptSig);
-        } else if (transactionWitness != null) {
-            transactionWitnesses.put(idx, transactionWitness);
-        }
-        transactionInputs.add(transactionInput);
-    }
-
-    public BtcTransactionBuilder addInputFrom(TransactionOutput transactionOutput) {
+    public BtcTransactionBuilder withInput(TransactionOutput transactionOutput) {
         TransactionInput transactionInput = new TransactionInput(networkParameters, null,
             new byte[]{}, transactionOutput.getOutPointFor(), transactionOutput.getValue());
-        transactionInputs.add(transactionInput);
+        inputs.add(transactionInput);
         return this;
     }
 
-    public BtcTransactionBuilder addOutput(Coin amount, Address address) {
-        transactionOutputs.add(
+    public BtcTransactionBuilder withWitness(int inputIndex,
+        TransactionWitness transactionWitness) {
+        transactionWitnesses.put(inputIndex, transactionWitness);
+        return this;
+    }
+
+    public BtcTransactionBuilder withOutput(Coin amount, Address address) {
+        outputs.add(
             new TransactionOutput(networkParameters, null, amount, address)
         );
         return this;
@@ -79,7 +58,7 @@ public final class BtcTransactionBuilder {
     }
 
     private void addInputs(BtcTransaction btcTransaction) {
-        transactionInputs.forEach(transactionInput -> {
+        inputs.forEach(transactionInput -> {
             int idx = btcTransaction.getInputs().size();
             btcTransaction.addInput(transactionInput);
             if (transactionWitnesses.containsKey(idx)) {
@@ -89,6 +68,38 @@ public final class BtcTransactionBuilder {
     }
 
     private void addOutputs(BtcTransaction btcTransaction) {
-        transactionOutputs.forEach(btcTransaction::addOutput);
+        outputs.forEach(btcTransaction::addOutput);
+    }
+
+    public class InputBuilder {
+
+        private final Coin amount;
+        private Script scriptSig;
+        private int outpointIndex = 0;
+
+        public InputBuilder(Coin amount) {
+            this.amount = amount;
+        }
+
+        public InputBuilder withScriptSig(Script scriptSig) {
+            this.scriptSig = scriptSig;
+            return this;
+        }
+
+        public InputBuilder withOutpointIndex(int outpointIndex) {
+            this.outpointIndex = outpointIndex;
+            return this;
+        }
+
+        public TransactionInput build() {
+            TransactionOutPoint transactionOutpoint = new TransactionOutPoint(networkParameters,
+                outpointIndex,
+                BitcoinTestUtils.createHash(outpointIndex));
+            TransactionInput transactionInput = new TransactionInput(
+                networkParameters, null, new byte[]{}, transactionOutpoint, amount
+            );
+            transactionInput.setScriptSig(scriptSig);
+            return transactionInput;
+        }
     }
 }
