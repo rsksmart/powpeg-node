@@ -12,10 +12,10 @@ class BtcReleaseClientFileStorageInfoTest {
 
     @Test
     void test() {
-        PowpegNodeSystemProperties fnsp = mock(PowpegNodeSystemProperties.class);
-        when(fnsp.databaseDir()).thenReturn("test");
-        BtcReleaseClientFileStorageInfo info = new BtcReleaseClientFileStorageInfo(fnsp);
-        String directoryPath = fnsp.databaseDir() + File.separator + "peg";
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
+        when(config.databaseDir()).thenReturn("test");
+        BtcReleaseClientFileStorageInfo info = new BtcReleaseClientFileStorageInfo(config);
+        String directoryPath = config.databaseDir() + File.separator + "peg";
         String filePath = directoryPath + File.separator + "btcReleaseClient.rlp";
         assertEquals(directoryPath, info.getPegDirectoryPath());
         assertEquals(filePath, info.getFilePath());
