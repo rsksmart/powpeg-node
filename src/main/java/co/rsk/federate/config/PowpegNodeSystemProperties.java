@@ -12,14 +12,16 @@ import java.util.List;
 
 public class PowpegNodeSystemProperties extends RskSystemProperties {
 
+  public static final String REGTEST = "regtest";
+
   public PowpegNodeSystemProperties(ConfigLoader loader) {
     super(loader);
   }
 
   public boolean isFederatorEnabled() {
     return getBoolean(
-        FEDARATOR_ENABLED.getPath(),
-        FEDARATOR_ENABLED.getDefaultValue(Boolean::parseBoolean));
+        FEDERATOR_ENABLED.getPath(),
+        FEDERATOR_ENABLED.getDefaultValue(Boolean::parseBoolean));
   }
 
   public boolean isPegoutEnabled() {
@@ -29,7 +31,7 @@ public class PowpegNodeSystemProperties extends RskSystemProperties {
   }
 
   public boolean isUpdateBridgeTimerEnabled() {
-    return !netName().equals("regtest") ||
+    return !netName().equals(REGTEST) ||
         getBoolean(
             UPDATE_BRIDGE_TIMER_ENABLED.getPath(),
             UPDATE_BRIDGE_TIMER_ENABLED.getDefaultValue(Boolean::parseBoolean));

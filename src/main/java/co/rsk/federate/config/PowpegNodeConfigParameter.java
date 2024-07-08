@@ -4,13 +4,13 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public enum PowpegNodeConfigParameter {
-  FEDARATOR_ENABLED("federator.enabled", "false"),
-  PEGOUT_ENABLED("federator.pegout.enabled", "false"),
-  UPDATE_BRIDGE_TIMER_ENABLED("federator.updateBridgeTimerEnabled", "true"),
-  UPDATE_BRIDGE_BTC_BLOCKCHAIN("federator.updateBridgeBtcBlockchain", "false"),
-  UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS("federator.updateBridgeBtcCoinbaseTransactions", "false"),
-  UPDATE_BRIDGE_BTC_TRANSACTIONS("federator.updateBridgeBtcTransactions", "false"),
-  UPDATE_COLLECTIONS("federator.updateCollections", "true"),
+  FEDERATOR_ENABLED("federator.enabled", Boolean.toString(false)),
+  PEGOUT_ENABLED("federator.pegout.enabled", Boolean.toString(false)),
+  UPDATE_BRIDGE_TIMER_ENABLED("federator.updateBridgeTimerEnabled", Boolean.toString(true)),
+  UPDATE_BRIDGE_BTC_BLOCKCHAIN("federator.updateBridgeBtcBlockchain", Boolean.toString(false)),
+  UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS("federator.updateBridgeBtcCoinbaseTransactions", Boolean.toString(false)),
+  UPDATE_BRIDGE_BTC_TRANSACTIONS("federator.updateBridgeBtcTransactions", Boolean.toString(false)),
+  UPDATE_COLLECTIONS("federator.updateCollections", Boolean.toString(true)),
   GAS_PRICE("federator.gasPrice", "0"),
   GAS_PRICE_PROVIDER("federator.gasPriceProvider", ""),
   AMOUNT_HEADERS("federator.amountOfHeadersToSend", "25"),
@@ -36,7 +36,7 @@ public enum PowpegNodeConfigParameter {
 
     if (defaultValue.isEmpty()) {
       throw new IllegalStateException(
-        "No default value present for: " + path);
+          "No Powpeg config default value present for: " + path);
     }
     return parser.apply(defaultValue);
   }

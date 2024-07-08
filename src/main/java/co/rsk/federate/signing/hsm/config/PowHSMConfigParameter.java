@@ -15,7 +15,7 @@ public enum PowHSMConfigParameter {
   INFORMER_INTERVAL("bookkeeping.informerInterval", "360000"), // 6 minutes in milliseconds
   MAX_AMOUNT_BLOCK_HEADERS("bookkeeping.maxAmountBlockHeaders", "100"),
   MAX_CHUNK_SIZE_TO_HSM("bookkeeping.maxChunkSizeToHsm", "100"),
-  STOP_BOOKKEEPING_SCHEDULER("bookkeeping.stopBookkeepingScheduler", "false");
+  STOP_BOOKKEEPING_SCHEDULER("bookkeeping.stopBookkeepingScheduler", Boolean.toString(false));
 
   private final String path;
   private final String defaultValue;
@@ -34,7 +34,7 @@ public enum PowHSMConfigParameter {
 
     if (defaultValue.isEmpty()) {
       throw new IllegalStateException(
-        "No default value present for: " + path);
+          "No PowHSM config default value present for: " + path);
     }
     return parser.apply(defaultValue);
   }
