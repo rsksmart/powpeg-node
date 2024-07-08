@@ -3,6 +3,9 @@ package co.rsk.federate.config;
 import static co.rsk.federate.config.PowpegNodeConfigParameter.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -11,17 +14,25 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import co.rsk.config.ConfigLoader;
+import co.rsk.federate.signing.config.SignerConfig;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
+import org.bitcoinj.core.NetworkParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class PowpegNodeSystemPropertiesTest {
 
   private final ConfigLoader configLoader = mock(ConfigLoader.class);
   private final Config config = mock(Config.class);
   private final ConfigObject configObject = mock(ConfigObject.class);
+
   private PowpegNodeSystemProperties powpegNodeSystemProperties;
 
   @BeforeEach
@@ -41,77 +52,29 @@ class PowpegNodeSystemPropertiesTest {
     assertFalse(powpegNodeSystemProperties.isUpdateBridgeTimerEnabled());
   }
 
-  @Test
-  void isUpdateBridgeTimerEnabled_whenRegtestAndCustomConfigEnabledValue_shouldReturnCustomConfigEnabledValue() {
-    when(config.getString("blockchain.config.name")).thenReturn("regtest");
-    when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(true);
-    when(config.getBoolean(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(true);
+  @ParameterizedTest
+  @MethodSource("updateBridgeTimerEnabledProvider")
+  void isUpdateBridgeTimerEnabled_whenGivenNetworkConfigNameAndCustomConfigVariations_shouldReturnEnabled(
+      String networkConfigName, boolean hasPath, boolean customValue) {
+    when(config.getString("blockchain.config.name")).thenReturn(networkConfigName);
+    when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(hasPath);
+    if (hasPath) {
+      when(config.getBoolean(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(customValue);
+    }
 
     assertTrue(powpegNodeSystemProperties.isUpdateBridgeTimerEnabled());
   }
 
-  @Test
-  void isUpdateBridgeTimerEnabled_whenRegtestAndCustomConfigNotEnabledValue_shouldReturnDefaultEnabledValue() {
-    when(config.getString("blockchain.config.name")).thenReturn("regtest");
-    when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(false);
-
-    assertTrue(powpegNodeSystemProperties.isUpdateBridgeTimerEnabled());
-  }
-
-  @Test
-  void isUpdateBridgeTimerEnabled_whenTestnetAndCustomConfigNotEnabledValue_shouldReturnEnabledValue() {
-    when(config.getString("blockchain.config.name")).thenReturn("testnet");
-    when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(true);
-    when(config.getBoolean(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(false);
-
-    // updateBridgeTimer can only be disabled on regtest
-    assertTrue(powpegNodeSystemProperties.isUpdateBridgeTimerEnabled());
-  }
-
-  @Test
-  void isUpdateBridgeTimerEnabled_whenTestnetAndCustomConfigEnabledValue_shouldReturnEnabledValue() {
-    when(config.getString("blockchain.config.name")).thenReturn("testnet");
-    when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(true);
-    when(config.getBoolean(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(true);
-
-    // updateBridgeTimer can only be disabled on regtest
-    assertTrue(powpegNodeSystemProperties.isUpdateBridgeTimerEnabled());
-  }
-
-  @Test
-  void isUpdateBridgeTimerEnabled_whenTestnetAndCustomConfigNotAvailable_shouldReturnEnabledValue() {
-    when(config.getString("blockchain.config.name")).thenReturn("testnet");
-    when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(false);
-
-    assertTrue(powpegNodeSystemProperties.isUpdateBridgeTimerEnabled());
-  }
-
-  @Test
-  void isUpdateBridgeTimerEnabled_whenMainnetAndCustomConfigNotEnabledValue_shouldReturnEnabledValue() {
-    when(config.getString("blockchain.config.name")).thenReturn("mainnet");
-    when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(true);
-    when(config.getBoolean(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(false);
-
-    // updateBridgeTimer can only be disabled on regtest
-    assertTrue(powpegNodeSystemProperties.isUpdateBridgeTimerEnabled());
-  }
-
-  @Test
-  void isUpdateBridgeTimerEnabled_whenMainnetAndCustomConfigEnabledValue_shouldReturnEnabledValue() {
-    when(config.getString("blockchain.config.name")).thenReturn("mainnet");
-    when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(true);
-    when(config.getBoolean(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(true);
-
-    // updateBridgeTimer can only be disabled on regtest
-    assertTrue(powpegNodeSystemProperties.isUpdateBridgeTimerEnabled());
-  }
-
-  @Test
-  void isUpdateBridgeTimerEnabled_whenMainnetAndCustomConfigNotAvailable_shouldReturnEnabledValue() {
-    when(config.getString("blockchain.config.name")).thenReturn("mainnet");
-    when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(false);
-
-    assertTrue(powpegNodeSystemProperties.isUpdateBridgeTimerEnabled());
+  private static Stream<Arguments> updateBridgeTimerEnabledProvider() {
+    return Stream.of(
+        Arguments.of("regtest", true, true),
+        Arguments.of("testnet", true, false),
+        Arguments.of("testnet", true, true),
+        Arguments.of("mainnet", true, false),
+        Arguments.of("mainnet", true, true),
+        Arguments.of("mainnet", false, false),
+        Arguments.of("regtest", false, false),
+        Arguments.of("testnet", false, false));
   }
 
   @Test
@@ -154,16 +117,16 @@ class PowpegNodeSystemPropertiesTest {
 
   @Test
   void isFederatorEnabled_whenCustomConfigAvailable_shouldReturnCustomConfig() {
-    boolean customValue = !FEDARATOR_ENABLED.getDefaultValue(Boolean::parseBoolean);
-    when(config.hasPath(FEDARATOR_ENABLED.getPath())).thenReturn(true);
-    when(config.getBoolean(FEDARATOR_ENABLED.getPath())).thenReturn(customValue);
+    boolean customValue = !FEDERATOR_ENABLED.getDefaultValue(Boolean::parseBoolean);
+    when(config.hasPath(FEDERATOR_ENABLED.getPath())).thenReturn(true);
+    when(config.getBoolean(FEDERATOR_ENABLED.getPath())).thenReturn(customValue);
 
     assertTrue(powpegNodeSystemProperties.isFederatorEnabled());
   }
 
   @Test
   void isFederatorEnabled_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-    when(config.hasPath(FEDARATOR_ENABLED.getPath())).thenReturn(false);
+    when(config.hasPath(FEDERATOR_ENABLED.getPath())).thenReturn(false);
 
     assertFalse(powpegNodeSystemProperties.isFederatorEnabled());
   }
@@ -297,5 +260,103 @@ class PowpegNodeSystemPropertiesTest {
 
     List<String> defaultValue = new ArrayList<>();
     assertEquals(defaultValue, powpegNodeSystemProperties.bitcoinPeerAddresses());
+  }
+
+  @Test
+  void gasPriceProviderConfig_whenCustomConfigAvailable_shouldReturnConfig() {
+    ConfigObject mockConfigObject = mock(ConfigObject.class);
+    Config mockConfig = mock(Config.class);
+
+    when(config.hasPath(GAS_PRICE_PROVIDER.getPath())).thenReturn(true);
+    when(config.getObject(GAS_PRICE_PROVIDER.getPath())).thenReturn(mockConfigObject);
+    when(mockConfigObject.toConfig()).thenReturn(mockConfig);
+
+    GasPriceProviderConfig result = powpegNodeSystemProperties.gasPriceProviderConfig();
+
+    assertNotNull(result);
+  }
+
+  @Test
+  void gasPriceProviderConfig_whenCustomConfigNotAvailable_shouldReturnNull() {
+    when(config.hasPath(GAS_PRICE_PROVIDER.getPath())).thenReturn(false);
+
+    GasPriceProviderConfig result = powpegNodeSystemProperties.gasPriceProviderConfig();
+
+    assertNull(result);
+  }
+
+  @Test
+  void signerConfig_whenSignerConfigExists_shouldReturnSignerConfig() {
+    String existingKey = NetworkParameters.ID_MAINNET;
+    ConfigObject mockConfigSignersObject = mock(ConfigObject.class);
+    ConfigObject mockConfigSignerObject = mock(ConfigObject.class);
+    Config mockSignersConfig = mock(Config.class);
+    Config mockSignerConfig = mock(Config.class);
+
+    // mock behavior where signersConfigTree() returns valid configuration
+    when(config.hasPath(SIGNERS.getPath())).thenReturn(true);
+    when(config.getObject(SIGNERS.getPath())).thenReturn(mockConfigSignersObject);
+    when(mockConfigSignersObject.toConfig()).thenReturn(mockSignersConfig);
+    when(mockSignersConfig.hasPath(existingKey)).thenReturn(true);
+
+    // mock behavior where the requested key exists with a "type" attribute
+    when(mockSignersConfig.getObject(existingKey)).thenReturn(mockConfigSignerObject);
+    when(mockConfigSignerObject.toConfig()).thenReturn(mockSignerConfig);
+    when(mockSignerConfig.hasPath("type")).thenReturn(true);
+
+    SignerConfig result = powpegNodeSystemProperties.signerConfig(existingKey);
+
+    assertNotNull(result);
+    assertEquals(existingKey, result.getId());
+  }
+
+  @Test
+  void signerConfig_whenSignerConfigDoesNotExist_shouldReturnNull() {
+    // mock behavior where signersConfigTree() returns null (no valid
+    // configuration)
+    when(config.hasPath(SIGNERS.getPath())).thenReturn(false);
+
+    SignerConfig result = powpegNodeSystemProperties.signerConfig("nonExistingKey");
+
+    assertNull(result);
+  }
+
+  @Test
+  void signerConfig_whenSignerConfigTypeNotDefined_shouldReturnNull() {
+    String keyWithNoType = NetworkParameters.ID_MAINNET;
+    ConfigObject mockConfigObject = mock(ConfigObject.class);
+    Config mockSignersConfig = mock(Config.class);
+    Config mockSignerConfig = mock(Config.class);
+
+    // mock behavior where signersConfigTree() returns valid configuration
+    when(config.hasPath(SIGNERS.getPath())).thenReturn(true);
+    when(config.getObject(SIGNERS.getPath())).thenReturn(mockConfigObject);
+    when(mockConfigObject.toConfig()).thenReturn(mockSignersConfig);
+    when(mockSignersConfig.hasPath(keyWithNoType)).thenReturn(true);
+
+    // mock behavior where the requested key exists but "type" attribute is
+    // not defined
+    when(mockSignersConfig.getObject(keyWithNoType)).thenReturn(mockConfigObject);
+    when(mockConfigObject.toConfig()).thenReturn(mockSignerConfig);
+    when(mockSignerConfig.hasPath("type")).thenReturn(false); // Simulating "type" not defined
+
+    SignerConfig result = powpegNodeSystemProperties.signerConfig(keyWithNoType);
+
+    assertNull(result);
+  }
+
+  @ParameterizedTest
+  @MethodSource("powpegNodeConfigParameterProvider")
+  void powpegNodeConfigParameter_whenDefaultIsEmpty_shouldThrowIllegalStateException(
+      PowpegNodeConfigParameter param) {
+    Function<String, String> parser = Function.identity();
+    assertThrows(IllegalStateException.class,
+        () -> param.getDefaultValue(parser));
+  }
+
+  private static Stream<Arguments> powpegNodeConfigParameterProvider() {
+    return Stream.of(
+        Arguments.of(SIGNERS),
+        Arguments.of(GAS_PRICE_PROVIDER));
   }
 }
