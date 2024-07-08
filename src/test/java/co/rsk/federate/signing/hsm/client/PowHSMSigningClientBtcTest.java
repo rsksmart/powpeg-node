@@ -37,12 +37,12 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.core.TransactionWitness;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import co.rsk.federate.bitcoin.BtcTransactionBuilder;
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
@@ -91,7 +91,6 @@ class PowHSMSigningClientBtcTest {
         bridgeMainnetConstants.getBtcParams(), 9);
     private static final Federation oldFederation = TestUtils.createFederation(
         bridgeMainnetConstants.getBtcParams(), 5);
-    private static final int FIRST_OUTPUT_INDEX = 0;
 
     private static final HSMSignature expectedSignature = createMockSignature();
     private final ECKey signerPk = ECKey.fromPrivate(Hex.decode("fa01"));
@@ -382,10 +381,10 @@ class PowHSMSigningClientBtcTest {
         for (HSMVersion hsmVersion : powHSMVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(
-                Arguments.of(hsmVersion.getNumber(), coinListOf(50_000_000)));
+                Arguments.of(hsmVersion, coinListOf(50_000_000)));
             arguments.add(
-                Arguments.of(hsmVersion.getNumber(), coinListOf(75_000_000)));
-            arguments.add(Arguments.of(hsmVersion.getNumber(),
+                Arguments.of(hsmVersion, coinListOf(75_000_000)));
+            arguments.add(Arguments.of(hsmVersion,
                 coinListOf(50_000_000, 75_000_000, 100_000_000)));
         }
 
@@ -399,10 +398,10 @@ class PowHSMSigningClientBtcTest {
         for (HSMVersion hsmVersion : powHSMVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(
-                Arguments.of(hsmVersion.getNumber(), Hex.decode("FE80F0FA02"), coinListOf(50_000_000)));
+                Arguments.of(hsmVersion, Hex.decode("FE80F0FA02"), coinListOf(50_000_000)));
             arguments.add(
-                Arguments.of(hsmVersion.getNumber(), Hex.decode("FEC0687804"), coinListOf(75_000_000)));
-            arguments.add(Arguments.of(hsmVersion.getNumber(), Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
+                Arguments.of(hsmVersion, Hex.decode("FEC0687804"), coinListOf(75_000_000)));
+            arguments.add(Arguments.of(hsmVersion, Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
                 coinListOf(50_000_000, 75_000_000, 100_000_000)));
         }
 
@@ -423,36 +422,38 @@ class PowHSMSigningClientBtcTest {
 
     private BtcTransaction createPegout(List<Coin> outpointValues,
         List<Address> destinationAddresses, boolean segwit) {
-        BtcTransaction fundingTransaction = new BtcTransaction(btcMainnetParams);
-        fundingTransaction.addInput(BitcoinTestUtils.createHash(1), FIRST_OUTPUT_INDEX,
-            new Script(new byte[]{}));
 
-        for (Coin outpointValue : outpointValues) {
-            fundingTransaction.addOutput(outpointValue, oldFederation.getAddress());
-        }
+        BtcTransactionBuilder btcTransactionBuilder = new BtcTransactionBuilder(btcMainnetParams);
 
-        BtcTransaction pegoutBtcTx = new BtcTransaction(btcMainnetParams);
-
+        // TODO: improve this method to create a more realistic btc segwit transaction
+        //  once {@link SignerMessageBuilder#getSigHashByInputIndex(int)} is refactored to support segwit
         Script inputScriptThatSpendsFromTheFederation = createBaseInputScriptThatSpendsFromTheFederation(
             oldFederation);
 
         Coin fee = Coin.MILLICOIN;
-        for (int outputIndex = 0; outputIndex < outpointValues.size(); outputIndex++) {
-            TransactionInput addedInput = pegoutBtcTx.addInput(
-                fundingTransaction.getOutput(outputIndex));
+        for (int idx = 0; idx < outpointValues.size(); idx++) {
+            Coin outpointValue = outpointValues.get(idx);
+            Coin amountToSend = outpointValue.minus(fee);
+            Address destinationAddress = destinationAddresses.get(
+                idx % destinationAddresses.size());
 
-            addedInput.setScriptSig(inputScriptThatSpendsFromTheFederation);
-
-            if (segwit) {
-                addWitness(pegoutBtcTx, outputIndex);
-            }
-
-            Coin amountToSend = outpointValues.get(outputIndex).minus(fee);
-            pegoutBtcTx.addOutput(amountToSend,
-                destinationAddresses.get(outputIndex % destinationAddresses.size()));
+            btcTransactionBuilder.addInputWithScriptSig(outpointValue,
+                inputScriptThatSpendsFromTheFederation);
+            // Iterate over the addresses using idx % addresses.size() to have outputs to different addresses
+            btcTransactionBuilder.addOutput(amountToSend, destinationAddress);
         }
 
-        return pegoutBtcTx;
+        BtcTransaction btcTransaction = btcTransactionBuilder.build();
+
+        // make the  tx segwit by adding a single witness
+        if (segwit) {
+            TransactionWitness witness = new TransactionWitness(1);
+            witness.setPush(0, new byte[]{1});
+
+            int fistInputIdx = 0;
+            btcTransaction.setWitness(fistInputIdx, witness);
+        }
+        return btcTransaction;
     }
 
     private List<Address> createDestinationAddresses(int numberOfAddresses) {
@@ -460,12 +461,6 @@ class PowHSMSigningClientBtcTest {
             .mapToObj(index -> BitcoinTestUtils.createP2PKHAddress(btcMainnetParams,
                 "userAddress" + index))
             .collect(Collectors.toList());
-    }
-
-    private void addWitness(BtcTransaction pegoutBtcTx, int inputIndex) {
-        TransactionWitness txWitness = new TransactionWitness(1);
-        txWitness.setPush(0, new byte[]{0x1});
-        pegoutBtcTx.setWitness(inputIndex, txWitness);
     }
 
     private void signAndExecuteAssertions(int hsmVersion, List<Coin> expectedOutpointValues,
