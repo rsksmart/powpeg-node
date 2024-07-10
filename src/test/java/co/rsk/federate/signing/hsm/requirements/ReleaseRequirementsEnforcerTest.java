@@ -36,21 +36,21 @@ class ReleaseRequirementsEnforcerTest {
 
     @Test
     void enforce_version_two_ok() throws Exception {
-        test_enforce_version(ancestorBlockUpdater, enforcer, HSMVersion.V2.getNumber());
+        test_enforce_version(ancestorBlockUpdater, enforcer, HSMVersion.V2);
     }
 
     @Test
     void enforce_version_three_ok() throws Exception {
-        test_enforce_version(ancestorBlockUpdater, enforcer, HSMVersion.V3.getNumber());
+        test_enforce_version(ancestorBlockUpdater, enforcer, HSMVersion.V3);
     }
 
     @Test
     void enforce_version_four_ok() throws Exception {
-        test_enforce_version(ancestorBlockUpdater, enforcer, HSMVersion.V4.getNumber());
+        test_enforce_version(ancestorBlockUpdater, enforcer, HSMVersion.V4);
     }
 
-    void test_enforce_version(AncestorBlockUpdater ancestorBlockUpdater, ReleaseRequirementsEnforcer enforcer, int version) throws Exception {
-        enforcer.enforce(version, mock(ReleaseCreationInformation.class));
+    void test_enforce_version(AncestorBlockUpdater ancestorBlockUpdater, ReleaseRequirementsEnforcer enforcer, HSMVersion version) throws Exception {
+        enforcer.enforce(version.getNumber(), mock(ReleaseCreationInformation.class));
 
         verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
     }

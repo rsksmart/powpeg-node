@@ -21,7 +21,15 @@ public enum HSMVersion {
         return number;
     }
 
-    public static List<HSMVersion> getVersions() {
-        return Arrays.asList(values());
+    public static List<HSMVersion> getPowHSMVersions() {
+        return Arrays.asList(V2, V3, V4, V5);
+    }
+
+    public static boolean isPowHSM(int version) {
+        return getPowHSMVersions().stream().anyMatch((hsmVersion) -> hsmVersion.number == version);
+    }
+
+    public static boolean isPowHSM(HSMVersion version){
+        return getPowHSMVersions().contains(version);
     }
 }

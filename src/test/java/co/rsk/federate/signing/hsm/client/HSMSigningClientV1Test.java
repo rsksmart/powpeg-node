@@ -58,7 +58,6 @@ import org.junit.jupiter.api.Test;
 class HSMSigningClientV1Test {
     private JsonRpcClient jsonRpcClientMock;
     private HSMSigningClientV1 client;
-    private final static HSMVersion HSM_VERSION = HSMVersion.V1;
 
     @BeforeEach
     void createClient() throws JsonRpcException {
@@ -76,7 +75,7 @@ class HSMSigningClientV1Test {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersion5Response());
         int version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 1.
-        assertEquals(HSM_VERSION.getNumber(), version);
+        assertEquals(HSMVersion.V1.getNumber(), version);
     }
 
     @Test
@@ -302,7 +301,7 @@ class HSMSigningClientV1Test {
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION.getFieldName(), HSM_VERSION.getNumber());
+        request.put(VERSION.getFieldName(), HSMVersion.V1.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
         request.put(AUTH.getFieldName(), "");
 
@@ -312,7 +311,7 @@ class HSMSigningClientV1Test {
     private ObjectNode buildSignRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), SIGN.getCommand());
-        request.put(VERSION.getFieldName(), HSM_VERSION.getNumber());
+        request.put(VERSION.getFieldName(), HSMVersion.V1.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
         request.put(AUTH.getFieldName(), "");
         request.put(MESSAGE.getFieldName(), "bbccddee");

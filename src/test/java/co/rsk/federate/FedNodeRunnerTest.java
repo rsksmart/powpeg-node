@@ -101,7 +101,7 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_hsm_v2_config_Ok() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V2);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
@@ -131,7 +131,7 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_hsm_v1_config() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(1);
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V1);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
@@ -209,7 +209,7 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_hsm_v2_config_without_rsk() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V2);
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(MST_KEY_ID.getId())).thenReturn(mstSignerConfig);
@@ -237,7 +237,7 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_hsm_v2_config_without_mst() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V2);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
@@ -460,7 +460,7 @@ class FedNodeRunnerTest {
         return mstSignerConfig;
     }
 
-    private SignerConfig getHSMBTCSignerConfig(int version) {
+    private SignerConfig getHSMBTCSignerConfig(HSMVersion version) {
         SignerConfig btcSignerConfig = mock(SignerConfig.class);
         Config hsmConfig = mock(Config.class);
         when(btcSignerConfig.getId()).thenReturn("BTC");
@@ -470,7 +470,7 @@ class FedNodeRunnerTest {
         when(hsmConfig.getInt("port")).thenReturn(9999);
         when(hsmConfig.getString("keyId")).thenReturn("m/44'/0'/0'/0/0");
 
-        if (version >= HSMVersion.V2.getNumber()) {
+        if (HSMVersion.isPowHSM(version)) {
             when(hsmConfig.hasPath("socketTimeout")).thenReturn(true);
             when(hsmConfig.getInt("socketTimeout")).thenReturn(20000);
             when(hsmConfig.hasPath("maxAttempts")).thenReturn(true);

@@ -49,7 +49,6 @@ import org.junit.jupiter.api.Test;
 class PowHSMSigningClientTest {
     private JsonRpcClient jsonRpcClientMock;
     private PowHSMSigningClient client;
-    private final static HSMVersion HSM_VERSION = HSMVersion.V2;
 
     @BeforeEach
     void createClient() throws JsonRpcException {
@@ -57,7 +56,7 @@ class PowHSMSigningClientTest {
         jsonRpcClientMock = mock(JsonRpcClient.class);
         HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
         //Since parent class is abstract, test all the common methods using PowHSMSigningClientBtc.
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSM_VERSION.getNumber());
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSMVersion.V2.getNumber());
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
@@ -68,7 +67,7 @@ class PowHSMSigningClientTest {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersion5Response());
         int version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 2.
-        assertEquals(HSM_VERSION.getNumber(), version);
+        assertEquals(HSMVersion.V2.getNumber(), version);
     }
 
     @Test
@@ -153,7 +152,7 @@ class PowHSMSigningClientTest {
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION.getFieldName(), HSM_VERSION.getNumber());
+        request.put(VERSION.getFieldName(), HSMVersion.V2.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         return request;
