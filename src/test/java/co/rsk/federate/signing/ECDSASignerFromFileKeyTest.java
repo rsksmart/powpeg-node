@@ -34,6 +34,7 @@ import java.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.crypto.Keccak256Helper;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -92,11 +93,7 @@ class ECDSASignerFromFileKeyTest {
 
     @Test
     void signNonMatchingKeyId() {
-        try {
-            signer.sign(new KeyId("another-id"), new SignerMessageV1(Hex.decode("aabbcc")));
-            fail();
-        } catch (Exception e) {
-        }
+        Assertions.assertThrowsExactly(SignerException.class, () -> signer.sign(new KeyId("another-id"), new SignerMessageV1(Hex.decode("aabbcc"))));
     }
 
     @Test
@@ -122,11 +119,7 @@ class ECDSASignerFromFileKeyTest {
 
     @Test
     void getPublicKeyNonMatchingKeyId() {
-        try {
-            signer.getPublicKey(new KeyId("another-id"));
-            fail();
-        } catch (Exception e) {
-        }
+        Assertions.assertThrowsExactly(SignerException.class, () -> signer.getPublicKey(new KeyId("another-id")));
     }
 
     @Test
