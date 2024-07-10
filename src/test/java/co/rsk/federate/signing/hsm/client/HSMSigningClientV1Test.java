@@ -47,6 +47,7 @@ import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.HSMCommand;
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -57,7 +58,7 @@ import org.junit.jupiter.api.Test;
 class HSMSigningClientV1Test {
     private JsonRpcClient jsonRpcClientMock;
     private HSMSigningClientV1 client;
-    private final static int HSM_VERSION = 1;
+    private final static HSMVersion HSM_VERSION = HSMVersion.V1;
 
     @BeforeEach
     void createClient() throws JsonRpcException {
@@ -72,10 +73,10 @@ class HSMSigningClientV1Test {
     void getVersionOk() throws Exception {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), HSMCommand.VERSION.getCommand());
-        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(5));
+        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersion5Response());
         int version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 1.
-        assertEquals(HSM_VERSION, version);
+        assertEquals(HSM_VERSION.getNumber(), version);
     }
 
     @Test
@@ -286,9 +287,9 @@ class HSMSigningClientV1Test {
         }
     }
 
-    private ObjectNode buildVersionResponse(int version) {
+    private ObjectNode buildVersion5Response() {
         ObjectNode response = buildResponse(0);
-        response.put(VERSION.getFieldName(), version);
+        response.put(VERSION.getFieldName(), HSMVersion.V5.getNumber());
         return response;
     }
 
@@ -301,7 +302,7 @@ class HSMSigningClientV1Test {
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION.getFieldName(), HSM_VERSION);
+        request.put(VERSION.getFieldName(), HSM_VERSION.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
         request.put(AUTH.getFieldName(), "");
 
@@ -311,7 +312,7 @@ class HSMSigningClientV1Test {
     private ObjectNode buildSignRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), SIGN.getCommand());
-        request.put(VERSION.getFieldName(), HSM_VERSION);
+        request.put(VERSION.getFieldName(), HSM_VERSION.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
         request.put(AUTH.getFieldName(), "");
         request.put(MESSAGE.getFieldName(), "bbccddee");

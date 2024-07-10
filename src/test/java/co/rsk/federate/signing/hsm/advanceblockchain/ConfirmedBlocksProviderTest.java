@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Test;
 
 class ConfirmedBlocksProviderTest {
 
-    private static final int HSM_VERSION_2 = HSMVersion.V2.getNumber();
-    private static final int HSM_VERSION_4 = HSMVersion.V4.getNumber();
+    private static final HSMVersion HSM_VERSION_2 = HSMVersion.V2;
+    private static final HSMVersion HSM_VERSION_4 = HSMVersion.V4;
     private final BigInteger difficultyCapRegTest = PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST;
     private final BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
 
@@ -53,7 +53,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_2
+            HSM_VERSION_2.getNumber()
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -84,7 +84,7 @@ class ConfirmedBlocksProviderTest {
             12,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_2
+            HSM_VERSION_2.getNumber()
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -113,7 +113,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_2
+            HSM_VERSION_2.getNumber()
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -142,7 +142,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_4
+            HSM_VERSION_4.getNumber()
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -171,7 +171,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_4
+            HSM_VERSION_4.getNumber()
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -207,7 +207,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_2);
+            HSM_VERSION_2.getNumber());
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
@@ -221,7 +221,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             BigInteger.valueOf(50),
-            HSM_VERSION_4);
+            HSM_VERSION_4.getNumber());
 
         confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
@@ -257,7 +257,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_2
+            HSM_VERSION_2.getNumber()
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -272,7 +272,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSM_VERSION_4);
+            HSM_VERSION_4.getNumber());
 
         confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
