@@ -84,8 +84,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class PowHSMSigningClientBtcTest {
-
-    private static final HSMVersion HSM_VERSION_2 = HSMVersion.V2;
     private static final BridgeConstants bridgeMainnetConstants = BridgeMainNetConstants.getInstance();
     private static final NetworkParameters btcMainnetParams = bridgeMainnetConstants.getBtcParams();
 
@@ -145,21 +143,21 @@ class PowHSMSigningClientBtcTest {
 
         hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock,
             ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSM_VERSION_2.getNumber());
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSMVersion.V2.getNumber());
 
 
     }
 
     @Test
     void signOk() throws Exception {
-        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyCommand(HSM_VERSION_2.getNumber());
+        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyCommand(HSMVersion.V2.getNumber());
         ObjectNode publicKeyResponse = buildResponse(0);
         publicKeyResponse.put(PUB_KEY.getFieldName(), Hex.toHexString(signerPk.getPubKey()));
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
 
         PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting();
 
-        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION_2.getNumber(), messageForSignature);
+        ObjectNode expectedSignRequest = buildSignCommand(HSMVersion.V2.getNumber(), messageForSignature);
         ObjectNode response = buildSuccessfulSignResponse();
 
         when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
@@ -177,7 +175,7 @@ class PowHSMSigningClientBtcTest {
     void signNoErrorCode() throws Exception {
         PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting();
 
-        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION_2.getNumber(), messageForSignature);
+        ObjectNode expectedSignRequest = buildSignCommand(HSMVersion.V2.getNumber(), messageForSignature);
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("any", "thing");
@@ -196,7 +194,7 @@ class PowHSMSigningClientBtcTest {
     void signNonZeroErrorCode() throws Exception {
         PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting();
 
-        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION_2.getNumber(), messageForSignature);
+        ObjectNode expectedSignRequest = buildSignCommand(HSMVersion.V2.getNumber(), messageForSignature);
 
         ObjectNode response = buildResponse(-905);
 
@@ -215,7 +213,7 @@ class PowHSMSigningClientBtcTest {
     void signNoSignature() throws Exception {
         PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting();
 
-        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION_2.getNumber(), messageForSignature);
+        ObjectNode expectedSignRequest = buildSignCommand(HSMVersion.V2.getNumber(), messageForSignature);
         ObjectNode response = buildResponse(0);
 
         when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
@@ -232,7 +230,7 @@ class PowHSMSigningClientBtcTest {
     void signNoR() throws Exception {
         PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting();
 
-        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION_2.getNumber(), messageForSignature);
+        ObjectNode expectedSignRequest = buildSignCommand(HSMVersion.V2.getNumber(), messageForSignature);
         ObjectNode response = buildResponse(0);
         response.set(SIGNATURE.getFieldName(), objectMapper.createObjectNode());
 
@@ -250,7 +248,7 @@ class PowHSMSigningClientBtcTest {
     void signNoS() throws Exception {
         PowHSMSignerMessage messageForSignature = buildMessageForIndexTesting();
 
-        ObjectNode expectedSignRequest = buildSignCommand(HSM_VERSION_2.getNumber(), messageForSignature);
+        ObjectNode expectedSignRequest = buildSignCommand(HSMVersion.V2.getNumber(), messageForSignature);
         ObjectNode response = buildResponse(0);
         ObjectNode signatureResponse = objectMapper.createObjectNode();
         signatureResponse.put(R.getFieldName(), "aabbcc");
@@ -560,7 +558,7 @@ class PowHSMSigningClientBtcTest {
         ObjectNode message = objectMapper.createObjectNode();
         message.put(TX.getFieldName(), messageForSignature.getBtcTransactionSerialized());
         message.put(INPUT.getFieldName(), messageForSignature.getInputIndex());
-        when(messageForSignature.getMessageToSign(HSM_VERSION_2.getNumber())).thenReturn(message);
+        when(messageForSignature.getMessageToSign(HSMVersion.V2.getNumber())).thenReturn(message);
         return messageForSignature;
     }
 }
