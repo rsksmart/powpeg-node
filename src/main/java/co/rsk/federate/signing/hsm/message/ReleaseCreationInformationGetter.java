@@ -52,7 +52,7 @@ public class ReleaseCreationInformationGetter {
     ) throws HSMReleaseCreationInformationException {
         if (version == HSMVersion.V1.getNumber()) {
             return getBaseReleaseCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
-        } else if (version >= HSMVersion.V2.getNumber()) {
+        } else if (HSMVersion.isPowHSM(version)) {
             return getTxInfoToSignVersion2(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
         } else {
             throw new HSMReleaseCreationInformationException("Unsupported version " + version);

@@ -18,7 +18,7 @@ public class ReleaseRequirementsEnforcer {
         throws ReleaseRequirementsEnforcerException {
         if (version == HSMVersion.V1.getNumber()) {
             logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
-        } else if (version >= HSMVersion.V2.getNumber()) {
+        } else if (HSMVersion.isPowHSM(version)) {
             logger.trace("[enforce] Version 2+ requires ancestor in position. ENFORCING");
             enforceReleaseRequirements(releaseCreationInformation);
         } else {

@@ -20,7 +20,7 @@ public class HSMBookKeepingClientProvider {
         HSMBookkeepingClient bookkeepingClient;
         if (version == HSMVersion.V1.getNumber()) {
             throw new HSMUnsupportedVersionException("HSMBookKeepingClient doesn't exist for version 1");
-        } else if (version >= HSMVersion.V2.getNumber()) {
+        } else if (HSMVersion.isPowHSM(version)) {
             bookkeepingClient = new HsmBookkeepingClientImpl(protocol);
         } else {
             String message = String.format("Unsupported HSM version %d ", version);

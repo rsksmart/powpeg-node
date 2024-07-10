@@ -380,8 +380,8 @@ class PowHSMSigningClientBtcTest {
     private static List<Arguments> legacyPegoutArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
 
-        List<HSMVersion> hsmVersions = HSMVersion.getVersions();
-        for (HSMVersion hsmVersion : hsmVersions) {
+        List<HSMVersion> powHSMVersions = HSMVersion.getPowHSMVersions();
+        for (HSMVersion hsmVersion : powHSMVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(
                 Arguments.of(hsmVersion.getNumber(), coinListOf(50_000_000)));
@@ -397,8 +397,8 @@ class PowHSMSigningClientBtcTest {
     private static List<Arguments> signArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
 
-        List<HSMVersion> hsmVersions = HSMVersion.getVersions();
-        for (HSMVersion hsmVersion : hsmVersions) {
+        List<HSMVersion> powHSMVersions = HSMVersion.getPowHSMVersions();
+        for (HSMVersion hsmVersion : powHSMVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(
                 Arguments.of(hsmVersion.getNumber(), Hex.decode("FE80F0FA02"), coinListOf(50_000_000)));

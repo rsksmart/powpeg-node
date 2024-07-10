@@ -50,7 +50,7 @@ public class HSMSigningClientProvider {
         logger.debug("[getSigningClient] version: {}, keyId: {}", version, keyId);
         if (version == HSMVersion.V1.getNumber()) {
             client = new HSMSigningClientV1(this.hsmClientProtocol);
-        } else if (version >= HSMVersion.V2.getNumber()) {
+        } else if (HSMVersion.isPowHSM(version)) {
             client = buildPowHSMClient(version);
         } else {
             String message = String.format("Unsupported HSM version %d", version);

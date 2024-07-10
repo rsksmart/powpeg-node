@@ -22,7 +22,7 @@ public class SignerMessageBuilderFactory {
         SignerMessageBuilder messageBuilder;
         if (version == HSMVersion.V1.getNumber()) {
             messageBuilder = new SignerMessageBuilderV1(pegoutCreationInformation.getPegoutBtcTx());
-        } else if (version >= HSMVersion.V2.getNumber()) {
+        } else if (HSMVersion.isPowHSM(version)) {
             messageBuilder = new PowHSMSignerMessageBuilder(receiptStore, pegoutCreationInformation);
         } else {
             String message = String.format("Unsupported HSM signer version: %d", version);
