@@ -240,7 +240,6 @@ public class FedNodeRunner implements NodeRunner {
 
     /**
      * Build a signer from a certain configuration key
-     *
      * Fallback to using the (old) "keyFile" configuration
      * option if specific key configuration is not found.
      */
@@ -271,7 +270,7 @@ public class FedNodeRunner implements NodeRunner {
     private void startFederate() throws Exception {
         LOGGER.debug("[startFederate] Starting Federation Behaviour");
         if (config.isFederatorEnabled()) {
-            // Setup a federation watcher to trigger starts and stops of the
+            // Set up a federation watcher to trigger starts and stops of the
             // btc to rsk client upon federation changes
             FederationProvider federationProvider = new FederationProviderFromFederatorSupport(
                 federatorSupport,

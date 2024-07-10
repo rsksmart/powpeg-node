@@ -5,6 +5,7 @@ import static co.rsk.federate.signing.PowPegNodeKeyId.MST_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -116,11 +117,11 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(3, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNotNull(hsmBookkeepingClient);
@@ -166,11 +167,11 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(3, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNull(bookkeepingClient);
@@ -194,11 +195,11 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNull(hsmBookkeepingClient);
@@ -222,11 +223,11 @@ class FedNodeRunnerTest {
         assertFalse(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNotNull(hsmBookkeepingClient);
@@ -250,11 +251,11 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertFalse(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNotNull(hsmBookkeepingClient);
@@ -280,7 +281,7 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(3, signers.size());
@@ -288,7 +289,7 @@ class FedNodeRunnerTest {
         assertEquals(1, signers.get(1).getVersionForKeyId(RSK_KEY_ID.getKeyId()));
         assertEquals(1, signers.get(2).getVersionForKeyId(MST_KEY_ID.getKeyId()));
         signers.forEach(keyFileSigner -> {
-            assertTrue(keyFileSigner instanceof ECDSASignerFromFileKey);
+            assertInstanceOf(ECDSASignerFromFileKey.class, keyFileSigner);
             assertTrue(keyFileSigner.check().wasSuccessful());
             assertTrue(keyFileSigner.check().getMessages().isEmpty());
         });
@@ -315,7 +316,7 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
@@ -344,7 +345,7 @@ class FedNodeRunnerTest {
         assertFalse(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
@@ -373,7 +374,7 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertFalse(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
@@ -407,7 +408,7 @@ class FedNodeRunnerTest {
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         signers.forEach(keyFileSigner -> {
-            assertTrue(keyFileSigner instanceof ECDSASignerFromFileKey);
+            assertInstanceOf(ECDSASignerFromFileKey.class, keyFileSigner);
             assertFalse(keyFileSigner.check().wasSuccessful());
             assertTrue(keyFileSigner.check().getMessages().contains("Invalid Key File Name"));
             assertTrue(keyFileSigner.check().getMessages().contains("Invalid key file permissions"));
@@ -424,7 +425,7 @@ class FedNodeRunnerTest {
         assertFalse(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertFalse(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(0, signers.size());

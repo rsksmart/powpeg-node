@@ -56,7 +56,7 @@ class PowHSMSigningClientRskMstTest {
         SignerMessageV1 messageForSignature = new SignerMessageV1(Hex.decode("bbccddee"));
 
         ObjectNode expectedSignRequest = buildSignRequest();
-        ObjectNode response = buildSignResponse("223344", "55667788", 0);
+        ObjectNode response = buildSignResponse();
 
         when(jsonRpcClientMock.send(expectedSignRequest)).thenReturn(response);
 
@@ -190,7 +190,10 @@ class PowHSMSigningClientRskMstTest {
         return request;
     }
 
-    private ObjectNode buildSignResponse(String r, String s, int errorCode) {
+    private ObjectNode buildSignResponse() {
+        String r = "223344";
+        String s = "55667788";
+        int errorCode = 0;
         ObjectNode response = new ObjectMapper().createObjectNode();
         ObjectNode signature = new ObjectMapper().createObjectNode();
         signature.put(R.getFieldName(), r);
