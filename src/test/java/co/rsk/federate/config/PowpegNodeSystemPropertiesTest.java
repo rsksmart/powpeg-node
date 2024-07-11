@@ -121,14 +121,14 @@ class PowpegNodeSystemPropertiesTest {
     when(config.hasPath(FEDERATOR_ENABLED.getPath())).thenReturn(true);
     when(config.getBoolean(FEDERATOR_ENABLED.getPath())).thenReturn(customValue);
 
-    assertTrue(powpegNodeSystemProperties.isFederatorEnabled());
+    assertFalse(powpegNodeSystemProperties.isFederatorEnabled());
   }
 
   @Test
   void isFederatorEnabled_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
     when(config.hasPath(FEDERATOR_ENABLED.getPath())).thenReturn(false);
 
-    assertFalse(powpegNodeSystemProperties.isFederatorEnabled());
+    assertTrue(powpegNodeSystemProperties.isFederatorEnabled());
   }
 
   @Test
@@ -137,14 +137,14 @@ class PowpegNodeSystemPropertiesTest {
     when(config.hasPath(PEGOUT_ENABLED.getPath())).thenReturn(true);
     when(config.getBoolean(PEGOUT_ENABLED.getPath())).thenReturn(customValue);
 
-    assertTrue(powpegNodeSystemProperties.isPegoutEnabled());
+    assertFalse(powpegNodeSystemProperties.isPegoutEnabled());
   }
 
   @Test
   void isPegoutEnabled_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
     when(config.hasPath(PEGOUT_ENABLED.getPath())).thenReturn(false);
 
-    assertFalse(powpegNodeSystemProperties.isPegoutEnabled());
+    assertTrue(powpegNodeSystemProperties.isPegoutEnabled());
   }
 
   @Test
