@@ -3,7 +3,7 @@ package co.rsk.federate;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
@@ -94,7 +94,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         BtcLockSenderProvider btcLockSenderProvider,
         PeginInstructionsProvider peginInstructionsProvider,
         Federation federation,
-        FedNodeSystemProperties config
+        PowpegNodeSystemProperties config
     ) throws Exception {
         this.bitcoinWrapper = bitcoinWrapper;
         this.federatorSupport = federatorSupport;
@@ -113,7 +113,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         BtcToRskClientFileStorage btcToRskClientFileStorage,
         BtcLockSenderProvider btcLockSenderProvider,
         PeginInstructionsProvider peginInstructionsProvider,
-        FedNodeSystemProperties config
+        PowpegNodeSystemProperties config
     ) throws Exception {
         this.bridgeConstants = bridgeConstants;
         this.btcToRskClientFileStorage = btcToRskClientFileStorage;
@@ -820,7 +820,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         return generatePMT(block, transaction, transaction.hasWitnesses());
     }
 
-    private void setConfigVariables(FedNodeSystemProperties config) {
+    private void setConfigVariables(PowpegNodeSystemProperties config) {
         this.activationConfig = config.getActivationConfig();
         this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
         this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
