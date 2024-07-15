@@ -374,8 +374,8 @@ public class BtcReleaseClient {
 
                 // Check if any of the observed federations can sign the tx
                 logger.trace("[validateTxCanBeSigned] Checking if any of the observed federations can sign the tx input {}", inputIndex);
-                observedFederations.stream()
-                        .forEach(f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
+                observedFederations.forEach(
+                    f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
                 List<Federation> spendingFedFilter = observedFederations.stream()
                         .filter(f -> (extractDefaultRedeemScript(f)).equals(standardRedeemScript)).collect(Collectors.toList());
                 logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
