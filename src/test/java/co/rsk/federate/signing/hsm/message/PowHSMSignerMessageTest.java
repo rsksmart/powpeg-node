@@ -34,6 +34,7 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.bitcoinj.core.Sha256Hash;
+import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.core.TransactionWitness;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.Script;
@@ -277,11 +278,14 @@ class PowHSMSignerMessageTest {
             Address destinationAddress = destinationAddresses.get(
                 inputIndex % destinationAddresses.size());
 
+            TransactionInput txInput = btcTransactionBuilder.new InputBuilder(
+                outpointValue).withOutpointIndex(
+                    inputIndex)
+                .withScriptSig(inputScriptThatSpendsFromTheFederation).build();
+
             btcTransactionBuilder
                 .withInput(
-                    btcTransactionBuilder.new InputBuilder(outpointValue).withOutpointIndex(
-                            inputIndex)
-                        .withScriptSig(inputScriptThatSpendsFromTheFederation).build()
+                    txInput
                 )
                 .withOutput(amountToSend, destinationAddress);
 
