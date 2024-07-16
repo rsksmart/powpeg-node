@@ -16,13 +16,14 @@ import java.util.Map;
 
 public final class BtcTransactionBuilder {
 
-    private final NetworkParameters networkParameters;
+    private NetworkParameters networkParameters = NetworkParameters.fromID(NetworkParameters.ID_MAINNET);
     private final Map<Integer, TransactionWitness> transactionWitnesses = new HashMap<>();
     private final List<TransactionInput> inputs = new ArrayList<>();
     private final List<TransactionOutput> outputs = new ArrayList<>();
 
-    public BtcTransactionBuilder(NetworkParameters networkParameters) {
+    public BtcTransactionBuilder withNetworkParameters(NetworkParameters networkParameters) {
         this.networkParameters = networkParameters;
+        return this;
     }
 
     public BtcTransactionBuilder withInput(TransactionInput transactionInput) {
@@ -30,10 +31,9 @@ public final class BtcTransactionBuilder {
         return this;
     }
 
-    public BtcTransactionBuilder withInput(TransactionOutput transactionOutput) {
-        TransactionInput transactionInput = new TransactionInput(networkParameters, null,
-            new byte[]{}, transactionOutput.getOutPointFor(), transactionOutput.getValue());
-        inputs.add(transactionInput);
+    public BtcTransactionBuilder withInputFromOutput(TransactionOutput transactionOutput) {
+        inputs.add(new InputBuilder(transactionOutput.getValue()).withOutpointIndex(
+            transactionOutput.getIndex()).build());
         return this;
     }
 
