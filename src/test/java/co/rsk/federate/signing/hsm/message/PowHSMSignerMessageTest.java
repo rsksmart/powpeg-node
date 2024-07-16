@@ -259,7 +259,7 @@ class PowHSMSignerMessageTest {
     }
 
     private BtcTransaction createSegwitPegout(List<Coin> outpointValues) {
-        BtcTransactionBuilder btcTransactionBuilder = new BtcTransactionBuilder(btcMainnetParams);
+        BtcTransactionBuilder btcTransactionBuilder = new BtcTransactionBuilder();
 
         // TODO: improve this method to create a more realistic btc segwit transaction
         //  once {@link SignerMessageBuilder#getSigHashByInputIndex(int)} is refactored to support segwit
