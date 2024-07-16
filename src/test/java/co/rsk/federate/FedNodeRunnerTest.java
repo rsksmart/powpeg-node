@@ -21,7 +21,7 @@ import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
-import co.rsk.federate.config.TestConfigBuilder;
+import co.rsk.federate.config.PowpegConfigBuilder;
 import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
@@ -445,11 +445,8 @@ class FedNodeRunnerTest {
         when(hsmBookkeepingClient.getVersion()).thenReturn(version);
         when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
             new HSMUnsupportedTypeException("PowHSM version: " + version));
-        Config config = TestConfigBuilder.builder()
-            .withValue("type", "hsm")
-            .withValue("host", "127.0.0.1")
-            .withValue("port", 9999)
-            .withValue("keyId", "m/44'/0'/0'/0/0")
+        Config config = PowpegConfigBuilder.builder()
+            .withHsmSigner("m/44'/0'/0'/0/0")
             .withValue("socketTimeout", 20000)
             .withValue("maxAttempts", 3)
             .withValue("intervalBetweenAttempts", 2000)
@@ -465,36 +462,30 @@ class FedNodeRunnerTest {
     }
 
     private SignerConfig getBTCSignerConfig(String path) {
-        Config config = TestConfigBuilder.builder()
-            .withValue("type", "keyFile")
-            .withValue("path", path)
+        Config config = PowpegConfigBuilder.builder()
+            .withKeyFileSigner(path)
             .build();
         return new SignerConfig("BTC", config);
     }
 
     private SignerConfig getRSKSignerConfig(String path) {
-        Config config = TestConfigBuilder.builder()
-            .withValue("type", "keyFile")
-            .withValue("path", path)
+        Config config = PowpegConfigBuilder.builder()
+            .withKeyFileSigner(path)
             .build();
         return new SignerConfig("RSK", config);
     }
 
     private SignerConfig getMSTSignerConfig(String path) {
-        Config config = TestConfigBuilder.builder()
-            .withValue("type", "keyFile")
-            .withValue("path", path)
+        Config config = PowpegConfigBuilder.builder()
+            .withKeyFileSigner(path)
             .build();
         return new SignerConfig("MST", config);
     }
 
     private SignerConfig getHSMBTCSignerConfig(HSMVersion version) throws HSMClientException {
         when(hsmBookkeepingClient.getVersion()).thenReturn(version.getNumber());
-        TestConfigBuilder configBuilder = TestConfigBuilder.builder()
-            .withValue("type", "hsm")
-            .withValue("host", "127.0.0.1")
-            .withValue("port", 9999)
-            .withValue("keyId", "m/44'/0'/0'/0/0");
+        PowpegConfigBuilder configBuilder = PowpegConfigBuilder.builder()
+            .withHsmSigner("m/44'/0'/0'/0/0");
 
         if (version.getNumber() >= 2) {
             when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
@@ -521,21 +512,15 @@ class FedNodeRunnerTest {
     }
 
     private SignerConfig getHSMRSKSignerConfig() {
-        Config config = TestConfigBuilder.builder()
-            .withValue("type", "hsm")
-            .withValue("host", "127.0.0.1")
-            .withValue("port", 9999)
-            .withValue("keyId", "m/44'/137'/0'/0/0")
+        Config config = PowpegConfigBuilder.builder()
+            .withHsmSigner("m/44'/137'/0'/0/0")
             .build();
         return new SignerConfig("RSK", config); 
     }
 
     private SignerConfig getHSMMSTSignerConfig() {
-        Config config = TestConfigBuilder.builder()
-            .withValue("type", "hsm")
-            .withValue("host", "127.0.0.1")
-            .withValue("port", 9999)
-            .withValue("keyId", "m/44'/137'/1'/0/0")
+        Config config = PowpegConfigBuilder.builder()
+            .withHsmSigner("m/44'/137'/1'/0/0")
             .build();
         return new SignerConfig("MST", config); 
     }
