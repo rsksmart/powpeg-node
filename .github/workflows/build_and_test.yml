@@ -173,11 +173,19 @@ jobs:
         run: |
           ./gradlew --no-daemon --stacktrace test
 
+      - name: Persist test results for sonar
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            build/test-results/
+
       - name: Persist test reports for sonar
         uses: actions/upload-artifact@v4
         with:
-          name: test-report
-          path: build
+          name: test-reports
+          path: |
+            build/reports/
 
   sonarqube:
     runs-on: ubuntu-latest
@@ -200,10 +208,19 @@ jobs:
           name: rskj
           path: rskj
 
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: |
+            build/test-results/
+
       - name: Download test reports
         uses: actions/download-artifact@v4
         with:
-          name: test-report
+          name: test-reports
+          path: |
+            build/reports/
      
       - name: Run SonarQube analysis
         env:
@@ -223,6 +240,8 @@ jobs:
               -Dsonar.organization=rsksmart \
               -Dsonar.projectKey=rsksmart_powpeg-node \
               -Dsonar.host.url="https://sonarcloud.io" \
+              -Dsonar.junit.reportPaths=build/test-results/ \
+              -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml \
               -Dsonar.token="$SONAR_TOKEN"
           else
             ./gradlew sonarqube --warning-mode all --no-daemon --stacktrace --info -x build -x test \
@@ -230,6 +249,8 @@ jobs:
               -Dsonar.organization=rsksmart \
               -Dsonar.projectKey=rsksmart_powpeg-node \
               -Dsonar.host.url="https://sonarcloud.io" \
+              -Dsonar.junit.reportPaths=build/test-results/ \
+              -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml \
               -Dsonar.token="$SONAR_TOKEN"
           fi
 
