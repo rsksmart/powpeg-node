@@ -278,10 +278,10 @@ class PowHSMSignerMessageTest {
             Address destinationAddress = destinationAddresses.get(
                 inputIndex % destinationAddresses.size());
 
-            TransactionInput txInput = btcTransactionBuilder.new InputBuilder(
-                outpointValue).withOutpointIndex(
-                    inputIndex)
-                .withScriptSig(inputScriptThatSpendsFromTheFederation).build();
+            TransactionInput txInput = btcTransactionBuilder.createInputBuilder()
+                .withAmount(outpointValue).withOutpointIndex(inputIndex)
+                .withScriptSig(inputScriptThatSpendsFromTheFederation)
+                .build();
 
             btcTransactionBuilder
                 .withInput(
