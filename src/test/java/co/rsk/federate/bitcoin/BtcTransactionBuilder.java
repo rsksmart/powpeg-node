@@ -21,6 +21,10 @@ public final class BtcTransactionBuilder {
     private final List<TransactionInput> inputs = new ArrayList<>();
     private final List<TransactionOutput> outputs = new ArrayList<>();
 
+    public InputBuilder createInputBuilder() {
+        return new InputBuilder();
+    }
+
     public BtcTransactionBuilder withNetworkParameters(NetworkParameters networkParameters) {
         this.networkParameters = networkParameters;
         return this;
@@ -32,7 +36,7 @@ public final class BtcTransactionBuilder {
     }
 
     public BtcTransactionBuilder withInputFromOutput(TransactionOutput transactionOutput) {
-        inputs.add(new InputBuilder(transactionOutput.getValue()).withOutpointIndex(
+        inputs.add(new InputBuilder().withAmount(transactionOutput.getValue()).withOutpointIndex(
             transactionOutput.getIndex()).build());
         return this;
     }
@@ -73,12 +77,15 @@ public final class BtcTransactionBuilder {
 
     public class InputBuilder {
 
-        private final Coin amount;
+        private Coin amount;
         private Script scriptSig;
         private int outpointIndex = 0;
 
-        public InputBuilder(Coin amount) {
+        private InputBuilder() { }
+
+        public InputBuilder withAmount(Coin amount) {
             this.amount = amount;
+            return this;
         }
 
         public InputBuilder withScriptSig(Script scriptSig) {
