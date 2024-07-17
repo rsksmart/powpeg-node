@@ -63,10 +63,10 @@ public final class BtcTransactionBuilder {
 
     private void addInputs(BtcTransaction btcTransaction) {
         inputs.forEach(transactionInput -> {
-            int idx = btcTransaction.getInputs().size();
+            int inputIndex = btcTransaction.getInputs().size();
             btcTransaction.addInput(transactionInput);
-            if (transactionWitnesses.containsKey(idx)) {
-                btcTransaction.setWitness(idx, transactionWitnesses.get(idx));
+            if (transactionWitnesses.containsKey(inputIndex)) {
+                btcTransaction.setWitness(inputIndex, transactionWitnesses.get(inputIndex));
             }
         });
     }
