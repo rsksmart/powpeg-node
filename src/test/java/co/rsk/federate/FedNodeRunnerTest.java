@@ -21,7 +21,7 @@ import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
-import co.rsk.federate.config.PowpegConfigBuilder;
+import co.rsk.federate.config.SignerConfigBuilder;
 import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
@@ -445,41 +445,34 @@ class FedNodeRunnerTest {
         when(hsmBookkeepingClient.getVersion()).thenReturn(version);
         when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
             new HSMUnsupportedTypeException("PowHSM version: " + version));
-        Config config = PowpegConfigBuilder.builder()
+        SignerConfig btcSignerConfig = SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/0'/0'/0/0")
-            .withValue("socketTimeout", 20000)
-            .withValue("maxAttempts", 3)
-            .withValue("intervalBetweenAttempts", 2000)
             .withValue("bookkeeping.informerInterval", 500000L)
             .withValue("bookkeeping.maxAmountBlockHeaders", 1000)
             .withValue("bookkeeping.maxChunkSizeToHsm", 100)
             .withValue("bookkeeping.stopBookkeepingScheduler", true)
-            .build();
-        SignerConfig btcSignerConfig = new SignerConfig("BTC", config);
+            .build("BTC");
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
 
         assertThrows(ConfigException.class, () -> fedNodeRunner.run());
     }
 
     private SignerConfig getBTCSignerConfig(String path) {
-        Config config = PowpegConfigBuilder.builder()
+        return SignerConfigBuilder.builder()
             .withKeyFileSigner(path)
-            .build();
-        return new SignerConfig("BTC", config);
+            .build("BTC");
     }
 
     private SignerConfig getRSKSignerConfig(String path) {
-        Config config = PowpegConfigBuilder.builder()
+        return SignerConfigBuilder.builder()
             .withKeyFileSigner(path)
-            .build();
-        return new SignerConfig("RSK", config);
+            .build("RSK");
     }
 
     private SignerConfig getMSTSignerConfig(String path) {
-        Config config = PowpegConfigBuilder.builder()
+        return SignerConfigBuilder.builder()
             .withKeyFileSigner(path)
-            .build();
-        return new SignerConfig("MST", config);
+            .build("MST");
     }
 
     private SignerConfig getHSMBTCSignerConfig(HSMVersion version) throws HSMClientException {
@@ -490,14 +483,7 @@ class FedNodeRunnerTest {
         if (version.getNumber() >= 2) {
             when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
                 new HSMUnsupportedTypeException("PowHSM version: " + version));
-            configBuilder = configBuilder.withValue("socketTimeout", 20000)
-                .withValue("maxAttempts", 3)
-                .withValue("intervalBetweenAttempts", 2000)
-                .withValue("bookkeeping.difficultyTarget", "4405500")
-                .withValue("bookkeeping.informerInterval", 500000L)
-                .withValue("bookkeeping.maxAmountBlockHeaders", 1000)
-                .withValue("bookkeeping.maxChunkSizeToHsm", 100)
-                .withValue("bookkeeping.stopBookkeepingScheduler", true);
+            configBuilder = configBuilder.withHsmBookkeepingInfo();
         }
 
         if (version.getNumber() >= 3) {
@@ -508,20 +494,18 @@ class FedNodeRunnerTest {
                     NetworkParameters.ID_UNITTESTNET.toString()));
         }
 
-        return new SignerConfig("BTC", configBuilder.build());
+        return configBuilder.build("BTC");
     }
 
     private SignerConfig getHSMRSKSignerConfig() {
-        Config config = PowpegConfigBuilder.builder()
+        return SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/137'/0'/0/0")
-            .build();
-        return new SignerConfig("RSK", config); 
+            .build("RSK");
     }
 
     private SignerConfig getHSMMSTSignerConfig() {
-        Config config = PowpegConfigBuilder.builder()
+        return SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/137'/1'/0/0")
-            .build();
-        return new SignerConfig("MST", config); 
+            .build("MST");
     }
 }
