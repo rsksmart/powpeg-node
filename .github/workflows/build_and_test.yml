@@ -115,7 +115,7 @@ jobs:
       - name: Get gradle wrapper and build dependencies
         if: steps.cache-gradle.outputs.cache-hit != 'true'
         run: |
-          cat <<'EOF' >temp-settings.gradle
+          cat <<'EOF' >DONT-COMMIT-settings.gradle
           includeBuild('./rskj') {
             dependencySubstitution {
               all { DependencySubstitution dependency ->
@@ -135,7 +135,7 @@ jobs:
           EOF
           if [ -d ".gradle" ]; then rm -rfv .gradle; fi
           ./configure.sh
-          ./gradlew --no-daemon --settings-file temp-settings.gradle dependencies
+          ./gradlew --no-daemon --settings-file DONT-COMMIT-settings.gradle dependencies
 
       - name: Build node
         run: |
