@@ -251,6 +251,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           chmod +x gradlew
+          ls build/reports/jacoco/test
+          ls build/test-results
           if [ "$GH_EVENT" = pull_request ]; then
             ./gradlew sonarqube --warning-mode all --no-daemon --stacktrace --info -x build -x test \
               -Dsonar.pullrequest.base="$GH_PR_BASE_REF" \
