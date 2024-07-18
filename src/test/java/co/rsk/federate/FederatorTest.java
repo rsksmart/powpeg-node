@@ -2,6 +2,7 @@ package co.rsk.federate;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Assertions;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -35,6 +36,11 @@ class FederatorTest {
             new KeyId("another-key-id")
         );
         federator = new Federator(signer, requiredKeys, peersChecker);
+    }
+
+    @Test
+    void testSumDummyTest_ShouldReturn21() {
+        Assertions.assertEquals(21, federator.sumTwoNumbersDeleteMe(20,1));
     }
 
     @Test
