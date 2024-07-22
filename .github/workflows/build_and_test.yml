@@ -48,7 +48,7 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: rskj
         env:
-          PR_BRANCH: ${{ github.head_ref }}
+          PR_BRANCH: "${{ github.head_ref }}"
         run: |
           IS_RSKJ_BRANCH=$(git ls-remote --heads origin "$PR_BRANCH")
           if test -n "${IS_RSKJ_BRANCH}"; then
