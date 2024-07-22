@@ -40,12 +40,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           path: rskj
           fetch-depth: 0
-      
+
       - name: Determine branch to checkout for PR
         if: github.event_name == 'pull_request'
         working-directory: rskj
         env:
-          PR_BRANCH: ${{ github.head_ref }}
+          PR_BRANCH: "${{ github.head_ref }}"
         run: |
           IS_RSKJ_BRANCH=`git ls-remote --heads origin $PR_BRANCH`
           if test -n "${IS_RSKJ_BRANCH}"; then
@@ -56,8 +56,8 @@ jobs:
             CHECKOUT_REF="master"
           fi
           echo "CHECKOUT_REF=$CHECKOUT_REF" >> $GITHUB_ENV
-          
-      - name: Determine branch to checkout for push 
+
+      - name: Determine branch to checkout for push
         if: github.event_name != 'pull_request'
         working-directory: rskj
         env:
@@ -83,16 +83,21 @@ jobs:
         with:
           name: rskj
           path: rskj
-  
+
   build_federator_node:
     runs-on: ubuntu-latest
-    container: openjdk:8-jdk
     needs: clone_rskj_repo
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
       - name: Download rskj
         uses: actions/download-artifact@v4
@@ -141,7 +146,7 @@ jobs:
         run: |
           ./gradlew --no-daemon --stacktrace clean build -x test
 
-      - name: Persist Build files 
+      - name: Persist Build files
         uses: actions/upload-artifact@v4
         with:
           name: build_files
@@ -151,15 +156,20 @@ jobs:
 
   federator-tests:
     runs-on: ubuntu-latest
-    container: openjdk:8-jdk
     needs: build_federator_node
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
       - name: Download Build files
         uses: actions/download-artifact@v4
-        with:        
+        with:
           name: build_files
           path: ./
 
@@ -199,7 +209,7 @@ jobs:
 
       - name: Download Build files
         uses: actions/download-artifact@v4
-        with:        
+        with:
           name: build_files
 
       - name: Download rskj
@@ -221,7 +231,7 @@ jobs:
           name: test-reports
           path: |
             build/reports/
-     
+
       - name: Run SonarQube analysis
         env:
           GH_EVENT: ${{ github.event_name }}
