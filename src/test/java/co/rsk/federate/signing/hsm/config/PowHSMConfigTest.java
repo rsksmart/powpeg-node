@@ -19,6 +19,7 @@ import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import java.math.BigInteger;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -162,6 +163,22 @@ class PowHSMConfigTest {
   void getDifficultyCap_whenGivenInvalidNetwork_showThrowIllegalArgumentException() {
     assertThrows(IllegalArgumentException.class,
         () -> powHsmConfig.getDifficultyCap(NetworkParameters.ID_UNITTESTNET));
+  }
+
+  @ParameterizedTest
+  @MethodSource("powHSMConfigParameterProvider")
+  void powHSMConfigParameter_whenDefaultIsEmpty_shouldThrowIllegalStateException(
+      PowHSMConfigParameter param) {
+    Function<String, String> parser = Function.identity();
+    assertThrows(IllegalStateException.class,
+        () -> param.getDefaultValue(parser));
+  }
+
+  private static Stream<Arguments> powHSMConfigParameterProvider() {
+    return Stream.of(
+        Arguments.of(HOST),
+        Arguments.of(PORT),
+        Arguments.of(DIFFICULTY_TARGET));
   }
 
   static Stream<Arguments> provideNetworkParametersAndExpectedCaps() {

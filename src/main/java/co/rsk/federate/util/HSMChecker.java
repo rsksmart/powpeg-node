@@ -20,7 +20,6 @@ package co.rsk.federate.util;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
-import co.rsk.federate.signing.*;
 import co.rsk.federate.signing.hsm.client.HSMSigningClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;

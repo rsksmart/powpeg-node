@@ -49,7 +49,6 @@ import co.rsk.federate.bitcoin.BtcTransactionBuilder;
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
-import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
@@ -143,7 +142,7 @@ class PowHSMSigningClientBtcTest {
         jsonRpcClientMock = mock(JsonRpcClient.class);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
 
-        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(
+        hsmClientProtocol = new HSMClientProtocol(
             jsonRpcClientProviderMock,
             MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
             INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
