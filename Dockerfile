@@ -30,8 +30,9 @@ WORKDIR /var/lib/rsk
 COPY --from=build --chown=rsk:rsk /home/rsk/rsk.jar ./
 
 ENV DEFAULT_JVM_OPTS="-Xss4M"
-ENV RSKJ_SYS_PROPS="-Dlogback.configurationFile='/etc/rsk/logback.xml' -Drsk.conf.file=/etc/rsk/node.conf"
+ENV RSKJ_SYS_PROPS="-Drsk.conf.file=/etc/rsk/node.conf"
+ENV RSKJ_LOG_PROPS="-Dlogging.stdout=INFO"
 ENV RSKJ_CLASS=co.rsk.federate.FederateRunner
 ENV RSKJ_OPTS=""
 
-ENTRYPOINT ["/bin/sh", "-c", "exec java $DEFAULT_JVM_OPTS $RSKJ_SYS_PROPS -cp rsk.jar $RSKJ_CLASS $RSKJ_OPTS \"${@}\"", "--"]
+ENTRYPOINT ["/bin/sh", "-c", "exec java $DEFAULT_JVM_OPTS $RSKJ_SYS_PROPS $RSKJ_LOG_PROPS -cp rsk.jar $RSKJ_CLASS $RSKJ_OPTS \"${@}\"", "--"]
