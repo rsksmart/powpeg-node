@@ -2,8 +2,10 @@ package co.rsk.federate.config;
 
 import static com.typesafe.config.ConfigValueFactory.fromAnyRef;
 
+import java.math.BigInteger;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import co.rsk.federate.signing.PowPegNodeKeyId;
 import co.rsk.federate.signing.config.SignerConfig;
 
 public class SignerConfigBuilder {
@@ -33,12 +35,15 @@ public class SignerConfigBuilder {
     return this;
   }
 
-  public SignerConfigBuilder withHsmBookkeepingInfo() {
-    this.config = this.config.withValue("bookkeeping.difficultyTarget", fromAnyRef("4405500"));
-    this.config = this.config.withValue("bookkeeping.informerInterval", fromAnyRef(500000L));
-    this.config = this.config.withValue("bookkeeping.maxAmountBlockHeaders", fromAnyRef(1000));
-    this.config = this.config.withValue("bookkeeping.maxChunkSizeToHsm", fromAnyRef(100));
-    this.config = this.config.withValue("bookkeeping.stopBookkeepingScheduler", fromAnyRef(true));
+  public SignerConfigBuilder withHsmBookkeepingInfo(BigInteger difficultyTarget, long informerInterval,
+      int maxAmountBlockHeaders, int maxChunkSize, boolean stopBookkepingScheduler) {
+    if (difficultyTarget != null) {
+      this.config = this.config.withValue("bookkeeping.difficultyTarget", fromAnyRef(difficultyTarget.toString()));
+    }
+    this.config = this.config.withValue("bookkeeping.informerInterval", fromAnyRef(informerInterval));
+    this.config = this.config.withValue("bookkeeping.maxAmountBlockHeaders", fromAnyRef(maxAmountBlockHeaders));
+    this.config = this.config.withValue("bookkeeping.maxChunkSizeToHsm", fromAnyRef(maxChunkSize));
+    this.config = this.config.withValue("bookkeeping.stopBookkeepingScheduler", fromAnyRef(stopBookkepingScheduler));
     return this;
   }
 
@@ -48,7 +53,7 @@ public class SignerConfigBuilder {
     return this;
   }
 
-  public SignerConfig build(String keyId) {
-    return new SignerConfig(keyId, config);
+  public SignerConfig build(PowPegNodeKeyId keyId) {
+    return new SignerConfig(keyId.getId(), config);
   }
 }
