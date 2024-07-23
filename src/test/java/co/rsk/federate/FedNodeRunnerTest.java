@@ -27,6 +27,7 @@ import co.rsk.federate.signing.ECDSACompositeSigner;
 import co.rsk.federate.signing.ECDSAHSMSigner;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.ECDSASignerFromFileKey;
+import co.rsk.federate.signing.PowPegNodeKeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
@@ -445,11 +446,8 @@ class FedNodeRunnerTest {
             new HSMUnsupportedTypeException("PowHSM version: " + version));
         SignerConfig btcSignerConfig = SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/0'/0'/0/0")
-            .withValue("bookkeeping.informerInterval", 500000L)
-            .withValue("bookkeeping.maxAmountBlockHeaders", 1000)
-            .withValue("bookkeeping.maxChunkSizeToHsm", 100)
-            .withValue("bookkeeping.stopBookkeepingScheduler", true)
-            .build("BTC");
+            .withHsmBookkeepingInfo(null, 500000L, 1000, 100, true)
+            .build(PowPegNodeKeyId.BTC_KEY_ID);
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
 
         assertThrows(ConfigException.class, () -> fedNodeRunner.run());
@@ -458,19 +456,19 @@ class FedNodeRunnerTest {
     private SignerConfig getBTCSignerConfig(String path) {
         return SignerConfigBuilder.builder()
             .withKeyFileSigner(path)
-            .build("BTC");
+            .build(PowPegNodeKeyId.BTC_KEY_ID);
     }
 
     private SignerConfig getRSKSignerConfig(String path) {
         return SignerConfigBuilder.builder()
             .withKeyFileSigner(path)
-            .build("RSK");
+            .build(PowPegNodeKeyId.RSK_KEY_ID);
     }
 
     private SignerConfig getMSTSignerConfig(String path) {
         return SignerConfigBuilder.builder()
             .withKeyFileSigner(path)
-            .build("MST");
+            .build(PowPegNodeKeyId.MST_KEY_ID);
     }
 
     private SignerConfig getHSMBTCSignerConfig(int version) throws HSMClientException {
@@ -481,7 +479,8 @@ class FedNodeRunnerTest {
         if (version >= 2) {
             when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
                 new HSMUnsupportedTypeException("PowHSM version: " + version));
-            configBuilder = configBuilder.withHsmBookkeepingInfo();
+            configBuilder = configBuilder.withHsmBookkeepingInfo(
+                new BigInteger("4405500"), 500000L, 1000, 100, true);
         }
 
         if (version >= 3) {
@@ -492,18 +491,18 @@ class FedNodeRunnerTest {
                     NetworkParameters.ID_UNITTESTNET.toString()));
         }
 
-        return configBuilder.build("BTC");
+        return configBuilder.build(PowPegNodeKeyId.BTC_KEY_ID);
     }
 
     private SignerConfig getHSMRSKSignerConfig() {
         return SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/137'/0'/0/0")
-            .build("RSK");
+            .build(PowPegNodeKeyId.RSK_KEY_ID);
     }
 
     private SignerConfig getHSMMSTSignerConfig() {
         return SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/137'/1'/0/0")
-            .build("MST");
+            .build(PowPegNodeKeyId.MST_KEY_ID);
     }
 }
