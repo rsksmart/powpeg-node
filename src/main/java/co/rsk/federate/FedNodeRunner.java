@@ -130,7 +130,7 @@ public class FedNodeRunner implements NodeRunner {
 
         try {
             PowHSMConfig powHsmConfig = new PowHSMConfig(
-                config.signerConfig(BTC_KEY_ID.getId()));
+                config.signerConfig(BTC.getId()));
 
             HSMClientProtocol protocol =
                 hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
@@ -168,9 +168,9 @@ public class FedNodeRunner implements NodeRunner {
     }
 
     private void configureFederatorSupport() throws SignerException {
-        BtcECKey btcPublicKey = signer.getPublicKey(BTC_KEY_ID.getKeyId()).toBtcKey();
-        ECKey rskPublicKey = signer.getPublicKey(RSK_KEY_ID.getKeyId()).toEthKey();
-        ECKey mstKey = signer.getPublicKey(MST_KEY_ID.getKeyId()).toEthKey();
+        BtcECKey btcPublicKey = signer.getPublicKey(BTC.getKeyId()).toBtcKey();
+        ECKey rskPublicKey = signer.getPublicKey(RSK.getKeyId()).toEthKey();
+        ECKey mstKey = signer.getPublicKey(MST.getKeyId()).toEthKey();
         LOGGER.info(
             "[configureFederatorSupport] BTC public key: {}. RSK public key: {}. MST public key: {}",
             btcPublicKey,
@@ -191,7 +191,7 @@ public class FedNodeRunner implements NodeRunner {
     private ECDSASigner buildSigner() {
         ECDSACompositeSigner compositeSigner = new ECDSACompositeSigner();
 
-        Stream.of(BTC_KEY_ID, RSK_KEY_ID, MST_KEY_ID).forEach(keyId -> {
+        Stream.of(BTC, RSK, MST).forEach(keyId -> {
             try {
                 ECDSASigner createdSigner = buildSignerFromKey(keyId.getKeyId());
                 compositeSigner.addSigner(createdSigner);
@@ -257,7 +257,7 @@ public class FedNodeRunner implements NodeRunner {
 
             Federator federator = new Federator(
                 signer,
-                Arrays.asList(BTC_KEY_ID.getKeyId(), RSK_KEY_ID.getKeyId()),
+                Arrays.asList(BTC.getKeyId(), RSK.getKeyId()),
                 new FederatorPeersChecker(
                     defaultPort,
                     peers,

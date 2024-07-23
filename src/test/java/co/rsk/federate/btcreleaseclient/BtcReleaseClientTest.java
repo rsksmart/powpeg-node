@@ -1,6 +1,6 @@
 package co.rsk.federate.btcreleaseclient;
 
-import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
+import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -230,9 +230,9 @@ class BtcReleaseClientTest {
         ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        when(signer.getPublicKey(BTC_KEY_ID.getKeyId())).thenReturn(signerPublicKey);
-        when(signer.getVersionForKeyId(BTC_KEY_ID.getKeyId())).thenReturn(1);
-        when(signer.sign(eq(BTC_KEY_ID.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
+        when(signer.getPublicKey(BTC.getKeyId())).thenReturn(signerPublicKey);
+        when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(1);
+        when(signer.sign(eq(BTC.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
         when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
@@ -289,7 +289,7 @@ class BtcReleaseClientTest {
 
         // Assert
         Mockito.verify(signer, Mockito.times(amountOfInputs))
-            .sign(eq(BTC_KEY_ID.getKeyId()), any(SignerMessage.class));
+            .sign(eq(BTC.getKeyId()), any(SignerMessage.class));
     }
 
     @Test
@@ -329,7 +329,7 @@ class BtcReleaseClientTest {
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        doReturn(signerPublicKey).when(signer).getPublicKey(BTC_KEY_ID.getKeyId());
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ethSig).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
@@ -426,7 +426,7 @@ class BtcReleaseClientTest {
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        doReturn(signerPublicKey).when(signer).getPublicKey(BTC_KEY_ID.getKeyId());
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
@@ -529,7 +529,7 @@ class BtcReleaseClientTest {
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        doReturn(signerPublicKey).when(signer).getPublicKey(BTC_KEY_ID.getKeyId());
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 

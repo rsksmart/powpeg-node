@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 
-import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
+import static co.rsk.federate.signing.PowPegNodeKeyId.RSK;
 
 public class BridgeTransactionSender {
 
@@ -111,7 +111,7 @@ public class BridgeTransactionSender {
                         functionArgs);
                 try {
                     SignerMessageV1 messageToSign = new SignerMessageV1(rskTx.getRawHash().getBytes());
-                    ECKey.ECDSASignature txSignature = signer.sign(RSK_KEY_ID.getKeyId(), messageToSign);
+                    ECKey.ECDSASignature txSignature = signer.sign(RSK.getKeyId(), messageToSign);
                     rskTx.setSignature(txSignature);
                     LOGGER.debug("[tx={} | nonce={} | method={}] Submit to Bridge", rskTx.getHash(), nonce, function.name);
                     ethereum.submitTransaction(rskTx);

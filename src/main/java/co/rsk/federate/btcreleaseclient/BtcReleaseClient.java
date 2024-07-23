@@ -70,7 +70,7 @@ import org.ethereum.vm.PrecompiledContracts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
+import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
 
 /**
  * Manages signing and broadcasting pegouts
@@ -253,7 +253,7 @@ public class BtcReleaseClient {
     protected void processReleases(Set<Map.Entry<Keccak256, BtcTransaction>> pegouts) {
         try {
             logger.debug("[processReleases] Starting process with {} pegouts", pegouts.size());
-            int version = signer.getVersionForKeyId(BTC_KEY_ID.getKeyId());
+            int version = signer.getVersionForKeyId(BTC.getKeyId());
             // Get pegout information and store it in a new list
             List<ReleaseCreationInformation> pegoutsReadyToSign = new ArrayList<>();
             for (Map.Entry<Keccak256, BtcTransaction> pegout : pegouts) {
@@ -346,7 +346,7 @@ public class BtcReleaseClient {
 
     protected void validateTxCanBeSigned(BtcTransaction pegoutBtcTx) throws FederatorAlreadySignedException, FederationCantSignException {
         try {
-            BtcECKey federatorPublicKey = signer.getPublicKey(BTC_KEY_ID.getKeyId()).toBtcKey();
+            BtcECKey federatorPublicKey = signer.getPublicKey(BTC.getKeyId()).toBtcKey();
             logger.trace("[validateTxCanBeSigned] Federator public key {}", federatorPublicKey);
 
             for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
@@ -410,7 +410,7 @@ public class BtcReleaseClient {
             for (int inputIndex = 0; inputIndex < pegoutCreationInformation.getPegoutBtcTx().getInputs().size(); inputIndex++) {
                 SignerMessage messageToSign = messageBuilder.buildMessageForIndex(inputIndex);
                 logger.trace("[signRelease] Message to sign: {}", messageToSign.getClass());
-                ECKey.ECDSASignature ethSig = signer.sign(BTC_KEY_ID.getKeyId(), messageToSign);
+                ECKey.ECDSASignature ethSig = signer.sign(BTC.getKeyId(), messageToSign);
                 logger.debug("[signRelease] Message successfully signed");
                 BtcECKey.ECDSASignature sig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
                 signatures.add(sig.encodeToDER());

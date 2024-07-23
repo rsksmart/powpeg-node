@@ -4,9 +4,9 @@ package co.rsk.federate.signing;
  * Created by Kelvin Isievwore on 23/05/2023.
  */
 public enum PowPegNodeKeyId {
-    BTC_KEY_ID(new KeyId("BTC")),
-    RSK_KEY_ID(new KeyId("RSK")),
-    MST_KEY_ID(new KeyId("MST"));
+    BTC(new KeyId("BTC")),
+    RSK(new KeyId("RSK")),
+    MST(new KeyId("MST"));
 
     private final KeyId keyId;
 
