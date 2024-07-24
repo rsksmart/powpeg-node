@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration INFO="false" scan="true" scanPeriod="3600 seconds">
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <Target>System.out</Target>
+        <encoder>
+            <pattern>%date{yyyy-MM-dd-HH:mm:ss.SSSS} %p [%c{1}]  %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE-AUDIT"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/Users/your-user/path_to_logs/logs/rsk.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                %date{yyyy-MM-dd-HH:mm:ss.SSS} %p [%c{1}]  %m%n
+            </Pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>./logs/rskj-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <logger name="federatorSupport" level="TRACE"/>
+    <logger name="JsonRpcCustomServer" level="TRACE"/>
+    <logger name="web3" level="TRACE"/>
+    <logger name="bridge" level="TRACE"/>
+    <logger name="BtcToRskClient" level="TRACE"/>
+    <logger name="BridgeSupport" level="TRACE"/>
+    <logger name="co.rsk.peg.BridgeStorageProvider" level="ERROR"/>
+    <logger name="jsonrpc" level="TRACE"/>
+
+    <!--    more classes...-->
+
+    <root level="INFO">
+        <appender-ref ref="stdout"/>
+        <appender-ref ref="FILE-AUDIT"/>
+    </root>
+</configuration>

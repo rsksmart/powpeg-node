@@ -1,12 +1,9 @@
-# Welcome to RskJ Powpeg Node
-
-
+# Welcome to RskJ PowPeg Node
 
 ## About
 
-Powpeg node is a specialized rskj node which interacts with both Rootstock and Bitcoin.
+PowPeg node is a specialized rskj node which interacts with both Rootstock and Bitcoin.
 This node is used by Rootstock PowPeg signatories to interact with the Bridge contract and to broadcast peg-out transactions to Bitcoin.
-
 
 ## Software Requirements
 
@@ -14,12 +11,15 @@ This node is used by Rootstock PowPeg signatories to interact with the Bridge co
 2. Bitcoin Core daemon (bitcoind) 24.0.1
 3. A Java compatible IDE. Recommended [IntelliJ IDEA](https://www.jetbrains.com/idea/download) as this guide covers the setup with it
 
-
 **Not sure how to install any of these? See [software installation help](#software-installation-help)**
 
-
 ## Software installation help
+
 Disclaimer: this documentation will be specific for macOS operating system.
+
+### Quick setup for macOS x64
+
+A quick and easy, fool-proof way to setup the powpeg-node using macOS x64 is available [here](docs/QuickSetupMacOsx64.md).
 
 ### **Java JDK 1.8**
 
@@ -58,8 +58,6 @@ To validate it run `bitcoind -daemon`.
 It should output ```Bitcoin server starting```
 
 Run `bitcoin-cli stop` afterwards.
-
-
 
 ## Setting up the project
 Create a directory (for example, “powpeg-project”) to hold the rskj node, the powpeg node and further configurations.
@@ -149,10 +147,7 @@ Run configure script to configure secure environment.
 ./configure.sh
 ```
 
-
-
 ### Required configurations
-
 
 **1. Pegnatory private key**
 
@@ -163,7 +158,6 @@ You will need a private key file to be used by the pegnatory to sign BTC/RSK tra
 Set the desired value to it. (For example, `String generator = “federator1”;`)
 
 - Run the class to generate a privateKey, publicKey, publicKeyCompressed, address and nodeId
-
 
 You should get an output like the following:
 
@@ -255,14 +249,9 @@ includeBuild('<ABSOLUTE-PATH-TO-RSKJ-SOURCE-CODE>') {
 }
 ```
 
-
-
 ### [Optional] Import and configure the project
 
 To import the project to IntelliJ IDEA go to `File > New > Project from existing sources...` Select `powpeg-node/build.gradle` and import.
-
-
-
 
 ### Build
 
