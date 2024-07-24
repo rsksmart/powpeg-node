@@ -5,6 +5,7 @@ import static co.rsk.federate.signing.PowPegNodeKeyId.MST_KEY_ID;
 import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.FedNodeSystemProperties;
@@ -71,7 +73,7 @@ class FedNodeRunnerTest {
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
 
-        int hsmVersion = 3;
+        int hsmVersion = HSMVersion.V3.getNumber();
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(hsmVersion);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
@@ -100,7 +102,7 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_hsm_v2_config_Ok() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V2);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
@@ -115,11 +117,11 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(3, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNotNull(hsmBookkeepingClient);
@@ -130,7 +132,7 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_hsm_v1_config() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(1);
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V1);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
@@ -165,11 +167,11 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(3, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient bookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNull(bookkeepingClient);
@@ -193,11 +195,11 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNull(hsmBookkeepingClient);
@@ -208,7 +210,7 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_hsm_v2_config_without_rsk() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V2);
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(MST_KEY_ID.getId())).thenReturn(mstSignerConfig);
@@ -221,11 +223,11 @@ class FedNodeRunnerTest {
         assertFalse(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNotNull(hsmBookkeepingClient);
@@ -236,7 +238,7 @@ class FedNodeRunnerTest {
 
     @Test
     void test_with_hsm_v2_config_without_mst() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(2);
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V2);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC_KEY_ID.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(RSK_KEY_ID.getId())).thenReturn(rskSignerConfig);
@@ -249,11 +251,11 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertFalse(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
-        signers.forEach(hsmSigner -> assertTrue(hsmSigner instanceof ECDSAHSMSigner));
+        signers.forEach(hsmSigner -> assertInstanceOf(ECDSAHSMSigner.class, hsmSigner));
 
         HSMBookkeepingClient hsmBookkeepingClient = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingClient");
         assertNotNull(hsmBookkeepingClient);
@@ -279,7 +281,7 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(3, signers.size());
@@ -287,7 +289,7 @@ class FedNodeRunnerTest {
         assertEquals(1, signers.get(1).getVersionForKeyId(RSK_KEY_ID.getKeyId()));
         assertEquals(1, signers.get(2).getVersionForKeyId(MST_KEY_ID.getKeyId()));
         signers.forEach(keyFileSigner -> {
-            assertTrue(keyFileSigner instanceof ECDSASignerFromFileKey);
+            assertInstanceOf(ECDSASignerFromFileKey.class, keyFileSigner);
             assertTrue(keyFileSigner.check().wasSuccessful());
             assertTrue(keyFileSigner.check().getMessages().isEmpty());
         });
@@ -314,7 +316,7 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
@@ -343,7 +345,7 @@ class FedNodeRunnerTest {
         assertFalse(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertTrue(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
@@ -372,7 +374,7 @@ class FedNodeRunnerTest {
         assertTrue(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertFalse(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(2, signers.size());
@@ -406,7 +408,7 @@ class FedNodeRunnerTest {
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         signers.forEach(keyFileSigner -> {
-            assertTrue(keyFileSigner instanceof ECDSASignerFromFileKey);
+            assertInstanceOf(ECDSASignerFromFileKey.class, keyFileSigner);
             assertFalse(keyFileSigner.check().wasSuccessful());
             assertTrue(keyFileSigner.check().getMessages().contains("Invalid Key File Name"));
             assertTrue(keyFileSigner.check().getMessages().contains("Invalid key file permissions"));
@@ -423,7 +425,7 @@ class FedNodeRunnerTest {
         assertFalse(signer.canSignWith(RSK_KEY_ID.getKeyId()));
         assertFalse(signer.canSignWith(MST_KEY_ID.getKeyId()));
 
-        assertTrue(signer instanceof ECDSACompositeSigner);
+        assertInstanceOf(ECDSACompositeSigner.class, signer);
         ECDSACompositeSigner compositeSigner = (ECDSACompositeSigner) signer;
         List<ECDSASigner> signers = TestUtils.getInternalState(compositeSigner, "signers");
         assertEquals(0, signers.size());
@@ -459,7 +461,7 @@ class FedNodeRunnerTest {
         return mstSignerConfig;
     }
 
-    private SignerConfig getHSMBTCSignerConfig(int version) {
+    private SignerConfig getHSMBTCSignerConfig(HSMVersion version) {
         SignerConfig btcSignerConfig = mock(SignerConfig.class);
         Config hsmConfig = mock(Config.class);
         when(btcSignerConfig.getId()).thenReturn("BTC");
@@ -469,7 +471,7 @@ class FedNodeRunnerTest {
         when(hsmConfig.getInt("port")).thenReturn(9999);
         when(hsmConfig.getString("keyId")).thenReturn("m/44'/0'/0'/0/0");
 
-        if (version >= 2) {
+        if (HSMVersion.isPowHSM(version)) {
             when(hsmConfig.hasPath("socketTimeout")).thenReturn(true);
             when(hsmConfig.getInt("socketTimeout")).thenReturn(20000);
             when(hsmConfig.hasPath("maxAttempts")).thenReturn(true);

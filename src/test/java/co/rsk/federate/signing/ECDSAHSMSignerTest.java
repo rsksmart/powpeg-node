@@ -21,6 +21,7 @@ package co.rsk.federate.signing;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +36,7 @@ import co.rsk.federate.signing.hsm.HSMAuthException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMSignature;
 import co.rsk.federate.signing.hsm.client.HSMSigningClient;
@@ -146,7 +148,7 @@ class ECDSAHSMSignerTest {
             signer.getPublicKey(new KeyId("keyA"));
             fail();
         } catch (SignerException e) {
-            assertTrue(e.getCause() instanceof HSMUnsupportedVersionException);
+            assertInstanceOf(HSMUnsupportedVersionException.class, e.getCause());
         }
 
         verify(providerMock, times(1)).getSigningClient();
@@ -161,7 +163,7 @@ class ECDSAHSMSignerTest {
             signer.getPublicKey(new KeyId("keyB"));
             fail();
         } catch (SignerException e) {
-            assertTrue(e.getCause() instanceof HSMAuthException);
+            assertInstanceOf(HSMAuthException.class, e.getCause());
         }
 
         verify(providerMock, times(1)).getSigningClient();
@@ -203,7 +205,7 @@ class ECDSAHSMSignerTest {
             signer.sign(new KeyId("keyA"), new SignerMessageV1(Hex.decode("0011223344")));
             fail();
         } catch (SignerException e) {
-            assertTrue(e.getCause() instanceof HSMUnsupportedVersionException);
+            assertInstanceOf(HSMUnsupportedVersionException.class, e.getCause());
         }
 
         verify(providerMock, times(1)).getSigningClient();
@@ -218,7 +220,7 @@ class ECDSAHSMSignerTest {
             signer.sign(new KeyId("keyB"), new SignerMessageV1(Hex.decode("445566")));
             fail();
         } catch (SignerException e) {
-            assertTrue(e.getCause() instanceof HSMAuthException);
+            assertInstanceOf(HSMAuthException.class, e.getCause());
         }
 
         verify(providerMock, times(1)).getSigningClient();
@@ -228,7 +230,7 @@ class ECDSAHSMSignerTest {
     @Test
     void getVersionForKeyIdOk() throws HSMClientException, SignerException {
         KeyId key = new KeyId("keyA");
-        int version = 1;
+        int version = HSMVersion.V1.getNumber();
         when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenReturn(version);
 
@@ -245,7 +247,7 @@ class ECDSAHSMSignerTest {
             signer.getVersionForKeyId(key);
             fail();
         } catch (SignerException e) {
-            assertTrue(e.getCause() instanceof HSMUnsupportedVersionException);
+            assertInstanceOf(HSMUnsupportedVersionException.class, e.getCause());
             assertEquals(e.getMessage(),String.format("Error trying to retrieve version from HSM %s Signer", key));
         }
 
@@ -255,7 +257,7 @@ class ECDSAHSMSignerTest {
     @Test
     void getVersionForKeyId_SignerException() throws HSMClientException {
         KeyId key = new KeyId("keyAB");
-        int version = 3;
+        int version = HSMVersion.V3.getNumber();
         when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenReturn( version);
 

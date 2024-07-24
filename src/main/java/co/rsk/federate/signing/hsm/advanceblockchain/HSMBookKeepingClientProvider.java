@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
@@ -17,9 +18,9 @@ public class HSMBookKeepingClientProvider {
         int version = protocol.getVersion();
         logger.debug("[getHSMBookKeepingClient] version: {}", version);
         HSMBookkeepingClient bookkeepingClient;
-        if (version == 1) {
+        if (version == HSMVersion.V1.getNumber()) {
             throw new HSMUnsupportedVersionException("HSMBookKeepingClient doesn't exist for version 1");
-        } else if (version >= 2) {
+        } else if (HSMVersion.isPowHSM(version)) {
             bookkeepingClient = new HsmBookkeepingClientImpl(protocol);
         } else {
             String message = String.format("Unsupported HSM version %d ", version);

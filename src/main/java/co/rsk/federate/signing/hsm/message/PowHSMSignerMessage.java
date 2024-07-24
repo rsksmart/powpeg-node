@@ -18,33 +18,54 @@
 
 package co.rsk.federate.signing.hsm.message;
 
+import static co.rsk.federate.signing.HSMField.INPUT;
+import static co.rsk.federate.signing.HSMField.OUTPOINT_VALUE;
+import static co.rsk.federate.signing.HSMField.SIGHASH_COMPUTATION_MODE;
+import static co.rsk.federate.signing.HSMField.TX;
+import static co.rsk.federate.signing.HSMField.WITNESS_SCRIPT;
+
 import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
+import co.rsk.bitcoinj.core.TransactionWitness;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.trie.Trie;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.ethereum.core.TransactionReceipt;
 import org.spongycastle.util.encoders.Hex;
 
 public class PowHSMSignerMessage extends SignerMessage {
+
+    private static final String SIGHASH_LEGACY_MODE = "legacy";
+    private static final String SIGHASH_SEGWIT_MODE = "segwit";
     private final BtcTransaction btcTransaction;
     private final int inputIndex;
     private final TransactionReceipt txReceipt;
     private final List<Trie> receiptMerkleProof;
     private final Sha256Hash sigHash;
+    private final List<Coin> outpointValues;
 
-    public PowHSMSignerMessage(BtcTransaction btcTransaction,
-                               int index,
-                               TransactionReceipt txReceipt,
-                               List<Trie> receiptMerkleProof,
-                               Sha256Hash sigHash
+    public PowHSMSignerMessage(
+        BtcTransaction btcTransaction,
+        int index,
+        TransactionReceipt txReceipt,
+        List<Trie> receiptMerkleProof,
+        Sha256Hash sigHash,
+        List<Coin> outpointValues
     ) {
         this.btcTransaction = btcTransaction;
         this.inputIndex = index;
         this.txReceipt = txReceipt;
-        this.receiptMerkleProof = receiptMerkleProof;
+        this.receiptMerkleProof = Collections.unmodifiableList(receiptMerkleProof);
         this.sigHash = sigHash;
+        this.outpointValues = Collections.unmodifiableList(outpointValues);
     }
 
     @Override
@@ -67,7 +88,7 @@ public class PowHSMSignerMessage extends SignerMessage {
 
     public String[] getReceiptMerkleProof() {
         String[] encodedReceipts = new String[receiptMerkleProof.size()];
-        for (int i=0; i<encodedReceipts.length; i++) {
+        for (int i = 0; i < encodedReceipts.length; i++) {
             encodedReceipts[i] = Hex.toHexString(receiptMerkleProof.get(i).toMessage());
         }
         return encodedReceipts;
@@ -75,6 +96,48 @@ public class PowHSMSignerMessage extends SignerMessage {
 
     public Sha256Hash getSigHash() {
         return sigHash;
+    }
+
+    public JsonNode getMessageToSign(int version) {
+        ObjectNode messageToSend = new ObjectMapper().createObjectNode();
+        messageToSend.put(TX.getFieldName(), getBtcTransactionSerialized());
+        messageToSend.put(INPUT.getFieldName(), inputIndex);
+        if (version == HSMVersion.V5.getNumber()) {
+            if (hasWitness()) {
+                populateWithSegwitValues(messageToSend);
+            } else {
+                populateWithLegacyValues(messageToSend);
+            }
+        }
+        return messageToSend;
+    }
+
+    private void populateWithLegacyValues(ObjectNode messageToSend) {
+        messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_LEGACY_MODE);
+    }
+
+    private void populateWithSegwitValues(ObjectNode messageToSend) {
+        messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_SEGWIT_MODE);
+
+        long outpointValue = getOutpointValueForInputIndex();
+        messageToSend.put(OUTPOINT_VALUE.getFieldName(), outpointValue);
+
+        TransactionWitness witness = btcTransaction.getWitness(inputIndex);
+        String encodedWitnessScript = Hex.toHexString(witness.getScriptBytes());
+        messageToSend.put(WITNESS_SCRIPT.getFieldName(), encodedWitnessScript);
+    }
+
+    private long getOutpointValueForInputIndex() {
+        return Optional.of(outpointValues)
+            .filter(values -> inputIndex >= 0 && inputIndex < values.size())
+            .map(values -> values.get(inputIndex))
+            .map(Coin::getValue)
+            // this exception is never supposed to be thrown unless a wrong input index is passed
+            .orElseThrow(IllegalStateException::new);
+    }
+
+    private boolean hasWitness() {
+        return btcTransaction.hasWitness();
     }
 
     @Override
@@ -89,10 +152,10 @@ public class PowHSMSignerMessage extends SignerMessage {
 
         PowHSMSignerMessage message = (PowHSMSignerMessage) o;
         return this.btcTransaction.equals(message.btcTransaction) &&
-                this.inputIndex == message.inputIndex &&
-                Arrays.equals(this.txReceipt.getEncoded(), message.txReceipt.getEncoded()) &&
-                this.receiptMerkleProof.equals(message.receiptMerkleProof) &&
-                this.sigHash.equals(message.sigHash);
+            this.inputIndex == message.inputIndex &&
+            Arrays.equals(this.txReceipt.getEncoded(), message.txReceipt.getEncoded()) &&
+            this.receiptMerkleProof.equals(message.receiptMerkleProof) &&
+            this.sigHash.equals(message.sigHash);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.message;
 
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import org.ethereum.db.ReceiptStore;
 import org.slf4j.Logger;
@@ -19,9 +20,9 @@ public class SignerMessageBuilderFactory {
         ReleaseCreationInformation pegoutCreationInformation
     ) throws HSMUnsupportedVersionException {
         SignerMessageBuilder messageBuilder;
-        if (version == 1) {
+        if (version == HSMVersion.V1.getNumber()) {
             messageBuilder = new SignerMessageBuilderV1(pegoutCreationInformation.getPegoutBtcTx());
-        } else if (version >= 2) {
+        } else if (HSMVersion.isPowHSM(version)) {
             messageBuilder = new PowHSMSignerMessageBuilder(receiptStore, pegoutCreationInformation);
         } else {
             String message = String.format("Unsupported HSM signer version: %d", version);

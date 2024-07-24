@@ -30,12 +30,25 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
+import org.ethereum.core.BlockHeaderBuilder;
+import org.ethereum.core.Transaction;
 
 public final class TestUtils {
 
     private TestUtils() {
+    }
+
+    public static Block createBlock(int blockNumber, List<Transaction> rskTxs) {
+
+        int parentBlockNumber = blockNumber > 0 ? blockNumber - 1 : 0;
+        BlockHeader blockHeader = new BlockHeaderBuilder(mock(ActivationConfig.class))
+            .setNumber(blockNumber)
+            .setParentHashFromKeccak256(TestUtils.createHash(parentBlockNumber))
+            .build();
+        return new Block(blockHeader, rskTxs, Collections.emptyList(), true, true);
     }
 
     public static Keccak256 createHash(int nHash) {

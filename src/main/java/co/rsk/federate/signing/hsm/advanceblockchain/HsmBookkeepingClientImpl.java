@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
@@ -166,7 +167,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
             ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), getVersion());
             addBlocksToPayload(payload, blockHeaderChunk);
 
-            if (getVersion() >= 3) {
+            if (getVersion() >= HSMVersion.V3.getNumber()) {
                 List<String[]> brothers = getBrothers(blockHeaderChunk, message);
                 addBrothersToPayload(payload, brothers);
             }

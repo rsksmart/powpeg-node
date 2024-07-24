@@ -1,6 +1,7 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,7 +95,7 @@ public class ConfirmedBlocksProvider {
     private BigInteger getBlockDifficultyToConsider(Block block) {
         BigInteger blockDifficulty = block.getDifficulty().asBigInteger();
         BigInteger difficultyToConsider = blockDifficulty;
-        if (hsmVersion >= 3) {
+        if (hsmVersion >= HSMVersion.V3.getNumber()) {
             BigInteger unclesDifficulty = block.getUncleList().stream()
                 .map(uncle -> uncle.getDifficulty().asBigInteger())
                 .reduce(BigInteger.ZERO, BigInteger::add);
