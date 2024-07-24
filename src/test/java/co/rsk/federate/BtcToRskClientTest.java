@@ -485,10 +485,8 @@ class BtcToRskClientTest {
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
 
         Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), segwitTx.getTxId().getReversedBytes()));
-        EnumSet<Block.VerifyFlag> flags = mock(EnumSet.class);
-        when(flags.contains(any())).thenReturn(false);
         Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, segwitTx));
-        block.verifyTransactions(0, flags);
+        block.verifyTransactions(0, EnumSet.noneOf(Block.VerifyFlag.class));
 
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
 
@@ -511,10 +509,8 @@ class BtcToRskClientTest {
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
 
         Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), segwitTx.getTxId().getReversedBytes()));
-        EnumSet<Block.VerifyFlag> flags = mock(EnumSet.class);
-        when(flags.contains(any())).thenReturn(false);
         Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, segwitTx));
-        block.verifyTransactions(0, flags);
+        block.verifyTransactions(0, EnumSet.noneOf(Block.VerifyFlag.class));
 
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         btcToRskClientFileData.getTransactionProofs().put(segwitTx.getWTxId(), new ArrayList<>());
@@ -556,10 +552,8 @@ class BtcToRskClientTest {
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
 
         Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), tx.getTxId().getReversedBytes()));
-        EnumSet<Block.VerifyFlag> flags = mock(EnumSet.class);
-        when(flags.contains(any())).thenReturn(false);
         Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, tx));
-        block.verifyTransactions(0, flags);
+        block.verifyTransactions(0, EnumSet.noneOf(Block.VerifyFlag.class));
 
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         btcToRskClientFileData.getTransactionProofs().put(tx.getWTxId(), new ArrayList<>());
@@ -583,10 +577,8 @@ class BtcToRskClientTest {
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, new byte[]{1,2,3});
 
         Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), segwitTx.getTxId().getReversedBytes()));
-        EnumSet<Block.VerifyFlag> flags = mock(EnumSet.class);
-        when(flags.contains(any())).thenReturn(false);
         Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, segwitTx));
-        block.verifyTransactions(0, flags);
+        block.verifyTransactions(0, EnumSet.noneOf(Block.VerifyFlag.class));
 
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         btcToRskClientFileData.getTransactionProofs().put(segwitTx.getWTxId(), new ArrayList<>());
@@ -610,10 +602,8 @@ class BtcToRskClientTest {
         Transaction coinbaseTx = getCoinbaseTx(false, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
 
         Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), segwitTx.getTxId().getReversedBytes()));
-        EnumSet<Block.VerifyFlag> flags = mock(EnumSet.class);
-        when(flags.contains(any())).thenReturn(false);
         Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, segwitTx));
-        block.verifyTransactions(0, flags);
+        block.verifyTransactions(0, EnumSet.noneOf(Block.VerifyFlag.class));
 
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         btcToRskClientFileData.getTransactionProofs().put(segwitTx.getWTxId(), new ArrayList<>());
@@ -637,10 +627,8 @@ class BtcToRskClientTest {
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes(), Sha256Hash.of(new byte[]{6,6,6}).getBytes());
 
         Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), segwitTx.getTxId().getReversedBytes()));
-        EnumSet<Block.VerifyFlag> flags = mock(EnumSet.class);
-        when(flags.contains(any())).thenReturn(false);
         Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, segwitTx));
-        block.verifyTransactions(0, flags);
+        block.verifyTransactions(0, EnumSet.noneOf(Block.VerifyFlag.class));
 
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         btcToRskClientFileData.getTransactionProofs().put(segwitTx.getWTxId(), new ArrayList<>());
