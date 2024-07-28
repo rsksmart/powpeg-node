@@ -48,7 +48,7 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: rskj
         env:
-          PR_BRANCH: "${{ github.head_ref }}"
+          PR_BRANCH: ${{ github.head_ref }}
         run: |
           IS_RSKJ_BRANCH=$(git ls-remote --heads origin "$PR_BRANCH")
           if test -n "${IS_RSKJ_BRANCH}"; then
@@ -66,10 +66,11 @@ jobs:
         env:
           POW_REF: ${{ github.ref }}
         run: |
-          IS_RSKJ_REF=$(git ls-remote --refs "$POW_REF")
+          BRANCH_NAME=$(echo "$POW_REF" | sed 's|refs/heads/||')
+          IS_RSKJ_REF=$(git ls-remote --heads origin "$BRANCH_NAME")
           if test -n "${IS_RSKJ_REF}"; then
             echo "Found matching ref in RSKj"
-            CHECKOUT_REF="$POW_REF"
+            CHECKOUT_REF="$BRANCH_NAME"
           else
             echo "Using master for RSKj"
             CHECKOUT_REF="master"
@@ -251,8 +252,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           chmod +x gradlew
-          ls build/reports/jacoco/test
-          ls build/test-results
           if [ "$GH_EVENT" = pull_request ]; then
             ./gradlew sonarqube --warning-mode all --no-daemon --stacktrace --info -x build -x test \
               -Dsonar.pullrequest.base="$GH_PR_BASE_REF" \
