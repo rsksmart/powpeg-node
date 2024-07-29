@@ -13,6 +13,9 @@ on:
     branches:
       - "**"
 
+permissions:
+  contents: read
+
 jobs:
   verify_files:
     runs-on: ubuntu-latest
@@ -45,9 +48,9 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: rskj
         env:
-          PR_BRANCH: "${{ github.head_ref }}"
+          PR_BRANCH: ${{ github.head_ref }}
         run: |
-          IS_RSKJ_BRANCH=`git ls-remote --heads origin $PR_BRANCH`
+          IS_RSKJ_BRANCH=$(git ls-remote --heads origin "$PR_BRANCH")
           if test -n "${IS_RSKJ_BRANCH}"; then
             echo "Found matching branch name in RSKj repo"
             CHECKOUT_REF="$PR_BRANCH"
@@ -63,7 +66,7 @@ jobs:
         env:
           POW_REF: ${{ github.ref }}
         run: |
-          IS_RSKJ_REF=`git ls-remote --refs $POW_REF`
+          IS_RSKJ_REF=$(git ls-remote --refs "$POW_REF")
           if test -n "${IS_RSKJ_REF}"; then
             echo "Found matching ref in RSKj"
             CHECKOUT_REF="$POW_REF"
