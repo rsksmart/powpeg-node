@@ -153,14 +153,14 @@ class PowpegNodeSystemPropertiesTest {
     when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(true);
     when(config.getBoolean(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(customValue);
 
-    assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
+    assertFalse(powpegNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
   }
 
   @Test
   void shouldUpdateBridgeBtcBlockchain_whenCustomConfigNotAvailabe_shouldReturnDefaultConfig() {
     when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(false);
 
-    assertFalse(powpegNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
+    assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
   }
 
   @Test
@@ -169,14 +169,14 @@ class PowpegNodeSystemPropertiesTest {
     when(config.hasPath(UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS.getPath())).thenReturn(true);
     when(config.getBoolean(UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS.getPath())).thenReturn(customValue);
 
-    assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
+    assertFalse(powpegNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
   }
 
   @Test
   void shouldUpdateBridgeBtcCoinbaseTransactions_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
     when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(false);
 
-    assertFalse(powpegNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
+    assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
   }
 
   @Test
@@ -185,14 +185,14 @@ class PowpegNodeSystemPropertiesTest {
     when(config.hasPath(UPDATE_BRIDGE_BTC_TRANSACTIONS.getPath())).thenReturn(true);
     when(config.getBoolean(UPDATE_BRIDGE_BTC_TRANSACTIONS.getPath())).thenReturn(customValue);
 
-    assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
+    assertFalse(powpegNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
   }
 
   @Test
   void shouldUpdateBridgeBtcTransactions_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
     when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(false);
 
-    assertFalse(powpegNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
+    assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
   }
 
   @Test
