@@ -49,7 +49,6 @@ import co.rsk.federate.bitcoin.BtcTransactionBuilder;
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
-import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
