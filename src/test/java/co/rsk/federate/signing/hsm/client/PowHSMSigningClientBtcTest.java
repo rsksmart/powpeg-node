@@ -143,7 +143,7 @@ class PowHSMSigningClientBtcTest {
         jsonRpcClientMock = mock(JsonRpcClient.class);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
 
-        HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(
+        hsmClientProtocol = new HSMClientProtocol(
             jsonRpcClientProviderMock,
             MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
             INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)

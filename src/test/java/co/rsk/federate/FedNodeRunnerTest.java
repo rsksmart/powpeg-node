@@ -475,7 +475,7 @@ class FedNodeRunnerTest {
 
     private SignerConfig getHSMBTCSignerConfig(HSMVersion version) throws HSMClientException {
         when(hsmBookkeepingClient.getVersion()).thenReturn(version.getNumber());
-        PowpegConfigBuilder configBuilder = PowpegConfigBuilder.builder()
+        SignerConfigBuilder configBuilder = SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/0'/0'/0/0");
 
         if (version.getNumber() >= 2) {
