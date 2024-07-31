@@ -72,4 +72,8 @@ public class Federator {
             return false;
         }
     }
+
+    public int sumTwoNumbersDeleteMe(int x, int y) {
+        return x + y;
+    }
 }

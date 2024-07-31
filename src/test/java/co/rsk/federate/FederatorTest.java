@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
 
 /**
  * Created by ajlopez on 12/01/2017.
@@ -89,5 +90,10 @@ class FederatorTest {
             messages.add("Error message #2");
         }
         return new ECDSASigner.ECDSASignerCheckResult(messages);
+    }
+
+    @Test
+    void testSumDummyTest_ShouldReturn21() {
+        Assertions.assertEquals(21, federator.sumTwoNumbersDeleteMe(20,1));
     }
 }
