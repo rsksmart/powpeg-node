@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - "*-rc"
+      - do_not_merge_test_github_actions_merge_job
   pull_request:
     types:
       - opened
@@ -81,7 +82,7 @@ jobs:
         env:
           CHECKOUT_REF: ${{ env.CHECKOUT_REF }}
         run: |
-          git switch "$CHECKOUT_REF"
+          git switch naza ${{ github.ref_name }}
 
       - name: Persist RSKJ
         uses: actions/upload-artifact@v4

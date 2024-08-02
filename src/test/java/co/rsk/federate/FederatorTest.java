@@ -90,4 +90,10 @@ class FederatorTest {
         }
         return new ECDSASigner.ECDSASignerCheckResult(messages);
     }
+
+    @Test
+    void testDummyTest_shouldPass() {
+        assertFalse(false);
+    }
+
 }
