@@ -82,7 +82,7 @@ jobs:
         env:
           CHECKOUT_REF: ${{ env.CHECKOUT_REF }}
         run: |
-          git switch naza ${{ github.ref_name }}
+          git switch naza ${{ github.head_ref }}
 
       - name: Persist RSKJ
         uses: actions/upload-artifact@v4
