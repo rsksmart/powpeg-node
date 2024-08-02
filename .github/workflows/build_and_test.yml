@@ -66,10 +66,13 @@ jobs:
         env:
           POW_REF: ${{ github.ref }}
         run: |
-          IS_RSKJ_REF=$(git ls-remote --refs "$POW_REF")
-          if test -n "${IS_RSKJ_REF}"; then
+          POW_REF_NAME=$(echo "$POW_REF" | sed 's|refs/heads/||; s|refs/tags/||')
+          REPO_URL="https://github.com/rsksmart/powpeg-node.git"
+          EXISTS=$(git ls-remote --heads "$REPO_URL" "$POW_REF_NAME" || true)
+
+          if [ -n "$EXISTS" ]; then
             echo "Found matching ref in RSKj"
-            CHECKOUT_REF="$POW_REF"
+            CHECKOUT_REF="$POW_REF_NAME"
           else
             echo "Using master for RSKj"
             CHECKOUT_REF="master"
