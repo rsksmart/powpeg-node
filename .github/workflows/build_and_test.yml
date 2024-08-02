@@ -85,7 +85,8 @@ jobs:
         env:
           CHECKOUT_REF: ${{ env.CHECKOUT_REF }}
         run: |
-          git switch "$CHECKOUT_REF"
+          git fetch origin "$CHECKOUT_REF" || { echo "Branch $CHECKOUT_REF does not exist"; exit 1; }
+          git switch "$CHECKOUT_REF" || git checkout "$CHECKOUT_REF"
 
       - name: Persist RSKJ
         uses: actions/upload-artifact@v4
