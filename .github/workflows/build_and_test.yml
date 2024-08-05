@@ -64,7 +64,7 @@ jobs:
         if: github.event_name != 'pull_request'
         working-directory: rskj
         env:
-          POW_REF: ${{ github.name }}
+          POW_REF: ${{ github.ref }}
         run: |
           IS_RSKJ_REF=$(git ls-remote --refs https://github.com/rsksmart/rskj "$POW_REF")
           if test -n "${IS_RSKJ_REF}"; then
