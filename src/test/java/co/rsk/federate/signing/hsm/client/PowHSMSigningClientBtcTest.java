@@ -43,6 +43,7 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import co.rsk.federate.bitcoin.BtcTransactionBuilder;
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
@@ -91,7 +92,6 @@ class PowHSMSigningClientBtcTest {
         bridgeMainnetConstants.getBtcParams(), 9);
     private static final Federation oldFederation = TestUtils.createFederation(
         bridgeMainnetConstants.getBtcParams(), 5);
-    private static final int FIRST_OUTPUT_INDEX = 0;
 
     private static final HSMSignature expectedSignature = createMockSignature();
     private final ECKey signerPk = ECKey.fromPrivate(Hex.decode("fa01"));
@@ -266,7 +266,7 @@ class PowHSMSigningClientBtcTest {
 
     @ParameterizedTest
     @MethodSource("legacyPegoutArgProvider")
-    void sign_whenBatchPegoutHasNotPegoutTransactionCreatedEvent_returnsOk(int hsmVersion,
+    void sign_whenBatchPegoutHasNotPegoutTransactionCreatedEvent_returnsOk(HSMVersion hsmVersion,
         List<Coin> expectedOutpointValues)
         throws JsonRpcException, SignerMessageBuilderException, HSMClientException {
         // arrange
@@ -289,7 +289,7 @@ class PowHSMSigningClientBtcTest {
             pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
             pegoutBtcTx, pegoutConfirmationRskTx.getHash());
 
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion.getNumber());
 
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
             receiptStore, releaseCreationInformation);
@@ -299,7 +299,7 @@ class PowHSMSigningClientBtcTest {
 
     @ParameterizedTest
     @MethodSource("signArgProvider")
-    void sign_whenSegwitBatchPegoutHasPegoutTransactionCreatedEvent_returnsOk(int hsmVersion,
+    void sign_whenSegwitBatchPegoutHasPegoutTransactionCreatedEvent_returnsOk(HSMVersion hsmVersion,
         byte[] serializedOutpointValues, List<Coin> expectedOutpointValues)
         throws JsonRpcException, SignerMessageBuilderException, HSMClientException {
         // arrange
@@ -326,7 +326,7 @@ class PowHSMSigningClientBtcTest {
             pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
             pegoutBtcTx, pegoutConfirmationRskTx.getHash());
 
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion.getNumber());
 
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
             receiptStore, releaseCreationInformation);
@@ -336,7 +336,7 @@ class PowHSMSigningClientBtcTest {
 
     @ParameterizedTest
     @MethodSource("signArgProvider")
-    void sign_whenSegwitMigrationPegoutHasPegoutTransactionCreatedEvent_returnsOk(int hsmVersion,
+    void sign_whenSegwitMigrationPegoutHasPegoutTransactionCreatedEvent_returnsOk(HSMVersion hsmVersion,
         byte[] serializedOutpointValues, List<Coin> expectedOutpointValues)
         throws JsonRpcException, SignerMessageBuilderException, HSMClientException {
         // arrange
@@ -358,7 +358,7 @@ class PowHSMSigningClientBtcTest {
             pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
             pegoutBtcTx, pegoutConfirmationRskTx.getHash());
 
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion.getNumber());
 
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
             receiptStore, releaseCreationInformation);
@@ -382,10 +382,10 @@ class PowHSMSigningClientBtcTest {
         for (HSMVersion hsmVersion : powHSMVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(
-                Arguments.of(hsmVersion.getNumber(), coinListOf(50_000_000)));
+                Arguments.of(hsmVersion, coinListOf(50_000_000)));
             arguments.add(
-                Arguments.of(hsmVersion.getNumber(), coinListOf(75_000_000)));
-            arguments.add(Arguments.of(hsmVersion.getNumber(),
+                Arguments.of(hsmVersion, coinListOf(75_000_000)));
+            arguments.add(Arguments.of(hsmVersion,
                 coinListOf(50_000_000, 75_000_000, 100_000_000)));
         }
 
@@ -399,10 +399,10 @@ class PowHSMSigningClientBtcTest {
         for (HSMVersion hsmVersion : powHSMVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(
-                Arguments.of(hsmVersion.getNumber(), Hex.decode("FE80F0FA02"), coinListOf(50_000_000)));
+                Arguments.of(hsmVersion, Hex.decode("FE80F0FA02"), coinListOf(50_000_000)));
             arguments.add(
-                Arguments.of(hsmVersion.getNumber(), Hex.decode("FEC0687804"), coinListOf(75_000_000)));
-            arguments.add(Arguments.of(hsmVersion.getNumber(), Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
+                Arguments.of(hsmVersion, Hex.decode("FEC0687804"), coinListOf(75_000_000)));
+            arguments.add(Arguments.of(hsmVersion, Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
                 coinListOf(50_000_000, 75_000_000, 100_000_000)));
         }
 
@@ -423,36 +423,44 @@ class PowHSMSigningClientBtcTest {
 
     private BtcTransaction createPegout(List<Coin> outpointValues,
         List<Address> destinationAddresses, boolean segwit) {
-        BtcTransaction fundingTransaction = new BtcTransaction(btcMainnetParams);
-        fundingTransaction.addInput(BitcoinTestUtils.createHash(1), FIRST_OUTPUT_INDEX,
-            new Script(new byte[]{}));
 
-        for (Coin outpointValue : outpointValues) {
-            fundingTransaction.addOutput(outpointValue, oldFederation.getAddress());
-        }
+        BtcTransactionBuilder btcTransactionBuilder = new BtcTransactionBuilder();
 
-        BtcTransaction pegoutBtcTx = new BtcTransaction(btcMainnetParams);
-
+        // TODO: improve this method to create a more realistic btc segwit transaction
+        //  once {@link SignerMessageBuilder#getSigHashByInputIndex(int)} is refactored to support segwit
         Script inputScriptThatSpendsFromTheFederation = createBaseInputScriptThatSpendsFromTheFederation(
             oldFederation);
 
         Coin fee = Coin.MILLICOIN;
-        for (int outputIndex = 0; outputIndex < outpointValues.size(); outputIndex++) {
-            TransactionInput addedInput = pegoutBtcTx.addInput(
-                fundingTransaction.getOutput(outputIndex));
+        for (int inputIndex = 0; inputIndex < outpointValues.size(); inputIndex++) {
+            Coin outpointValue = outpointValues.get(inputIndex);
+            Coin amountToSend = outpointValue.minus(fee);
+            // Iterate over the addresses using inputIndex % addresses.size() to have outputs to different addresses
+            Address destinationAddress = destinationAddresses.get(
+                inputIndex % destinationAddresses.size());
 
-            addedInput.setScriptSig(inputScriptThatSpendsFromTheFederation);
+            TransactionInput txInput = btcTransactionBuilder.createInputBuilder()
+                .withAmount(outpointValue).withOutpointIndex(inputIndex)
+                .withScriptSig(inputScriptThatSpendsFromTheFederation)
+                .build();
 
+            btcTransactionBuilder
+                .withInput(
+                    txInput
+                )
+                .withOutput(amountToSend, destinationAddress);
+
+            // TODO: change this dummy witness for a real witness once segwit is fully implemented in bitcoinj-thin
+            // make it a segwit tx by adding a single witness
             if (segwit) {
-                addWitness(pegoutBtcTx, outputIndex);
-            }
+                TransactionWitness witness = new TransactionWitness(1);
+                witness.setPush(0, new byte[]{1});
 
-            Coin amountToSend = outpointValues.get(outputIndex).minus(fee);
-            pegoutBtcTx.addOutput(amountToSend,
-                destinationAddresses.get(outputIndex % destinationAddresses.size()));
+                btcTransactionBuilder.withWitness(inputIndex, witness);
+            }
         }
 
-        return pegoutBtcTx;
+        return btcTransactionBuilder.build();
     }
 
     private List<Address> createDestinationAddresses(int numberOfAddresses) {
@@ -462,18 +470,12 @@ class PowHSMSigningClientBtcTest {
             .collect(Collectors.toList());
     }
 
-    private void addWitness(BtcTransaction pegoutBtcTx, int inputIndex) {
-        TransactionWitness txWitness = new TransactionWitness(1);
-        txWitness.setPush(0, new byte[]{0x1});
-        pegoutBtcTx.setWitness(inputIndex, txWitness);
-    }
-
-    private void signAndExecuteAssertions(int hsmVersion, List<Coin> expectedOutpointValues,
+    private void signAndExecuteAssertions(HSMVersion hsmVersion, List<Coin> expectedOutpointValues,
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder)
         throws JsonRpcException, SignerMessageBuilderException, HSMClientException {
         final int numOfInputsToSign = expectedOutpointValues.size();
 
-        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyCommand(hsmVersion);
+        ObjectNode expectedPublicKeyRequest = buildGetPublicKeyCommand(hsmVersion.getNumber());
         ObjectNode publicKeyResponse = buildResponse(0);
         publicKeyResponse.put(PUB_KEY.getFieldName(), Hex.toHexString(signerPk.getPubKey()));
         when(jsonRpcClientMock.send(expectedPublicKeyRequest)).thenReturn(publicKeyResponse);
@@ -484,7 +486,7 @@ class PowHSMSigningClientBtcTest {
             PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) powHSMSignerMessageBuilder.buildMessageForIndex(
                 inputIndex);
 
-            ObjectNode expectedSignCommand = buildSignCommand(hsmVersion,
+            ObjectNode expectedSignCommand = buildSignCommand(hsmVersion.getNumber(),
                 powHSMSignerMessage);
             when(jsonRpcClientMock.send(expectedSignCommand)).thenReturn(response);
 
