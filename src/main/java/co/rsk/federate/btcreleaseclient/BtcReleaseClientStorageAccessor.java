@@ -2,7 +2,7 @@ package co.rsk.federate.btcreleaseclient;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileData;
 import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileReadResult;
 import co.rsk.federate.io.btcreleaseclientstorage.BtcReleaseClientFileStorage;
@@ -31,7 +31,7 @@ public class BtcReleaseClientStorageAccessor {
     private ScheduledFuture task;
     private int delays;
 
-    public BtcReleaseClientStorageAccessor(FedNodeSystemProperties systemProperties) throws InvalidStorageFileException {
+    public BtcReleaseClientStorageAccessor(PowpegNodeSystemProperties systemProperties) throws InvalidStorageFileException {
         this(
             Executors.newSingleThreadScheduledExecutor(),
             new BtcReleaseClientFileStorageImpl(

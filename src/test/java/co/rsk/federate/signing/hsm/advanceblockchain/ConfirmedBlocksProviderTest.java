@@ -3,10 +3,10 @@ package co.rsk.federate.signing.hsm.advanceblockchain;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static co.rsk.federate.signing.hsm.config.NetworkDifficultyCap.REGTEST;
 
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.config.PowHSMBookkeepingConfig;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.utils.TestUtils;
 import java.math.BigInteger;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 class ConfirmedBlocksProviderTest {
 
-    private final BigInteger difficultyCapRegTest = PowHSMBookkeepingConfig.DIFFICULTY_CAP_REGTEST;
+    private final BigInteger difficultyCapRegTest = REGTEST.getDifficultyCap();
     private final BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
 
     @Test

@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.io.BtcToRskClientFileData;
@@ -28,7 +28,7 @@ public class BtcToRskClientBuilder {
     private BtcLockSenderProvider btcLockSenderProvider;
     private PeginInstructionsProvider peginInstructionsProvider;
     private Federation federation;
-    private FedNodeSystemProperties config;
+    private PowpegNodeSystemProperties config;
 
     public BtcToRskClientBuilder() throws PeginInstructionsException, IOException {
         this.activationConfig = mock(ActivationConfig.class);
@@ -39,7 +39,7 @@ public class BtcToRskClientBuilder {
         this.btcLockSenderProvider = mock(BtcLockSenderProvider.class);
         this.peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         this.federation = mock(Federation.class);
-        this.config = mock(FedNodeSystemProperties.class);
+        this.config = mock(PowpegNodeSystemProperties.class);
 
         when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
         when(btcToRskClientFileStorage.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, new BtcToRskClientFileData()));
@@ -93,7 +93,7 @@ public class BtcToRskClientBuilder {
         return this;
     }
 
-    public BtcToRskClientBuilder withFedNodeSystemProperties(FedNodeSystemProperties config) {
+    public BtcToRskClientBuilder withFedNodeSystemProperties(PowpegNodeSystemProperties config) {
         this.config = config;
         return this;
     }

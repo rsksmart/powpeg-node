@@ -1,6 +1,6 @@
 package co.rsk.federate.btcreleaseclient;
 
-import static co.rsk.federate.signing.PowPegNodeKeyId.BTC_KEY_ID;
+import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,7 +38,7 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCache;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCacheImpl;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.mock.SimpleEthereumImpl;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.ECPublicKey;
@@ -117,15 +117,15 @@ class BtcReleaseClientTest {
     @Test
     void if_start_not_called_rsk_blockchain_not_listened() {
         Ethereum ethereum = mock(Ethereum.class);
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        Mockito.doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        Mockito.doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         new BtcReleaseClient(
             ethereum,
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -135,15 +135,15 @@ class BtcReleaseClientTest {
     @Test
     void when_start_called_rsk_blockchain_is_listened() {
         Ethereum ethereum = mock(Ethereum.class);
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        Mockito.doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        Mockito.doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -159,15 +159,15 @@ class BtcReleaseClientTest {
     @Test
     void if_stop_called_with_just_one_federation_rsk_blockchain_is_still_listened() {
         Ethereum ethereum = mock(Ethereum.class);
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        Mockito.doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        Mockito.doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -186,15 +186,15 @@ class BtcReleaseClientTest {
     @Test
     void if_stop_called_with_federations_rsk_blockchain_is_not_listened() {
         Ethereum ethereum = mock(Ethereum.class);
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        Mockito.doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        Mockito.doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -230,13 +230,13 @@ class BtcReleaseClientTest {
         ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        when(signer.getPublicKey(BTC_KEY_ID.getKeyId())).thenReturn(signerPublicKey);
-        when(signer.getVersionForKeyId(BTC_KEY_ID.getKeyId())).thenReturn(1);
-        when(signer.sign(eq(BTC_KEY_ID.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
+        when(signer.getPublicKey(BTC.getKeyId())).thenReturn(signerPublicKey);
+        when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(1);
+        when(signer.sign(eq(BTC.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx);
@@ -248,7 +248,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -289,7 +289,7 @@ class BtcReleaseClientTest {
 
         // Assert
         Mockito.verify(signer, Mockito.times(amountOfInputs))
-            .sign(eq(BTC_KEY_ID.getKeyId()), any(SignerMessage.class));
+            .sign(eq(BTC.getKeyId()), any(SignerMessage.class));
     }
 
     @Test
@@ -329,14 +329,14 @@ class BtcReleaseClientTest {
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        doReturn(signerPublicKey).when(signer).getPublicKey(BTC_KEY_ID.getKeyId());
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ethSig).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(fedNodeSystemProperties).isPegoutEnabled();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
@@ -377,7 +377,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -426,14 +426,14 @@ class BtcReleaseClientTest {
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        doReturn(signerPublicKey).when(signer).getPublicKey(BTC_KEY_ID.getKeyId());
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(fedNodeSystemProperties).isPegoutEnabled();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
@@ -465,7 +465,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -529,14 +529,14 @@ class BtcReleaseClientTest {
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
-        doReturn(signerPublicKey).when(signer).getPublicKey(BTC_KEY_ID.getKeyId());
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(fedNodeSystemProperties).isPegoutEnabled();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
@@ -568,7 +568,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -629,10 +629,10 @@ class BtcReleaseClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(fedNodeSystemProperties).isPegoutEnabled();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
@@ -641,7 +641,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             nodeBlockProcessor
         );
         btcReleaseClient.setup(
@@ -677,10 +677,10 @@ class BtcReleaseClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        doReturn(false).when(fedNodeSystemProperties).isPegoutEnabled();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(false).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
@@ -689,7 +689,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             nodeBlockProcessor
         );
         btcReleaseClient.setup(
@@ -725,10 +725,10 @@ class BtcReleaseClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(fedNodeSystemProperties).isPegoutEnabled();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
@@ -737,7 +737,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             nodeBlockProcessor
         );
         btcReleaseClient.start(federation);
@@ -769,10 +769,10 @@ class BtcReleaseClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(fedNodeSystemProperties).getNetworkConstants();
-        doReturn(false).when(fedNodeSystemProperties).isPegoutEnabled();
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(false).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
@@ -781,7 +781,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             nodeBlockProcessor
         );
         btcReleaseClient.start(federation);
@@ -880,9 +880,9 @@ class BtcReleaseClientTest {
         inputScript = ScriptBuilder.updateScriptWithSignature(inputScript, txSigEncoded, sigIndex, 1, 1);
         releaseInput.setScriptSig(inputScript);
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         ECPublicKey signerPublicKey = new ECPublicKey(federator1PrivKey.getPubKey());
@@ -892,7 +892,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
         client.setup(
@@ -920,9 +920,9 @@ class BtcReleaseClientTest {
         TransactionInput releaseInput = TestUtils.createTransactionInput(params, releaseTx, federation);
         releaseTx.addInput(releaseInput);
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         BtcECKey fed1Key = federation.getBtcPublicKeys().get(0);
@@ -933,7 +933,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
         client.setup(
@@ -983,15 +983,15 @@ class BtcReleaseClientTest {
         inputScript = ScriptBuilder.updateScriptWithSignature(inputScript, txSigEncoded, sigIndex, 1, 1);
         releaseInput.setScriptSig(inputScript);
 
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -1061,9 +1061,9 @@ class BtcReleaseClientTest {
         BtcTransaction releaseTx,
         ECPublicKey signerPublicKey
     ) throws Exception {
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         ECDSASigner signer = mock(ECDSASigner.class);
@@ -1072,7 +1072,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
         client.setup(
@@ -1094,15 +1094,15 @@ class BtcReleaseClientTest {
         Script expectedRedeemScript,
         Script redeemScriptToExtract)
     {
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
@@ -1166,10 +1166,10 @@ class BtcReleaseClientTest {
         throws BtcReleaseClientException, SignerException,
         HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.isPegoutEnabled()).thenReturn(true);
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.isPegoutEnabled()).thenReturn(true);
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
@@ -1234,7 +1234,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereumImpl,
             federatorSupport,
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             nodeBlockProcessor
         );
 
@@ -1273,16 +1273,16 @@ class BtcReleaseClientTest {
     }
 
     private BtcReleaseClient createBtcClient() {
-        FedNodeSystemProperties fedNodeSystemProperties = mock(FedNodeSystemProperties.class);
-        when(fedNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
-        when(fedNodeSystemProperties.isPegoutEnabled()).thenReturn(true); // Enabled by default
-        when(fedNodeSystemProperties.getPegoutSignedCacheTtl())
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.isPegoutEnabled()).thenReturn(true); // Enabled by default
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         return new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
-            fedNodeSystemProperties,
+            powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
     }

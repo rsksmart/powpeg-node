@@ -4,7 +4,7 @@ import co.rsk.core.Coin;
 import co.rsk.core.ReversibleTransactionExecutor;
 import co.rsk.core.RskAddress;
 import co.rsk.core.bc.PendingState;
-import co.rsk.federate.config.FedNodeSystemProperties;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.gas.GasPriceProviderFactory;
 import co.rsk.federate.gas.IGasPriceProvider;
 import co.rsk.federate.signing.ECDSASigner;
@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 
-import static co.rsk.federate.signing.PowPegNodeKeyId.RSK_KEY_ID;
+import static co.rsk.federate.signing.PowPegNodeKeyId.RSK;
 
 public class BridgeTransactionSender {
 
@@ -31,14 +31,14 @@ public class BridgeTransactionSender {
     private final TransactionPool transactionPool;
     private final ReversibleTransactionExecutor reversibleTransactionExecutor;
     private final Coin gasPrice;
-    private final FedNodeSystemProperties config;
+    private final PowpegNodeSystemProperties config;
     private final IGasPriceProvider gasPriceProvider;
 
     public BridgeTransactionSender(Ethereum ethereum,
                                    Blockchain blockchain,
                                    TransactionPool transactionPool,
                                    ReversibleTransactionExecutor reversibleTransactionExecutor,
-                                   FedNodeSystemProperties config) {
+                                   PowpegNodeSystemProperties config) {
         this.ethereum = ethereum;
         this.blockchain = blockchain;
         this.transactionPool = transactionPool;
@@ -111,7 +111,7 @@ public class BridgeTransactionSender {
                         functionArgs);
                 try {
                     SignerMessageV1 messageToSign = new SignerMessageV1(rskTx.getRawHash().getBytes());
-                    ECKey.ECDSASignature txSignature = signer.sign(RSK_KEY_ID.getKeyId(), messageToSign);
+                    ECKey.ECDSASignature txSignature = signer.sign(RSK.getKeyId(), messageToSign);
                     rskTx.setSignature(txSignature);
                     LOGGER.debug("[tx={} | nonce={} | method={}] Submit to Bridge", rskTx.getHash(), nonce, function.name);
                     ethereum.submitTransaction(rskTx);
