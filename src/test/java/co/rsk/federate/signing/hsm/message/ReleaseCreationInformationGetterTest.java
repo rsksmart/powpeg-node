@@ -46,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ReleaseCreationInformationGetterTest {
 
@@ -54,25 +55,8 @@ class ReleaseCreationInformationGetterTest {
     private Block pegoutCreationBlock;
     private TransactionReceipt pegoutCreationRskTxReceipt;
     private TransactionInfo pegoutCreationRskTxInfo;
-
-    private static List<Arguments> getTxInfoToSignArgProvider() {
-        List<Arguments> arguments = new ArrayList<>();
-
-        for (HSMVersion hsmVersion : HSMVersion.values()) {
-            arguments.add(
-                Arguments.of(hsmVersion.getNumber(), Hex.decode("00"), Collections.singletonList(Coin.ZERO)));
-            arguments.add(
-                Arguments.of(hsmVersion.getNumber(), Hex.decode("01"),
-                    Collections.singletonList(Coin.SATOSHI)));
-            // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
-            arguments.add(Arguments.of(hsmVersion.getNumber(), Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
-                coinListOf(50_000_000, 75_000_000, 100_000_000)));
-            arguments.add(Arguments.of(hsmVersion.getNumber(), Hex.decode("FFFFFFFFFFFFFFFF7F"),
-                coinListOf(Long.MAX_VALUE)));
-        }
-
-        return arguments;
-    }
+    private ReceiptStore receiptStore;
+    private BlockStore blockStore;
 
     @BeforeEach
     void setUp() {
@@ -94,66 +78,48 @@ class ReleaseCreationInformationGetterTest {
         when(pegoutCreationRskTxInfo.getReceipt()).thenReturn(pegoutCreationRskTxReceipt);
         when(pegoutCreationRskTxInfo.getBlockHash()).thenReturn(
             pegoutCreationBlock.getHash().getBytes());
+
+        blockStore = mock(BlockStore.class);
+        when(blockStore.getBlockByHash(pegoutCreationBlock.getHash().getBytes())).thenReturn(
+            pegoutCreationBlock);
+        when(blockStore.getChainBlockByNumber(pegoutCreationBlock.getNumber())).thenReturn(
+            pegoutCreationBlock);
+
+        receiptStore = mock(ReceiptStore.class);
+        when(receiptStore.get(pegoutCreationRskTx.getHash().getBytes(),
+            pegoutCreationBlock.getHash().getBytes())).thenReturn(
+            Optional.of(pegoutCreationRskTxInfo));
+
+        when(receiptStore.getInMainChain(pegoutCreationRskTx.getHash().getBytes(),
+            blockStore)).thenReturn(Optional.of(
+            pegoutCreationRskTxInfo));
     }
 
-
-    @Test
-    void createGetTxInfoToSign_returnOK() throws HSMReleaseCreationInformationException {
-        Keccak256 blockHash = TestUtils.createHash(3);
-        Keccak256 rskTxHash = TestUtils.createHash(1);
-        byte[] btcTxHash = TestUtils.createHash(2).getBytes();
-        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
-        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
-
-        CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
-        byte[] releaseRequestedSignatureTopic = releaseRequestedEvent.encodeSignatureLong();
-        List<DataWord> topics = new ArrayList<>();
-        topics.add(DataWord.valueOf(releaseRequestedSignatureTopic));
-        topics.add(DataWord.valueOf(rskTxHash.getBytes()));
-        topics.add(DataWord.valueOf(btcTxHash));
-
+    @ParameterizedTest
+    @ValueSource(ints = {2, 3, 4})
+    void createGetTxInfoToSign_returnOK(int versionNumber)
+        throws HSMReleaseCreationInformationException {
         List<LogInfo> logs = new ArrayList<>();
-        logs.add(new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(), topics, null));
 
-        Transaction transaction = mock(Transaction.class);
-        when(transaction.getHash()).thenReturn(rskTxHash);
-        when(transaction.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
+        ECKey senderKey = new ECKey();
+        RskAddress senderAddress = new RskAddress(senderKey.getAddress());
+        LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
+        logs.add(updateCollectionsLog);
 
-        TransactionReceipt transactionReceipt = new TransactionReceipt();
-        transactionReceipt.setLogInfoList(logs);
+        Coin pegoutAmount = mock(Coin.class);
+        LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
+            pegoutBtcTx.getHash(), pegoutAmount);
+        logs.add(releaseRequestedLog);
 
-        TransactionInfo transactionInfo = mock(TransactionInfo.class);
-        when(transactionInfo.getReceipt()).thenReturn(transactionReceipt);
-        when(transactionInfo.getBlockHash()).thenReturn(blockHash.getBytes());
-
-        Block block = mock(Block.class);
-        when(block.getNumber()).thenReturn(666L);
-        when(block.getHash()).thenReturn(blockHash);
-        when(block.getTransactionsList()).thenReturn(Collections.singletonList(transaction));
-
-        BlockStore blockStore = mock(BlockStore.class);
-        when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
-        when(blockStore.getChainBlockByNumber(666L)).thenReturn(block);
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
-        when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(
-            Optional.of(transactionInfo));
+        pegoutCreationRskTxReceipt.setLogInfoList(logs);
 
         ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
             receiptStore,
             blockStore
         );
-        // HSM V2
-        createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction,
-            block, transactionReceipt, HSMVersion.V2.getNumber());
 
-        // HSM V3
-        createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction,
-            block, transactionReceipt, HSMVersion.V3.getNumber());
-
-        // HSM V4
-        createGetTxInfoToSign_returnOK(pegoutCreationInformation, rskTxHash, pegoutBtcTransaction,
-            block, transactionReceipt, HSMVersion.V4.getNumber());
+        createGetTxInfoToSign_returnOK(pegoutCreationInformation, pegoutCreationRskTx.getHash(),
+            pegoutBtcTx, pegoutCreationBlock, pegoutCreationRskTxReceipt, versionNumber);
     }
 
     private void createGetTxInfoToSign_returnOK(
@@ -233,11 +199,11 @@ class ReleaseCreationInformationGetterTest {
         when(secondBlock.getTransactionsList()).thenReturn(
             Collections.singletonList(transactionInSecondBlock));
 
-        BlockStore blockStore = mock(BlockStore.class);
+        blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(blockStore.getChainBlockByNumber(anyLong())).thenReturn(secondBlock);
 
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
+        receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(
             Optional.of(transactionInfo));
         when(receiptStore.getInMainChain(rskTxHashInSecondBlock.getBytes(), blockStore)).thenReturn(
@@ -255,33 +221,17 @@ class ReleaseCreationInformationGetterTest {
             releaseCreationInformation.getTransactionReceipt());
         assertEquals(rskTxHash, releaseCreationInformation.getPegoutCreationRskTxHash());
         assertEquals(pegoutBtcTransaction, releaseCreationInformation.getPegoutBtcTx());
-
     }
 
     @Test
     void createGetTxInfoToSign_transactionHashNotFoundInBlock() {
         Keccak256 blockHash = TestUtils.createHash(3);
-        Keccak256 rskTxHash = TestUtils.createHash(1);
-        byte[] btcTxHash = TestUtils.createHash(2).getBytes();
-        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
-        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
-
-        Transaction transaction = mock(Transaction.class);
-        when(transaction.getHash()).thenReturn(rskTxHash);
-
-        TransactionInfo transactionInfo = mock(TransactionInfo.class);
-        when(transactionInfo.getBlockHash()).thenReturn(blockHash.getBytes());
-
         Block block = mock(Block.class);
         when(block.getHash()).thenReturn(blockHash);
         when(block.getTransactionsList()).thenReturn(new ArrayList<>());
 
-        BlockStore blockStore = mock(BlockStore.class);
+        blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
-        when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(
-            Optional.of(transactionInfo));
 
         ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
             receiptStore,
@@ -291,41 +241,13 @@ class ReleaseCreationInformationGetterTest {
         assertThrows(HSMReleaseCreationInformationException.class,
             () -> pegoutCreationInformation.getTxInfoToSign(
                 HSMVersion.V2.getNumber(),
-                rskTxHash,
-                pegoutBtcTransaction
+                pegoutCreationRskTx.getHash(),
+                pegoutBtcTx
             ));
     }
 
     @Test
     void createGetTxInfoToSignV2_noEventFound_noBlockFound() {
-        Keccak256 blockHash = TestUtils.createHash(3);
-        Keccak256 rskTxHash = TestUtils.createHash(1);
-        byte[] btcTxHash = TestUtils.createHash(2).getBytes();
-        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
-        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
-
-        Transaction transaction = mock(Transaction.class);
-        when(transaction.getHash()).thenReturn(rskTxHash);
-        when(transaction.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
-
-        TransactionReceipt transactionReceipt = new TransactionReceipt();
-        transactionReceipt.setLogInfoList(new ArrayList<>());
-
-        TransactionInfo transactionInfo = mock(TransactionInfo.class);
-        when(transactionInfo.getReceipt()).thenReturn(transactionReceipt);
-        when(transactionInfo.getBlockHash()).thenReturn(blockHash.getBytes());
-
-        Block block = mock(Block.class);
-        when(block.getHash()).thenReturn(blockHash);
-        when(block.getTransactionsList()).thenReturn(Collections.singletonList(transaction));
-
-        BlockStore blockStore = mock(BlockStore.class);
-        when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
-        when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(
-            Optional.of(transactionInfo));
-
         ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
             receiptStore,
             blockStore
@@ -334,43 +256,29 @@ class ReleaseCreationInformationGetterTest {
         assertThrows(HSMReleaseCreationInformationException.class,
             () -> pegoutCreationInformation.getTxInfoToSign(
                 2,
-                rskTxHash,
-                pegoutBtcTransaction
+                pegoutCreationRskTx.getHash(),
+                pegoutBtcTx
             ));
     }
 
     @Test
     void createGetTxInfoToSignV2_noEventFound_BestBlockFound() {
         Keccak256 blockHash = TestUtils.createHash(3);
-        Keccak256 rskTxHash = TestUtils.createHash(1);
-        byte[] btcTxHash = TestUtils.createHash(2).getBytes();
-        BtcTransaction pegoutBtcTransaction = mock(BtcTransaction.class);
-        when(pegoutBtcTransaction.getHash()).thenReturn(Sha256Hash.wrap(btcTxHash));
-
-        Transaction transaction = mock(Transaction.class);
-        when(transaction.getHash()).thenReturn(rskTxHash);
-        when(transaction.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
-
-        TransactionReceipt transactionReceipt = new TransactionReceipt();
-        transactionReceipt.setLogInfoList(new ArrayList<>());
-
-        TransactionInfo transactionInfo = mock(TransactionInfo.class);
-        when(transactionInfo.getReceipt()).thenReturn(transactionReceipt);
-        when(transactionInfo.getBlockHash()).thenReturn(blockHash.getBytes());
-
         long blockNumber = 4L;
         Block block = mock(Block.class);
         when(block.getHash()).thenReturn(blockHash);
         when(block.getNumber()).thenReturn(blockNumber);
 
-        BlockStore blockStore = mock(BlockStore.class);
+        blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(blockStore.getChainBlockByNumber(blockNumber)).thenReturn(block);
         when(blockStore.getBestBlock()).thenReturn(block);
 
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
+        Keccak256 rskTxHash = pegoutCreationRskTx.getHash();
+
+        receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(
-            Optional.of(transactionInfo));
+            Optional.of(pegoutCreationRskTxInfo));
 
         ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
             receiptStore,
@@ -381,7 +289,7 @@ class ReleaseCreationInformationGetterTest {
             () -> pegoutCreationInformation.getTxInfoToSign(
                 2,
                 rskTxHash,
-                pegoutBtcTransaction
+                pegoutBtcTx
             ));
     }
 
@@ -389,21 +297,10 @@ class ReleaseCreationInformationGetterTest {
     void getTxInfoToSign_whenTransactionReceiptNotFoundInSubsequentBlock_shouldThrowHSMReleaseCreationInformationException() {
         // The event that is searched is not found in the first block
         Keccak256 blockHash = TestUtils.createHash(3);
-        Keccak256 rskTxHash = TestUtils.createHash(1);
-
-        Transaction transaction = mock(Transaction.class);
-        when(transaction.getHash()).thenReturn(rskTxHash);
-
-        TransactionReceipt transactionReceipt = mock(TransactionReceipt.class);
-        when(transactionReceipt.getTransaction()).thenReturn(transaction);
-
-        TransactionInfo transactionInfo = mock(TransactionInfo.class);
-        when(transactionInfo.getReceipt()).thenReturn(transactionReceipt);
-        when(transactionInfo.getBlockHash()).thenReturn(blockHash.getBytes());
 
         Block block = mock(Block.class);
         when(block.getHash()).thenReturn(blockHash);
-        when(block.getTransactionsList()).thenReturn(Collections.singletonList(transaction));
+        when(block.getTransactionsList()).thenReturn(Collections.singletonList(pegoutCreationRskTx));
 
         // The event is now searched in the following block
         Keccak256 secondBlockHash = TestUtils.createHash(5);
@@ -417,13 +314,15 @@ class ReleaseCreationInformationGetterTest {
         when(secondBlock.getTransactionsList()).thenReturn(
             Collections.singletonList(transactionInSecondBlock));
 
-        BlockStore blockStore = mock(BlockStore.class);
+        blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(blockStore.getChainBlockByNumber(anyLong())).thenReturn(secondBlock);
 
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
+        Keccak256 rskTxHash = pegoutCreationRskTx.getHash();
+
+        receiptStore = mock(ReceiptStore.class);
         when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore)).thenReturn(
-            Optional.of(transactionInfo));
+            Optional.of(pegoutCreationRskTxInfo));
         when(receiptStore.getInMainChain(rskTxHashInSecondBlock.getBytes(), blockStore)).thenReturn(
             Optional.empty());
 
@@ -454,15 +353,7 @@ class ReleaseCreationInformationGetterTest {
         // Arrange
         List<LogInfo> logs = new ArrayList<>();
 
-        ECKey senderKey = new ECKey();
-        RskAddress senderAddress = new RskAddress(senderKey.getAddress());
-        LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
-        logs.add(updateCollectionsLog);
-
-        Coin pegoutAmount = mock(Coin.class);
-        LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
-            pegoutBtcTx.getHash(), pegoutAmount);
-        logs.add(releaseRequestedLog);
+        addCommonPegoutLogs(logs, pegoutBtcTx, serializedOutpointValues);
 
         List<Keccak256> pegoutRequestRskTxHashes = Collections.singletonList(
             TestUtils.createHash(10));
@@ -470,22 +361,12 @@ class ReleaseCreationInformationGetterTest {
             pegoutRequestRskTxHashes);
         logs.add(batchPegoutCreatedLog);
 
-        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
-            pegoutBtcTx.getHash(), serializedOutpointValues);
-        logs.add(pegoutTransactionCreatedLog);
+        ECKey senderKey = new ECKey();
+        RskAddress senderAddress = new RskAddress(senderKey.getAddress());
+        LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
+        logs.add(updateCollectionsLog);
 
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
-
-        BlockStore blockStore = mock(BlockStore.class);
-        when(blockStore.getBlockByHash(pegoutCreationBlock.getHash().getBytes())).thenReturn(
-            pegoutCreationBlock);
-        when(blockStore.getChainBlockByNumber(pegoutCreationBlock.getNumber())).thenReturn(
-            pegoutCreationBlock);
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
-        when(receiptStore.getInMainChain(pegoutCreationRskTx.getHash().getBytes(),
-            blockStore)).thenReturn(Optional.of(
-            pegoutCreationRskTxInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
             receiptStore,
@@ -511,7 +392,7 @@ class ReleaseCreationInformationGetterTest {
 
     @ParameterizedTest
     @MethodSource("getTxInfoToSignArgProvider")
-    void getTxInfoToSign_whenPegoutHasNotBatchPegoutButHasPegoutCreatedEvent_returnsOk(
+    void getTxInfoToSign_whenMigrationHasPegoutCreatedEvent_returnsOk(
         int version,
         byte[] serializedOutpointValues,
         List<Coin> expectedOutpointValues
@@ -528,27 +409,9 @@ class ReleaseCreationInformationGetterTest {
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
 
-        Coin pegoutAmount = mock(Coin.class);
-        LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
-            pegoutBtcTx.getHash(), pegoutAmount);
-        logs.add(releaseRequestedLog);
-
-        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
-            pegoutBtcTx.getHash(), serializedOutpointValues);
-        logs.add(pegoutTransactionCreatedLog);
+        addCommonPegoutLogs(logs, pegoutBtcTx, serializedOutpointValues);
 
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
-
-        BlockStore blockStore = mock(BlockStore.class);
-        when(blockStore.getBlockByHash(pegoutCreationBlock.getHash().getBytes())).thenReturn(
-            pegoutCreationBlock);
-        when(blockStore.getChainBlockByNumber(pegoutCreationBlock.getNumber())).thenReturn(
-            pegoutCreationBlock);
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
-        when(receiptStore.getInMainChain(pegoutCreationRskTx.getHash().getBytes(),
-            blockStore)).thenReturn(Optional.of(
-            pegoutCreationRskTxInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
             receiptStore,
@@ -586,31 +449,13 @@ class ReleaseCreationInformationGetterTest {
 
         List<LogInfo> logs = new ArrayList<>();
 
+        addCommonPegoutLogs(logs, pegoutBtcTx, serializedOutpointValues);
+
         LogInfo rejectedPeginLog = creatRejectedPeginLog(pegoutBtcTx.getHash(),
             RejectedPeginReason.LEGACY_PEGIN_MULTISIG_SENDER);
         logs.add(rejectedPeginLog);
 
-        Coin pegoutAmount = mock(Coin.class);
-        LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
-            pegoutBtcTx.getHash(), pegoutAmount);
-        logs.add(releaseRequestedLog);
-
-        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
-            pegoutBtcTx.getHash(), serializedOutpointValues);
-        logs.add(pegoutTransactionCreatedLog);
-
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
-
-        BlockStore blockStore = mock(BlockStore.class);
-        when(blockStore.getBlockByHash(pegoutCreationBlock.getHash().getBytes())).thenReturn(
-            pegoutCreationBlock);
-        when(blockStore.getChainBlockByNumber(pegoutCreationBlock.getNumber())).thenReturn(
-            pegoutCreationBlock);
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
-        when(receiptStore.getInMainChain(pegoutCreationRskTx.getHash().getBytes(),
-            blockStore)).thenReturn(Optional.of(
-            pegoutCreationRskTxInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
             receiptStore,
@@ -632,5 +477,38 @@ class ReleaseCreationInformationGetterTest {
         assertEquals(pegoutBtcTx, pegoutCreationInfo.getPegoutBtcTx());
         assertArrayEquals(expectedOutpointValues.toArray(),
             pegoutCreationInfo.getUtxoOutpointValues().toArray());
+    }
+
+    private static List<Arguments> getTxInfoToSignArgProvider() {
+        List<Arguments> arguments = new ArrayList<>();
+
+        for (HSMVersion hsmVersion : HSMVersion.values()) {
+            arguments.add(
+                Arguments.of(hsmVersion.getNumber(), Hex.decode("00"),
+                    Collections.singletonList(Coin.ZERO)));
+            arguments.add(
+                Arguments.of(hsmVersion.getNumber(), Hex.decode("01"),
+                    Collections.singletonList(Coin.SATOSHI)));
+            // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
+            arguments.add(
+                Arguments.of(hsmVersion.getNumber(), Hex.decode("FE80F0FA02FEC0687804FE00E1F505"),
+                    coinListOf(50_000_000, 75_000_000, 100_000_000)));
+            arguments.add(Arguments.of(hsmVersion.getNumber(), Hex.decode("FFFFFFFFFFFFFFFF7F"),
+                coinListOf(Long.MAX_VALUE)));
+        }
+
+        return arguments;
+    }
+
+    private void addCommonPegoutLogs(List<LogInfo> logs, BtcTransaction pegoutBtcTx,
+        byte[] serializedOutpointValues) {
+        Coin pegoutAmount = mock(Coin.class);
+        LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
+            pegoutBtcTx.getHash(), pegoutAmount);
+        logs.add(releaseRequestedLog);
+
+        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
+            pegoutBtcTx.getHash(), serializedOutpointValues);
+        logs.add(pegoutTransactionCreatedLog);
     }
 }
