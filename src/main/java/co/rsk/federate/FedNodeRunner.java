@@ -128,24 +128,10 @@ public class FedNodeRunner implements NodeRunner {
         LOGGER.debug("[run] Starting RSK");
         signer = buildSigner();
 
-        try {
-            PowHSMConfig powHsmConfig = new PowHSMConfig(
-                config.signerConfig(BTC.getId()));
-
-            HSMClientProtocol protocol =
-                hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
-
-            int hsmVersion = protocol.getVersion();
-            LOGGER.debug("[run] Using HSM version {}", hsmVersion);
-
-            if (HSMVersion.isPowHSM(hsmVersion)) {
-              hsmBookkeepingClient = buildBookKeepingClient(
-                  protocol, powHsmConfig);
-              hsmBookkeepingService = buildBookKeepingService(
-                  hsmBookkeepingClient, powHsmConfig);
-            }
-        } catch (SignerException e) {
-            LOGGER.info("[run] PowHSM config was not found", e);
+        SignerConfig btcSignerConfig = config.signerConfig(BTC.getId());
+        if (btcSignerConfig != null && btcSignerConfig.getType().equals("hsm")) {
+            LOGGER.info("[run] BTC signer is an HSM");
+            startBookkeepingServices();
         }
 
         if (!this.checkFederateRequirements()) {
@@ -165,6 +151,24 @@ public class FedNodeRunner implements NodeRunner {
 
         LOGGER.info("[run] Federated node started");
         LOGGER.info("[run] RSK address: {}", Hex.toHexString(this.member.getRskPublicKey().getAddress()));
+    }
+
+    private void startBookkeepingServices() throws SignerException, HSMClientException {
+        PowHSMConfig powHsmConfig = new PowHSMConfig(
+            config.signerConfig(BTC.getId()));
+
+        HSMClientProtocol protocol =
+            hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
+
+        int hsmVersion = protocol.getVersion();
+        LOGGER.debug("[run] Using HSM version {}", hsmVersion);
+
+        if (HSMVersion.isPowHSM(hsmVersion)) {
+            hsmBookkeepingClient = buildBookKeepingClient(
+                protocol, powHsmConfig);
+            hsmBookkeepingService = buildBookKeepingService(
+                hsmBookkeepingClient, powHsmConfig);
+        }
     }
 
     private void configureFederatorSupport() throws SignerException {
