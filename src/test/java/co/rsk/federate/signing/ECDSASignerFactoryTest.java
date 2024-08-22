@@ -116,13 +116,12 @@ class ECDSASignerFactoryTest {
     }
 
     @Test
-    void buildFromConfigUnknown() throws SignerException {
+    void buildFromConfigUnknown() {
         Config configMock = mockConfig("a-random-type");
-        SignerConfig signerConfig = new SignerConfig("a-random-id", configMock);
         try {
-            factory.buildFromConfig(signerConfig);
+            new SignerConfig("a-random-id", configMock);
             fail();
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) {
             assertEquals("Unsupported signer type: a-random-type", e.getMessage());
         }
     }
