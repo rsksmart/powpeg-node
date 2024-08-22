@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.signing.config.SignerConfig;
+import co.rsk.federate.signing.config.SignerType;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
@@ -38,7 +39,7 @@ class PowHSMConfigTest {
   @BeforeEach
   void setup() throws Exception {
     when(signerConfig.getConfig()).thenReturn(config);
-    when(signerConfig.getType()).thenReturn("hsm");
+    when(signerConfig.getSignerType()).thenReturn(SignerType.HSM);
     powHsmConfig = new PowHSMConfig(signerConfig);
   }
 

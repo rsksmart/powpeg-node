@@ -19,6 +19,7 @@
 package co.rsk.federate.signing;
 
 import co.rsk.federate.signing.config.SignerConfig;
+import co.rsk.federate.signing.config.SignerType;
 import co.rsk.federate.signing.hsm.config.PowHSMConfig;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
@@ -34,15 +35,15 @@ public class ECDSASignerFactory {
         if (config == null) {
             throw new SignerException("'signers' entry not found in config file.");
         }
-        String type = config.getType();
+        SignerType type = config.getSignerType();
         logger.debug("[buildFromConfig] SignerConfig type {}", type);
         switch (type) {
-            case "keyFile":
+            case KEYFILE:
                 return new ECDSASignerFromFileKey(
                         new KeyId(config.getId()),
                         config.getConfig().getString("path")
                 );
-            case "hsm":
+            case HSM:
                 try {
                     PowHSMConfig powHSMConfig = new PowHSMConfig(config);
                     HSMClientProtocol hsmClientProtocol =

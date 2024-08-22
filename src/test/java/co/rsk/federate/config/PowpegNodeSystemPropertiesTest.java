@@ -303,6 +303,7 @@ class PowpegNodeSystemPropertiesTest {
     when(mockSignersConfig.getObject(existingKey)).thenReturn(mockConfigSignerObject);
     when(mockConfigSignerObject.toConfig()).thenReturn(mockSignerConfig);
     when(mockSignerConfig.hasPath("type")).thenReturn(true);
+    when(mockSignerConfig.getString("type")).thenReturn("hsm");
 
     SignerConfig result = powpegNodeSystemProperties.signerConfig(existingKey);
 

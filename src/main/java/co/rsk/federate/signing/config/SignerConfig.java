@@ -7,12 +7,12 @@ public class SignerConfig {
     private static final String SIGNER_TYPE_PATH = "type";
 
     private final String id;
-    private final String type;
+    private final SignerType type;
     private final Config config;
 
     public SignerConfig(String keyId, Config config) {
         this.id = keyId;
-        this.type = config.getString(SIGNER_TYPE_PATH);
+        this.type = SignerType.fromConfigValue(config.getString(SIGNER_TYPE_PATH));
         this.config = config.withoutPath(SIGNER_TYPE_PATH);
     }
 
@@ -20,7 +20,7 @@ public class SignerConfig {
         return id;
     }
 
-    public String getType() {
+    public SignerType getSignerType() {
         return type;
     }
 
