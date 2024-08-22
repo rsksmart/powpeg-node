@@ -5,6 +5,7 @@ import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.*;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.signing.config.SignerConfig;
+import co.rsk.federate.signing.config.SignerType;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
@@ -17,12 +18,11 @@ import org.slf4j.LoggerFactory;
 public class PowHSMConfig {
 
   private static final Logger logger = LoggerFactory.getLogger(PowHSMConfig.class);
-  private static final String SIGNER_TYPE = "hsm";
 
   private final Config config;
 
   public PowHSMConfig(SignerConfig signerConfig) throws SignerException {
-    if (signerConfig == null || !signerConfig.getType().equals(SIGNER_TYPE)) {
+    if (signerConfig == null || signerConfig.getSignerType() != SignerType.HSM) {
       throw new SignerException("Signer config is not for PowHSM");
     }
 

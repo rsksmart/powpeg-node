@@ -32,6 +32,7 @@ import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.config.SignerConfig;
+import co.rsk.federate.signing.config.SignerType;
 import co.rsk.federate.signing.hsm.config.PowHSMConfig;
 import co.rsk.federate.io.*;
 import co.rsk.federate.log.BtcLogMonitor;
@@ -129,8 +130,7 @@ public class FedNodeRunner implements NodeRunner {
         signer = buildSigner();
 
         SignerConfig btcSignerConfig = config.signerConfig(BTC.getId());
-        if (btcSignerConfig != null && btcSignerConfig.getType().equals("hsm")) {
-            LOGGER.info("[run] BTC signer is an HSM");
+        if (btcSignerConfig != null && btcSignerConfig.getSignerType() == SignerType.HSM) {
             startBookkeepingServices();
         }
 
