@@ -12,7 +12,7 @@ public enum SignerType {
 
   public static SignerType fromConfigValue(String configValue) {
     for (SignerType signerType : values()) {
-      if (signerType.getType().equals(configValue)) {
+      if (signerType.getType().equalsIgnoreCase(configValue)) {
         return signerType;
       }
     }
