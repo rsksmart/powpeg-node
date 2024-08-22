@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import co.rsk.federate.signing.config.SignerType;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -303,7 +304,7 @@ class PowpegNodeSystemPropertiesTest {
     when(mockSignersConfig.getObject(existingKey)).thenReturn(mockConfigSignerObject);
     when(mockConfigSignerObject.toConfig()).thenReturn(mockSignerConfig);
     when(mockSignerConfig.hasPath("type")).thenReturn(true);
-    when(mockSignerConfig.getString("type")).thenReturn("hsm");
+    when(mockSignerConfig.getString("type")).thenReturn(SignerType.HSM.getType());
 
     SignerConfig result = powpegNodeSystemProperties.signerConfig(existingKey);
 
