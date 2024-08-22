@@ -21,6 +21,7 @@ import static co.rsk.federate.signing.PowPegNodeKeyId.*;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.BtcECKey;
+import co.rsk.core.RskAddress;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
@@ -73,7 +74,7 @@ import java.util.stream.Stream;
  */
 
 public class FedNodeRunner implements NodeRunner {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FedNodeRunner.class);
+    private static final Logger logger = LoggerFactory.getLogger(FedNodeRunner.class);
     private final BtcToRskClient btcToRskClientActive;
     private final BtcToRskClient btcToRskClientRetiring;
     private final BtcReleaseClient btcReleaseClient;
@@ -126,7 +127,7 @@ public class FedNodeRunner implements NodeRunner {
 
     @Override
     public void run() throws Exception {
-        LOGGER.debug("[run] Starting RSK");
+        logger.debug("[run] Starting RSK");
         signer = buildSigner();
 
         SignerConfig btcSignerConfig = config.signerConfig(BTC.getId());
@@ -135,22 +136,23 @@ public class FedNodeRunner implements NodeRunner {
         }
 
         if (!this.checkFederateRequirements()) {
-            LOGGER.error("[run] Error validating Fed-Node Requirements");
+            logger.error("[run] Error validating Fed-Node Requirements");
             return;
         }
 
-        LOGGER.info("[run] Signers: {}", signer.getVersionString());
+        logger.info("[run] Signers: {}", signer.getVersionString());
         configureFederatorSupport();
         fullNodeRunner.run();
         startFederate();
 
         signer.addListener(l -> {
-            LOGGER.error("[run] Signer informed unrecoverable state, shutting down", l);
+            logger.error("[run] Signer informed unrecoverable state, shutting down", l);
             this.shutdown();
         });
 
-        LOGGER.info("[run] Federated node started");
-        LOGGER.info("[run] RSK address: {}", Hex.toHexString(this.member.getRskPublicKey().getAddress()));
+        RskAddress pegnatoryRskAddress = new RskAddress(this.member.getRskPublicKey().getAddress());
+        logger.info("[run] Federated node started");
+        logger.info("[run] RSK address: {}", pegnatoryRskAddress);
     }
 
     private void startBookkeepingServices() throws SignerException, HSMClientException {
@@ -161,7 +163,7 @@ public class FedNodeRunner implements NodeRunner {
             hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
         int hsmVersion = protocol.getVersion();
-        LOGGER.debug("[run] Using HSM version {}", hsmVersion);
+        logger.debug("[run] Using HSM version {}", hsmVersion);
 
         if (HSMVersion.isPowHSM(hsmVersion)) {
             hsmBookkeepingClient = buildBookKeepingClient(
@@ -175,7 +177,7 @@ public class FedNodeRunner implements NodeRunner {
         BtcECKey btcPublicKey = signer.getPublicKey(BTC.getKeyId()).toBtcKey();
         ECKey rskPublicKey = signer.getPublicKey(RSK.getKeyId()).toEthKey();
         ECKey mstKey = signer.getPublicKey(MST.getKeyId()).toEthKey();
-        LOGGER.info(
+        logger.info(
             "[configureFederatorSupport] BTC public key: {}. RSK public key: {}. MST public key: {}",
             btcPublicKey,
             rskPublicKey,
@@ -200,14 +202,14 @@ public class FedNodeRunner implements NodeRunner {
                 ECDSASigner createdSigner = buildSignerFromKey(keyId.getKeyId());
                 compositeSigner.addSigner(createdSigner);
             } catch (SignerException e) {
-                LOGGER.error("[buildSigner] Error trying to build signer with key id {}. Detail: {}", keyId, e.getMessage());
+                logger.error("[buildSigner] Error trying to build signer with key id {}. Detail: {}", keyId, e.getMessage());
             } catch (Exception e) {
-                LOGGER.error("[buildSigner] Error creating signer {}. Detail: {}", keyId, e.getMessage());
+                logger.error("[buildSigner] Error creating signer {}. Detail: {}", keyId, e.getMessage());
                 throw e;
             }
         });
 
-        LOGGER.debug("[buildSigner] Signers created");
+        logger.debug("[buildSigner] Signers created");
 
         return compositeSigner;
     }
@@ -218,7 +220,7 @@ public class FedNodeRunner implements NodeRunner {
 
         HSMBookkeepingClient bookKeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(protocol);
         bookKeepingClient.setMaxChunkSizeToHsm(powHsmConfig.getMaxChunkSizeToHsm());
-        LOGGER.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersion());
+        logger.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersion());
         return bookKeepingClient;
     }
 
@@ -240,7 +242,7 @@ public class FedNodeRunner implements NodeRunner {
             powHsmConfig.getInformerInterval(),
             powHsmConfig.isStopBookkeepingScheduler()
         );
-        LOGGER.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersion());
+        logger.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersion());
         return service;
     }
 
@@ -274,7 +276,7 @@ public class FedNodeRunner implements NodeRunner {
     }
 
     private void startFederate() throws Exception {
-        LOGGER.debug("[startFederate] Starting Federation Behaviour");
+        logger.debug("[startFederate] Starting Federation Behaviour");
         if (config.isFederatorEnabled()) {
             // Set up a federation watcher to trigger starts and stops of the
             // btc to rsk client upon federation changes
@@ -308,8 +310,8 @@ public class FedNodeRunner implements NodeRunner {
             btcLogMonitor.start();
             rskLogMonitor.start();
             if (hsmBookkeepingService != null) {
-                hsmBookkeepingService.addListener((e) -> {
-                    LOGGER.error("[startFederate] HSM bookkeeping service informed unrecoverable state, shutting down", e);
+                hsmBookkeepingService.addListener(e -> {
+                    logger.error("[startFederate] HSM bookkeeping service informed unrecoverable state, shutting down", e);
                     this.shutdown();
                 });
                 hsmBookkeepingService.start();
@@ -348,7 +350,7 @@ public class FedNodeRunner implements NodeRunner {
                 public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
                     String oldFederationAddress = oldFederation.map(f -> f.getAddress().toString()).orElse("NONE");
                     String newFederationAddress = newFederation.getAddress().toString();
-                    LOGGER.debug(String.format("[onActiveFederationChange] Active federation change: from %s to %s", oldFederationAddress, newFederationAddress));
+                    logger.debug(String.format("[onActiveFederationChange] Active federation change: from %s to %s", oldFederationAddress, newFederationAddress));
                     triggerClientChange(btcToRskClientActive, Optional.of(newFederation));
                 }
 
@@ -356,7 +358,7 @@ public class FedNodeRunner implements NodeRunner {
                 public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
                     String oldFederationAddress = oldFederation.map(f -> f.getAddress().toString()).orElse("NONE");
                     String newFederationAddress = newFederation.map(f -> f.getAddress().toString()).orElse("NONE");
-                    LOGGER.debug(String.format("[onRetiringFederationChange] Retiring federation change: from %s to %s", oldFederationAddress, newFederationAddress));
+                    logger.debug(String.format("[onRetiringFederationChange] Retiring federation change: from %s to %s", oldFederationAddress, newFederationAddress));
                     triggerClientChange(btcToRskClientRetiring, newFederation);
                 }
             });
@@ -367,18 +369,18 @@ public class FedNodeRunner implements NodeRunner {
 
     @PreDestroy
     public void tearDown() {
-        LOGGER.debug("[tearDown] FederateRunner tearDown starting...");
+        logger.debug("[tearDown] FederateRunner tearDown starting...");
 
         this.stop();
 
-        LOGGER.debug("[tearDown] FederateRunner tearDown finished.");
+        logger.debug("[tearDown] FederateRunner tearDown finished.");
     }
 
     private void shutdown() {
         try {
             this.tearDown();
         } catch(Exception e){
-            LOGGER.error("[shutdown] FederateRunner teardown failed", e);
+            logger.error("[shutdown] FederateRunner teardown failed", e);
         }
         System.exit(-1);
     }
@@ -390,18 +392,18 @@ public class FedNodeRunner implements NodeRunner {
         // Only start if this federator is part of the new federation
         if (federation.isPresent() && federation.get().isMember(this.member)) {
             String federationAddress = federation.get().getAddress().toString();
-            LOGGER.debug("[triggerClientChange] Starting lock and release clients since I belong to federation {}", federationAddress);
-            LOGGER.info("[triggerClientChange] Joined to {} federation", federationAddress);
+            logger.debug("[triggerClientChange] Starting lock and release clients since I belong to federation {}", federationAddress);
+            logger.info("[triggerClientChange] Joined to {} federation", federationAddress);
             client.start(federation.get());
             btcReleaseClient.start(federation.get());
         } else {
-            LOGGER.warn("[triggerClientChange] This federator node is not part of the new federation. Check your configuration for signers BTC, RSK and MST keys");
+            logger.warn("[triggerClientChange] This federator node is not part of the new federation. Check your configuration for signers BTC, RSK and MST keys");
         }
     }
 
     @Override
     public void stop() {
-        LOGGER.info("[stop] Shutting down Federation node");
+        logger.info("[stop] Shutting down Federation node");
         if (bitcoinWrapper != null) {
             bitcoinWrapper.stop();
         }
@@ -417,7 +419,7 @@ public class FedNodeRunner implements NodeRunner {
         }
 
         fullNodeRunner.stop();
-        LOGGER.info("[stop] Federation node Shut down.");
+        logger.info("[stop] Federation node Shut down.");
     }
 
     private BitcoinWrapper createAndSetupBitcoinWrapper(
