@@ -118,8 +118,8 @@ class ECDSASignerFactoryTest {
     @Test
     void buildFromConfigUnknown() throws SignerException {
         Config configMock = mockConfig("a-random-type");
+        SignerConfig signerConfig = new SignerConfig("a-random-id", configMock);
         try {
-            SignerConfig signerConfig = new SignerConfig("a-random-id", configMock);
             factory.buildFromConfig(signerConfig);
             fail();
         } catch (RuntimeException e) {

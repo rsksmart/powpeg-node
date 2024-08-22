@@ -16,7 +16,7 @@ public enum SignerType {
         return signerType;
       }
     }
-    throw new RuntimeException(String.format("Unsupported signer type: %s", configValue));
+    throw new IllegalArgumentException(String.format("Unsupported signer type: %s", configValue));
   }
 
   public String getType() {
