@@ -18,7 +18,9 @@
 
 package co.rsk.federate.signing;
 
-import co.rsk.federate.config.SignerConfig;
+import co.rsk.federate.signing.config.SignerConfig;
+import co.rsk.federate.signing.config.SignerType;
+import co.rsk.federate.signing.hsm.config.PowHSMConfig;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
@@ -26,45 +28,42 @@ import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Builds signers given configuration
- *
- * @author Ariel Mendelzon
- */
 public class ECDSASignerFactory {
     private static final Logger logger = LoggerFactory.getLogger(ECDSASignerFactory.class);
-    public static final int DEFAULT_SOCKET_TIMEOUT = 10_000;
-    public static final int DEFAULT_ATTEMPTS = 2;
-    public static final int DEFAULT_INTERVAL = 1000;
 
     public ECDSASigner buildFromConfig(SignerConfig config) throws SignerException {
         if (config == null) {
             throw new SignerException("'signers' entry not found in config file.");
         }
-        String type = config.getType();
+        SignerType type = config.getSignerType();
         logger.debug("[buildFromConfig] SignerConfig type {}", type);
         switch (type) {
-            case "keyFile":
+            case KEYFILE:
                 return new ECDSASignerFromFileKey(
-                        new KeyId(config.getId()),
-                        config.getConfig().getString("path")
+                    new KeyId(config.getId()),
+                    config.getConfig().getString("path")
                 );
-            case "hsm":
-                try {
-                    HSMClientProtocol hsmClientProtocol = new HSMClientProtocolFactory().buildHSMClientProtocolFromConfig(config);
-                    HSMSigningClientProvider hsmSigningClientProvider = new HSMSigningClientProvider(hsmClientProtocol, config.getId());
-                    ECDSAHSMSigner signer = new ECDSAHSMSigner(hsmSigningClientProvider);
-                    // Add the key mapping
-                    String hsmKeyId = config.getConfig().getString("keyId");
-                    signer.addKeyMapping(new KeyId(config.getId()), hsmKeyId);
-                    return signer;
-                } catch (Exception e) {
-                    String message = "Something went wrong while trying to build HSM Signer";
-                    logger.debug("[buildFromConfig] {} - {}", message, e.getMessage());
-                    throw new RuntimeException(e.getMessage());
-                }
+            case HSM:
+                return buildHSMFromConfig(config);
             default:
-                throw new RuntimeException(String.format("Unsupported signer type: %s", type));
+                throw new IllegalArgumentException(String.format("Unsupported signer type: %s", type));
         }
+    }
+
+    private ECDSAHSMSigner buildHSMFromConfig(SignerConfig config) throws SignerException {
+        PowHSMConfig powHSMConfig = new PowHSMConfig(config);
+        HSMClientProtocol hsmClientProtocol = new HSMClientProtocolFactory().buildHSMClientProtocolFromConfig(
+            powHSMConfig
+        );
+        HSMSigningClientProvider hsmSigningClientProvider = new HSMSigningClientProvider(
+            hsmClientProtocol,
+            config.getId()
+        );
+        ECDSAHSMSigner signer = new ECDSAHSMSigner(hsmSigningClientProvider);
+        // Add the key mapping
+        String hsmKeyId = config.getConfig().getString("keyId");
+        signer.addKeyMapping(new KeyId(config.getId()), hsmKeyId);
+
+        return signer;
     }
 }

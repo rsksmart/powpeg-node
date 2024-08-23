@@ -20,17 +20,16 @@ package co.rsk.federate.util;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
-import co.rsk.federate.signing.*;
 import co.rsk.federate.signing.hsm.client.HSMSigningClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
+import co.rsk.federate.signing.hsm.config.PowHSMConfigParameter;
 import co.rsk.federate.signing.hsm.client.HSMSignature;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import org.ethereum.crypto.ECKey;
 import org.bouncycastle.util.encoders.Hex;
-
 import java.util.Arrays;
 import java.util.Random;
 
@@ -66,8 +65,11 @@ public class HSMChecker {
 
             System.out.printf("Connecting to HSM @ %s:%d...\n", host, port);
             SocketBasedJsonRpcClientProvider jsonRpcClientProvider = SocketBasedJsonRpcClientProvider.fromHostPort(host, port);
-            jsonRpcClientProvider.setSocketTimeout(ECDSASignerFactory.DEFAULT_SOCKET_TIMEOUT);
-            HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProvider, ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+            jsonRpcClientProvider.setSocketTimeout(PowHSMConfigParameter.SOCKET_TIMEOUT.getDefaultValue(Integer::parseInt));
+            HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(
+                jsonRpcClientProvider,
+                PowHSMConfigParameter.MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
+                PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt));
             HSMSigningClientProvider hsmSigningClientProvider = new HSMSigningClientProvider(hsmClientProtocol, "");
             HSMSigningClient client = hsmSigningClientProvider.getSigningClient();
             System.out.printf("Connected. Testing.\n");

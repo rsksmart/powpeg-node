@@ -23,6 +23,8 @@ import static co.rsk.federate.signing.HSMField.TX;
 import static co.rsk.federate.signing.HSMField.VERSION;
 import static co.rsk.federate.signing.utils.TestUtils.createBaseInputScriptThatSpendsFromTheFederation;
 import static co.rsk.federate.signing.utils.TestUtils.createBlock;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -47,7 +49,6 @@ import co.rsk.federate.bitcoin.BtcTransactionBuilder;
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.JsonRpcException;
-import co.rsk.federate.signing.ECDSASignerFactory;
 import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
@@ -141,11 +142,12 @@ class PowHSMSigningClientBtcTest {
         jsonRpcClientMock = mock(JsonRpcClient.class);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
 
-        hsmClientProtocol = new HSMClientProtocol(jsonRpcClientProviderMock,
-            ECDSASignerFactory.DEFAULT_ATTEMPTS, ECDSASignerFactory.DEFAULT_INTERVAL);
+        hsmClientProtocol = new HSMClientProtocol(
+            jsonRpcClientProviderMock,
+            MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
+            INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
+        );
         client = new PowHSMSigningClientBtc(hsmClientProtocol, HSMVersion.V2.getNumber());
-
-
     }
 
     @Test

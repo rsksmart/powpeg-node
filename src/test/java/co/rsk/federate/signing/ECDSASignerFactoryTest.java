@@ -25,9 +25,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import co.rsk.federate.config.SignerConfig;
+import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
 import co.rsk.federate.rpc.SocketBasedJsonRpcClientProvider;
+import co.rsk.federate.signing.config.SignerType;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
@@ -49,7 +50,7 @@ class ECDSASignerFactoryTest {
 
     @Test
     void buildFromConfigKeyFile() throws SignerException {
-        Config configMock = mockConfig("keyFile");
+        Config configMock = mockConfig(SignerType.KEYFILE.getType());
         when(configMock.getString("path")).thenReturn("a-random-path");
         SignerConfig signerConfig = new SignerConfig("a-random-id", configMock);
         ECDSASigner signer = factory.buildFromConfig(signerConfig);
@@ -61,8 +62,10 @@ class ECDSASignerFactoryTest {
 
     @Test
     void buildFromConfigHSM() throws SignerException {
-        Config configMock = mockConfig("hsm");
+        Config configMock = mockConfig(SignerType.HSM.getType());
+        when(configMock.hasPath("host")).thenReturn(true);
         when(configMock.getString("host")).thenReturn("remotehost");
+        when(configMock.hasPath("port")).thenReturn(true);
         when(configMock.getInt("port")).thenReturn(1234);
         when(configMock.getString("keyId")).thenReturn("a-bip32-path");
         when(configMock.hasPath("socketTimeout")).thenReturn(true);
@@ -113,13 +116,12 @@ class ECDSASignerFactoryTest {
     }
 
     @Test
-    void buildFromConfigUnknown() throws SignerException {
+    void buildFromConfigUnknown() {
         Config configMock = mockConfig("a-random-type");
-        SignerConfig signerConfig = new SignerConfig("a-random-id", configMock);
         try {
-            factory.buildFromConfig(signerConfig);
+            new SignerConfig("a-random-id", configMock);
             fail();
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) {
             assertEquals("Unsupported signer type: a-random-type", e.getMessage());
         }
     }
