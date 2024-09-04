@@ -1,0 +1,68 @@
+name: Rootstock Integration Tests
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches:
+      - "**"
+  push:
+    branches: ["master", "*-rc"]
+  workflow_dispatch:
+    inputs:
+      rit-branch:
+        description: 'Branch for Rootstock Integration Tests'
+        required: false
+        default: 'main'
+      rskj-branch:
+        description: 'Branch for RSKJ repo'
+        required: false
+        default: 'master'
+
+jobs:
+  rootstock-integration-tests:
+    name: Rootstock Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Set Branch Variables
+        id: set-branch-variables
+        run: |
+          # Default values
+          POWPEG_BRANCH="master"
+          RIT_BRANCH="${{ github.event.inputs.rit-branch || 'main' }}"
+          RSKJ_BRANCH="${{ github.event.inputs.rskj-branch || 'master' }}"
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            POWPEG_BRANCH="${{ github.event.pull_request.head.ref }}"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            if [[ "${{ github.ref }}" == refs/heads/*-rc ]]; then
+              POWPEG_BRANCH="${{ github.ref }}"
+            fi
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            POWPEG_BRANCH="${{ github.ref_name }}"
+          fi
+
+          echo "RSKJ_BRANCH=$RSKJ_BRANCH" >> $GITHUB_ENV
+          echo "RIT_BRANCH=$RIT_BRANCH" >> $GITHUB_ENV
+          echo "POWPEG_BRANCH=$POWPEG_BRANCH" >> $GITHUB_ENV
+
+      - name: Checkout PowPeg Repository
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+        with:
+          repository: rsksmart/powpeg-node
+          ref: ${{ env.POWPEG_BRANCH }}
+          fetch-depth: 1
+
+      - name: Checkout Rootstock Integration Tests Repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+        with:
+          repository: rsksmart/rootstock-integration-tests
+          ref: ${{ env.RIT_BRANCH }}
+          fetch-depth: 0
+
+      - name: Run Rootstock Integration Tests
+        uses: rsksmart/rootstock-integration-tests@497172fd38dcfaf48c77f9bb1eeb6617eef5eed6 #v1
+        with:
+          rskj-branch: ${{ env.RSKJ_BRANCH }}
+          powpeg-node-branch: ${{ env.POWPEG_BRANCH }}
