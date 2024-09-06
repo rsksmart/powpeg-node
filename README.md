@@ -39,7 +39,7 @@ Add the just downloaded jdk to the jenv versions, run: `jenv add /Library/Java/J
 
 If you are using another java version in other projects, run `jenv local 1.8.0.352`. Otherwise you can set it globally by running: `jenv global 1.8.0.352`
 
-To check that it worked, open a new terminal instance and run `java -version` command. It should output something like 
+To check that it worked, open a new terminal instance and run `java -version` command. It should output something like
 
 ```
 java version "1.8.0_351"
@@ -189,7 +189,7 @@ Create a `node.conf` file in powpeg-project directory (this exact file’s struc
 ```
 federator{
     enabled = true
-    
+
     signers {
        BTC {
           type = "keyFile"
