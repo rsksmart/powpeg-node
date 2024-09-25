@@ -42,7 +42,7 @@ repositories {
     }
 }
 
-sourceCompatibility = 1.8
+sourceCompatibility = 17
 
 mainClassName = 'co.rsk.federate.FederateRunner'
 applicationDefaultJvmArgs = ["-server", "-Xss32m", "-Xms3g", "-XX:+UseCompressedOops", "-XX:-OmitStackTraceInFastThrow"]
