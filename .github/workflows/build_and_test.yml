@@ -99,11 +99,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Java JDK
-        uses: actions/setup-java@v3
+      - name: Setup Java & Gradle
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Download rskj
         uses: actions/download-artifact@v4
@@ -112,19 +113,19 @@ jobs:
           path: rskj
 
       - uses: actions/cache@v4
-        name: Cache Gradle
-        id: cache-gradle
+        name: Cache Gradle Wrapper
+        id: cache-gradle-wrapper
         with:
           path: |
-            .gradle/caches
-            gradle/wrapper
-            DONT-COMMIT-settings.gradle
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+            gradle/wrapper/gradle-wrapper.jar
+          key: gradle-wrapper-v1
 
-      - name: Get gradle wrapper and build dependencies
-        if: steps.cache-gradle.outputs.cache-hit != 'true'
+      - name: Get Gradle wrapper
+        if: steps.cache-gradle-wrapper.outputs.cache-hit != 'true'
+        run: |
+          ./configure.sh
+
+      - name: Set DONT-COMMIT-settings.gradle
         run: |
           cat <<'EOF' >DONT-COMMIT-settings.gradle
           includeBuild('./rskj') {
@@ -144,9 +145,6 @@ jobs:
             }
           }
           EOF
-          if [ -d ".gradle" ]; then rm -rfv .gradle; fi
-          ./configure.sh
-          ./gradlew --no-daemon --settings-file DONT-COMMIT-settings.gradle dependencies
 
       - name: Build node
         run: |
@@ -161,18 +159,19 @@ jobs:
             !rskj
           retention-days: 7
 
-  federator-tests:
+  federator-tests-java17:
     runs-on: ubuntu-latest
     needs: build_federator_node
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java JDK
-        uses: actions/setup-java@v3
+      - name: Setup Java & Gradle
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Download Build files
         uses: actions/download-artifact@v4
@@ -185,6 +184,14 @@ jobs:
         with:
           name: rskj
           path: rskj
+
+      - uses: actions/cache/restore@v4
+        name: Restore Gradle Wrapper
+        with:
+          path: |
+            gradle/wrapper/gradle-wrapper.jar
+          key: gradle-wrapper-v1
+          fail-on-cache-miss: true
 
       - name: Perform federator tests
         run: |
@@ -206,16 +213,48 @@ jobs:
             build/reports/
           retention-days: 7
 
+  federator-tests-java21:
+    runs-on: ubuntu-latest
+    needs: build_federator_node
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java & Gradle
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Download Build files
+        uses: actions/download-artifact@v4
+        with:
+          name: build_files
+          path: ./
+
+      - name: Download rskj
+        uses: actions/download-artifact@v4
+        with:
+          name: rskj
+          path: rskj
+
+      - uses: actions/cache/restore@v4
+        name: Restore Gradle Wrapper
+        with:
+          path: |
+            gradle/wrapper/gradle-wrapper.jar
+          key: gradle-wrapper-v1
+          fail-on-cache-miss: true
+
+      - name: Perform federator tests
+        run: |
+          ./gradlew --no-daemon --stacktrace test
+
   sonarqube:
     runs-on: ubuntu-latest
-    needs: federator-tests
+    needs: federator-tests-java17
     steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
       - name: Download Build files
         uses: actions/download-artifact@v4
         with:
@@ -240,6 +279,21 @@ jobs:
           name: test-reports
           path: |
             build/reports/
+
+      - name: Setup Java & Gradle
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - uses: actions/cache/restore@v4
+        name: Restore Gradle Wrapper
+        with:
+          path: |
+            gradle/wrapper/gradle-wrapper.jar
+          key: gradle-wrapper-v1
+          fail-on-cache-miss: true
 
       - name: Run SonarQube analysis
         env:
@@ -272,4 +326,3 @@ jobs:
               -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml \
               -Dsonar.token="$SONAR_TOKEN"
           fi
-
