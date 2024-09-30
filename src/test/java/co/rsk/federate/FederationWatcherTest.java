@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,354 +22,342 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 
 class FederationWatcherTest {
-    List<FederationMember> federation1Members = getFederationMembersFromPksForBtc(1000, 2000, 3000, 4000);
-    Instant federation1CreationTime = Instant.ofEpochMilli(5005L);
-    long creationBlockNumber = 0L;
-    NetworkParameters btcParams = NetworkParameters.fromID(NetworkParameters.ID_REGTEST);
 
-    FederationArgs federation1Args = new FederationArgs(federation1Members, federation1CreationTime, creationBlockNumber, btcParams);
-    private final Federation federation1 = FederationFactory.buildStandardMultiSigFederation(federation1Args);
+    // Constants for network and block information
+    private static final NetworkParameters NETWORK_PARAMETERS = NetworkParameters.fromID(NetworkParameters.ID_REGTEST);
+    private static final long CREATION_BLOCK_NUMBER = 0L;
 
-    List<FederationMember> federation2Members = getFederationMembersFromPksForBtc(2000, 3000, 4000, 5000, 6000, 7000);
-    Instant federation2CreationTime = Instant.ofEpochMilli(15300L);
-    FederationArgs federation2Args = new FederationArgs(federation2Members, federation2CreationTime, creationBlockNumber, btcParams);
-    private final Federation federation2 = FederationFactory.buildStandardMultiSigFederation(federation2Args);
+    // First federation constants
+    private static final List<FederationMember> FIRST_FEDERATION_MEMBERS = 
+        getFederationMembersFromPksForBtc(1000, 2000, 3000, 4000);
+    private static final Instant FIRST_FEDERATION_CREATION_TIME = Instant.ofEpochMilli(5005L);
+    private static final FederationArgs FIRST_FEDERATION_ARGS = new FederationArgs(
+        FIRST_FEDERATION_MEMBERS, FIRST_FEDERATION_CREATION_TIME, CREATION_BLOCK_NUMBER, NETWORK_PARAMETERS);
+    private static final Federation FIRST_FEDERATION = FederationFactory.buildStandardMultiSigFederation(FIRST_FEDERATION_ARGS);
 
-    List<FederationMember> federation3Members = getFederationMembersFromPksForBtc(5000, 6000, 7000);
-    Instant federation3CreationTime = Instant.ofEpochMilli(7400L);
-    FederationArgs federation3Args = new FederationArgs(federation3Members, federation3CreationTime, creationBlockNumber, btcParams);
-    private final Federation federation3 = FederationFactory.buildStandardMultiSigFederation(federation3Args);
+    // Second federation constants
+    private static final List<FederationMember> SECOND_FEDERATION_MEMBERS =
+        getFederationMembersFromPksForBtc(2000, 3000, 4000, 5000, 6000, 7000);
+    private static final Instant SECOND_FEDERATION_CREATION_TIME = Instant.ofEpochMilli(15300L);
+    private static final FederationArgs SECOND_FEDERATION_ARGS = new FederationArgs(
+        SECOND_FEDERATION_MEMBERS, SECOND_FEDERATION_CREATION_TIME, CREATION_BLOCK_NUMBER, NETWORK_PARAMETERS);
+    private static final Federation SECOND_FEDERATION = FederationFactory.buildStandardMultiSigFederation(SECOND_FEDERATION_ARGS);
 
-    private FederationProvider federationProvider;
-    private Ethereum ethereumMock;
-    private FederationWatcher watcher;
+    // Third federation constants
+    private static final List<FederationMember> THIRD_FEDERATION_MEMBERS =
+        getFederationMembersFromPksForBtc(5000, 6000, 7000);
+    private static final Instant THIRD_FEDERATION_CREATION_TIME = Instant.ofEpochMilli(7400L);
+    private static final FederationArgs THIRD_FEDERATION_ARGS = new FederationArgs(
+        THIRD_FEDERATION_MEMBERS, THIRD_FEDERATION_CREATION_TIME, CREATION_BLOCK_NUMBER, NETWORK_PARAMETERS);
+    private static final Federation THIRD_FEDERATION = FederationFactory.buildStandardMultiSigFederation(THIRD_FEDERATION_ARGS);
 
-    @BeforeEach
-    void createMocksAndWatcher() {
-        federationProvider = mock(FederationProvider.class);
-        ethereumMock = mock(Ethereum.class);
-        watcher = new FederationWatcher(ethereumMock);
-    }
+    private final FederationProvider federationProvider = mock(FederationProvider.class);
+    private final Ethereum ethereum = mock(Ethereum.class);
+    private final FederationWatcher federationWatcher = new FederationWatcher(ethereum);
 
     @Test
-    void setsListenerUp() throws Exception {
-        Mockito.doAnswer((InvocationOnMock m) -> {
+    void whenFederationWatcherIsSetUp_shouldAddListener() throws Exception {
+        // Arrange
+        doAnswer((InvocationOnMock m) -> {
             Object listener = m.getArgument(0);
-            assertEquals("co.rsk.federate.FederationWatcher$FederationWatcherRskListener", listener.getClass().getName());
-            assertSame(TestUtils.getInternalState(watcher, "federationProvider"), federationProvider);
+            assertEquals(FederationWatcher.FederationWatcherRskListener.class, listener.getClass());
             return null;
-        }).when(ethereumMock).addListener(any());
+        }).when(ethereum).addListener(any());
 
-        watcher.setup(federationProvider);
-        verify(ethereumMock).addListener(any());
+        // Act
+        federationWatcher.setup(federationProvider);
+
+        // Assert
+        verify(ethereum).addListener(any());
+        assertSame(TestUtils.getInternalState(federationWatcher, "federationProvider"), federationProvider);
     }
 
     @Test
-    void triggersActiveFederationChange_none_to_active() throws Exception {
-        EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.empty(), Optional.empty());
-        class EventsLogger
-        {
-            public int activeCalls = 0;
-            public int retiringCalls = 0;
-        }
+    void whenNoActiveFederation_shouldTriggerActiveFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(Optional.empty(), Optional.empty());
+        var activeCalls = new AtomicInteger(0);
+        var retiringCalls = new AtomicInteger(0);
 
-        when(federationProvider.getActiveFederationAddress()).thenReturn(federation1.getAddress());
-        when(federationProvider.getActiveFederation()).thenReturn(federation1);
+        when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
+        when(federationProvider.getActiveFederation()).thenReturn(FIRST_FEDERATION);
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
-        EventsLogger logger = new EventsLogger();
+        federationWatcher.addListener(new FederationWatcher.Listener() {
+            @Override
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+                assertEquals(Optional.empty(), oldFederation);
+                assertEquals(FIRST_FEDERATION, newFederation);
+                activeCalls.incrementAndGet();
+            }
 
-        for (int i = 0; i < 2; i++) {
-            watcher.addListener(new FederationWatcher.Listener() {
-                @Override
-                public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    assertEquals(Optional.empty(), oldFederation);
-                    assertEquals(federation1, newFederation);
-                    logger.activeCalls++;
-                }
+            @Override
+            public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
+                retiringCalls.incrementAndGet();
+            }
+        });
 
-                @Override
-                public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    logger.retiringCalls++;
-                }
-            });
-        }
-
+        // Act
         rskListener.onBestBlock(null, null);
-        assertEquals(2, logger.activeCalls);
-        assertEquals(0, logger.retiringCalls);
-        verify(federationProvider, times(1)).getActiveFederationAddress();
-        verify(federationProvider, times(1)).getRetiringFederationAddress();
-        verify(federationProvider, times(1)).getActiveFederation();
+
+        // Assert
+        assertEquals(1, activeCalls.get());
+        assertEquals(0, retiringCalls.get());
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider).getRetiringFederationAddress();
+        verify(federationProvider).getActiveFederation();
         verify(federationProvider, never()).getRetiringFederation();
     }
 
     @Test
-    void triggersActiveFederationChange_active_to_otherActive() throws Exception {
-        EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation1), Optional.empty());
-        class EventsLogger
-        {
-            public int activeCalls = 0;
-            public int retiringCalls = 0;
-        }
+    void whenActiveFederationChangesFromActiveToOtherActive_shouldTriggerActiveFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(Optional.of(FIRST_FEDERATION), Optional.empty());
+        var activeCalls = new AtomicInteger(0);
+        var retiringCalls = new AtomicInteger(0);
 
-        when(federationProvider.getActiveFederationAddress()).thenReturn(federation2.getAddress());
-        when(federationProvider.getActiveFederation()).thenReturn(federation2);
+        when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
+        when(federationProvider.getActiveFederation()).thenReturn(SECOND_FEDERATION);
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
-        EventsLogger logger = new EventsLogger();
+        federationWatcher.addListener(new FederationWatcher.Listener() {
+            @Override
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+                assertEquals(Optional.of(FIRST_FEDERATION), oldFederation);
+                assertEquals(SECOND_FEDERATION, newFederation);
+                activeCalls.incrementAndGet();
+            }
 
-        for (int i = 0; i < 2; i++) {
-            watcher.addListener(new FederationWatcher.Listener() {
-                @Override
-                public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    assertEquals(Optional.of(federation1), oldFederation);
-                    assertEquals(federation2, newFederation);
-                    logger.activeCalls++;
-                }
+            @Override
+            public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
+                retiringCalls.incrementAndGet();
+            }
+        });
 
-                @Override
-                public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    logger.retiringCalls++;
-                }
-            });
-        }
-
+        // Act
         rskListener.onBestBlock(null, null);
-        assertEquals(2, logger.activeCalls);
-        assertEquals(0, logger.retiringCalls);
-        verify(federationProvider, times(1)).getActiveFederationAddress();
-        verify(federationProvider, times(1)).getRetiringFederationAddress();
-        verify(federationProvider, times(1)).getActiveFederation();
+
+        // Assert
+        assertEquals(1, activeCalls.get());
+        assertEquals(0, retiringCalls.get());
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider).getRetiringFederationAddress();
+        verify(federationProvider).getActiveFederation();
         verify(federationProvider, never()).getRetiringFederation();
     }
 
     @Test
-    void doesntTriggerActiveOrRetiringFederationChange_none() throws Exception {
-        EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation1), Optional.empty());
-        class EventsLogger
-        {
-            public int activeCalls = 0;
-            public int retiringCalls = 0;
-        }
+    void whenNoActiveFederationChange_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(Optional.of(FIRST_FEDERATION), Optional.empty());
+        var activeCalls = new AtomicInteger(0);
+        var retiringCalls = new AtomicInteger(0);
 
-        when(federationProvider.getActiveFederationAddress()).thenReturn(federation1.getAddress());
+        when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
-        EventsLogger logger = new EventsLogger();
+        federationWatcher.addListener(new FederationWatcher.Listener() {
+            @Override
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+                activeCalls.incrementAndGet();
+            }
 
-        for (int i = 0; i < 2; i++) {
-            watcher.addListener(new FederationWatcher.Listener() {
-                @Override
-                public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    logger.activeCalls++;
-                }
+            @Override
+            public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
+                retiringCalls.incrementAndGet();
+            }
+        });
 
-                @Override
-                public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    logger.retiringCalls++;
-                }
-            });
-        }
-
+        // Act
         rskListener.onBestBlock(null, null);
-        assertEquals(0, logger.activeCalls);
-        assertEquals(0, logger.retiringCalls);
-        verify(federationProvider, times(1)).getActiveFederationAddress();
-        verify(federationProvider, times(1)).getRetiringFederationAddress();
+
+        // Assert
+        assertEquals(0, activeCalls.get());
+        assertEquals(0, retiringCalls.get());
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
         verify(federationProvider, never()).getRetiringFederation();
     }
 
     @Test
-    void doesntTriggerActiveOrRetiringFederationChange_noChange() throws Exception {
-        EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation1), Optional.of(federation2));
-        class EventsLogger
-        {
-            public int activeCalls = 0;
-            public int retiringCalls = 0;
-        }
+    void whenNoActiveAndRetiringChangeInFederation_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(Optional.of(FIRST_FEDERATION), Optional.of(SECOND_FEDERATION));
+        var activeCalls = new AtomicInteger(0);
+        var retiringCalls = new AtomicInteger(0);
 
-        when(federationProvider.getActiveFederationAddress()).thenReturn(federation1.getAddress());
-        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(federation2.getAddress()));
+        when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
+        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
 
-        EventsLogger logger = new EventsLogger();
+        federationWatcher.addListener(new FederationWatcher.Listener() {
+            @Override
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+                activeCalls.incrementAndGet();
+            }
 
-        for (int i = 0; i < 2; i++) {
-            watcher.addListener(new FederationWatcher.Listener() {
-                @Override
-                public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    logger.activeCalls++;
-                }
+            @Override
+            public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
+                retiringCalls.incrementAndGet();
+            }
+        });
 
-                @Override
-                public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    logger.retiringCalls++;
-                }
-            });
-        }
-
+        // Act
         rskListener.onBestBlock(null, null);
-        assertEquals(0, logger.activeCalls);
-        assertEquals(0, logger.retiringCalls);
-        verify(federationProvider, times(1)).getActiveFederationAddress();
-        verify(federationProvider, times(1)).getRetiringFederationAddress();
+
+        // Assert
+        assertEquals(0, activeCalls.get());
+        assertEquals(0, retiringCalls.get());
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
         verify(federationProvider, never()).getRetiringFederation();
     }
 
     @Test
-    void triggersRetiringFederationChange_none_to_retiring() throws Exception {
-        EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation2), Optional.empty());
-        class EventsLogger
-        {
-            public int activeCalls = 0;
-            public int retiringCalls = 0;
-        }
+    void whenActiveFederationChangesToRetiring_shouldTriggerRetiringFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(Optional.of(SECOND_FEDERATION), Optional.empty());
+        var activeCalls = new AtomicInteger(0);
+        var retiringCalls = new AtomicInteger(0);
 
-        when(federationProvider.getActiveFederationAddress()).thenReturn(federation2.getAddress());
-        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(federation1.getAddress()));
-        when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(federation1));
+        when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
+        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(FIRST_FEDERATION.getAddress()));
+        when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(FIRST_FEDERATION));
 
-        EventsLogger logger = new EventsLogger();
+        federationWatcher.addListener(new FederationWatcher.Listener() {
+            @Override
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+                activeCalls.incrementAndGet();
+            }
 
-        for (int i = 0; i < 2; i++) {
-            watcher.addListener(new FederationWatcher.Listener() {
-                @Override
-                public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    logger.activeCalls++;
-                }
+            @Override
+            public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
+                assertEquals(Optional.empty(), oldFederation);
+                assertEquals(Optional.of(FIRST_FEDERATION), newFederation);
+                retiringCalls.incrementAndGet();
+            }
+        });
 
-                @Override
-                public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    assertEquals(Optional.empty(), oldFederation);
-                    assertEquals(Optional.of(federation1), newFederation);
-                    logger.retiringCalls++;
-                }
-            });
-        }
-
+        // Act
         rskListener.onBestBlock(null, null);
-        assertEquals(0, logger.activeCalls);
-        assertEquals(2, logger.retiringCalls);
-        verify(federationProvider, times(1)).getActiveFederationAddress();
-        verify(federationProvider, times(1)).getRetiringFederationAddress();
+
+        // Assert
+        assertEquals(0, activeCalls.get());
+        assertEquals(1, retiringCalls.get());
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
-        verify(federationProvider, times(1)).getRetiringFederation();
+        verify(federationProvider).getRetiringFederation();
     }
 
     @Test
-    void triggersRetiringFederationChange_retiring_to_none() throws Exception {
-        EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation2), Optional.of(federation1));
-        class EventsLogger
-        {
-            public int activeCalls = 0;
-            public int retiringCalls = 0;
-        }
+    void whenRetiringFederationChangesToNone_shouldTriggerRetiringFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(Optional.of(SECOND_FEDERATION), Optional.of(FIRST_FEDERATION));
+        var activeCalls = new AtomicInteger(0);
+        var retiringCalls = new AtomicInteger(0);
 
-        when(federationProvider.getActiveFederationAddress()).thenReturn(federation2.getAddress());
+        when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.empty());
 
-        EventsLogger logger = new EventsLogger();
+        federationWatcher.addListener(new FederationWatcher.Listener() {
+            @Override
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+                activeCalls.incrementAndGet();
+            }
 
-        for (int i = 0; i < 2; i++) {
-            watcher.addListener(new FederationWatcher.Listener() {
-                @Override
-                public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    logger.activeCalls++;
-                }
+            @Override
+            public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
+                assertEquals(Optional.of(FIRST_FEDERATION), oldFederation);
+                assertEquals(Optional.empty(), newFederation);
+                retiringCalls.incrementAndGet();
+            }
+        });
 
-                @Override
-                public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    assertEquals(Optional.of(federation1), oldFederation);
-                    assertEquals(Optional.empty(), newFederation);
-                    logger.retiringCalls++;
-                }
-            });
-        }
-
+        // Act
         rskListener.onBestBlock(null, null);
-        assertEquals(0, logger.activeCalls);
-        assertEquals(2, logger.retiringCalls);
-        verify(federationProvider, times(1)).getActiveFederationAddress();
-        verify(federationProvider, times(1)).getRetiringFederationAddress();
+
+        // Assert
+        assertEquals(0, activeCalls.get());
+        assertEquals(1, retiringCalls.get());
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
-        verify(federationProvider, times(1)).getRetiringFederation();
+        verify(federationProvider).getRetiringFederation();
     }
 
     @Test
-    void triggersRetiringFederationChange_retiring_to_otherRetiring() throws Exception {
-        EthereumListenerAdapter rskListener = setupAndGetRskListener(Optional.of(federation3), Optional.of(federation1));
-        class EventsLogger
-        {
-            public int activeCalls = 0;
-            public int retiringCalls = 0;
-        }
+    void whenRetiringFederationChangesToOtherRetiring_shouldTriggerRetiringFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(Optional.of(THIRD_FEDERATION), Optional.of(FIRST_FEDERATION));
+        var activeCalls = new AtomicInteger(0);
+        var retiringCalls = new AtomicInteger(0);
 
-        when(federationProvider.getActiveFederationAddress()).thenReturn(federation3.getAddress());
-        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(federation2.getAddress()));
-        when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(federation2));
+        when(federationProvider.getActiveFederationAddress()).thenReturn(THIRD_FEDERATION.getAddress());
+        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
+        when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(SECOND_FEDERATION));
 
-        EventsLogger logger = new EventsLogger();
+        federationWatcher.addListener(new FederationWatcher.Listener() {
+            @Override
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+                activeCalls.incrementAndGet();
+            }
 
-        for (int i = 0; i < 2; i++) {
-            watcher.addListener(new FederationWatcher.Listener() {
-                @Override
-                public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    logger.activeCalls++;
-                }
+            @Override
+            public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
+                assertEquals(Optional.of(FIRST_FEDERATION), oldFederation);
+                assertEquals(Optional.of(SECOND_FEDERATION), newFederation);
+                retiringCalls.incrementAndGet();
+            }
+        });
 
-                @Override
-                public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    assertEquals(Optional.of(federation1), oldFederation);
-                    assertEquals(Optional.of(federation2), newFederation);
-                    logger.retiringCalls++;
-                }
-            });
-        }
-
+        // Act
         rskListener.onBestBlock(null, null);
-        assertEquals(0, logger.activeCalls);
-        assertEquals(2, logger.retiringCalls);
-        verify(federationProvider, times(1)).getActiveFederationAddress();
-        verify(federationProvider, times(1)).getRetiringFederationAddress();
+
+        // Assert
+        assertEquals(0, activeCalls.get());
+        assertEquals(1, retiringCalls.get());
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
-        verify(federationProvider, times(1)).getRetiringFederation();
+        verify(federationProvider).getRetiringFederation();
     }
 
-    private EthereumListenerAdapter setupAndGetRskListener(Optional<Federation> activeFederation, Optional<Federation> retiringFederation) throws Exception {
-        class ListenerHolder {
-            public EthereumListenerAdapter listener = null;
-        }
-
-        final ListenerHolder holder = new ListenerHolder();
-        Mockito.doAnswer((InvocationOnMock m) -> {
-            holder.listener = m.getArgument(0);
+    private EthereumListenerAdapter setupAndGetRskListener(
+            Optional<Federation> activeFederation, Optional<Federation> retiringFederation) throws Exception {
+        // Mock the behavior of adding a listener
+        AtomicReference<EthereumListenerAdapter> listenerRef = new AtomicReference<>();
+        doAnswer((InvocationOnMock m) -> {
+            listenerRef.set(m.getArgument(0));
             return null;
-        }).when(ethereumMock).addListener(any());
-        watcher.setup(federationProvider);
-        TestUtils.setInternalState(watcher, "activeFederation", activeFederation);
-        TestUtils.setInternalState(watcher, "retiringFederation", retiringFederation);
-        assertNotNull(holder.listener);
-        return holder.listener;
+        }).when(ethereum).addListener(any());
+
+        // Set up federationWatcher and internal states
+        federationWatcher.setup(federationProvider);
+        TestUtils.setInternalState(federationWatcher, "activeFederation", activeFederation);
+        TestUtils.setInternalState(federationWatcher, "retiringFederation", retiringFederation);
+
+        // Retrieve and return the listener
+        EthereumListenerAdapter listener = listenerRef.get();
+        assertNotNull(listener);
+        return listener;
     }
 
-    private List<FederationMember> getFederationMembersFromPksForBtc(Integer... pks) {
+    private static List<FederationMember> getFederationMembersFromPksForBtc(Integer... pks) {
         return Arrays.stream(pks).map(n -> new FederationMember(
-                BtcECKey.fromPrivate(BigInteger.valueOf(n)),
-                new ECKey(),
-                new ECKey()
-        )).collect(Collectors.toList());
+            BtcECKey.fromPrivate(BigInteger.valueOf(n)),
+            new ECKey(),
+            new ECKey())).toList();
     }
 }
