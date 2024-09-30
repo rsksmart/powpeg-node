@@ -48,7 +48,7 @@ public class FederationWatcher {
         listeners.add(listener);
     }
 
-    private class FederationWatcherRskListener extends EthereumListenerAdapter {
+    public class FederationWatcherRskListener extends EthereumListenerAdapter {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
             // Updating state only when the best block changes still "works",
