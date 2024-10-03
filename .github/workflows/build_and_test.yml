@@ -305,7 +305,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           chmod +x gradlew
-          if [ "$GH_EVENT" = pull_request ]; then
+          if [ "$GH_EVENT" = pull_request ] && [ "${{ github.event.pull_request.head.repo.fork }}" != "true" ]; then
             ./gradlew sonarqube --warning-mode all --no-daemon --stacktrace --info -x build -x test \
               -Dsonar.pullrequest.base="$GH_PR_BASE_REF" \
               -Dsonar.pullrequest.branch="$GH_PR_HEAD_REF" \
