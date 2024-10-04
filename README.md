@@ -1,6 +1,7 @@
 # Welcome to RskJ Powpeg Node
-
-
+[![Build and test](https://github.com/rsksmart/powpeg-node/actions/workflows/build_and_test.yml/badge.svg)](https://github.com/rsksmart/powpeg-node/actions/workflows/build_and_test.yml)
+[![Rootstock Integration Tests](https://github.com/rsksmart/powpeg-node/actions/workflows/rit.yml/badge.svg)](https://github.com/rsksmart/powpeg-node/actions/workflows/rit.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rsksmart_powpeg-node&metric=alert_status)](https://sonarcloud.io/dashboard?id=rsksmart_powpeg-node)
 
 ## About
 
