@@ -97,9 +97,9 @@ jobs:
           fi
 
           # Set the Repo Owner
-          POWPEG_REPO_OWNER="${github_event_pull_request_head_repo_owner_login:-$github_repository_owner}"
+          REPO_OWNER="${github_event_pull_request_head_repo_owner_login:-$github_repository_owner}"
 
-          echo "POWPEG_REPO_OWNER=$POWPEG_REPO_OWNER" >> $GITHUB_ENV
+          echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
           echo "RSKJ_BRANCH=$RSKJ_BRANCH" >> $GITHUB_ENV
           echo "RIT_BRANCH=$RIT_BRANCH" >> $GITHUB_ENV
           echo "POWPEG_BRANCH=$POWPEG_BRANCH" >> $GITHUB_ENV
@@ -125,7 +125,7 @@ jobs:
           rskj-branch: ${{ env.RSKJ_BRANCH }}
           powpeg-node-branch: ${{ env.POWPEG_BRANCH }}
           rit-branch: ${{ env.RIT_BRANCH }}
-          powpeg-repo-owner: ${{ env.POWPEG_REPO_OWNER }}
+          repo-owner: ${{ env.REPO_OWNER }}
 
       - name: Send Slack Notification on Success
         if: success() && github.event.pull_request.head.repo.owner.login == 'rsksmart'
