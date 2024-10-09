@@ -293,14 +293,14 @@ class HsmBookkeepingClientImplTest {
 
             for (int j = 0; j < blocksInRequest.size() - 1; j++) {
                 assertEquals(
-                    Hex.toHexString(Objects.requireNonNull(blockHeadersInOriginalOrder.poll()).getFullEncoded()),
+                    Hex.toHexString(Objects.requireNonNull(blockHeadersInOriginalOrder.poll()).getEncoded(true, false, true)),
                     blocksInRequest.get(j).asText()
                 );
             }
 
             // The last element asserted should not be removed from the queue since it will be the first element in the next chunk
             assertEquals(
-                Hex.toHexString(Objects.requireNonNull(blockHeadersInOriginalOrder.peek()).getFullEncoded()),
+                Hex.toHexString(Objects.requireNonNull(blockHeadersInOriginalOrder.peek()).getEncoded(true, false, true)),
                 blocksInRequest.get(blocksInRequest.size() - 1).asText()
             );
         }
@@ -411,7 +411,7 @@ class HsmBookkeepingClientImplTest {
             // Headers should have been parsed in the reverse order
             for (int j = 0; j < blocksInRequest.size(); j++) {
                 assertEquals(
-                    Hex.toHexString(blockHeadersInverted.pop().getFullEncoded()),
+                    Hex.toHexString(blockHeadersInverted.pop().getEncoded(true, true, true)),
                     blocksInRequest.get(j).asText()
                 );
             }
@@ -437,7 +437,7 @@ class HsmBookkeepingClientImplTest {
 
             for (BlockHeader brother : blockBrothers) {
                 byte[] brotherFromPayload = Hex.decode(brothersPayload.next().asText());
-                assertArrayEquals(brother.getFullEncoded(), brotherFromPayload);
+                assertArrayEquals(brother.getEncoded(true, true, true), brotherFromPayload);
             }
             assertFalse(brothersPayload.hasNext()); // No more brothers
         }
