@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     container:
-      image: openjdk@sha256:335627a2118556b3f412287e08ac7febb8ecc46325dc6b3570db56f32d33938f
+      image: eclipse-temurin@sha256:3c76cd069517718b1952eb69678014d6b752502c9fa83409e31c34309ec309d5 # eclipse-temurin:17-jdk
 
     steps:
       - name: Install packages
