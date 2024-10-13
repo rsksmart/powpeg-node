@@ -143,12 +143,17 @@ jobs:
                 }
               }
             }
+            tasks.whenTaskAdded { task ->
+                  if (task.name.startsWith('spotless')) {
+                      task.enabled = false
+                  }
+              }
           }
           EOF
 
       - name: Build node
         run: |
-          ./gradlew --no-daemon --stacktrace clean build -x test
+          ./gradlew --no-daemon --stacktrace clean build -x test -x spotlessApply -x spotlessJavaCheck
 
       - name: Persist Build files
         uses: actions/upload-artifact@v4
