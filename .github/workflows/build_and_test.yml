@@ -303,19 +303,24 @@ jobs:
           GH_PR_HEAD_REF: ${{ github.head_ref }}
           GH_REF: ${{ github.ref }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
         run: |
           chmod +x gradlew
-          if [ "$GH_EVENT" = pull_request ] && [ "${{ github.event.pull_request.head.repo.fork }}" != "true" ]; then
-            ./gradlew sonarqube --warning-mode all --no-daemon --stacktrace --info -x build -x test \
-              -Dsonar.pullrequest.base="$GH_PR_BASE_REF" \
-              -Dsonar.pullrequest.branch="$GH_PR_HEAD_REF" \
-              -Dsonar.pullrequest.key="$GH_PR_NUMBER" \
-              -Dsonar.organization=rsksmart \
-              -Dsonar.projectKey=rsksmart_powpeg-node \
-              -Dsonar.host.url="https://sonarcloud.io" \
-              -Dsonar.junit.reportPaths=build/test-results/ \
-              -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml \
-              -Dsonar.token="$SONAR_TOKEN"
+          if [ "$GH_EVENT" = "pull_request" ]; then
+            if [ "$IS_FORK" != "true" ]; then
+              ./gradlew sonarqube --warning-mode all --no-daemon --stacktrace --info -x build -x test \
+                -Dsonar.pullrequest.base="$GH_PR_BASE_REF" \
+                -Dsonar.pullrequest.branch="$GH_PR_HEAD_REF" \
+                -Dsonar.pullrequest.key="$GH_PR_NUMBER" \
+                -Dsonar.organization=rsksmart \
+                -Dsonar.projectKey=rsksmart_powpeg-node \
+                -Dsonar.host.url="https://sonarcloud.io" \
+                -Dsonar.junit.reportPaths=build/test-results/ \
+                -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml \
+                -Dsonar.token="$SONAR_TOKEN"
+            else
+              echo "Skipping SonarQube analysis for pull request from a forked repo."
+            fi
           else
             ./gradlew sonarqube --warning-mode all --no-daemon --stacktrace --info -x build -x test \
               -Dsonar.branch.name="$GH_REF" \
