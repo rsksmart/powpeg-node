@@ -1,0 +1,91 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ "master", "*-rc" ]
+  pull_request:
+    branches: [ "master", "*-rc" ]
+  schedule:
+    - cron: "0 0 * * *"
+
+# Declare default permissions as read only.
+permissions: read-all
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ java ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 #v4.2.1
+
+      - name: Setup Java JDK
+        if: ${{ matrix.language == 'java' }}
+        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 #v4.4.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Checkout RSKj repo
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 #v4.2.1
+        with:
+          repository: rsksmart/rskj
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: rskj
+          fetch-depth: 0
+  
+      - name: Check out appropriate rskj reference
+        if: ${{ matrix.language == 'java' }}
+        working-directory: rskj
+        env:
+          CHECKOUT_REF: ${{ github.head_ref }}
+        run: |
+          git switch "$CHECKOUT_REF"
+
+      - name: Set DONT-COMMIT-settings.gradle
+        if: ${{ matrix.language == 'java' }}
+        run: |
+          cat <<'EOF' >DONT-COMMIT-settings.gradle
+          includeBuild('./rskj') {
+            dependencySubstitution {
+              all { DependencySubstitution dependency ->
+                if (dependency.requested instanceof ModuleComponentSelector
+                    && dependency.requested.group == 'co.rsk'
+                    && dependency.requested.module == 'rskj-core'
+                    && (dependency.requested.version.endsWith('SNAPSHOT') || dependency.requested.version.endsWith('RC'))) {
+                  def targetProject = project(":${dependency.requested.module}")
+                  if (targetProject != null) {
+                    println('---- USING LOCAL ' + dependency.requested.displayName + ' PROJECT ----')
+                    dependency.useTarget targetProject
+                  }
+                }
+              }
+            }
+          }
+          EOF
+  
+      - name: Before Index (java)
+        if: ${{ matrix.language == 'java' }}
+        run: ./configure.sh
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@f779452ac5af1c261dce0346a8f964149f49322b #v3.26.13
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@f779452ac5af1c261dce0346a8f964149f49322b #v3.26.13
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@f779452ac5af1c261dce0346a8f964149f49322b #v3.26.13
+        with:
+          category: "/language:${{ matrix.language }}"
