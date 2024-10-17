@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-slim-buster AS build
+FROM eclipse-temurin:17-jdk AS build
 
 ARG RSK_RELEASE
 ENV RSK_VERSION $RSK_RELEASE
@@ -20,7 +20,7 @@ RUN gpg --keyserver https://secchannel.rsk.co/SUPPORT.asc --recv-keys 1DC9157991
     ./gradlew --no-daemon clean build -x test && \
     cp "build/libs/federate-node-$RSK_VERSION-all.jar" rsk.jar
 
-FROM openjdk:8-jre-slim-buster
+FROM eclipse-temurin:17-jre
 LABEL org.opencontainers.image.authors="ops@rootstocklabs.com"
 
 RUN useradd -ms /sbin/nologin -d /var/lib/rsk rsk
