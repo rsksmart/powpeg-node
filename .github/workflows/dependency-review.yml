@@ -1,6 +1,7 @@
 name: 'Dependency Review'
 on: [pull_request]
 
+# Declare default permissions as read only.
 permissions: read-all
 
 jobs:

@@ -4,6 +4,9 @@ on:
     tags:
       - '*'
 
+# Declare default permissions as read only.
+permissions: read-all
+
 env:
   GHCR_REPO: "ghcr.io/rsksmart/powpeg-node"
   DOCKERHUB_REPO: "rsksmart/powpeg-node"

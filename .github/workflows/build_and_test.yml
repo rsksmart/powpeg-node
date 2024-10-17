@@ -10,8 +10,8 @@ on:
     branches:
       - "**"
 
-permissions:
-  contents: read
+# Declare default permissions as read only.
+permissions: read-all
 
 jobs:
   verify_files:

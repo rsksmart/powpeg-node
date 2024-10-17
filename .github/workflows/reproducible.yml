@@ -1,8 +1,11 @@
 name: Reproducible build
 on:
   release:
-      type:
-        - created
+    types:
+      - created
+
+# Declare default permissions as read only.
+permissions: read-all
 
 jobs:
   build:
