@@ -1,6 +1,6 @@
 # Welcome to RskJ Powpeg Node
 
-
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/rsksmart/powpeg-node/badge)](https://scorecard.dev/viewer/?uri=github.com/rsksmart/powpeg-node)
 
 ## About
 
