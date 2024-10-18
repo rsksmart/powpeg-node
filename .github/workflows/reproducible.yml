@@ -1,8 +1,11 @@
 name: Reproducible build
 on:
   release:
-      type:
-        - created
+    types:
+      - created
+
+# Declare default permissions as read only.
+permissions: read-all
 
 jobs:
   build:
@@ -16,7 +19,7 @@ jobs:
           apt-get update -y && apt-get install -y git curl gnupg
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 #v4.2.1
 
       - name: Set version
         id: vars
@@ -44,7 +47,7 @@ jobs:
           cat build/libs/SHA256SUMS
 
       - name: Export artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 #v4.4.3
         with:
           name: ${{ steps.vars.outputs.tag }}
           path: build/libs/
