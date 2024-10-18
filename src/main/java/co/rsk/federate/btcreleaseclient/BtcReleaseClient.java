@@ -6,6 +6,7 @@ import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.script.RedeemScriptParser;
 import co.rsk.bitcoinj.script.RedeemScriptParserFactory;
 import co.rsk.bitcoinj.script.Script;
+import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.peg.constants.BridgeConstants;
@@ -479,8 +480,9 @@ public class BtcReleaseClient {
     }
 
     protected Script extractStandardRedeemScript(Script redeemScript) {
-        RedeemScriptParser parser = RedeemScriptParserFactory.get(redeemScript.getChunks());
-        return parser.extractStandardRedeemScript();
+        RedeemScriptParser redeemScriptParser = RedeemScriptParserFactory.get(redeemScript.getChunks());
+        List<ScriptChunk> defaultRedeemScriptChunks = redeemScriptParser.extractStandardRedeemScriptChunks();
+        return new ScriptBuilder().addChunks(defaultRedeemScriptChunks).build();
     }
 
     private Script extractDefaultRedeemScript(Federation federation) {
@@ -504,7 +506,6 @@ public class BtcReleaseClient {
 
         List<Federation> spendingFedFilter = observedFederations.stream()
                 .filter(f -> (extractDefaultRedeemScript(f)).equals(redeemScript)).collect(Collectors.toList());
-
 
         return spendingFedFilter.get(0);
     }
