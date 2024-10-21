@@ -1,4 +1,4 @@
-package co.rsk.federate;
+package co.rsk.federate.watcher;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.federate.FederationProvider;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationArgs;
@@ -60,25 +61,20 @@ class FederationWatcherTest {
         THIRD_FEDERATION_MEMBERS, THIRD_FEDERATION_CREATION_TIME, CREATION_BLOCK_NUMBER, NETWORK_PARAMETERS);
     private static final Federation THIRD_FEDERATION = FederationFactory.buildStandardMultiSigFederation(THIRD_FEDERATION_ARGS);
 
+    private final Ethereum rsk = mock(Ethereum.class);
     private final FederationProvider federationProvider = mock(FederationProvider.class);
-    private final Ethereum ethereum = mock(Ethereum.class);
-    private final FederationWatcher federationWatcher = new FederationWatcher(ethereum);
+    private final FederationWatcherListener federationWatcherListener = mock(FederationWatcherListener.class);
+    private final FederationWatcher federationWatcher = new FederationWatcher(rsk);
 
     @Test
     void whenFederationWatcherIsSetUp_shouldAddListener() throws Exception {
-        // Arrange
-        doAnswer((InvocationOnMock m) -> {
-            Object listener = m.getArgument(0);
-            assertEquals(FederationWatcher.FederationWatcherRskListener.class, listener.getClass());
-            return null;
-        }).when(ethereum).addListener(any());
-
         // Act
-        federationWatcher.setup(federationProvider);
+        federationWatcher.start(federationProvider, federationWatcherListener);
 
         // Assert
-        verify(ethereum).addListener(any());
+        verify(rsk).addListener(any());
         assertSame(TestUtils.getInternalState(federationWatcher, "federationProvider"), federationProvider);
+        assertSame(TestUtils.getInternalState(federationWatcher, "federationWatcherListener"), federationWatcherListener);
     }
 
     @Test
@@ -92,11 +88,12 @@ class FederationWatcherTest {
         when(federationProvider.getActiveFederation()).thenReturn(FIRST_FEDERATION);
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
-        federationWatcher.addListener(new FederationWatcher.Listener() {
+        // Act
+        federationWatcher.start(federationProvider, new FederationWatcherListener() {
             @Override
-            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
                 assertEquals(Optional.empty(), oldFederation);
-                assertEquals(FIRST_FEDERATION, newFederation);
+                assertEquals(Optional.of(FIRST_FEDERATION), newFederation);
                 activeCalls.incrementAndGet();
             }
 
@@ -105,8 +102,6 @@ class FederationWatcherTest {
                 retiringCalls.incrementAndGet();
             }
         });
-
-        // Act
         rskListener.onBestBlock(null, null);
 
         // Assert
@@ -129,11 +124,12 @@ class FederationWatcherTest {
         when(federationProvider.getActiveFederation()).thenReturn(SECOND_FEDERATION);
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
-        federationWatcher.addListener(new FederationWatcher.Listener() {
+        // Act
+        federationWatcher.start(federationProvider, new FederationWatcherListener() {
             @Override
-            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
                 assertEquals(Optional.of(FIRST_FEDERATION), oldFederation);
-                assertEquals(SECOND_FEDERATION, newFederation);
+                assertEquals(Optional.of(SECOND_FEDERATION), newFederation);
                 activeCalls.incrementAndGet();
             }
 
@@ -142,8 +138,6 @@ class FederationWatcherTest {
                 retiringCalls.incrementAndGet();
             }
         });
-
-        // Act
         rskListener.onBestBlock(null, null);
 
         // Assert
@@ -165,9 +159,10 @@ class FederationWatcherTest {
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
-        federationWatcher.addListener(new FederationWatcher.Listener() {
+        // Act
+        federationWatcher.start(federationProvider, new FederationWatcherListener() {
             @Override
-            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
                 activeCalls.incrementAndGet();
             }
 
@@ -176,8 +171,6 @@ class FederationWatcherTest {
                 retiringCalls.incrementAndGet();
             }
         });
-
-        // Act
         rskListener.onBestBlock(null, null);
 
         // Assert
@@ -199,9 +192,10 @@ class FederationWatcherTest {
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
 
-        federationWatcher.addListener(new FederationWatcher.Listener() {
+        // Act
+        federationWatcher.start(federationProvider, new FederationWatcherListener() {
             @Override
-            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
                 activeCalls.incrementAndGet();
             }
 
@@ -210,8 +204,6 @@ class FederationWatcherTest {
                 retiringCalls.incrementAndGet();
             }
         });
-
-        // Act
         rskListener.onBestBlock(null, null);
 
         // Assert
@@ -234,9 +226,10 @@ class FederationWatcherTest {
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(FIRST_FEDERATION.getAddress()));
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(FIRST_FEDERATION));
 
-        federationWatcher.addListener(new FederationWatcher.Listener() {
+        // Act
+        federationWatcher.start(federationProvider, new FederationWatcherListener() {
             @Override
-            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
                 activeCalls.incrementAndGet();
             }
 
@@ -247,8 +240,6 @@ class FederationWatcherTest {
                 retiringCalls.incrementAndGet();
             }
         });
-
-        // Act
         rskListener.onBestBlock(null, null);
 
         // Assert
@@ -271,9 +262,10 @@ class FederationWatcherTest {
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.empty());
 
-        federationWatcher.addListener(new FederationWatcher.Listener() {
+        // Act
+        federationWatcher.start(federationProvider, new FederationWatcherListener() {
             @Override
-            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
                 activeCalls.incrementAndGet();
             }
 
@@ -284,8 +276,6 @@ class FederationWatcherTest {
                 retiringCalls.incrementAndGet();
             }
         });
-
-        // Act
         rskListener.onBestBlock(null, null);
 
         // Assert
@@ -308,9 +298,10 @@ class FederationWatcherTest {
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(SECOND_FEDERATION));
 
-        federationWatcher.addListener(new FederationWatcher.Listener() {
+        // Act
+        federationWatcher.start(federationProvider, new FederationWatcherListener() {
             @Override
-            public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
+            public void onActiveFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
                 activeCalls.incrementAndGet();
             }
 
@@ -321,8 +312,6 @@ class FederationWatcherTest {
                 retiringCalls.incrementAndGet();
             }
         });
-
-        // Act
         rskListener.onBestBlock(null, null);
 
         // Assert
@@ -341,10 +330,10 @@ class FederationWatcherTest {
         doAnswer((InvocationOnMock m) -> {
             listenerRef.set(m.getArgument(0));
             return null;
-        }).when(ethereum).addListener(any());
-
+        }).when(rsk).addListener(any());
+        
+        federationWatcher.start(federationProvider, null);
         // Set up federationWatcher and internal states
-        federationWatcher.setup(federationProvider);
         TestUtils.setInternalState(federationWatcher, "activeFederation", activeFederation);
         TestUtils.setInternalState(federationWatcher, "retiringFederation", retiringFederation);
 
