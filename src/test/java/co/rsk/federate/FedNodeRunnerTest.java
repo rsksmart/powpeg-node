@@ -39,6 +39,7 @@ import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.utils.TestUtils;
+import co.rsk.federate.watcher.FederationWatcher;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import java.io.IOException;
