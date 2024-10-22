@@ -24,44 +24,32 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
             BtcToRskClient btcToRskClientRetiring,
             BtcReleaseClient btcReleaseClient) {
         this.federationMember = Objects.requireNonNull(federationMember);
-        this.btcToRskClientActive = Objects.requireNonNull(btcToRskClientActive);
-        this.btcToRskClientRetiring = Objects.requireNonNull(btcToRskClientRetiring);
-        this.btcReleaseClient = Objects.requireNonNull(btcReleaseClient);
+        this.btcToRskClientActive = btcToRskClientActive;
+        this.btcToRskClientRetiring = btcToRskClientRetiring;
+        this.btcReleaseClient = btcReleaseClient;
     }
 
     @Override
-    public void onActiveFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-        String oldFederationAddress = oldFederation.map(federation -> federation.getAddress().toString()).orElse("NONE");
-        String newFederationAddress = oldFederation.map(federation -> federation.getAddress().toString()).orElse("NONE");
-        logger.debug("[onActiveFederationChange] Active federation change: from {} to {}", oldFederationAddress, newFederationAddress);
+    public void onActiveFederationChange(Federation newFederation) {
         triggerClientChange(btcToRskClientActive, newFederation);
     }
 
     @Override
-    public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-        String oldFederationAddress = oldFederation.map(federation -> federation.getAddress().toString()).orElse("NONE");
-        String newFederationAddress = newFederation.map(federation -> federation.getAddress().toString()).orElse("NONE");
-        logger.debug("[onRetiringFederationChange] Retiring federation change: from {} to {}", oldFederationAddress, newFederationAddress);
+    public void onRetiringFederationChange(Federation newFederation) {
         triggerClientChange(btcToRskClientRetiring, newFederation);
     }
 
-    private void triggerClientChange(BtcToRskClient client, Optional<Federation> federation) {
+    private void triggerClientChange(BtcToRskClient btcToRskClient, Federation newFederation) {
         // Stop the current clients
-        client.stop();
-        federation.ifPresent(btcReleaseClient::stop);
-
-        // Exit early if federation is not present
-        if (federation.isEmpty()) {
-            logger.warn("[triggerClientChange] No federation available to join.");
-            return;
-        }
-
-        Federation newFederation = federation.get();
+        btcToRskClient.stop();
+        Optional.ofNullable(newFederation).ifPresent(btcReleaseClient::stop);
 
         // Check if this federator is part of the new federation
-        if (!newFederation.isMember(federationMember)) {
+        if (newFederation == null || !newFederation.isMember(federationMember)) {
             logger.warn(
-                "[triggerClientChange] This federator node is not part of the new federation. Check your configuration for signers BTC, RSK, and MST keys");
+                "[triggerClientChange] This federator node ({}) is not part of the new federation ({}). Check your configuration for signers BTC, RSK, and MST keys",
+                federationMember,
+                Optional.ofNullable(newFederation).map(Federation::getAddress).orElse(null));
             return;
         }
 
@@ -72,7 +60,7 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
         logger.info(
             "[triggerClientChange] Joined to {} federation", federationAddress);
 
-        client.start(newFederation);
+        btcToRskClient.start(newFederation);
         btcReleaseClient.start(newFederation);
     }
 }
