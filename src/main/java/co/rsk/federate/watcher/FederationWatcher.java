@@ -25,8 +25,8 @@ public class FederationWatcher {
     private FederationProvider federationProvider;
     private FederationWatcherListener federationWatcherListener; 
 
-    private Optional<Federation> activeFederation = Optional.empty();
-    private Optional<Federation> retiringFederation = Optional.empty();
+    private Federation activeFederation;
+    private Federation retiringFederation;
 
     /**
      * Constructs a new {@code FederationWatcher} with the specified RSK client.
@@ -77,37 +77,48 @@ public class FederationWatcher {
      * retiring federations have changed. If a federation change is detected, it notifies
      * the {@code FederationWatcherListener}.
      */
-    public void updateState() {
+    private void updateState() {
+        updateActiveFederation();
+        updateRetiringFederation();
+    }
+
+    private void updateActiveFederation() {
         // Check if active federation has changed
-        Address currentlyActiveFederationAddress = federationProvider.getActiveFederationAddress();
-        Address oldActiveFederationAddress = activeFederation.map(Federation::getAddress).orElse(null);
-        
-        if (!currentlyActiveFederationAddress.equals(oldActiveFederationAddress)) {
+        Optional<Address> currentlyActiveFederationAddress = Optional.ofNullable(federationProvider.getActiveFederationAddress());
+        Optional<Address> oldActiveFederationAddress = Optional.ofNullable(activeFederation).map(Federation::getAddress);
+        boolean hasActiveFederationChanged = !currentlyActiveFederationAddress.equals(oldActiveFederationAddress);
+
+        if (hasActiveFederationChanged) {
             // Active federation changed
+            logger.info("[updateActiveFederation] Active federation changed from {} to {}",
+                oldActiveFederationAddress.orElse(null),
+                currentlyActiveFederationAddress.orElse(null));
+
             Federation currentlyActiveFederation = federationProvider.getActiveFederation();
-            logger.info("[updateState] Active federation changed from {} to {}",
-                    oldActiveFederationAddress != null ? oldActiveFederationAddress.toString() : "NONE",
-                    currentlyActiveFederation.getAddress().toString());
 
             // Notify listener and update state
-            federationWatcherListener.onActiveFederationChange(activeFederation, Optional.of(currentlyActiveFederation));
-            activeFederation = Optional.of(currentlyActiveFederation);
-        }
-
-        // Check if retiring federation has changed
-        Optional<Address> currentlyRetiringFederationAddress = federationProvider.getRetiringFederationAddress();
-        Optional<Address> oldRetiringFederationAddress = retiringFederation.map(Federation::getAddress);
-        
-        if (!oldRetiringFederationAddress.equals(currentlyRetiringFederationAddress)) {
-            // Retiring federation changed
-            Optional<Federation> currentlyRetiringFederation = federationProvider.getRetiringFederation();
-            logger.info("[updateState] Retiring federation changed from {} to {}",
-                    oldRetiringFederationAddress.map(Address::toString).orElse("NONE"),
-                    currentlyRetiringFederation.map(federation -> federation.getAddress().toString()).orElse("NONE"));
-
-            // Notify listener and update state
-            federationWatcherListener.onRetiringFederationChange(retiringFederation, currentlyRetiringFederation);
-            retiringFederation = currentlyRetiringFederation;
+            federationWatcherListener.onActiveFederationChange(currentlyActiveFederation);
+            this.activeFederation = currentlyActiveFederation;
         }
     }
+
+    private void updateRetiringFederation() {
+        // Check if retiring federation has changed
+        Optional<Address> currentlyRetiringFederationAddress = federationProvider.getRetiringFederationAddress();
+        Optional<Address> oldRetiringFederationAddress = Optional.ofNullable(retiringFederation).map(Federation::getAddress);
+        boolean hasRetiringFederationChanged = !currentlyRetiringFederationAddress.equals(oldRetiringFederationAddress);
+
+        if (hasRetiringFederationChanged) {
+            // Retiring federation changed
+            logger.info("[updateRetiringFederation] Retiring federation changed from {} to {}",
+                    oldRetiringFederationAddress.orElse(null),
+                    currentlyRetiringFederationAddress.orElse(null));
+
+            Federation currentlyRetiringFederation = federationProvider.getRetiringFederation().orElse(null);
+
+            // Notify listener and update state
+            federationWatcherListener.onRetiringFederationChange(currentlyRetiringFederation);
+            this.retiringFederation = currentlyRetiringFederation;
+        }
+    }    
 }
