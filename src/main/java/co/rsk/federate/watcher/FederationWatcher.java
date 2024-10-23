@@ -54,19 +54,23 @@ public class FederationWatcher {
             public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
                 // Updating state only when the best block changes still "works",
                 // since we're interested in finding out only when the active or retiring federation(s) changed.
+                //
                 // If there was a side chain in which any of these changed in, say, block 4500, but
                 // that side chain became main chain in block 7800, it would still be ok to
                 // start monitoring the new federation(s) on that block.
+                // 
                 // The main reasons for this is that RSK nodes would have never reported the active or
                 // retiring federation(s) being different *before* the best chain change. Therefore,
                 // there should be no new Bitcoin transactions directed to these new addresses
                 // until this change effectively becomes a part of RSK's "reality".
+                //
                 // The case in which we go back and forth to and from a sidechain in which the
                 // federation effectively changed is still to be explored deeply, but the same reasoning
                 // should apply since going back and forth would trigger two federation changes.
+                // 
                 // A client trying to send bitcoins to the new federation without waiting
                 // a good number of confirmations would be, essentially, "playing with fire".
-                logger.info("[updateState] New best block, updating state");
+                logger.info("[onBestBlock] New best block, updating state");
                 updateState();
             }
         });
@@ -83,40 +87,36 @@ public class FederationWatcher {
     }
 
     private void updateActiveFederation() {
-        // Check if active federation has changed
         Optional<Address> currentlyActiveFederationAddress = Optional.ofNullable(federationProvider.getActiveFederationAddress());
         Optional<Address> oldActiveFederationAddress = Optional.ofNullable(activeFederation).map(Federation::getAddress);
+
         boolean hasActiveFederationChanged = !currentlyActiveFederationAddress.equals(oldActiveFederationAddress);
 
         if (hasActiveFederationChanged) {
-            // Active federation changed
             logger.info("[updateActiveFederation] Active federation changed from {} to {}",
                 oldActiveFederationAddress.orElse(null),
                 currentlyActiveFederationAddress.orElse(null));
 
             Federation currentlyActiveFederation = federationProvider.getActiveFederation();
 
-            // Notify listener and update state
             federationWatcherListener.onActiveFederationChange(currentlyActiveFederation);
             this.activeFederation = currentlyActiveFederation;
         }
     }
 
     private void updateRetiringFederation() {
-        // Check if retiring federation has changed
         Optional<Address> currentlyRetiringFederationAddress = federationProvider.getRetiringFederationAddress();
         Optional<Address> oldRetiringFederationAddress = Optional.ofNullable(retiringFederation).map(Federation::getAddress);
+
         boolean hasRetiringFederationChanged = !currentlyRetiringFederationAddress.equals(oldRetiringFederationAddress);
 
         if (hasRetiringFederationChanged) {
-            // Retiring federation changed
             logger.info("[updateRetiringFederation] Retiring federation changed from {} to {}",
                     oldRetiringFederationAddress.orElse(null),
                     currentlyRetiringFederationAddress.orElse(null));
 
             Federation currentlyRetiringFederation = federationProvider.getRetiringFederation().orElse(null);
 
-            // Notify listener and update state
             federationWatcherListener.onRetiringFederationChange(currentlyRetiringFederation);
             this.retiringFederation = currentlyRetiringFederation;
         }
