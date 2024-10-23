@@ -5,12 +5,16 @@ import co.rsk.bitcoinj.core.Context;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.peg.constants.BridgeConstants;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import org.bitcoinj.core.StoredBlock;
 
 /**
  * Created by oscar on 03/05/2017.
  */
 public class ThinConverter {
+
+    private static final BigInteger MAX_WORK_V1 = new BigInteger(/* 12 bytes */ "ffffffffffffffffffffffff", 16);
 
     private ThinConverter() {
         throw new IllegalAccessError("Utility class, do not instantiate it");
@@ -20,20 +24,36 @@ public class ThinConverter {
         if (storedBlock == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(96);
-        storedBlock.serializeCompact(buffer);
-        buffer.flip();
-        return org.bitcoinj.core.StoredBlock.deserializeCompact(org.bitcoinj.core.NetworkParameters.fromID(bridgeConstants.getBtcParamsString()), buffer);
+
+        if (storedBlock.getChainWork().compareTo(MAX_WORK_V1) <= 0) {
+            ByteBuffer bufferV1 = ByteBuffer.allocate(StoredBlock.COMPACT_SERIALIZED_SIZE);
+            storedBlock.serializeCompact(bufferV1);
+            bufferV1.flip();
+            return org.bitcoinj.core.StoredBlock.deserializeCompact(org.bitcoinj.core.NetworkParameters.fromID(bridgeConstants.getBtcParamsString()), bufferV1);
+        } else {
+            ByteBuffer bufferV2 = ByteBuffer.allocate(StoredBlock.COMPACT_SERIALIZED_SIZE_V2);
+            storedBlock.serializeCompactV2(bufferV2);
+            bufferV2.flip();
+            return org.bitcoinj.core.StoredBlock.deserializeCompactV2(org.bitcoinj.core.NetworkParameters.fromID(bridgeConstants.getBtcParamsString()), bufferV2);
+        }
     }
 
     public static co.rsk.bitcoinj.core.StoredBlock toThinInstance(org.bitcoinj.core.StoredBlock storedBlock, BridgeConstants bridgeConstants) {
         if (storedBlock == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(96);
-        storedBlock.serializeCompact(buffer);
-        buffer.flip();
-        return co.rsk.bitcoinj.core.StoredBlock.deserializeCompact(bridgeConstants.getBtcParams(), buffer);
+
+        if (storedBlock.getChainWork().compareTo(MAX_WORK_V1) <= 0) {
+            ByteBuffer bufferV1 = ByteBuffer.allocate(StoredBlock.COMPACT_SERIALIZED_SIZE);
+            storedBlock.serializeCompact(bufferV1);
+            bufferV1.flip();
+            return co.rsk.bitcoinj.core.StoredBlock.deserializeCompact(bridgeConstants.getBtcParams(), bufferV1);
+        } else {
+            ByteBuffer bufferV2 = ByteBuffer.allocate(StoredBlock.COMPACT_SERIALIZED_SIZE_V2);
+            storedBlock.serializeCompactV2(bufferV2);
+            bufferV2.flip();
+            return co.rsk.bitcoinj.core.StoredBlock.deserializeCompactV2(bridgeConstants.getBtcParams(), bufferV2);
+        }
     }
 
 

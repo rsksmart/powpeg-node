@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test;
 
 class ThinConverterTest {
 
+    private static final BigInteger MAX_WORK_V1 = new BigInteger(/* 12 bytes */ "ffffffffffffffffffffffff", 16);
+    private static final BigInteger MAX_WORK_V2 = new BigInteger(/* 32 bytes */
+        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16);
     private static int nhash = 0;
 
     private org.bitcoinj.core.Sha256Hash createOriginalHash() {
@@ -28,7 +31,22 @@ class ThinConverterTest {
     @Test
     void toThinInstanceStoredBlock() {
         org.bitcoinj.core.NetworkParameters params = org.bitcoinj.params.RegTestParams.get();
-        BigInteger chainWork = BigInteger.TEN;
+        BigInteger chainWork = MAX_WORK_V1;
+        int height = 200;
+        org.bitcoinj.core.Block originalBlock = new org.bitcoinj.core.Block(params, 1, createOriginalHash(), createOriginalHash(), 1000, 2000, 3000, new ArrayList<>());
+        org.bitcoinj.core.StoredBlock originalStoredBlock = new org.bitcoinj.core.StoredBlock(originalBlock, chainWork, height);
+        co.rsk.bitcoinj.core.StoredBlock thinStoredBlock = ThinConverter.toThinInstance(originalStoredBlock, new BridgeRegTestConstants());
+        assertEquals(chainWork, thinStoredBlock.getChainWork());
+        assertEquals(height, thinStoredBlock.getHeight());
+        assertArrayEquals(originalBlock.bitcoinSerialize(), thinStoredBlock.getHeader().bitcoinSerialize());
+
+        assertNull(ThinConverter.toThinInstance(null, new BridgeRegTestConstants()));
+    }
+
+    @Test
+    void toThinInstanceStoredBlockChainWorkV2() {
+        org.bitcoinj.core.NetworkParameters params = org.bitcoinj.params.RegTestParams.get();
+        BigInteger chainWork = MAX_WORK_V2;
         int height = 200;
         org.bitcoinj.core.Block originalBlock = new org.bitcoinj.core.Block(params, 1, createOriginalHash(), createOriginalHash(), 1000, 2000, 3000, new ArrayList<>());
         org.bitcoinj.core.StoredBlock originalStoredBlock = new org.bitcoinj.core.StoredBlock(originalBlock, chainWork, height);
@@ -43,7 +61,22 @@ class ThinConverterTest {
     @Test
     void toOriginalInstanceStoredBlock() {
         co.rsk.bitcoinj.core.NetworkParameters params = co.rsk.bitcoinj.params.RegTestParams.get();
-        BigInteger chainWork = BigInteger.TEN;
+        BigInteger chainWork = MAX_WORK_V1;
+        int height = 200;
+        co.rsk.bitcoinj.core.BtcBlock thinBlock = new co.rsk.bitcoinj.core.BtcBlock(params, 1, createThinHash(), createThinHash(), 1000, 2000, 3000, new ArrayList<>());
+        co.rsk.bitcoinj.core.StoredBlock thinStoredBlock = new co.rsk.bitcoinj.core.StoredBlock(thinBlock, chainWork, height);
+        org.bitcoinj.core.StoredBlock originalStoredBlock = ThinConverter.toOriginalInstance(thinStoredBlock, new BridgeRegTestConstants());
+        assertEquals(chainWork, originalStoredBlock.getChainWork());
+        assertEquals(height, originalStoredBlock.getHeight());
+        assertArrayEquals(thinBlock.bitcoinSerialize(), originalStoredBlock.getHeader().bitcoinSerialize());
+
+        assertNull(ThinConverter.toOriginalInstance(null, new BridgeRegTestConstants()));
+    }
+
+    @Test
+    void toOriginalInstanceStoredBlockV2() {
+        co.rsk.bitcoinj.core.NetworkParameters params = co.rsk.bitcoinj.params.RegTestParams.get();
+        BigInteger chainWork = MAX_WORK_V2;
         int height = 200;
         co.rsk.bitcoinj.core.BtcBlock thinBlock = new co.rsk.bitcoinj.core.BtcBlock(params, 1, createThinHash(), createThinHash(), 1000, 2000, 3000, new ArrayList<>());
         co.rsk.bitcoinj.core.StoredBlock thinStoredBlock = new co.rsk.bitcoinj.core.StoredBlock(thinBlock, chainWork, height);
