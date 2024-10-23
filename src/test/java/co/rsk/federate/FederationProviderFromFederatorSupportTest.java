@@ -3,6 +3,7 @@ package co.rsk.federate;
 import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
 import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP284;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -13,8 +14,9 @@ import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.bitcoinj.script.Script;
+import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.federation.*;
-
 import co.rsk.peg.federation.constants.FederationConstants;
 import co.rsk.peg.federation.constants.FederationTestNetConstants;
 import java.math.BigInteger;
@@ -30,15 +32,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class FederationProviderFromFederatorSupportTest {
-    private FederatorSupport federatorSupportMock;
-    private FederationProvider federationProvider;
-    private FederationConstants federationConstants;
-    private NetworkParameters testnetParams;
-    private Instant creationTime;
 
     private static final int STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION = FederationFormatVersion.STANDARD_MULTISIG_FEDERATION.getFormatVersion();
     private static final int NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.NON_STANDARD_ERP_FEDERATION.getFormatVersion();
     private static final int P2SH_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.P2SH_ERP_FEDERATION.getFormatVersion();
+
+    private static final NetworkParameters NETWORK_PARAMETERS = BridgeMainNetConstants.getInstance().getBtcParams();
+    private static final List<BtcECKey> KEYS = BitcoinTestUtils.getBtcEcKeysFromSeeds(new String[]{"k1", "k2", "k3"}, true);
+    private static final Address DEFAULT_ADDRESS = BitcoinTestUtils.createP2SHMultisigAddress(NETWORK_PARAMETERS, KEYS);
 
     private static final Address HARDCODED_TESTNET_FED_ADDRESS = Address.fromBase58(
         NetworkParameters.fromID(NetworkParameters.ID_TESTNET),
@@ -47,6 +48,12 @@ class FederationProviderFromFederatorSupportTest {
     private static final Script HARDCODED_TESTNET_FED_REDEEM_SCRIPT = new Script(
         Hex.decode("6453210208f40073a9e43b3e9103acec79767a6de9b0409749884e989960fee578012fce210225e892391625854128c5c4ea4340de0c2a70570f33db53426fc9c746597a03f42102afc230c2d355b1a577682b07bc2646041b5d0177af0f98395a46018da699b6da210344a3c38cd59afcba3edcebe143e025574594b001700dec41e59409bdbd0f2a0921039a060badbeb24bee49eb2063f616c0f0f0765d4ca646b20a88ce828f259fcdb955670300cd50b27552210216c23b2ea8e4f11c3f9e22711addb1d16a93964796913830856b568cc3ea21d3210275562901dd8faae20de0a4166362a4f82188db77dbed4ca887422ea1ec185f1421034db69f2112f4fb1bb6141bf6e2bd6631f0484d0bd95b16767902c9fe219d4a6f5368ae")
     );
+
+    private FederatorSupport federatorSupportMock;
+    private FederationProvider federationProvider;
+    private FederationConstants federationConstants;
+    private NetworkParameters testnetParams;
+    private Instant creationTime;
 
     @BeforeEach
     void createProvider() {
@@ -361,6 +368,31 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(P2SH_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
+    }
+
+    @Test
+    void getProposedFederationAddress_whenAddressExists_shouldReturnAddress() {
+        // Arrange
+        when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.of(DEFAULT_ADDRESS));
+
+        // Act
+        Optional<Address> result = federationProvider.getProposedFederationAddress();
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(DEFAULT_ADDRESS, result.get());
+    }
+
+    @Test
+    void getProposedFederationAddress_whenNoAddressExists_shouldReturnEmptyOptional() {
+        // Arrange
+        when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.empty());
+
+        // Act
+        Optional<Address> result = federationProvider.getProposedFederationAddress();
+
+        // Assert
+        assertFalse(result.isPresent());
     }
 
     @Test

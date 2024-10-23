@@ -15,8 +15,9 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 package co.rsk.federate;
+
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -25,12 +26,10 @@ import co.rsk.peg.federation.*;
 import co.rsk.peg.federation.constants.FederationConstants;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.crypto.ECKey;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
 
 /**
  * Provides a federation using a FederatorSupport instance, which in turn
@@ -134,6 +133,11 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     @Override
     public Optional<Address> getRetiringFederationAddress() {
         return federatorSupport.getRetiringFederationAddress();
+    }
+
+    @Override
+    public Optional<Address> getProposedFederationAddress() {
+        return federatorSupport.getProposedFederationAddress();
     }
 
     @Override

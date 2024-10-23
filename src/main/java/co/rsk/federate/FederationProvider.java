@@ -15,12 +15,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 package co.rsk.federate;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.peg.federation.Federation;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +38,9 @@ public interface FederationProvider {
     Optional<Federation> getRetiringFederation();
     // The currently "retiring" federation's address
     Optional<Address> getRetiringFederationAddress();
+
+    // The currently "proposed" federation's address
+    Optional<Address> getProposedFederationAddress();
 
     // The federations that are "live", that is, are still
     // operational. This should be the active federation
