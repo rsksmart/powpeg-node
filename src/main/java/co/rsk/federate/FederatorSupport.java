@@ -19,7 +19,6 @@ import org.ethereum.core.Blockchain;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.math.BigInteger;
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -251,6 +250,15 @@ public class FederatorSupport {
         }
 
         return Instant.ofEpochMilli(creationTime.longValue());
+    }
+
+    public Optional<Address> getProposedFederationAddress() {
+        String proposedFederationAddress = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_PROPOSED_FEDERATION_ADDRESS);
+
+        return Optional.ofNullable(proposedFederationAddress)
+            .filter(addr -> !addr.isEmpty())
+            .map(addr -> Address.fromBase58(getBtcParams(), addr));
     }
 
     public int getBtcBlockchainBestChainHeight() {
