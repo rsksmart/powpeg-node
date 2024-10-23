@@ -336,6 +336,7 @@ class FederationWatcherTest {
         // Retrieve and return the listener
         EthereumListenerAdapter listener = listenerRef.get();
         assertNotNull(listener);
+
         return listener;
     }
 
