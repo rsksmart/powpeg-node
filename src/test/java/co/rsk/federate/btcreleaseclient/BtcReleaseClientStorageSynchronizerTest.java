@@ -186,13 +186,10 @@ class BtcReleaseClientStorageSynchronizerTest {
         TransactionReceipt receipt = mock(TransactionReceipt.class);
         List<LogInfo> logs = new ArrayList<>();
 
-        SignatureCache signatureCache = new BlockTxSignatureCache(new ReceivedTxSignatureCache());
-
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
             new BridgeRegTestConstants(),
             activations,
-            logs,
-            signatureCache
+            logs
         );
 
         Keccak256 value = createHash(3);
@@ -282,13 +279,10 @@ class BtcReleaseClientStorageSynchronizerTest {
         TransactionReceipt receipt = mock(TransactionReceipt.class);
         List<LogInfo> logs = new ArrayList<>();
 
-        SignatureCache signatureCache = new BlockTxSignatureCache(new ReceivedTxSignatureCache());
-
         BridgeEventLoggerImpl bridgeEventLogger = new BridgeEventLoggerImpl(
             new BridgeRegTestConstants(),
             activations,
-            logs,
-            signatureCache
+            logs
         );
 
         Keccak256 releaseRequestTxHash = createHash(3);
