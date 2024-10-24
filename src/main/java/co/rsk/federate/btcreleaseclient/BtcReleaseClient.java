@@ -36,6 +36,7 @@ import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.federation.Federation;
+import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
 import java.time.Clock;
@@ -160,10 +161,21 @@ public class BtcReleaseClient {
     }
 
     public void start(Federation federation) {
+       FederationMember federationMember = federatorSupport.getFederationMember();
+       if (federation.isMember(federationMember)) {
+            String message = String.format(
+                "Member %s is no part of the federation %s",
+                federationMember.getBtcPublicKey(),
+                federation.getAddress());
+            logger.error("[start] {}", message);
+            throw new IllegalStateException(message);
+        }
+
         if (!observedFederations.contains(federation)) {
             observedFederations.add(federation);
-            logger.debug("[start] observing Federation {}", federation.getAddress());
+            logger.debug("[start] Observing federation {}", federation.getAddress());
         }
+
         if (observedFederations.size() == 1) {
             // If there is just one observed Federation, it means the btcReleaseClient wasn't started
             logger.debug("[start] Starting");
