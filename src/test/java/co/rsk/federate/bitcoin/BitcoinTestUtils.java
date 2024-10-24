@@ -33,9 +33,32 @@ public final class BitcoinTestUtils {
         return Sha256Hash.wrap(bytes);
     }
 
+    public static BtcECKey getBtcEcKeyFromSeed(String seed) {
+        byte[] serializedSeed = HashUtil.keccak256(seed.getBytes(StandardCharsets.UTF_8));
+        return BtcECKey.fromPrivate(serializedSeed);
+    }
+
+    public static List<BtcECKey> getBtcEcKeysFromSeeds(String[] seeds, boolean sorted) {
+        List<BtcECKey> keys = Arrays.stream(seeds)
+            .map(BitcoinTestUtils::getBtcEcKeyFromSeed)
+            .collect(Collectors.toList());
+
+        if (sorted) {
+            keys.sort(BtcECKey.PUBKEY_COMPARATOR);
+        }
+
+        return keys;
+    }
+
     public static Address createP2PKHAddress(NetworkParameters networkParameters, String seed) {
         BtcECKey key = BtcECKey.fromPrivate(
             HashUtil.keccak256(seed.getBytes(StandardCharsets.UTF_8)));
         return key.toAddress(networkParameters);
+    }
+
+    public static Address createP2SHMultisigAddress(NetworkParameters networkParameters, List<BtcECKey> keys) {
+        Script redeemScript = ScriptBuilder.createRedeemScript((keys.size() / 2) + 1, keys);
+        Script outputScript = ScriptBuilder.createP2SHOutputScript(redeemScript);
+        return Address.fromP2SHScript(networkParameters, outputScript);
     }
 }
