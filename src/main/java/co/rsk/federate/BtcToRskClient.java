@@ -132,10 +132,12 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         boolean isMember = federation.isMember(federator);
 
         if (!isMember) {
-            logger.info("[start] member {} is no part of the federation {} ",
+            String message = String.format(
+                "Member %s is no part of the federation %s",
                 federator.getBtcPublicKey(),
                 federation.getAddress());
-            return;
+            logger.error("[start] {}", message);
+            throw new IllegalStateException(message);
         }
 
         logger.info("[start] {} is member of the federation {}",
@@ -146,6 +148,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         Optional<Integer> federatorIndex = federation.getBtcPublicKeyIndex(
             federatorSupport.getFederationMember().getBtcPublicKey()
         );
+
         if (!federatorIndex.isPresent()) {
             String message = String.format(
                 "Federator %s is a member of the federation %s but could not find the btcPublicKeyIndex",
@@ -155,6 +158,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             logger.error("[start] {}", message);
             throw new IllegalStateException(message);
         }
+
         TurnScheduler scheduler = new TurnScheduler(
                 bridgeConstants.getUpdateBridgeExecutionPeriod(),
                 federation.getSize()
@@ -169,8 +173,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 scheduler.getInterval(),
                 TimeUnit.MILLISECONDS
             );
-        }
-        else {
+        } else {
             logger.info("[start] updateBridgeTimer is disabled");
         }
     }

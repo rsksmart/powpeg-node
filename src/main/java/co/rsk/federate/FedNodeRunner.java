@@ -52,12 +52,13 @@ import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
 import co.rsk.federate.signing.hsm.requirements.AncestorBlockUpdater;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
-import co.rsk.peg.federation.Federation;
+import co.rsk.federate.watcher.FederationWatcher;
+import co.rsk.federate.watcher.FederationWatcherListener;
+import co.rsk.federate.watcher.FederationWatcherListenerImpl;
 import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import org.bitcoinj.core.Context;
-import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +67,6 @@ import java.io.File;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -343,27 +343,13 @@ public class FedNodeRunner implements NodeRunner {
                     config.getBtcReleaseClientInitializationMaxDepth()
                 )
             );
-            federationWatcher.setup(federationProvider);
+            
+            FederationWatcherListener federationWatcherListener = new FederationWatcherListenerImpl(
+                btcToRskClientActive,
+                btcToRskClientRetiring,
+                btcReleaseClient);
 
-            federationWatcher.addListener(new FederationWatcher.Listener() {
-                @Override
-                public void onActiveFederationChange(Optional<Federation> oldFederation, Federation newFederation) {
-                    String oldFederationAddress = oldFederation.map(f -> f.getAddress().toString()).orElse("NONE");
-                    String newFederationAddress = newFederation.getAddress().toString();
-                    logger.debug(String.format("[onActiveFederationChange] Active federation change: from %s to %s", oldFederationAddress, newFederationAddress));
-                    triggerClientChange(btcToRskClientActive, Optional.of(newFederation));
-                }
-
-                @Override
-                public void onRetiringFederationChange(Optional<Federation> oldFederation, Optional<Federation> newFederation) {
-                    String oldFederationAddress = oldFederation.map(f -> f.getAddress().toString()).orElse("NONE");
-                    String newFederationAddress = newFederation.map(f -> f.getAddress().toString()).orElse("NONE");
-                    logger.debug(String.format("[onRetiringFederationChange] Retiring federation change: from %s to %s", oldFederationAddress, newFederationAddress));
-                    triggerClientChange(btcToRskClientRetiring, newFederation);
-                }
-            });
-            // Trigger the first events
-            federationWatcher.updateState();
+            federationWatcher.start(federationProvider, federationWatcherListener);
         }
     }
 
@@ -383,22 +369,6 @@ public class FedNodeRunner implements NodeRunner {
             logger.error("[shutdown] FederateRunner teardown failed", e);
         }
         System.exit(-1);
-    }
-
-    // TODO: This this method (and this whole class)
-    private void triggerClientChange(BtcToRskClient client, Optional<Federation> federation) {
-        client.stop();
-        federation.ifPresent(btcReleaseClient::stop);
-        // Only start if this federator is part of the new federation
-        if (federation.isPresent() && federation.get().isMember(this.member)) {
-            String federationAddress = federation.get().getAddress().toString();
-            logger.debug("[triggerClientChange] Starting lock and release clients since I belong to federation {}", federationAddress);
-            logger.info("[triggerClientChange] Joined to {} federation", federationAddress);
-            client.start(federation.get());
-            btcReleaseClient.start(federation.get());
-        } else {
-            logger.warn("[triggerClientChange] This federator node is not part of the new federation. Check your configuration for signers BTC, RSK and MST keys");
-        }
     }
 
     @Override
