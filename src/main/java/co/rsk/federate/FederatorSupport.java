@@ -24,6 +24,7 @@ import java.math.BigInteger;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -262,6 +263,14 @@ public class FederatorSupport {
         return Optional.ofNullable(proposedFederationAddress)
             .filter(addr -> !addr.isEmpty())
             .map(addr -> Address.fromBase58(getBtcParams(), addr));
+    }
+
+    public Optional<Integer> getProposedFederationSize() {
+        BigInteger size = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_PROPOSED_FEDERATION_SIZE);
+
+        return Optional.ofNullable(size)
+            .map(BigInteger::intValue);
     }
 
     public int getBtcBlockchainBestChainHeight() {
