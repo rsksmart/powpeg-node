@@ -2,6 +2,7 @@ package co.rsk.federate;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import co.rsk.peg.constants.BridgeMainNetConstants;
+import co.rsk.peg.federation.FederationMember;
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
@@ -42,6 +44,7 @@ import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionWitness;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.Blockchain;
+import org.ethereum.crypto.ECKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
@@ -51,6 +54,7 @@ class FederatorSupportTest {
     private static final NetworkParameters NETWORK_PARAMETERS = BridgeMainNetConstants.getInstance().getBtcParams();
     private static final List<BtcECKey> KEYS = BitcoinTestUtils.getBtcEcKeysFromSeeds(new String[]{"k1", "k2", "k3"}, true);
     private static final Address DEFAULT_ADDRESS = BitcoinTestUtils.createP2SHMultisigAddress(NETWORK_PARAMETERS, KEYS);
+    private static final byte[] PUBLIC_KEY = Hex.decode("0497466f2b32bc3bb76d4741ae51cd1d8578b48d3f1e68da206d47321aec267ce78549b514e4453d74ef11b0cd5e4e4c364effddac8b51bcfc8de80682f952896f");
 
     private BridgeTransactionSender bridgeTransactionSender;
     private FederatorSupport federatorSupport;
@@ -251,6 +255,56 @@ class FederatorSupportTest {
         assertTrue(result.isPresent());
         assertEquals(expectedSize.intValue(), result.get());
     }
+
+    @Test
+    void getProposedFederatorPublicKeyOfType_whenPublicKeyBytesIsNull_shouldReturnEmptyOptional() {
+        // Arrange
+        int index = 0;
+        FederationMember.KeyType keyType = FederationMember.KeyType.BTC;
+        when(bridgeTransactionSender.callTx(
+               any(),
+               eq(Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE),
+               eq(new Object[]{ index, keyType.getValue() })))
+            .thenReturn(null);
+
+        // Act
+        Optional<ECKey> result = federatorSupport.getProposedFederatorPublicKeyOfType(index, keyType);
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getProposedFederatorPublicKeyOfType_whenPublicKeyBytesArePresent_shouldReturnECKey() {
+        // Arrange
+        int index = 0; 
+        FederationMember.KeyType keyType = FederationMember.KeyType.BTC;
+        ECKey expectedKey = ECKey.fromPublicOnly(PUBLIC_KEY);
+        when(bridgeTransactionSender.callTx(
+               any(),
+               eq(Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE),
+               eq(new Object[]{ index, keyType.getValue() })))
+            .thenReturn(PUBLIC_KEY);
+
+        // Act
+        Optional<ECKey> result = federatorSupport.getProposedFederatorPublicKeyOfType(index, keyType);
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertArrayEquals(expectedKey.getPubKey(), result.get().getPubKey());
+    }
+
+    @Test
+    void getProposedFederatorPublicKeyOfType_whenKeyTypeIsNull_shouldThrowNullPointerException() {
+        // Arrange
+        int index = 0;
+        
+        // Act & Assert
+        assertThrows(NullPointerException.class, () -> {
+            federatorSupport.getProposedFederatorPublicKeyOfType(index, null);
+        });
+    }
+
 
     private Sha256Hash createHash() {
         byte[] bytes = new byte[32];
