@@ -20,7 +20,7 @@ package co.rsk.federate;
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static co.rsk.peg.federation.FederationMember.KeyType;
 import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP417;
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP419;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -141,7 +141,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
 
     @Override
     public Optional<Federation> getProposedFederation() {
-        if (!federatorSupport.getConfigForBestBlock().isActive(RSKIP417)) {
+        if (!federatorSupport.getConfigForBestBlock().isActive(RSKIP419)) {
             return Optional.empty();
         }
        
@@ -181,7 +181,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     @Override
     public Optional<Address> getProposedFederationAddress() {
         return Optional.of(federatorSupport)
-            .filter(federatorSupport -> federatorSupport.getConfigForBestBlock().isActive(RSKIP417))
+            .filter(federatorSupport -> federatorSupport.getConfigForBestBlock().isActive(RSKIP419))
             .flatMap(FederatorSupport::getProposedFederationAddress);
     }
 
