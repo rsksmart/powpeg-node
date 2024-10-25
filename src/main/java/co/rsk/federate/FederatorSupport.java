@@ -285,6 +285,15 @@ public class FederatorSupport {
             .map(ECKey::fromPublicOnly);
     }
 
+    public Optional<Instant> getProposedFederationCreationTime() {
+        BigInteger creationTime = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME);
+
+        return Optional.ofNullable(creationTime)
+            .map(BigInteger::longValue)
+            .map(Instant::ofEpochMilli);
+    }
+
     public int getBtcBlockchainBestChainHeight() {
         BigInteger btcBlockchainBestChainHeight = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_BTC_BLOCKCHAIN_BEST_CHAIN_HEIGHT);
         return btcBlockchainBestChainHeight.intValue();
