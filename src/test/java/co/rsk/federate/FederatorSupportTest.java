@@ -30,6 +30,7 @@ import co.rsk.peg.StateForProposedFederator;
 import java.util.AbstractMap;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -303,6 +304,34 @@ class FederatorSupportTest {
         assertThrows(NullPointerException.class, () -> {
             federatorSupport.getProposedFederatorPublicKeyOfType(index, null);
         });
+    }
+
+    @Test
+    void getProposedFederationCreationTime_whenCreationTimeIsNull_shouldReturnEmptyOptional() {
+        // Arrange
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME)))
+            .thenReturn(null);
+
+        // Act
+        Optional<Instant> result = federatorSupport.getProposedFederationCreationTime();
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getProposedFederationCreationTime_whenCreationTimeIsValid_shouldReturnInstant() {
+        // Arrange
+        BigInteger expectedCreationTime = BigInteger.valueOf(System.currentTimeMillis());
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME)))
+            .thenReturn(expectedCreationTime);
+
+        // Act
+        Optional<Instant> result = federatorSupport.getProposedFederationCreationTime();
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(expectedCreationTime.longValue(), result.get().toEpochMilli());
     }
 
 
