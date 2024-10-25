@@ -17,7 +17,10 @@
  */
 package co.rsk.federate;
 
+import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
+import static co.rsk.peg.federation.FederationMember.KeyType;
 import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP417;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -30,6 +33,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 /**
  * Provides a federation using a FederatorSupport instance, which in turn
@@ -136,8 +140,53 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     }
 
     @Override
+    public Optional<Federation> getProposedFederation() {
+        if (!federatorSupport.getConfigForBestBlock().isActive(RSKIP417)) {
+            return Optional.empty();
+        }
+       
+        Optional<Address> proposedFederationAddress = getProposedFederationAddress();
+        if (proposedFederationAddress.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Integer federationSize = federatorSupport.getProposedFederationSize()
+            .orElse(FEDERATION_NON_EXISTENT.getCode());
+        if (federationSize == FEDERATION_NON_EXISTENT.getCode()) {
+            return Optional.empty();
+        }
+
+        List<FederationMember> members = IntStream.range(0, federationSize)
+            .mapToObj(i -> new FederationMember(
+                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.BTC)
+                    .map(ECKey::getPubKey)
+                    .map(BtcECKey::fromPublicOnly)
+                    .orElse(null),
+                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.RSK)
+                    .orElse(null),
+                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.MST)
+                    .orElse(null)
+            ))
+            .toList();
+
+        FederationArgs federationArgs = new FederationArgs(
+            members,
+            federatorSupport.getProposedFederationCreationTime().orElse(null),
+            federatorSupport.getProposedFederationCreationBlockNumber().orElse(null),
+            federatorSupport.getBtcParams()
+        );
+
+        Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
+        Federation expectedFederation = getExpectedFederation(initialFederation, proposedFederationAddress.get());
+
+        return Optional.of(expectedFederation);
+    }
+
+    @Override
     public Optional<Address> getProposedFederationAddress() {
-        return federatorSupport.getProposedFederationAddress();
+        return Optional.of(federatorSupport)
+            .filter(federatorSupport -> federatorSupport.getConfigForBestBlock().isActive(RSKIP417))
+            .flatMap(FederatorSupport::getProposedFederationAddress);
     }
 
     private Federation getExpectedFederation(Federation initialFederation, Address expectedFederationAddress) {
