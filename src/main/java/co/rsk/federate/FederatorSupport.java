@@ -294,6 +294,14 @@ public class FederatorSupport {
             .map(Instant::ofEpochMilli);
     }
 
+    public Optional<Long> getProposedFederationCreationBlockNumber() {
+        BigInteger creationBlockNumber = 
+            bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER);
+
+        return Optional.ofNullable(creationBlockNumber)
+            .map(BigInteger::longValue);
+    }
+
     public int getBtcBlockchainBestChainHeight() {
         BigInteger btcBlockchainBestChainHeight = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_BTC_BLOCKCHAIN_BEST_CHAIN_HEIGHT);
         return btcBlockchainBestChainHeight.intValue();
