@@ -334,6 +334,33 @@ class FederatorSupportTest {
         assertEquals(expectedCreationTime.longValue(), result.get().toEpochMilli());
     }
 
+    @Test
+    void getProposedFederationCreationBlockNumber_whenBlockNumberIsNull_shouldReturnEmptyOptional() {
+        // Arrange
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER)))
+            .thenReturn(null);
+
+        // Act
+        Optional<Long> result = federatorSupport.getProposedFederationCreationBlockNumber();
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getProposedFederationCreationBlockNumber_whenBlockNumberIsValid_shouldReturnLong() {
+        // Arrange
+        BigInteger expectedBlockNumber = BigInteger.valueOf(123456);
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER)))
+            .thenReturn(expectedBlockNumber);
+
+        // Act
+        Optional<Long> result = federatorSupport.getProposedFederationCreationBlockNumber();
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(expectedBlockNumber.longValue(), result.get());
+    }
 
     private Sha256Hash createHash() {
         byte[] bytes = new byte[32];
