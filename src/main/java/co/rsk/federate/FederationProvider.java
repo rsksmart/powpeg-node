@@ -38,6 +38,8 @@ public interface FederationProvider {
     // The currently "retiring" federation's address
     Optional<Address> getRetiringFederationAddress();
 
+    // The currently "proposed" federation
+    Optional<Federation> getProposedFederation();
     // The currently "proposed" federation's address
     Optional<Address> getProposedFederationAddress();
 }
