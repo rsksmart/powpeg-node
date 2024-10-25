@@ -26,6 +26,8 @@ import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeMethods;
 import co.rsk.peg.StateForProposedFederator;
 import java.util.AbstractMap;
+import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -220,6 +222,34 @@ class FederatorSupportTest {
         // Assert
         assertTrue(result.isPresent());
         assertEquals(DEFAULT_ADDRESS.toString(), result.get().toString());
+    }
+
+    @Test
+    void getProposedFederationSize_whenSizeIsNull_shouldReturnEmptyOptional() {
+        // Arrange
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_SIZE)))
+            .thenReturn(null);
+
+        // Act
+        Optional<Integer> result = federatorSupport.getProposedFederationSize();
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getProposedFederationSize_whenSizeIsPresent_shouldReturnInteger() {
+        // Arrange
+        BigInteger expectedSize = BigInteger.valueOf(9);
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_SIZE)))
+            .thenReturn(expectedSize);
+
+        // Act
+        Optional<Integer> result = federatorSupport.getProposedFederationSize();
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(expectedSize.intValue(), result.get());
     }
 
     private Sha256Hash createHash() {
