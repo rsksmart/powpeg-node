@@ -273,6 +273,18 @@ public class FederatorSupport {
             .map(BigInteger::intValue);
     }
 
+    public Optional<ECKey> getProposedFederatorPublicKeyOfType(int index, FederationMember.KeyType keyType) {
+        Objects.requireNonNull(keyType);
+
+        byte[] publicKeyBytes = bridgeTransactionSender.callTx(
+            federatorAddress,
+            Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE,
+            new Object[]{ index, keyType.getValue() });
+       
+        return Optional.ofNullable(publicKeyBytes)
+            .map(ECKey::fromPublicOnly);
+    }
+
     public int getBtcBlockchainBestChainHeight() {
         BigInteger btcBlockchainBestChainHeight = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_BTC_BLOCKCHAIN_BEST_CHAIN_HEIGHT);
         return btcBlockchainBestChainHeight.intValue();
