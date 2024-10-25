@@ -43,13 +43,13 @@ import java.util.stream.IntStream;
  * @author Ariel Mendelzon
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
+
     private final FederatorSupport federatorSupport;
     private final FederationConstants federationConstants;
 
     public FederationProviderFromFederatorSupport(
         FederatorSupport federatorSupport,
         FederationConstants federationConstants) {
-
         this.federatorSupport = federatorSupport;
         this.federationConstants = federationConstants;
     }
@@ -97,7 +97,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         Integer federationSize = federatorSupport.getRetiringFederationSize();
         Optional<Address> optionalRetiringFederationAddress = getRetiringFederationAddress();
 
-        if (federationSize == -1 || !optionalRetiringFederationAddress.isPresent()) {
+        if (federationSize == FEDERATION_NON_EXISTENT.getCode() || !optionalRetiringFederationAddress.isPresent()) {
             return Optional.empty();
         }
 
