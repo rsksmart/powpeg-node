@@ -11,16 +11,16 @@ public interface FederationWatcherListener {
     /**
      * Invoked when the active federation changes.
      *
-     * @param newFederation the new active federation after the change.
+     * @param newActiveFederation the new active federation after the change.
      *                      This will never be {@code null}; the active federation is always present.
      */
-    void onActiveFederationChange(Federation newFederation);
+    void onActiveFederationChange(Federation newActiveFederation);
 
     /**
      * Invoked when the retiring federation changes.
      *
-     * @param newFederation the new retiring federation after the change.
+     * @param newRetiringFederation the new retiring federation after the change.
      *                      This can be {@code null}; the retiring federation is not always present.
      */
-    void onRetiringFederationChange(Federation newFederation);
+    void onRetiringFederationChange(Federation newRetiringFederation);
 }
