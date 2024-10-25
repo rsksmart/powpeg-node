@@ -25,16 +25,16 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
     }
 
     @Override
-    public void onActiveFederationChange(Federation newFederation) {
-        triggerClientChange(btcToRskClientActive, newFederation);
+    public void onActiveFederationChange(Federation newActiveFederation) {
+        triggerClientChange(btcToRskClientActive, newActiveFederation);
     }
 
     @Override
-    public void onRetiringFederationChange(Federation newFederation) {
-        if (newFederation == null) {
+    public void onRetiringFederationChange(Federation newRetiringFederation) {
+        if (newRetiringFederation == null) {
             triggerClearingRetiringFederationClient();
         } else {
-            triggerClientChange(btcToRskClientRetiring, newFederation);
+            triggerClientChange(btcToRskClientRetiring, newRetiringFederation);
         }
     }
 
