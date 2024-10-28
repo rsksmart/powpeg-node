@@ -1,5 +1,7 @@
 package co.rsk.federate.btcreleaseclient;
 
+import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
+
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.TransactionInput;
@@ -72,11 +74,18 @@ import org.ethereum.vm.PrecompiledContracts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
-
 /**
- * Manages signing and broadcasting pegouts
- * @author Oscar Guindzberg
+ * Responsible for managing the signing and broadcasting of pegout transactions
+ * to the Bitcoin network in a federated bridge environment. The BtcReleaseClient
+ * coordinates the execution of pegout operations, ensuring transactions are 
+ * correctly signed and propagated.
+ *
+ * <p>Key responsibilities include:</p>
+ * <ul>
+ *   <li>Assembling transaction data and managing signing processes</li>
+ *   <li>Validating transaction information before broadcast</li>
+ *   <li>Ensuring successful pegout transaction broadcast to the Bitcoin network</li>
+ * </ul>
  */
 public class BtcReleaseClient {
     private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClient.class);
