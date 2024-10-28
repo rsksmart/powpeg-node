@@ -36,13 +36,10 @@ public class FederatorSupport {
 
     private final Blockchain blockchain;
     private final PowpegNodeSystemProperties config;
-
     private final NetworkParameters parameters;
-
     private final BridgeTransactionSender bridgeTransactionSender;
 
     private ECDSASigner signer;
-
     private FederationMember federationMember;
     private RskAddress federatorAddress;
 
@@ -52,9 +49,7 @@ public class FederatorSupport {
             BridgeTransactionSender bridgeTransactionSender) {
         this.blockchain = blockchain;
         this.config = config;
-
         this.parameters = config.getNetworkConstants().getBridgeConstants().getBtcParams();
-
         this.bridgeTransactionSender = bridgeTransactionSender;
     }
 
