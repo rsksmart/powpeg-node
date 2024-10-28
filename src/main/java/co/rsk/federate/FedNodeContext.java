@@ -59,6 +59,7 @@ public class FedNodeContext extends RskContext {
             getBtcToRskClientRetiring(),
             new BtcReleaseClient(
                 getRsk(),
+                getBlockStore(),
                 getFederatorSupport(),
                 getPowpegNodeSystemProperties(),
                 getNodeBlockProcessor()
