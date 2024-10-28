@@ -41,6 +41,7 @@ import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
+import co.rsk.peg.StateForProposedFederator;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,8 +63,10 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.script.ScriptPattern;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
+import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.crypto.ECKey;
+import org.ethereum.db.BlockStore;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
 import org.ethereum.util.RLP;
@@ -95,6 +98,7 @@ public class BtcReleaseClient {
     private static final DataWord SINGLE_RELEASE_BTC_TOPIC_SOLIDITY = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
 
     private final Ethereum ethereum;
+    private final BlockStore blockStore;
     private final FederatorSupport federatorSupport;
     private final Set<Federation> observedFederations;
     private final NodeBlockProcessor nodeBlockProcessor;
@@ -114,11 +118,13 @@ public class BtcReleaseClient {
 
     public BtcReleaseClient(
         Ethereum ethereum,
+        BlockStore blockStore,
         FederatorSupport federatorSupport,
         PowpegNodeSystemProperties systemProperties,
         NodeBlockProcessor nodeBlockProcessor
     ) {
         this.ethereum = ethereum;
+        this.blockStore = blockStore;
         this.federatorSupport = federatorSupport;
         this.observedFederations = new HashSet<>();
         this.blockListener = new BtcReleaseEthereumListener();
@@ -216,28 +222,37 @@ public class BtcReleaseClient {
     private class BtcReleaseEthereumListener extends EthereumListenerAdapter {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
+            if (!isPegoutEnabled) {
+                return;
+            }
+
             boolean hasBetterBlockToSync = nodeBlockProcessor.hasBetterBlockToSync();
             boolean isStorageSynced = storageSynchronizer.isSynced();
             if (hasBetterBlockToSync || !isStorageSynced) {
                 logger.trace(
-                    "[onBestBlock] Node is not ready to process pegouts. hasBetterBlockToSync: {} isStorageSynced: {}",
+                    "[onBestBlock] Node is not ready to process pegouts. hasBetterBlockToSync: {} - isStorageSynced: {}",
                     hasBetterBlockToSync,
                     isStorageSynced
                 );
                 return;
             }
+            storageSynchronizer.processBlock(block, receipts);
+          
+            // Check if svp spend tx waiting for signatures is available to be signed
+            // before attempting to sign any pegouts.
+            federatorSupport.getStateForProposedFederator()
+                .map(StateForProposedFederator::getSvpSpendTxWaitingForSignatures)
+                .filter(svpSpendTxWaitingForSignatures -> isReadyToSign(block.getNumber(), svpSpendTxWaitingForSignatures.getKey()))
+                .ifPresent(svpSpendTxReadyToBeSigned -> processReleases(Set.of(svpSpendTxReadyToBeSigned)));
 
             // Processing transactions waiting for signatures on best block only still "works",
             // since it all lies within RSK's blockchain and normal rules apply. I.e., this
             // process works on a block-by-block basis.
             StateForFederator stateForFederator = federatorSupport.getStateForFederator();
-            storageSynchronizer.processBlock(block, receipts);
-
-            // Delegate processing to our own method
-            logger.trace("[onBestBlock] Got {} pegouts", stateForFederator.getRskTxsWaitingForSignatures().entrySet().size());
-            if (isPegoutEnabled) {
-                processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
-            }
+            Set<Map.Entry<Keccak256, BtcTransaction>> rskTxsReadyToBeSigned = stateForFederator.getRskTxsWaitingForSignatures().entrySet().stream()
+                .filter(rskTxWaitingForSignatures -> isReadyToSign(block.getNumber(), rskTxWaitingForSignatures.getKey()))
+                .collect(Collectors.toUnmodifiableSet());
+            processReleases(rskTxsReadyToBeSigned);
         }
 
         @Override
@@ -264,6 +279,38 @@ public class BtcReleaseClient {
             pegoutTxs.forEach(BtcReleaseClient.this::onBtcRelease);
         }
 
+        /**
+         * Determines if a transaction hash is ready to be signed based on its block confirmations.
+         *
+         * <p>
+         * This method retrieves the block associated with the given transaction hash and calculates
+         * the difference in block numbers between the current block and the block containing the transaction.
+         * If the difference meets or exceeds the required confirmation threshold defined in the bridge constants,
+         * the transaction is considered ready for signing.
+         * </p>
+         *
+         * @param currentBlockNumber the current block number in the blockchain
+         * @param txHashWaitingForSignatures the Keccak256 hash of the transaction waiting to be signed
+         * @return {@code true} if the transaction has the required number of confirmations and is ready to be signed;
+         *         {@code false} otherwise
+         */
+        private boolean isReadyToSign(long currentBlockNumber, Keccak256 txHashWaitingForSignatures) {
+            boolean isReadyToSign = Optional.ofNullable(txHashWaitingForSignatures)
+                .map(Keccak256::getBytes)
+                .map(blockStore::getBlockByHash)
+                .map(Block::getNumber)
+                .map(blockNumberWithTxWaitingForSignatures -> currentBlockNumber - blockNumberWithTxWaitingForSignatures)
+                .filter(confirmationDifference -> confirmationDifference >= bridgeConstants.getRsk2BtcMinimumAcceptableConfirmations())
+                .isPresent();
+
+            logger.info("[isReadyToSign] Readiness check for signing: Tx hash [{}], Current block [{}], Ready to sign? [{}]",
+                txHashWaitingForSignatures,
+                currentBlockNumber,
+                isReadyToSign ? "YES" : "NO");
+
+            return isReadyToSign;
+        }
+
         private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
             RLPList dataElements = (RLPList)RLP.decode2(dataFromBtcReleaseTopic).get(0);
 
@@ -278,7 +325,7 @@ public class BtcReleaseClient {
 
     protected void processReleases(Set<Map.Entry<Keccak256, BtcTransaction>> pegouts) {
         try {
-            logger.debug("[processReleases] Starting process with {} pegouts", pegouts.size());
+            logger.info("[processReleases] Starting signing process with {} pegouts", pegouts.size());
             int version = signer.getVersionForKeyId(BTC.getKeyId());
             // Get pegout information and store it in a new list
             List<ReleaseCreationInformation> pegoutsReadyToSign = new ArrayList<>();
