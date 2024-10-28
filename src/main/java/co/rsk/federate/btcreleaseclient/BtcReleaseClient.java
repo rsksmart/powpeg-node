@@ -88,13 +88,11 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public class BtcReleaseClient {
+
     private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClient.class);
     private static final PanicProcessor panicProcessor = new PanicProcessor();
     private static final List<DataWord> SINGLE_RELEASE_BTC_TOPIC_RLP = Collections.singletonList(Bridge.RELEASE_BTC_TOPIC);
     private static final DataWord SINGLE_RELEASE_BTC_TOPIC_SOLIDITY = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
-
-    private ActivationConfig activationConfig;
-    private PeerGroup peerGroup;
 
     private final Ethereum ethereum;
     private final FederatorSupport federatorSupport;
@@ -104,13 +102,13 @@ public class BtcReleaseClient {
     private final boolean isPegoutEnabled;
     private final PegoutSignedCache pegoutSignedCache;
 
+    private ActivationConfig activationConfig;
+    private PeerGroup peerGroup;
     private ECDSASigner signer;
     private BtcReleaseEthereumListener blockListener;
     private SignerMessageBuilderFactory signerMessageBuilderFactory;
-
     private ReleaseCreationInformationGetter releaseCreationInformationGetter;
     private ReleaseRequirementsEnforcer releaseRequirementsEnforcer;
-
     private BtcReleaseClientStorageAccessor storageAccessor;
     private BtcReleaseClientStorageSynchronizer storageSynchronizer;
 
@@ -144,7 +142,8 @@ public class BtcReleaseClient {
         this.activationConfig = activationConfig;
         logger.debug("[setup] Signer: {}", signer.getClass());
 
-        org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
+        org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(
+            ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
         peerGroup = new PeerGroup(btcContext);
         try {
             if (!federatorSupport.getBitcoinPeerAddresses().isEmpty()) {
@@ -153,7 +152,7 @@ public class BtcReleaseClient {
                 }
                 peerGroup.setMaxConnections(federatorSupport.getBitcoinPeerAddresses().size());
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new BtcReleaseClientException("Error configuring peerSupport", e);
         }
         peerGroup.start();
@@ -207,7 +206,9 @@ public class BtcReleaseClient {
 
     @PreDestroy
     public void tearDown() {
-        org.bitcoinj.core.Context.propagate(new org.bitcoinj.core.Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString())));
+        org.bitcoinj.core.Context.propagate(
+            new org.bitcoinj.core.Context(
+                ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString())));
         peerGroup.stop();
         peerGroup = null;
     }
@@ -225,6 +226,7 @@ public class BtcReleaseClient {
                 );
                 return;
             }
+
             // Processing transactions waiting for signatures on best block only still "works",
             // since it all lies within RSK's blockchain and normal rules apply. I.e., this
             // process works on a block-by-block basis.
@@ -243,6 +245,7 @@ public class BtcReleaseClient {
             if (!isPegoutEnabled || nodeBlockProcessor.hasBetterBlockToSync()) {
                 return;
             }
+
             /* Pegout events must be processed on an every-single-block basis,
              since otherwise we could be missing pegouts potentially mined
              on what originally were side-chains and then turned into best-chains.*/
