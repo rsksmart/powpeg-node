@@ -29,10 +29,10 @@ import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.RegTestParams;
-import co.rsk.bitcoinj.script.FastBridgeRedeemScriptParser;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.script.ScriptChunk;
+import co.rsk.peg.bitcoin.FlyoverRedeemScriptBuilderImpl;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
@@ -820,13 +820,16 @@ class BtcReleaseClientTest {
         Federation federation = TestUtils.createFederation(params, 1);
 
         // Create fast bridge redeem script
-        Script fastBridgeRedeemScript = FastBridgeRedeemScriptParser.createMultiSigFastBridgeRedeemScript(
-            federation.getRedeemScript(),
-            Sha256Hash.wrap(TestUtils.createHash(1).getBytes())
+
+        Keccak256 flyoverDerivationHash = createHash(1);
+
+        Script flyoverRedeemScript = FlyoverRedeemScriptBuilderImpl.builder().of(
+            flyoverDerivationHash,
+            federation.getRedeemScript()
         );
 
         // Create a tx from the Fed to a random btc address
-        BtcTransaction releaseTx = createReleaseTxAndAddInput(federation, fastBridgeRedeemScript);
+        BtcTransaction releaseTx = createReleaseTxAndAddInput(federation, flyoverRedeemScript);
 
         BtcECKey fed1Key = federation.getBtcPublicKeys().get(0);
         ECPublicKey signerPublicKey = new ECPublicKey(fed1Key.getPubKey());
@@ -1020,13 +1023,14 @@ class BtcReleaseClientTest {
     @Test
     void extractStandardRedeemScript_fast_bridge_redeem_script() {
         Federation federation = TestUtils.createFederation(params, 1);
-        Script fastBridgeRedeemScript =
-            FastBridgeRedeemScriptParser.createMultiSigFastBridgeRedeemScript(
-                federation.getRedeemScript(),
-                Sha256Hash.of(TestUtils.createHash(1).getBytes())
-            );
 
-        test_extractStandardRedeemScript(federation.getRedeemScript(), fastBridgeRedeemScript);
+        Keccak256 flyoverDerivationHash = createHash(1);
+        Script flyoverRedeemScript = FlyoverRedeemScriptBuilderImpl.builder().of(
+            flyoverDerivationHash,
+            federation.getRedeemScript()
+        );
+
+        test_extractStandardRedeemScript(federation.getRedeemScript(), flyoverRedeemScript);
     }
 
     @Test
@@ -1112,7 +1116,7 @@ class BtcReleaseClientTest {
         );
     }
 
-    private void test_getRedeemScriptFromInput(boolean isFastBridgeRedeemScript) {
+    private void test_getRedeemScriptFromInput(boolean isFlyoverRedeemScript) {
         BtcReleaseClient client = createBtcClient();
 
         BtcECKey ecKey1 = BtcECKey.fromPrivate(BigInteger.valueOf(100));
@@ -1124,10 +1128,11 @@ class BtcReleaseClientTest {
         Script federationRedeemScript = federation.getRedeemScript();
         Script inputScript;
 
-        if (isFastBridgeRedeemScript) {
-            federationRedeemScript = FastBridgeRedeemScriptParser.createMultiSigFastBridgeRedeemScript(
-                federationRedeemScript,
-                Sha256Hash.of(new byte[]{1})
+        if (isFlyoverRedeemScript) {
+            Keccak256 flyoverDerivationHash = createHash(1);
+            federationRedeemScript = FlyoverRedeemScriptBuilderImpl.builder().of(
+                flyoverDerivationHash,
+                federation.getRedeemScript()
             );
         }
         inputScript = federation.getP2SHScript().createEmptyInputScript(
