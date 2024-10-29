@@ -87,15 +87,15 @@ public class FederationWatcher {
     }
 
     private void updateActiveFederation() {
-        Optional<Address> currentlyActiveFederationAddress = Optional.ofNullable(federationProvider.getActiveFederationAddress());
-        Optional<Address> oldActiveFederationAddress = Optional.ofNullable(activeFederation).map(Federation::getAddress);
+        Address currentlyActiveFederationAddress = federationProvider.getActiveFederationAddress();
+        Address oldActiveFederationAddress = Optional.ofNullable(activeFederation).map(Federation::getAddress).orElse(null);
 
         boolean hasActiveFederationChanged = !currentlyActiveFederationAddress.equals(oldActiveFederationAddress);
 
         if (hasActiveFederationChanged) {
             logger.info("[updateActiveFederation] Active federation changed from {} to {}",
-                oldActiveFederationAddress.orElse(null),
-                currentlyActiveFederationAddress.orElse(null));
+                oldActiveFederationAddress,
+                currentlyActiveFederationAddress);
 
             Federation currentlyActiveFederation = federationProvider.getActiveFederation();
 
