@@ -46,7 +46,7 @@ jobs:
         if: ${{ matrix.language == 'java' }}
         working-directory: rskj
         env:
-          CHECKOUT_REF: ${{ github.ref }}
+          CHECKOUT_REF: ${{ github.ref_name }}
         run: |
           git switch "$CHECKOUT_REF"
 
