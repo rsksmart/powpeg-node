@@ -249,7 +249,9 @@ public class BtcReleaseClient {
             // since it all lies within RSK's blockchain and normal rules apply. I.e., this
             // process works on a block-by-block basis.
             StateForFederator stateForFederator = federatorSupport.getStateForFederator();
-            Set<Map.Entry<Keccak256, BtcTransaction>> rskTxsReadyToBeSigned = stateForFederator.getRskTxsWaitingForSignatures().entrySet().stream()
+            Set<Map.Entry<Keccak256, BtcTransaction>> rskTxsReadyToBeSigned = stateForFederator.getRskTxsWaitingForSignatures()
+                .entrySet()
+                .stream()
                 .filter(rskTxWaitingForSignatures -> isReadyToSign(block.getNumber(), rskTxWaitingForSignatures.getKey()))
                 .collect(Collectors.toUnmodifiableSet());
             processReleases(rskTxsReadyToBeSigned);
