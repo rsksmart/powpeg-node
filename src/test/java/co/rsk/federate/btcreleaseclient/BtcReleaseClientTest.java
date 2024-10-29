@@ -61,6 +61,7 @@ import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.federation.*;
 import co.rsk.peg.StateForFederator;
+import co.rsk.peg.StateForProposedFederator;
 
 import java.lang.reflect.Field;
 import java.math.BigInteger;
@@ -68,16 +69,17 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
 import org.ethereum.config.Constants;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
@@ -97,10 +99,12 @@ import org.spongycastle.util.encoders.Hex;
 
 class BtcReleaseClientTest {
 
-    private final static Duration PEGOUT_SIGNED_CACHE_TTL = Duration.ofMinutes(30);
+    private static final Duration PEGOUT_SIGNED_CACHE_TTL = Duration.ofMinutes(30);
 
-    private NetworkParameters params;
-    private BridgeConstants bridgeConstants;
+    private final BlockStore blockStore = mock(BlockStore.class);
+    private final Block bestBlock = mock(Block.class);
+    private final NetworkParameters params = RegTestParams.get();
+    private final BridgeConstants bridgeConstants = Constants.regtest().bridgeConstants;
 
     private static final List<BtcECKey> erpFedKeys = Arrays.stream(new String[]{
         "03b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b24",
@@ -110,8 +114,11 @@ class BtcReleaseClientTest {
 
     @BeforeEach
     void setup() {
-        params = RegTestParams.get();
-        bridgeConstants = Constants.regtest().bridgeConstants;
+        // ensure confirmation difference always passes
+        Block blockWithTxWaitingForSignatures = mock(Block.class);
+        when(blockWithTxWaitingForSignatures.getNumber()).thenReturn(0L); 
+        when(blockStore.getBlockByHash(any())).thenReturn(blockWithTxWaitingForSignatures);
+        when(bestBlock.getNumber()).thenReturn(5_000L); 
     }
 
     @Test
@@ -149,6 +156,7 @@ class BtcReleaseClientTest {
 
         new BtcReleaseClient(
             ethereum,
+            blockStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -169,6 +177,8 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
+            blockStore,
+            mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -198,6 +208,8 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
+            blockStore,
+            mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -230,6 +242,8 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
+            blockStore,
+            mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -292,6 +306,8 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             federatorSupport,
+            blockStore,
+            mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -389,7 +405,6 @@ class BtcReleaseClientTest {
             mock(ReceiptStore.class)
         );
 
-        BlockStore blockStore = mock(BlockStore.class);
         ReceiptStore receiptStore = mock(ReceiptStore.class);
 
         Keccak256 blockHash1 = createHash(2);
@@ -422,6 +437,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
+            blockStore,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -439,7 +455,7 @@ class BtcReleaseClientTest {
         btcReleaseClient.start(federation);
 
         // Act
-        ethereumListener.get().onBestBlock(null, Collections.emptyList());
+        ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
 
         // Assert
         verify(federatorSupport, times(1)).addSignature(
@@ -488,7 +504,6 @@ class BtcReleaseClientTest {
             mock(ReceiptStore.class)
         );
 
-        BlockStore blockStore = mock(BlockStore.class);
         ReceiptStore receiptStore = mock(ReceiptStore.class);
 
         Keccak256 blockHash = createHash(2);
@@ -512,6 +527,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
+            blockStore,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -535,7 +551,7 @@ class BtcReleaseClientTest {
             () -> btcReleaseClient.validateTxIsNotCached(pegoutCreationRskTxHash));
 
         // Start first round of execution
-        ethereumListener.get().onBestBlock(null, Collections.emptyList());
+        ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
 
         // After the first round of execution, we should throw an exception
         // since we have signed the pegout and sent it to the bridge
@@ -543,7 +559,7 @@ class BtcReleaseClientTest {
             () -> btcReleaseClient.validateTxIsNotCached(pegoutCreationRskTxHash));
 
         // Execute second round of execution
-        ethereumListener.get().onBestBlock(null, Collections.emptyList());
+        ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
 
         // Verify we only send the add_signature tx to the bridge once
         // throughout both rounds of execution
@@ -593,7 +609,6 @@ class BtcReleaseClientTest {
             mock(ReceiptStore.class)
         );
 
-        BlockStore blockStore = mock(BlockStore.class);
         ReceiptStore receiptStore = mock(ReceiptStore.class);
 
         Keccak256 blockHash = createHash(2);
@@ -617,6 +632,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
+            blockStore,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -641,7 +657,7 @@ class BtcReleaseClientTest {
         btcReleaseClient.start(federation);
 
         // Start first round of execution
-        ethereumListener.get().onBestBlock(null, Collections.emptyList());
+        ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
 
         // Ensure the pegout tx becomes invalid by advancing the clock 1 hour
         field = pegoutSignedCache.getClass().getDeclaredField("clock");
@@ -654,7 +670,7 @@ class BtcReleaseClientTest {
             () -> btcReleaseClient.validateTxIsNotCached(pegoutCreationRskTxHash));
 
         // Execute second round of execution
-        ethereumListener.get().onBestBlock(null, Collections.emptyList());
+        ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
 
         // Verify we send the add_signature tx to the bridge twice
         // throughout both rounds of execution
@@ -663,6 +679,195 @@ class BtcReleaseClientTest {
             any(byte[].class)
         );
     }
+
+    @Test
+    void onBestBlock_whenOnlySvpSpendTxWaitingForSignaturesIsAvailable_shouldAddSignature() throws Exception {
+        // Arrange
+        Federation federation = TestUtils.createFederation(params, 9);
+        BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, federation);
+        Keccak256 svpSpendCreationRskTxHash = createHash(0);
+        Map.Entry<Keccak256, BtcTransaction> entry = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
+        StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(entry);
+
+        Ethereum ethereum = mock(Ethereum.class);
+        AtomicReference<EthereumListener> ethereumListener = new AtomicReference<>();
+        doAnswer((InvocationOnMock invocation) -> {
+            ethereumListener.set((EthereumListener) invocation.getArguments()[0]);
+            return null;
+        }).when(ethereum).addListener(any(EthereumListener.class));
+
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        // return svp spend tx waiting for signatures
+        doReturn(Optional.of(stateForProposedFederator)).when(federatorSupport).getStateForProposedFederator();
+        // returns zero pegouts waiting for signatures
+        doReturn(mock(StateForFederator.class)).when(federatorSupport).getStateForFederator();
+
+        ECKey ecKey = new ECKey();
+        BtcECKey fedKey = new BtcECKey();
+        ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
+
+        ECDSASigner signer = mock(ECDSASigner.class);
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
+        doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
+        doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
+
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
+            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
+
+        SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
+            mock(ReceiptStore.class)
+        );
+
+        ReceiptStore receiptStore = mock(ReceiptStore.class);
+
+        Keccak256 blockHash = createHash(2);
+        Block block = mock(Block.class);
+        TransactionReceipt txReceipt = mock(TransactionReceipt.class);
+        TransactionInfo txInfo = mock(TransactionInfo.class);
+        when(block.getHash()).thenReturn(blockHash);
+        when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
+        when(txInfo.getReceipt()).thenReturn(txReceipt);
+        when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        when(receiptStore.getInMainChain(svpSpendCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
+
+        ReleaseCreationInformationGetter releaseCreationInformationGetter =
+            new ReleaseCreationInformationGetter(
+                receiptStore, blockStore
+            );
+
+        BtcReleaseClientStorageSynchronizer storageSynchronizer =
+            mock(BtcReleaseClientStorageSynchronizer.class);
+        when(storageSynchronizer.isSynced()).thenReturn(true);
+
+        BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
+            ethereum,
+            blockStore,
+            federatorSupport,
+            powpegNodeSystemProperties,
+            mock(NodeBlockProcessor.class)
+        );
+
+        btcReleaseClient.setup(
+            signer,
+            mock(ActivationConfig.class),
+            signerMessageBuilderFactory,
+            releaseCreationInformationGetter,
+            mock(ReleaseRequirementsEnforcer.class),
+            mock(BtcReleaseClientStorageAccessor.class),
+            storageSynchronizer
+        );
+
+        btcReleaseClient.start(federation);
+
+        // Act
+        ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
+
+        // Assert
+        verify(federatorSupport).addSignature(
+            anyList(),
+            any(byte[].class)
+        );
+    }
+
+    @Test
+    void onBestBlock_whenPegoutTxIsNotReadyToBeSigned_shouldNotAddSignature() throws Exception {
+        // Arrange
+        Federation federation = TestUtils.createFederation(params, 9);
+        BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
+        Keccak256 pegoutCreationRskTxHash = createHash(0);
+        SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
+        rskTxsWaitingForSignatures.put(pegoutCreationRskTxHash, pegout);
+        StateForFederator stateForFederator = new StateForFederator(rskTxsWaitingForSignatures);
+
+        Ethereum ethereum = mock(Ethereum.class);
+        AtomicReference<EthereumListener> ethereumListener = new AtomicReference<>();
+        doAnswer((InvocationOnMock invocation) -> {
+            ethereumListener.set((EthereumListener) invocation.getArguments()[0]);
+            return null;
+        }).when(ethereum).addListener(any(EthereumListener.class));
+
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
+
+        ECKey ecKey = new ECKey();
+        BtcECKey fedKey = new BtcECKey();
+        ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
+
+        ECDSASigner signer = mock(ECDSASigner.class);
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
+        doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
+        doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
+
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
+            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
+
+        SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
+            mock(ReceiptStore.class)
+        );
+
+        ReceiptStore receiptStore = mock(ReceiptStore.class);
+
+        Keccak256 blockHash = createHash(2);
+        Block block = mock(Block.class);
+        TransactionReceipt txReceipt = mock(TransactionReceipt.class);
+        TransactionInfo txInfo = mock(TransactionInfo.class);
+        when(block.getHash()).thenReturn(blockHash);
+        when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
+        when(txInfo.getReceipt()).thenReturn(txReceipt);
+        when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        when(receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
+
+        ReleaseCreationInformationGetter releaseCreationInformationGetter =
+            new ReleaseCreationInformationGetter(
+                receiptStore, blockStore
+            );
+
+        BtcReleaseClientStorageSynchronizer storageSynchronizer =
+            mock(BtcReleaseClientStorageSynchronizer.class);
+        when(storageSynchronizer.isSynced()).thenReturn(true);
+
+        BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
+            ethereum,
+            blockStore,
+            federatorSupport,
+            powpegNodeSystemProperties,
+            mock(NodeBlockProcessor.class)
+        );
+
+        btcReleaseClient.setup(
+            signer,
+            mock(ActivationConfig.class),
+            signerMessageBuilderFactory,
+            releaseCreationInformationGetter,
+            mock(ReleaseRequirementsEnforcer.class),
+            mock(BtcReleaseClientStorageAccessor.class),
+            storageSynchronizer
+        );
+
+        btcReleaseClient.start(federation);
+      
+        // Since the current best block will also be the block that 
+        // contains the pegout tx waiting for signatures hash then 
+        // the confirmation difference will never be enough for the 
+        // tx to be considered ready to be signed
+        when(blockStore.getBlockByHash(any())).thenReturn(bestBlock);
+
+        // Act
+        ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
+
+        // Assert
+        verify(federatorSupport, never()).addSignature(
+            anyList(),
+            any(byte[].class)
+        );
+    }
+
 
     @Test
     void onBestBlock_return_when_node_is_syncing() throws BtcReleaseClientException {
@@ -692,6 +897,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
+            blockStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -708,7 +914,7 @@ class BtcReleaseClientTest {
         btcReleaseClient.start(federation);
 
         // Act
-        ethereumListener.get().onBestBlock(null, null);
+        ethereumListener.get().onBestBlock(bestBlock, null);
 
         // Assert
         verify(federatorSupport, never()).getStateForFederator();
@@ -742,6 +948,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
+            blockStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -758,7 +965,7 @@ class BtcReleaseClientTest {
         btcReleaseClient.start(federation);
 
         // Act
-        ethereumListener.get().onBestBlock(null, null);
+        ethereumListener.get().onBestBlock(bestBlock, null);
 
         // Assert
         verify(federatorSupport, never()).getStateForFederator();
@@ -792,6 +999,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
+            blockStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -838,6 +1046,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
+            blockStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -957,6 +1166,8 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             federatorSupport,
+            blockStore,
+            mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -999,6 +1210,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
+            blockStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -1057,6 +1269,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
+            blockStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -1145,6 +1358,8 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             federatorSupport,
+            blockStore,
+            mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -1176,6 +1391,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
+            blockStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -1311,6 +1527,7 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereumImpl,
+            blockStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -1336,7 +1553,7 @@ class BtcReleaseClientTest {
         btcReleaseClient.start(federation);
 
         // Release "confirmed"
-        ethereumImpl.addBestBlockWithReceipts(mock(Block.class), new ArrayList<>());
+        ethereumImpl.addBestBlockWithReceipts(bestBlock, new ArrayList<>());
 
         // Verify the rsk tx hash was updated
         verify(releaseCreationInformationGetter, times(1)).getTxInfoToSign(
@@ -1359,6 +1576,7 @@ class BtcReleaseClientTest {
 
         return new BtcReleaseClient(
             mock(Ethereum.class),
+            blockStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
