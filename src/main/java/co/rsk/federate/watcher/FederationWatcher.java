@@ -9,6 +9,7 @@ import org.ethereum.listener.EthereumListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -87,8 +88,11 @@ public class FederationWatcher {
     }
 
     private void updateActiveFederation() {
-        Address currentlyActiveFederationAddress = federationProvider.getActiveFederationAddress();
-        Address oldActiveFederationAddress = Optional.ofNullable(activeFederation).map(Federation::getAddress).orElse(null);
+        Address currentlyActiveFederationAddress = Objects.requireNonNull(
+            federationProvider.getActiveFederationAddress(), "The current active federation should always exist");
+        Address oldActiveFederationAddress = Optional.ofNullable(activeFederation)
+            .map(Federation::getAddress)
+            .orElse(null);
 
         boolean hasActiveFederationChanged = !currentlyActiveFederationAddress.equals(oldActiveFederationAddress);
 
@@ -106,7 +110,8 @@ public class FederationWatcher {
 
     private void updateRetiringFederation() {
         Optional<Address> currentlyRetiringFederationAddress = federationProvider.getRetiringFederationAddress();
-        Optional<Address> oldRetiringFederationAddress = Optional.ofNullable(retiringFederation).map(Federation::getAddress);
+        Optional<Address> oldRetiringFederationAddress = Optional.ofNullable(retiringFederation)
+            .map(Federation::getAddress);
 
         boolean hasRetiringFederationChanged = !currentlyRetiringFederationAddress.equals(oldRetiringFederationAddress);
 
