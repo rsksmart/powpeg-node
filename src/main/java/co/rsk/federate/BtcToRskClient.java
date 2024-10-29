@@ -3,50 +3,33 @@ package co.rsk.federate;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.federate.config.PowpegNodeSystemProperties;
-import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
-import co.rsk.federate.bitcoin.BitcoinWrapper;
-import co.rsk.federate.bitcoin.BlockListener;
-import co.rsk.federate.bitcoin.TransactionListener;
-import co.rsk.federate.io.BtcToRskClientFileData;
-import co.rsk.federate.io.BtcToRskClientFileReadResult;
-import co.rsk.federate.io.BtcToRskClientFileStorage;
+import co.rsk.federate.bitcoin.*;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
+import co.rsk.federate.io.*;
 import co.rsk.federate.timing.TurnScheduler;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.PegUtilsLegacy;
-import co.rsk.peg.federation.Federation;
-import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.PeginInformation;
+import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.federation.Federation;
+import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.IntStream;
 import javax.annotation.PreDestroy;
-import org.bitcoinj.core.Block;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PartialMerkleTree;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.StoredBlock;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.Utils;
+import org.bitcoinj.core.*;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
@@ -284,25 +267,18 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     try {
                         Sha256Hash witnessMerkleRoot = tree.getTxnHashAndMerkleRoot(new ArrayList<>());
                         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
-                                coinbase,
-                                witnessMerkleRoot,
-                                block.getHash(),
-                                coinbasePmt
+                            coinbase,
+                            witnessMerkleRoot,
+                            block.getHash(),
+                            coinbasePmt
                         );
-                        // Validate information
-                        byte[] witnessReservedValue = coinbaseInformation.getCoinbaseWitnessReservedValue();
-                        if (witnessReservedValue == null) {
-                            logger.error("block {} with lock segwit tx {} has coinbase with no witness reserved value. Aborting block processing.", block.getHash(), tx.getWTxId());
-                            // Can't register this transaction, it would be rejected by the Bridge
+
+                        // Validate coinbase information
+                        if (!coinbaseInformationIsValid(coinbaseInformation)) {
+                            logger.debug("[onBlock] Coinbase information is not valid. Aborting block processing.");
                             return;
                         }
-                        Sha256Hash calculatedWitnessCommitment = Sha256Hash.twiceOf(witnessMerkleRoot.getReversedBytes(), witnessReservedValue);
-                        Sha256Hash witnessCommitment = coinbase.findWitnessCommitment();
-                        if (!witnessCommitment.equals(calculatedWitnessCommitment)) {
-                            logger.error("block {} with lock segwit tx {} generated an invalid witness merkle root", tx.getWTxId(), block.getHash());
-                            // Can't register this transaction, it would be rejected by the Bridge
-                            return;
-                        }
+
                         // store the coinbase
                         fileData.getCoinbaseInformationMap().put(coinbaseInformation.getBlockHash(), coinbaseInformation);
 
@@ -332,6 +308,39 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 panicProcessor.panic("btclock", e.getMessage());
             }
         }
+    }
+
+    private boolean coinbaseInformationIsValid(CoinbaseInformation coinbaseInformation) {
+        Sha256Hash witnessMerkleRoot = coinbaseInformation.getWitnessRoot();
+        byte[] witnessReservedValue = coinbaseInformation.getCoinbaseWitnessReservedValue();
+        BtcTransaction coinbaseTransaction = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), coinbaseInformation.getCoinbaseTransaction());
+
+        if (witnessReservedValue == null) {
+            logger.error(
+                "[coinbaseInformationIsValid] Block {} with segwit peg-in tx {} has coinbase with no witness reserved value. Aborting block processing.",
+                coinbaseInformation.getBlockHash(),
+                coinbaseTransaction.getHash()
+            );
+            // Can't register this transaction, it would be rejected by the Bridge
+            return false;
+        }
+
+        co.rsk.bitcoinj.core.Sha256Hash calculatedWitnessCommitment = co.rsk.bitcoinj.core.Sha256Hash.twiceOf(
+            witnessMerkleRoot.getReversedBytes(),
+            witnessReservedValue
+        );
+        Optional<co.rsk.bitcoinj.core.Sha256Hash> witnessCommitment = BitcoinUtils.findWitnessCommitment(coinbaseTransaction);
+
+        return witnessCommitment
+            .map(wc -> wc.equals(calculatedWitnessCommitment))
+            .orElseGet(() -> {
+                logger.error(
+                    "[coinbaseInformationIsValid] Block {} with segwit peg-in tx {} generated an invalid witness merkle root",
+                    coinbaseTransaction.getHash(),
+                    coinbaseInformation.getBlockHash()
+                );
+                return false;
+            });
     }
 
     @Override
