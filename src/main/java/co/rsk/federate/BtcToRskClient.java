@@ -272,12 +272,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                             block.getHash(),
                             coinbasePmt
                         );
-
-                        // Validate coinbase information
-                        if (!coinbaseInformationIsValid(coinbaseInformation)) {
-                            logger.debug("[onBlock] Coinbase information is not valid. Aborting block processing.");
-                            return;
-                        }
+                        validateCoinbaseInformation(coinbaseInformation);
 
                         // store the coinbase
                         fileData.getCoinbaseInformationMap().put(coinbaseInformation.getBlockHash(), coinbaseInformation);
@@ -310,36 +305,37 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
     }
 
-    private boolean coinbaseInformationIsValid(CoinbaseInformation coinbaseInformation) {
+    private void validateCoinbaseInformation(CoinbaseInformation coinbaseInformation) {
         Sha256Hash witnessMerkleRoot = coinbaseInformation.getWitnessRoot();
         byte[] witnessReservedValue = coinbaseInformation.getCoinbaseWitnessReservedValue();
         BtcTransaction coinbaseTransaction = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), coinbaseInformation.getCoinbaseTransaction());
 
         if (witnessReservedValue == null) {
-            logger.error(
-                "[coinbaseInformationIsValid] Block {} with segwit peg-in tx {} has coinbase with no witness reserved value. Aborting block processing.",
+            String message = String.format(
+                "Block %s with segwit peg-in tx %s has coinbase with no witness reserved value. Aborting block processing.",
                 coinbaseInformation.getBlockHash(),
                 coinbaseTransaction.getHash()
             );
-            // Can't register this transaction, it would be rejected by the Bridge
-            return false;
+            logger.error("[coinbaseInformationIsValid] {}", message);
+            throw new IllegalArgumentException(message);
         }
 
         co.rsk.bitcoinj.core.Sha256Hash calculatedWitnessCommitment = co.rsk.bitcoinj.core.Sha256Hash.twiceOf(
             witnessMerkleRoot.getReversedBytes(),
             witnessReservedValue
         );
-        Optional<co.rsk.bitcoinj.core.Sha256Hash> witnessCommitment = BitcoinUtils.findWitnessCommitment(coinbaseTransaction);
+        Optional<co.rsk.bitcoinj.core.Sha256Hash> expectedWitnessCommitment = BitcoinUtils.findWitnessCommitment(coinbaseTransaction);
 
-        return witnessCommitment
-            .map(wc -> wc.equals(calculatedWitnessCommitment))
-            .orElseGet(() -> {
-                logger.error(
-                    "[coinbaseInformationIsValid] Block {} with segwit peg-in tx {} generated an invalid witness merkle root",
+        expectedWitnessCommitment
+            .filter(commitment -> commitment.equals(calculatedWitnessCommitment))
+            .orElseThrow(() -> {
+                String message = String.format(
+                    "Block %s with segwit peg-in tx %s generated an invalid witness merkle root",
                     coinbaseTransaction.getHash(),
                     coinbaseInformation.getBlockHash()
                 );
-                return false;
+                logger.error("[coinbaseInformationIsValid] {}", message);
+                return new IllegalArgumentException(message);
             });
     }
 
