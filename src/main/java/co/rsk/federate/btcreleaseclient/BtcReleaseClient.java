@@ -162,7 +162,7 @@ public class BtcReleaseClient {
 
     public void start(Federation federation) {
        FederationMember federationMember = federatorSupport.getFederationMember();
-       if (federation.isMember(federationMember)) {
+       if (!federation.isMember(federationMember)) {
             String message = String.format(
                 "Member %s is no part of the federation %s",
                 federationMember.getBtcPublicKey(),
