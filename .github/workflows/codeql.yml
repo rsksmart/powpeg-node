@@ -42,11 +42,42 @@ jobs:
           path: rskj
           fetch-depth: 0
   
-      - name: Check out appropriate rskj reference
-        if: ${{ matrix.language == 'java' }}
+      - name: Determine branch to checkout for PR
+        if: github.event_name == 'pull_request'
         working-directory: rskj
         env:
-          CHECKOUT_REF: ${{ github.ref_name }}
+          PR_BRANCH: ${{ github.head_ref }}
+        run: |
+          IS_RSKJ_BRANCH=$(git ls-remote --heads origin "$PR_BRANCH")
+          if test -n "${IS_RSKJ_BRANCH}"; then
+          echo "Found matching branch name in RSKj repo"
+          CHECKOUT_REF="$PR_BRANCH"
+          else
+          echo "Using master for RSKj"
+          CHECKOUT_REF="master"
+          fi
+          echo "CHECKOUT_REF=$CHECKOUT_REF" >> $GITHUB_ENV
+
+      - name: Determine branch to checkout for push
+        if: github.event_name != 'pull_request'
+        working-directory: rskj
+        env:
+          POW_REF: ${{ github.ref_name }}
+        run: |
+          IS_RSKJ_REF=$(git ls-remote --heads origin "$POW_REF")
+          if test -n "${IS_RSKJ_REF}"; then
+            echo "Found matching ref in RSKj"
+            CHECKOUT_REF="$POW_REF"
+          else
+            echo "Using master for RSKj"
+            CHECKOUT_REF="master"
+          fi
+          echo "CHECKOUT_REF=$CHECKOUT_REF" >> $GITHUB_ENV
+
+      - name: Check out appropriate rskj reference
+        working-directory: rskj
+        env:
+          CHECKOUT_REF: ${{ env.CHECKOUT_REF }}
         run: |
           git switch "$CHECKOUT_REF"
 
