@@ -173,25 +173,26 @@ public class BtcReleaseClient {
 
         if (!observedFederations.contains(federation)) {
             observedFederations.add(federation);
-            logger.debug("[start] Observing federation {}", federation.getAddress());
+            logger.info("[start] Observing federation {}", federation.getAddress());
         }
 
         if (observedFederations.size() == 1) {
             // If there is just one observed Federation, it means the btcReleaseClient wasn't started
-            logger.debug("[start] Starting");
-            ethereum.addListener(this.blockListener);
+            logger.info("[start] Starting block listener");
+            ethereum.addListener(blockListener);
         }
     }
 
     public void stop(Federation federation) {
         if (observedFederations.contains(federation)) {
             observedFederations.remove(federation);
-            logger.debug("[stop] not observing Federation {}", federation.getAddress());
+            logger.info("[stop] Stopping observing federation {}", federation.getAddress());
         }
+
         if (observedFederations.isEmpty()) {
             // If there are no more observed Federations, the btcReleaseClient should stop
-            logger.debug("[stop] Stopping");
-            ethereum.removeListener(this.blockListener);
+            logger.info("[stop] Stopping block listener");
+            ethereum.removeListener(blockListener);
         }
     }
 
