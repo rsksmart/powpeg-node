@@ -275,7 +275,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         validateCoinbaseInformation(coinbaseInformation);
 
                         // store the coinbase
-                        fileData.getCoinbaseInformationMap().put(coinbaseInformation.getBlockHash(), coinbaseInformation);
+                        fileData.getCoinbaseInformationMap().put(
+                            coinbaseInformation.getBlockHash(),
+                            coinbaseInformation
+                        );
 
                         // Register the coinbase just once per block
                         coinbaseRegistered = true;
@@ -308,7 +311,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     private void validateCoinbaseInformation(CoinbaseInformation coinbaseInformation) {
         Sha256Hash witnessMerkleRoot = coinbaseInformation.getWitnessRoot();
         byte[] witnessReservedValue = coinbaseInformation.getCoinbaseWitnessReservedValue();
-        BtcTransaction coinbaseTransaction = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), coinbaseInformation.getCoinbaseTransaction());
+        BtcTransaction coinbaseTransaction = ThinConverter.toThinInstance(
+            bridgeConstants.getBtcParams(),
+            coinbaseInformation.getCoinbaseTransaction()
+        );
 
         if (witnessReservedValue == null) {
             String message = String.format(
@@ -331,8 +337,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             .orElseThrow(() -> {
                 String message = String.format(
                     "Block %s with segwit peg-in tx %s generated an invalid witness merkle root",
-                    coinbaseTransaction.getHash(),
-                    coinbaseInformation.getBlockHash()
+                    coinbaseInformation.getBlockHash(),
+                    coinbaseTransaction.getHash()
                 );
                 logger.error("[coinbaseInformationIsValid] {}", message);
                 return new IllegalArgumentException(message);

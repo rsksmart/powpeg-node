@@ -1,91 +1,47 @@
 package co.rsk.federate;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static java.util.Objects.nonNull;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.ScriptBuilder;
+import co.rsk.bitcoinj.script.ScriptOpCodes;
 import co.rsk.cli.CliArgs;
-import co.rsk.config.ConfigLoader;
-import co.rsk.config.NodeCliFlags;
-import co.rsk.config.NodeCliOptions;
-import co.rsk.federate.config.PowpegNodeSystemProperties;
-import co.rsk.federate.signing.utils.TestUtils;
-import co.rsk.peg.constants.BridgeConstants;
-import co.rsk.peg.constants.BridgeRegTestConstants;
+import co.rsk.config.*;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
-import co.rsk.federate.io.BtcToRskClientFileData;
-import co.rsk.federate.io.BtcToRskClientFileReadResult;
-import co.rsk.federate.io.BtcToRskClientFileStorage;
-import co.rsk.federate.mock.SimpleBitcoinWrapper;
-import co.rsk.federate.mock.SimpleBlock;
-import co.rsk.federate.mock.SimpleBtcTransaction;
-import co.rsk.federate.mock.SimpleFederatorSupport;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
+import co.rsk.federate.io.*;
+import co.rsk.federate.mock.*;
+import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.PegUtilsLegacy;
+import co.rsk.peg.bitcoin.BitcoinUtils;
+import co.rsk.peg.btcLockSender.*;
+import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.constants.BridgeRegTestConstants;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
-import co.rsk.peg.btcLockSender.BtcLockSender;
-import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
-import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
-import co.rsk.peg.btcLockSender.P2shP2wpkhBtcLockSender;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import static java.util.Objects.nonNull;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Block;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PartialMerkleTree;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.StoredBlock;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.TransactionWitness;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.crypto.HashUtil;
+import org.ethereum.util.ByteUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.internal.util.MockUtil;
@@ -110,7 +66,7 @@ class BtcToRskClientTest {
         when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
         when(activationConfig.isActive(eq(ConsensusRule.RSKIP89), anyLong())).thenReturn(true);
 
-        bridgeRegTestConstants = new BridgeRegTestConstants();
+        bridgeRegTestConstants = BridgeRegTestConstants.getInstance();
         networkParameters = ThinConverter.toOriginalInstance(bridgeRegTestConstants.getBtcParamsString());
         federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
         activeFederation = TestUtils.createFederation(bridgeRegTestConstants.getBtcParams(), federationPrivateKeys);
@@ -629,6 +585,32 @@ class BtcToRskClientTest {
         Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), segwitTx.getTxId().getReversedBytes()));
         Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, segwitTx));
         block.verifyTransactions(0, EnumSet.noneOf(Block.VerifyFlag.class));
+
+        BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
+        btcToRskClientFileData.getTransactionProofs().put(segwitTx.getWTxId(), new ArrayList<>());
+
+        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
+        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
+
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+
+        client.onBlock(block);
+
+        verify(btcToRskClientFileStorageMock, never()).write(any());
+        assertFalse(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
+        assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
+    }
+
+    @Test
+    void onBlock_including_segwit_tx_coinbase_witness_commitment_malformed() throws Exception {
+        Transaction segwitTx = getTx(true);
+        Transaction coinbaseTx = getCoinbaseTransactionWithWrongWitnessCommitment();
+
+        Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), segwitTx.getTxId().getReversedBytes()));
+        EnumSet<Block.VerifyFlag> flags = mock(EnumSet.class);
+        when(flags.contains(any())).thenReturn(false);
+        Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, segwitTx));
+        block.verifyTransactions(0, flags);
 
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         btcToRskClientFileData.getTransactionProofs().put(segwitTx.getWTxId(), new ArrayList<>());
@@ -2778,6 +2760,39 @@ class BtcToRskClientTest {
         return tx;
     }
 
+    private Transaction getCoinbaseTransactionWithWrongWitnessCommitment() {
+        Address rewardAddress = Address.fromString(networkParameters, "mvbnrCX3bg1cDRUu8pkecrvP6vQkSLDSou");
+        Script inputScript = new Script(new byte[]{ 1, 0 }); // Free-form, as long as it's has at least 2 bytes
+
+        Transaction coinbaseTx = new Transaction(networkParameters);
+        coinbaseTx.addInput(
+            Sha256Hash.ZERO_HASH,
+            -1L,
+            inputScript
+        );
+        coinbaseTx.addOutput(Coin.COIN, rewardAddress);
+        coinbaseTx.verify();
+
+        TransactionWitness txWitness = new TransactionWitness(1);
+        txWitness.setPush(0, BitcoinUtils.WITNESS_RESERVED_VALUE.getBytes());
+        coinbaseTx.getInput(0).setWitness(txWitness);
+
+        Sha256Hash witnessCommitment = Sha256Hash.wrap("0011223344556677889900112233445566778899001122334455667788990011");
+        String witnessCommitmentHeader = "aa21a9ed";
+        byte[] wrongWitnessCommitmentWithHeader = ByteUtil.merge(
+            new byte[]{ScriptOpCodes.OP_RETURN},
+            new byte[]{ScriptOpCodes.OP_PUSHDATA1},
+            new byte[]{BitcoinUtils.WITNESS_COMMITMENT_LENGTH},
+            Hex.decode(witnessCommitmentHeader),
+            witnessCommitment.getBytes()
+        );
+        Script wrongWitnessCommitmentScript = new Script(wrongWitnessCommitmentWithHeader);
+        coinbaseTx.addOutput(Coin.ZERO, wrongWitnessCommitmentScript);
+        coinbaseTx.verify();
+
+        return coinbaseTx;
+    }
+
     private Transaction getTx(boolean hasWitness) {
         Transaction tx = new Transaction(networkParameters);
         TransactionInput input = new TransactionInput(networkParameters, null, new byte[]{}, new TransactionOutPoint(networkParameters, 0L, Sha256Hash.ZERO_HASH));
@@ -2817,7 +2832,6 @@ class BtcToRskClientTest {
         when(config.shouldUpdateCollections()).thenReturn(defaultBooleanConfigValue);
 
         return config;
-
     }
 
 }
