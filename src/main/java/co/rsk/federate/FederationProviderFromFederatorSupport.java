@@ -152,7 +152,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             return Optional.empty();
         }
 
-        List<FederationMember> members = IntStream.range(0, federationSize)
+        List<FederationMember> federationMembers = IntStream.range(0, federationSize)
             .mapToObj(i -> new FederationMember(
                 federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.BTC)
                     .map(ECKey::getPubKey)
@@ -166,7 +166,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             .toList();
 
         FederationArgs federationArgs = new FederationArgs(
-            members,
+            federationMembers,
             federatorSupport.getProposedFederationCreationTime()
                 .orElseThrow(() -> new IllegalStateException()),
             federatorSupport.getProposedFederationCreationBlockNumber()
@@ -174,10 +174,12 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             federatorSupport.getBtcParams()
         );
 
-        Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
-        Federation expectedFederation = getExpectedFederation(initialFederation, proposedFederationAddress.get());
+        Federation federation = FederationFactory.buildP2shErpFederation(
+            federationArgs,
+            federationConstants.getErpFedPubKeysList(),
+            federationConstants.getErpFedActivationDelay());
 
-        return Optional.of(expectedFederation);
+        return Optional.of(federation);
     }
 
     @Override
