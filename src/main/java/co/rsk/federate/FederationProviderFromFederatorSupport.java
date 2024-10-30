@@ -157,20 +157,20 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
                 federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.BTC)
                     .map(ECKey::getPubKey)
                     .map(BtcECKey::fromPublicOnly)
-                    .orElseThrow(() -> new IllegalStateException()),
+                    .orElseThrow(IllegalStateException::new),
                 federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.RSK)
-                    .orElseThrow(() -> new IllegalStateException()),
+                    .orElseThrow(IllegalStateException::new),
                 federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.MST)
-                    .orElseThrow(() -> new IllegalStateException())
+                    .orElseThrow(IllegalStateException::new)
             ))
             .toList();
 
         FederationArgs federationArgs = new FederationArgs(
             federationMembers,
             federatorSupport.getProposedFederationCreationTime()
-                .orElseThrow(() -> new IllegalStateException()),
+                .orElseThrow(IllegalStateException::new),
             federatorSupport.getProposedFederationCreationBlockNumber()
-                .orElseThrow(() -> new IllegalStateException()),
+                .orElseThrow(IllegalStateException::new),
             federatorSupport.getBtcParams()
         );
 
