@@ -185,7 +185,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     @Override
     public Optional<Address> getProposedFederationAddress() {
         return Optional.of(federatorSupport)
-            .filter(federatorSupport -> federatorSupport.getConfigForBestBlock().isActive(RSKIP419))
+            .filter(fedSupport -> fedSupport.getConfigForBestBlock().isActive(RSKIP419))
             .flatMap(FederatorSupport::getProposedFederationAddress);
     }
 
