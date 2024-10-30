@@ -97,7 +97,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         Integer federationSize = federatorSupport.getRetiringFederationSize();
         Optional<Address> optionalRetiringFederationAddress = getRetiringFederationAddress();
 
-        if (federationSize == FEDERATION_NON_EXISTENT.getCode() || !optionalRetiringFederationAddress.isPresent()) {
+        if (federationSize == FEDERATION_NON_EXISTENT.getCode() || optionalRetiringFederationAddress.isEmpty()) {
             return Optional.empty();
         }
 
