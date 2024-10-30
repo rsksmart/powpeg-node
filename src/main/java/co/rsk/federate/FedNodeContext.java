@@ -29,6 +29,7 @@ import co.rsk.federate.rpc.Web3FederateImpl;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
 import co.rsk.federate.solidity.DummySolidityCompiler;
+import co.rsk.federate.watcher.FederationWatcher;
 import java.util.concurrent.TimeUnit;
 import org.ethereum.rpc.Web3;
 import org.ethereum.solidity.compiler.SolidityCompiler;
