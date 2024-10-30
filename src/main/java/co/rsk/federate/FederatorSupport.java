@@ -295,8 +295,8 @@ public class FederatorSupport {
     }
 
     public Optional<Long> getProposedFederationCreationBlockNumber() {
-        BigInteger creationBlockNumber = 
-            bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER);
+        BigInteger creationBlockNumber = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER);
 
         return Optional.ofNullable(creationBlockNumber)
             .map(BigInteger::longValue);
