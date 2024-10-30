@@ -22,24 +22,52 @@ import co.rsk.peg.federation.Federation;
 import java.util.Optional;
 
 /**
- * Implementors of this interface must be able to provide
- * federation instances.
- *
- * @author Ariel Mendelzon
+ * Provides access to various federation instances, including the active, retiring, and proposed federations.
+ * Implementations of this interface must define how to retrieve the federations and their respective addresses.
+ * These methods allow clients to manage and monitor federations in different lifecycle stages within the bridge.
  */
 public interface FederationProvider {
-    // The currently "active" federation
+
+    /**
+     * Retrieves the currently active federation, which is responsible for processing transactions.
+     *
+     * @return the active {@link Federation} instance
+     */
     Federation getActiveFederation();
-    // The currently "active" federation's address
+
+    /**
+     * Retrieves the address of the currently active federation.
+     *
+     * @return the {@link Address} of the active federation
+     */
     Address getActiveFederationAddress();
 
-    // The currently "retiring" federation
+    /**
+     * Retrieves the currently retiring federation, if one exists. This federation is in transition 
+     * and will soon be replaced by a new active federation.
+     *
+     * @return an {@link Optional} containing the retiring {@link Federation}, or {@link Optional#empty()} if none exists
+     */
     Optional<Federation> getRetiringFederation();
-    // The currently "retiring" federation's address
+
+    /**
+     * Retrieves the address of the currently retiring federation, if one exists.
+     *
+     * @return an {@link Optional} containing the {@link Address} of the retiring federation, or {@link Optional#empty()} if none exists
+     */
     Optional<Address> getRetiringFederationAddress();
 
-    // The currently "proposed" federation
+    /**
+     * Retrieves the currently proposed federation, if one exists. This federation is awaiting activation.
+     *
+     * @return an {@link Optional} containing the proposed {@link Federation}, or {@link Optional#empty()} if none exists
+     */
     Optional<Federation> getProposedFederation();
-    // The currently "proposed" federation's address
+
+    /**
+     * Retrieves the address of the currently proposed federation, if one exists.
+     *
+     * @return an {@link Optional} containing the {@link Address} of the proposed federation, or {@link Optional#empty()} if none exists
+     */
     Optional<Address> getProposedFederationAddress();
 }
