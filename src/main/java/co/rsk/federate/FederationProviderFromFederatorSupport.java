@@ -27,13 +27,15 @@ import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.peg.federation.*;
 import co.rsk.peg.federation.constants.FederationConstants;
-import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.crypto.ECKey;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.crypto.ECKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides a federation using a FederatorSupport instance, which in turn
@@ -43,6 +45,8 @@ import java.util.stream.IntStream;
  * @author Ariel Mendelzon
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
+
+    private static final Logger logger = LoggerFactory.getLogger(FederationProviderFromFederatorSupport.class);
 
     private final FederatorSupport federatorSupport;
     private final FederationConstants federationConstants;
@@ -151,34 +155,39 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             return Optional.empty();
         }
 
-        List<FederationMember> federationMembers = IntStream.range(0, federationSize)
-            .mapToObj(i -> new FederationMember(
-                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.BTC)
-                    .map(ECKey::getPubKey)
-                    .map(BtcECKey::fromPublicOnly)
+        try {
+            List<FederationMember> federationMembers = IntStream.range(0, federationSize)
+                .mapToObj(i -> new FederationMember(
+                    federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.BTC)
+                        .map(ECKey::getPubKey)
+                        .map(BtcECKey::fromPublicOnly)
+                        .orElseThrow(IllegalStateException::new),
+                    federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.RSK)
+                        .orElseThrow(IllegalStateException::new),
+                    federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.MST)
+                        .orElseThrow(IllegalStateException::new)
+                ))
+                .toList();
+
+            FederationArgs federationArgs = new FederationArgs(
+                federationMembers,
+                federatorSupport.getProposedFederationCreationTime()
                     .orElseThrow(IllegalStateException::new),
-                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.RSK)
+                federatorSupport.getProposedFederationCreationBlockNumber()
                     .orElseThrow(IllegalStateException::new),
-                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.MST)
-                    .orElseThrow(IllegalStateException::new)
-            ))
-            .toList();
+                federatorSupport.getBtcParams()
+            );
 
-        FederationArgs federationArgs = new FederationArgs(
-            federationMembers,
-            federatorSupport.getProposedFederationCreationTime()
-                .orElseThrow(IllegalStateException::new),
-            federatorSupport.getProposedFederationCreationBlockNumber()
-                .orElseThrow(IllegalStateException::new),
-            federatorSupport.getBtcParams()
-        );
+            Federation federation = FederationFactory.buildP2shErpFederation(
+                federationArgs,
+                federationConstants.getErpFedPubKeysList(),
+                federationConstants.getErpFedActivationDelay());
 
-        Federation federation = FederationFactory.buildP2shErpFederation(
-            federationArgs,
-            federationConstants.getErpFedPubKeysList(),
-            federationConstants.getErpFedActivationDelay());
-
-        return Optional.of(federation);
+            return Optional.of(federation);
+        } catch (IllegalStateException e) {
+            logger.error("[getProposedFederation] Unable to build the proposed federation", e);
+            return Optional.empty();
+        }
     }
 
     @Override
