@@ -62,7 +62,7 @@ tasks.withType(AbstractArchiveTask) {
 
 ext {
     bitcoinjcoreVersion = '0.15.6-rsk-3'
-    bitcoinjVersion = '0.14.4-rsk-15'
+    bitcoinjVersion = '0.14.4-rsk-16-SNAPSHOT'
     commonsLang3Version = '3.12.0'
     commonsIoVersion = '2.11.0'
     slf4jVersion = '1.7.36'
@@ -74,7 +74,7 @@ ext {
     junitSuiteVersion = '1.10.3'
     mockitoInlineVer  = '5.2.0'
     mockitoJupiterVer = '5.12.0'
-    rskjcoreVersion = '6.4.0-ARROWHEAD'
+    rskjcoreVersion = '6.5.0-SNAPSHOT'
 }
 
 dependencies {
