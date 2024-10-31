@@ -29,7 +29,7 @@ import java.util.Optional;
 public interface FederationProvider {
 
     /**
-     * Retrieves the currently active federation, which is responsible for processing transactions.
+     * Retrieves the currently active federation.
      *
      * @return the active {@link Federation} instance
      */
@@ -58,7 +58,7 @@ public interface FederationProvider {
     Optional<Address> getRetiringFederationAddress();
 
     /**
-     * Retrieves the currently proposed federation, if one exists. This federation is awaiting activation.
+     * Retrieves the currently proposed federation, if one exists. This federation is awaiting validation.
      *
      * @return an {@link Optional} containing the proposed {@link Federation}, or {@link Optional#empty()} if none exists
      */
