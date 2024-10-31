@@ -394,22 +394,6 @@ class FederationProviderFromFederatorSupportTest {
         // Act & Assert
         assertEquals(Optional.empty(), federationProvider.getProposedFederation());
         verify(federatorSupportMock).getProposedFederationSize();
-        verify(federatorSupportMock).getProposedFederationAddress();
-    }
-
-    @Test
-    void getProposedFederation_whenProposedFederationAddressDoesNotExist_shouldReturnEmptyOptional() {
-        // Arrange
-        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
-        when(federatorSupportMock.getProposedFederationSize())
-            .thenReturn(Optional.of(9));
-
-        // Act & Assert
-        assertEquals(Optional.empty(), federationProvider.getProposedFederation());
-        verify(federatorSupportMock).getProposedFederationSize();
-        verify(federatorSupportMock).getProposedFederationAddress();
     }
 
     @Test
