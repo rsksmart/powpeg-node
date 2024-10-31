@@ -397,6 +397,32 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     @Test
+    void getProposedFederation_whenSomeDataDoesNotExists_shouldReturnEmptyOptional() {
+        // Arrange
+        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
+        when(configMock.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+
+        Federation expectedFederation = createP2shErpFederation(
+            getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000));
+        Address expectedFederationAddress = expectedFederation.getAddress();
+        Integer federationSize = 5;
+        when(federatorSupportMock.getProposedFederationSize()).thenReturn(Optional.of(federationSize));
+        when(federatorSupportMock.getProposedFederationCreationTime()).thenReturn(Optional.of(creationTime));
+        when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.of(expectedFederationAddress));
+        when(federatorSupportMock.getBtcParams()).thenReturn(testnetParams);
+        when(federatorSupportMock.getProposedFederationCreationBlockNumber()).thenReturn(Optional.of(0L));
+        when(federatorSupportMock.getProposedFederatorPublicKeyOfType(0, FederationMember.KeyType.BTC))
+            .thenThrow(new IllegalStateException());
+
+        // Act
+        Optional<Federation> proposedFederation = federationProvider.getProposedFederation();
+
+        // Assert
+        assertFalse(proposedFederation.isPresent());
+    }
+
+    @Test
     void getProposedFederation_whenExistsAndIsP2shErpFederation_shouldReturnProposedFederation() {
         // Arrange
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
