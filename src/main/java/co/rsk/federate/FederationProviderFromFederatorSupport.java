@@ -145,10 +145,9 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             return Optional.empty();
         }
        
-        Optional<Address> proposedFederationAddress = getProposedFederationAddress();
         Integer federationSize = federatorSupport.getProposedFederationSize()
             .orElse(FEDERATION_NON_EXISTENT.getCode());
-        if (federationSize == FEDERATION_NON_EXISTENT.getCode() || proposedFederationAddress.isEmpty()) {
+        if (federationSize == FEDERATION_NON_EXISTENT.getCode()) {
             return Optional.empty();
         }
 
