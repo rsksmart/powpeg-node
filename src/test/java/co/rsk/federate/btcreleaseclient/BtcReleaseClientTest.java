@@ -741,8 +741,6 @@ class BtcReleaseClientTest {
             mock(ReceiptStore.class)
         );
 
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
-
         Keccak256 blockHash = createHash(2);
         Block block = mock(Block.class);
         TransactionReceipt txReceipt = mock(TransactionReceipt.class);
@@ -833,8 +831,6 @@ class BtcReleaseClientTest {
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
         );
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
 
         Keccak256 blockHash = createHash(2);
         Block block = mock(Block.class);
