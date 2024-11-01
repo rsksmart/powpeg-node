@@ -55,7 +55,7 @@ class FederatorSupportTest {
     private static final NetworkParameters NETWORK_PARAMETERS = BridgeMainNetConstants.getInstance().getBtcParams();
     private static final List<BtcECKey> KEYS = BitcoinTestUtils.getBtcEcKeysFromSeeds(new String[]{"k1", "k2", "k3"}, true);
     private static final Address DEFAULT_ADDRESS = BitcoinTestUtils.createP2SHMultisigAddress(NETWORK_PARAMETERS, KEYS);
-    private static final byte[] PUBLIC_KEY = Hex.decode("0497466f2b32bc3bb76d4741ae51cd1d8578b48d3f1e68da206d47321aec267ce78549b514e4453d74ef11b0cd5e4e4c364effddac8b51bcfc8de80682f952896f");
+    private static final byte[] PUBLIC_KEY = ECKey.fromPrivate(BigInteger.valueOf(100)).getPubKey();
 
     private BridgeTransactionSender bridgeTransactionSender;
     private FederatorSupport federatorSupport;
