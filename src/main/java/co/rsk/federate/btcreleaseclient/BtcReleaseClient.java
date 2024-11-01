@@ -314,14 +314,14 @@ public class BtcReleaseClient {
         }
 
         private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
-            RLPList dataElements = (RLPList)RLP.decode2(dataFromBtcReleaseTopic).get(0);
+            RLPList dataElements = (RLPList) RLP.decode2(dataFromBtcReleaseTopic).get(0);
 
             return new BtcTransaction(bridgeConstants.getBtcParams(), dataElements.get(1).getRLPData());
         }
 
         private BtcTransaction convertToBtcTxFromSolidityData(byte[] dataFromBtcReleaseTopic) {
             return new BtcTransaction(bridgeConstants.getBtcParams(),
-                (byte[])BridgeEvents.RELEASE_BTC.getEvent().decodeEventData(dataFromBtcReleaseTopic)[0]);
+                (byte[]) BridgeEvents.RELEASE_BTC.getEvent().decodeEventData(dataFromBtcReleaseTopic)[0]);
         }
     }
 
