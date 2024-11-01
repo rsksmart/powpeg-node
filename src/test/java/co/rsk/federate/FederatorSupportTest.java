@@ -258,7 +258,7 @@ class FederatorSupportTest {
     }
 
     @Test
-    void getProposedFederatorPublicKeyOfType_whenPublicKeyBytesIsNull_shouldReturnEmptyOptional() {
+    void getProposedFederatorPublicKeyOfType_whenPublicKeyIsNull_shouldReturnEmptyOptional() {
         // Arrange
         int index = 0;
         FederationMember.KeyType keyType = FederationMember.KeyType.BTC;
@@ -276,7 +276,7 @@ class FederatorSupportTest {
     }
 
     @Test
-    void getProposedFederatorPublicKeyOfType_whenPublicKeyBytesArePresent_shouldReturnECKey() {
+    void getProposedFederatorPublicKeyOfType_whenPublicKeyIsPresent_shouldReturnECKey() {
         // Arrange
         int index = 0; 
         FederationMember.KeyType keyType = FederationMember.KeyType.BTC;
