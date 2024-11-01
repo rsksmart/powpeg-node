@@ -62,7 +62,6 @@ import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.federation.*;
 import co.rsk.peg.StateForFederator;
 import co.rsk.peg.StateForProposedFederator;
-
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.time.Clock;
@@ -102,6 +101,7 @@ class BtcReleaseClientTest {
     private static final Duration PEGOUT_SIGNED_CACHE_TTL = Duration.ofMinutes(30);
 
     private final BlockStore blockStore = mock(BlockStore.class);
+    private final ReceiptStore receiptStore = mock(ReceiptStore.class);
     private final Block bestBlock = mock(Block.class);
     private final NetworkParameters params = RegTestParams.get();
     private final BridgeConstants bridgeConstants = Constants.regtest().bridgeConstants;
@@ -115,9 +115,21 @@ class BtcReleaseClientTest {
     @BeforeEach
     void setup() {
         // ensure confirmation difference always passes
+        Keccak256 rskTxHash = createHash(1);
+        Keccak256 blockHash = createHash(2);
+        TransactionInfo transactionInfoForTxWaitingForSignatures = mock(TransactionInfo.class);
         Block blockWithTxWaitingForSignatures = mock(Block.class);
-        when(blockWithTxWaitingForSignatures.getNumber()).thenReturn(0L); 
-        when(blockStore.getBlockByHash(any())).thenReturn(blockWithTxWaitingForSignatures);
+        when(transactionInfoForTxWaitingForSignatures.getBlockHash())
+            .thenReturn(blockHash.getBytes());
+        when(blockWithTxWaitingForSignatures.getHash())
+            .thenReturn(blockHash); 
+        when(blockWithTxWaitingForSignatures.getNumber())
+            .thenReturn(0L); 
+
+        when(receiptStore.getInMainChain(rskTxHash.getBytes(), blockStore))
+            .thenReturn(Optional.of(transactionInfoForTxWaitingForSignatures));
+        when(blockStore.getBlockByHash(blockHash.getBytes()))
+            .thenReturn(blockWithTxWaitingForSignatures);
         when(bestBlock.getNumber()).thenReturn(5_000L); 
     }
 
@@ -137,6 +149,8 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             mock(Ethereum.class),
+            blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -157,6 +171,7 @@ class BtcReleaseClientTest {
         new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -176,9 +191,9 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
-            federatorSupport,
             blockStore,
-            mock(FederatorSupport.class),
+            receiptStore,
+            federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -207,9 +222,9 @@ class BtcReleaseClientTest {
       
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
-            federatorSupport,
             blockStore,
-            mock(FederatorSupport.class),
+            receiptStore,
+            federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -241,9 +256,9 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
-            federatorSupport,
             blockStore,
-            mock(FederatorSupport.class),
+            receiptStore,
+            federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -305,9 +320,9 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
-            federatorSupport,
             blockStore,
-            mock(FederatorSupport.class),
+            receiptStore,
+            federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -438,6 +453,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -528,6 +544,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -633,6 +650,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -684,6 +702,7 @@ class BtcReleaseClientTest {
     void onBestBlock_whenOnlySvpSpendTxWaitingForSignaturesIsAvailable_shouldAddSignature() throws Exception {
         // Arrange
         Federation federation = TestUtils.createFederation(params, 9);
+        FederationMember federationMember = federation.getMembers().get(0);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, federation);
         Keccak256 svpSpendCreationRskTxHash = createHash(0);
         Map.Entry<Keccak256, BtcTransaction> entry = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
@@ -697,6 +716,7 @@ class BtcReleaseClientTest {
         }).when(ethereum).addListener(any(EthereumListener.class));
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        doReturn(federationMember).when(federatorSupport).getFederationMember();
         // return svp spend tx waiting for signatures
         doReturn(Optional.of(stateForProposedFederator)).when(federatorSupport).getStateForProposedFederator();
         // returns zero pegouts waiting for signatures
@@ -745,6 +765,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -776,6 +797,7 @@ class BtcReleaseClientTest {
     void onBestBlock_whenPegoutTxIsNotReadyToBeSigned_shouldNotAddSignature() throws Exception {
         // Arrange
         Federation federation = TestUtils.createFederation(params, 9);
+        FederationMember federationMember = federation.getMembers().get(0);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
         SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
@@ -790,6 +812,7 @@ class BtcReleaseClientTest {
         }).when(ethereum).addListener(any(EthereumListener.class));
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        doReturn(federationMember).when(federatorSupport).getFederationMember();
         doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
 
         ECKey ecKey = new ECKey();
@@ -835,6 +858,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -898,6 +922,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -949,6 +974,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -1000,6 +1026,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -1047,6 +1074,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -1165,9 +1193,9 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
-            federatorSupport,
             blockStore,
-            mock(FederatorSupport.class),
+            receiptStore,
+            federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -1211,6 +1239,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             blockStore,
+            receiptStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -1270,6 +1299,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             blockStore,
+            receiptStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -1357,9 +1387,9 @@ class BtcReleaseClientTest {
 
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
-            federatorSupport,
             blockStore,
-            mock(FederatorSupport.class),
+            receiptStore,
+            federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
@@ -1392,6 +1422,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             blockStore,
+            receiptStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
@@ -1528,6 +1559,7 @@ class BtcReleaseClientTest {
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereumImpl,
             blockStore,
+            receiptStore,
             federatorSupport,
             powpegNodeSystemProperties,
             nodeBlockProcessor
@@ -1577,6 +1609,7 @@ class BtcReleaseClientTest {
         return new BtcReleaseClient(
             mock(Ethereum.class),
             blockStore,
+            receiptStore,
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
