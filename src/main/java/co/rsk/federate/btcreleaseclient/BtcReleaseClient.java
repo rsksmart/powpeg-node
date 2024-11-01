@@ -67,6 +67,8 @@ import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.db.BlockStore;
+import org.ethereum.db.ReceiptStore;
+import org.ethereum.db.TransactionInfo;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
 import org.ethereum.util.RLP;
@@ -99,6 +101,7 @@ public class BtcReleaseClient {
 
     private final Ethereum ethereum;
     private final BlockStore blockStore;
+    private final ReceiptStore receiptStore;
     private final FederatorSupport federatorSupport;
     private final Set<Federation> observedFederations;
     private final NodeBlockProcessor nodeBlockProcessor;
@@ -119,12 +122,14 @@ public class BtcReleaseClient {
     public BtcReleaseClient(
         Ethereum ethereum,
         BlockStore blockStore,
+        ReceiptStore receiptStore,
         FederatorSupport federatorSupport,
         PowpegNodeSystemProperties systemProperties,
         NodeBlockProcessor nodeBlockProcessor
     ) {
         this.ethereum = ethereum;
         this.blockStore = blockStore;
+        this.receiptStore = receiptStore;
         this.federatorSupport = federatorSupport;
         this.observedFederations = new HashSet<>();
         this.blockListener = new BtcReleaseEthereumListener();
@@ -299,6 +304,8 @@ public class BtcReleaseClient {
         private boolean isReadyToSign(long currentBlockNumber, Keccak256 txHashWaitingForSignatures) {
             boolean isReadyToSign = Optional.ofNullable(txHashWaitingForSignatures)
                 .map(Keccak256::getBytes)
+                .flatMap(txHash -> receiptStore.getInMainChain(txHash, blockStore))
+                .map(TransactionInfo::getBlockHash)
                 .map(blockStore::getBlockByHash)
                 .map(Block::getNumber)
                 .map(blockNumberWithTxWaitingForSignatures -> currentBlockNumber - blockNumberWithTxWaitingForSignatures)
