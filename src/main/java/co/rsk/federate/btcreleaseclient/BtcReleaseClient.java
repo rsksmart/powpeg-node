@@ -238,7 +238,7 @@ public class BtcReleaseClient {
             }
             storageSynchronizer.processBlock(block, receipts);
           
-            // Check if svp spend tx waiting for signatures is available to be signed
+            // Sign svp spend tx waiting for signatures, if it exists,
             // before attempting to sign any pegouts.
             federatorSupport.getStateForProposedFederator()
                 .map(StateForProposedFederator::getSvpSpendTxWaitingForSignatures)
