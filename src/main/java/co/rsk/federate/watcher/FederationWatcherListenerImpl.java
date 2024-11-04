@@ -39,6 +39,15 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
         triggerClientChange(btcToRskClientRetiring, newRetiringFederation);
     }
 
+    @Override
+    public void onProposedFederationChange(Federation newProposedFederation) {
+        if (newProposedFederation == null) {
+            return;
+        }
+        
+        btcReleaseClient.start(newProposedFederation);
+    }
+
     private void triggerClientChange(BtcToRskClient btcToRskClient, Federation newFederation) {
         // This method assumes that the new federation cannot be null
         Objects.requireNonNull(newFederation);
