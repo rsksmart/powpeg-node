@@ -23,4 +23,12 @@ public interface FederationWatcherListener {
      *                      This can be {@code null}; the retiring federation is not always present.
      */
     void onRetiringFederationChange(Federation newRetiringFederation);
+
+    /**
+     * Invoked when the proposed federation changes.
+     *
+     * @param newProposedFederation the new proposed federation after the change.
+     *                      This can be {@code null}; the proposed federation is not always present.
+     */
+    void onProposedFederationChange(Federation newProposedFederation);
 }
