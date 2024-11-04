@@ -66,7 +66,7 @@ class BtcToRskClientTest {
         when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
         when(activationConfig.isActive(eq(ConsensusRule.RSKIP89), anyLong())).thenReturn(true);
 
-        bridgeRegTestConstants = BridgeRegTestConstants.getInstance();
+        bridgeRegTestConstants = new BridgeRegTestConstants();
         networkParameters = ThinConverter.toOriginalInstance(bridgeRegTestConstants.getBtcParamsString());
         federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
         activeFederation = TestUtils.createFederation(bridgeRegTestConstants.getBtcParams(), federationPrivateKeys);
@@ -657,6 +657,7 @@ class BtcToRskClientTest {
     void when_markCoinbasesAsReadyToBeInformed_informedBlocks_notEmpty_writeToStorage() throws Exception {
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         CoinbaseInformation coinbaseInformation = mock(CoinbaseInformation.class);
+        when(coinbaseInformation.getCoinbaseTransaction()).thenReturn(mock(Transaction.class));
         btcToRskClientFileData.getCoinbaseInformationMap().put(Sha256Hash.ZERO_HASH, coinbaseInformation);
 
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
