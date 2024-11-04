@@ -247,19 +247,14 @@ public class BtcReleaseClient {
             // before attempting to sign any pegouts.
             federatorSupport.getStateForProposedFederator()
                 .map(StateForProposedFederator::getSvpSpendTxWaitingForSignatures)
-                .filter(svpSpendTxWaitingForSignatures -> isReadyToSign(block.getNumber(), svpSpendTxWaitingForSignatures.getKey()))
+                .filter(svpSpendTxWaitingForSignatures -> isSVPSpendTxReadyToSign(block.getNumber(), svpSpendTxWaitingForSignatures.getKey()))
                 .ifPresent(svpSpendTxReadyToBeSigned -> processReleases(Set.of(svpSpendTxReadyToBeSigned)));
 
             // Processing transactions waiting for signatures on best block only still "works",
             // since it all lies within RSK's blockchain and normal rules apply. I.e., this
             // process works on a block-by-block basis.
             StateForFederator stateForFederator = federatorSupport.getStateForFederator();
-            Set<Map.Entry<Keccak256, BtcTransaction>> rskTxsReadyToBeSigned = stateForFederator.getRskTxsWaitingForSignatures()
-                .entrySet()
-                .stream()
-                .filter(rskTxWaitingForSignatures -> isReadyToSign(block.getNumber(), rskTxWaitingForSignatures.getKey()))
-                .collect(Collectors.toUnmodifiableSet());
-            processReleases(rskTxsReadyToBeSigned);
+            processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
         }
 
         @Override
@@ -287,7 +282,7 @@ public class BtcReleaseClient {
         }
 
         /**
-         * Determines if a transaction hash is ready to be signed based on its block confirmations.
+         * Determines if the svp spend transaction hash is ready to be signed based on its block confirmations.
          *
          * <p>
          * This method retrieves the block associated with the given transaction hash and calculates
@@ -297,23 +292,23 @@ public class BtcReleaseClient {
          * </p>
          *
          * @param currentBlockNumber the current block number in the blockchain
-         * @param txHashWaitingForSignatures the Keccak256 hash of the transaction waiting to be signed
+         * @param svpTxHash the Keccak256 hash of the svp spend transaction waiting to be signed
          * @return {@code true} if the transaction has the required number of confirmations and is ready to be signed;
          *         {@code false} otherwise
          */
-        private boolean isReadyToSign(long currentBlockNumber, Keccak256 txHashWaitingForSignatures) {
-            boolean isReadyToSign = Optional.ofNullable(txHashWaitingForSignatures)
+        private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Keccak256 svpTxHash) {
+            boolean isReadyToSign = Optional.ofNullable(svpTxHash)
                 .map(Keccak256::getBytes)
                 .flatMap(txHash -> receiptStore.getInMainChain(txHash, blockStore))
                 .map(TransactionInfo::getBlockHash)
                 .map(blockStore::getBlockByHash)
                 .map(Block::getNumber)
-                .map(blockNumberWithTxWaitingForSignatures -> currentBlockNumber - blockNumberWithTxWaitingForSignatures)
+                .map(blockNumberWithSvpSpendTx -> currentBlockNumber - blockNumberWithSvpSpendTx)
                 .filter(confirmationDifference -> confirmationDifference >= bridgeConstants.getRsk2BtcMinimumAcceptableConfirmations())
                 .isPresent();
 
-            logger.info("[isReadyToSign] Readiness check for signing: Tx hash [{}], Current block [{}], Ready to sign? [{}]",
-                txHashWaitingForSignatures,
+            logger.info("[isReadyToSign] SVP spend tx readiness check for signing: tx hash [{}], Current block [{}], Ready to sign? [{}]",
+                svpTxHash,
                 currentBlockNumber,
                 isReadyToSign ? "YES" : "NO");
 

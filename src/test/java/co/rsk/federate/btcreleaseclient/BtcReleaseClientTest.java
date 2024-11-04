@@ -792,15 +792,14 @@ class BtcReleaseClientTest {
     }
 
     @Test
-    void onBestBlock_whenPegoutTxIsNotReadyToBeSigned_shouldNotAddSignature() throws Exception {
+    void onBestBlock_whenSvpSpendTxIsNotReadyToBeSigned_shouldNotAddSignature() throws Exception {
         // Arrange
         Federation federation = TestUtils.createFederation(params, 9);
         FederationMember federationMember = federation.getMembers().get(0);
-        BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
-        Keccak256 pegoutCreationRskTxHash = createHash(0);
-        SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
-        rskTxsWaitingForSignatures.put(pegoutCreationRskTxHash, pegout);
-        StateForFederator stateForFederator = new StateForFederator(rskTxsWaitingForSignatures);
+        BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, federation);
+        Keccak256 svpSpendCreationRskTxHash = createHash(0);
+        Map.Entry<Keccak256, BtcTransaction> entry = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
+        StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(entry);
 
         Ethereum ethereum = mock(Ethereum.class);
         AtomicReference<EthereumListener> ethereumListener = new AtomicReference<>();
@@ -811,7 +810,10 @@ class BtcReleaseClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
-        doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
+        // return svp spend tx waiting for signatures
+        doReturn(Optional.of(stateForProposedFederator)).when(federatorSupport).getStateForProposedFederator();
+        // returns zero pegouts waiting for signatures
+        doReturn(mock(StateForFederator.class)).when(federatorSupport).getStateForFederator();
 
         ECKey ecKey = new ECKey();
         BtcECKey fedKey = new BtcECKey();
@@ -840,7 +842,7 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(txInfo.getReceipt()).thenReturn(txReceipt);
         when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
-        when(receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
+        when(receiptStore.getInMainChain(svpSpendCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter =
             new ReleaseCreationInformationGetter(
@@ -873,7 +875,7 @@ class BtcReleaseClientTest {
         btcReleaseClient.start(federation);
       
         // Since the current best block will also be the block that 
-        // contains the pegout tx waiting for signatures hash then 
+        // contains the svp spend tx waiting for signatures hash then 
         // the confirmation difference will never be enough for the 
         // tx to be considered ready to be signed
         when(blockStore.getBlockByHash(any())).thenReturn(bestBlock);
