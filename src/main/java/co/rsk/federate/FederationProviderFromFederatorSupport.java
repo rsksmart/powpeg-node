@@ -184,8 +184,9 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
                 federationConstants.getErpFedActivationDelay());
 
             return Optional.of(federation);
-        } catch (IllegalStateException e) {
+        } catch (Exception e) {
             logger.error("[getProposedFederation] Unable to build the proposed federation", e);
+
             return Optional.empty();
         }
     }
