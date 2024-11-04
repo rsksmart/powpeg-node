@@ -307,7 +307,7 @@ public class BtcReleaseClient {
                 .filter(confirmationDifference -> confirmationDifference >= bridgeConstants.getRsk2BtcMinimumAcceptableConfirmations())
                 .isPresent();
 
-            logger.info("[isReadyToSign] SVP spend tx readiness check for signing: tx hash [{}], Current block [{}], Ready to sign? [{}]",
+            logger.info("[isSvpSpendTxReadyToSign] SVP spend tx readiness check for signing: tx hash [{}], Current block [{}], Ready to sign? [{}]",
                 svpTxHash,
                 currentBlockNumber,
                 isReadyToSign ? "YES" : "NO");
