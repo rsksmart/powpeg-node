@@ -3,7 +3,6 @@ package co.rsk.federate;
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
 import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP284;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP419;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -375,7 +374,6 @@ class FederationProviderFromFederatorSupportTest {
     void getProposedFederation_whenRSKIP419IsNotActivated_shouldReturnEmptyOptional() {
         // Arrange
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(configMock.isActive(RSKIP419)).thenReturn(false);
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
 
         // Act & Assert
@@ -386,7 +384,6 @@ class FederationProviderFromFederatorSupportTest {
     void getProposedFederation_whenProposedFederationSizeIsNonExistent_shouldReturnEmptyOptional() {
         // Arrange
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getProposedFederationSize())
             .thenReturn(Optional.of(FEDERATION_NON_EXISTENT.getCode()));
@@ -400,7 +397,6 @@ class FederationProviderFromFederatorSupportTest {
     void getProposedFederation_whenSomeDataDoesNotExists_shouldReturnEmptyOptional() {
         // Arrange
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
 
         Federation expectedFederation = createP2shErpFederation(
@@ -426,7 +422,6 @@ class FederationProviderFromFederatorSupportTest {
     void getProposedFederation_whenExistsAndIsP2shErpFederation_shouldReturnProposedFederation() {
         // Arrange
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
 
         Federation expectedFederation = createP2shErpFederation(
@@ -461,7 +456,6 @@ class FederationProviderFromFederatorSupportTest {
     void getProposedFederationAddress_whenAddressExists_shouldReturnAddress() {
         // Arrange
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.of(DEFAULT_ADDRESS));
 
@@ -477,7 +471,6 @@ class FederationProviderFromFederatorSupportTest {
     void getProposedFederationAddress_whenNoAddressExists_shouldReturnEmptyOptional() {
         // Arrange
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.empty());
 
