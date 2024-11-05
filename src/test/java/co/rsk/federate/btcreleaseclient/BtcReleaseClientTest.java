@@ -787,7 +787,7 @@ class BtcReleaseClientTest {
     void onBestBlock_whenBothPegoutAndSvpSpendTxWaitingForSignaturesIsAvailable_shouldAddSignatureForBoth() throws Exception {
         // Arrange
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(9).toList();
-        BtcECKey federationKey = keys.get(0);
+        BtcECKey fedKey = keys.get(0);
         FederationMember federationMember = FederationMember.getFederationMembersFromKeys(keys).get(0);
         Federation federation = TestUtils.createFederation(params, keys);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
@@ -797,7 +797,7 @@ class BtcReleaseClientTest {
         StateForFederator stateForFederator = new StateForFederator(rskTxsWaitingForSignatures);
 
         List<BtcECKey> proposedKeys = Stream.generate(BtcECKey::new).limit(8).collect(Collectors.toList());
-        proposedKeys.add(federationKey);
+        proposedKeys.add(fedKey);
         Federation proposedFederation = TestUtils.createFederation(params, proposedKeys);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(1);
@@ -819,7 +819,6 @@ class BtcReleaseClientTest {
         doReturn(Optional.of(stateForProposedFederator)).when(federatorSupport).getStateForProposedFederator();
 
         ECKey ecKey = new ECKey();
-        BtcECKey fedKey = new BtcECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
