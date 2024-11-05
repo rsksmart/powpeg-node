@@ -28,6 +28,7 @@ import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
+import co.rsk.bitcoinj.params.MainNetParams;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
@@ -103,8 +104,8 @@ class BtcReleaseClientTest {
     private final BlockStore blockStore = mock(BlockStore.class);
     private final ReceiptStore receiptStore = mock(ReceiptStore.class);
     private final Block bestBlock = mock(Block.class);
-    private final NetworkParameters params = RegTestParams.get();
-    private final BridgeConstants bridgeConstants = Constants.regtest().bridgeConstants;
+    private final NetworkParameters params = MainNetParams.get();
+    private final BridgeConstants bridgeConstants = Constants.mainnet().bridgeConstants;
 
     private static final List<BtcECKey> erpFedKeys = Arrays.stream(new String[]{
         "03b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b24",
