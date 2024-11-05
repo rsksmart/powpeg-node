@@ -188,8 +188,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
 
     @Override
     public Optional<Address> getProposedFederationAddress() {
-        return Optional.of(federatorSupport)
-            .flatMap(FederatorSupport::getProposedFederationAddress);
+        return federatorSupport.getProposedFederationAddress();
     }
 
     private Federation getExpectedFederation(Federation initialFederation, Address expectedFederationAddress) {
