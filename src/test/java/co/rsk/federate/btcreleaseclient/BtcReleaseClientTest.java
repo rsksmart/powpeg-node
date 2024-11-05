@@ -784,6 +784,122 @@ class BtcReleaseClientTest {
     }
 
     @Test
+    void onBestBlock_whenBothPegoutAndSvpSpendTxWaitingForSignaturesAreAvailableAndFederatorIsOnlyPartOfProposedFederation_shouldOnlyAddOneSignature() throws Exception {
+        // Arrange
+        Federation federation = TestUtils.createFederation(params, 9);
+        BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
+        Keccak256 pegoutCreationRskTxHash = createHash(0);
+        SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
+        rskTxsWaitingForSignatures.put(pegoutCreationRskTxHash, pegout);
+        StateForFederator stateForFederator = new StateForFederator(rskTxsWaitingForSignatures);
+
+        Federation proposedFederation = TestUtils.createFederation(params, 9);
+        FederationMember federationMember = proposedFederation.getMembers().get(0);
+        BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
+        Keccak256 svpSpendCreationRskTxHash = createHash(1);
+        Map.Entry<Keccak256, BtcTransaction> svpSpendTxWFS = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
+        StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(svpSpendTxWFS);
+
+        Ethereum ethereum = mock(Ethereum.class);
+        AtomicReference<EthereumListener> ethereumListener = new AtomicReference<>();
+        doAnswer((InvocationOnMock invocation) -> {
+            ethereumListener.set((EthereumListener) invocation.getArguments()[0]);
+            return null;
+        }).when(ethereum).addListener(any(EthereumListener.class));
+
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        doReturn(federationMember).when(federatorSupport).getFederationMember();
+        // returns pegout waiting for signatures
+        doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
+        // return svp spend tx waiting for signatures
+        doReturn(Optional.of(stateForProposedFederator)).when(federatorSupport).getStateForProposedFederator();
+
+        ECKey ecKey = new ECKey();
+        ECPublicKey signerPublicKey = new ECPublicKey(federationMember.getBtcPublicKey().getPubKey());
+
+        ECDSASigner signer = mock(ECDSASigner.class);
+        doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
+        doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
+        doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
+
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
+            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
+
+        SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
+            mock(ReceiptStore.class)
+        );
+
+        // pegout
+        Keccak256 blockHash = createHash(2);
+        Long blockNumber = 0L;
+        Block block = mock(Block.class);
+        TransactionReceipt txReceipt = mock(TransactionReceipt.class);
+        TransactionInfo txInfo = mock(TransactionInfo.class);
+        when(block.getHash()).thenReturn(blockHash);
+        when(block.getNumber()).thenReturn(blockNumber);
+        when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
+        when(txInfo.getReceipt()).thenReturn(txReceipt);
+        when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        when(receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
+
+        // svp spend tx
+        Keccak256 svpSpendBlockHash = createHash(3);
+        Long svpSpendBlockNumber = 1L;
+        Block svpSpendBlock = mock(Block.class);
+        TransactionReceipt svpSpendTxReceipt = mock(TransactionReceipt.class);
+        TransactionInfo svpSpendTxInfo = mock(TransactionInfo.class);
+        when(svpSpendBlock.getHash()).thenReturn(svpSpendBlockHash);
+        when(svpSpendBlock.getNumber()).thenReturn(svpSpendBlockNumber);
+        when(blockStore.getBlockByHash(svpSpendBlockHash.getBytes())).thenReturn(svpSpendBlock);
+        when(svpSpendTxInfo.getReceipt()).thenReturn(svpSpendTxReceipt);
+        when(svpSpendTxInfo.getBlockHash()).thenReturn(svpSpendBlockHash.getBytes());
+        when(receiptStore.getInMainChain(svpSpendCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(svpSpendTxInfo));
+
+        ReleaseCreationInformationGetter releaseCreationInformationGetter =
+            new ReleaseCreationInformationGetter(
+                receiptStore, blockStore
+            );
+
+        BtcReleaseClientStorageSynchronizer storageSynchronizer =
+            mock(BtcReleaseClientStorageSynchronizer.class);
+        when(storageSynchronizer.isSynced()).thenReturn(true);
+
+        BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
+            ethereum,
+            blockStore,
+            receiptStore,
+            federatorSupport,
+            powpegNodeSystemProperties,
+            mock(NodeBlockProcessor.class)
+        );
+
+        btcReleaseClient.setup(
+            signer,
+            mock(ActivationConfig.class),
+            signerMessageBuilderFactory,
+            releaseCreationInformationGetter,
+            mock(ReleaseRequirementsEnforcer.class),
+            mock(BtcReleaseClientStorageAccessor.class),
+            storageSynchronizer
+        );
+
+        btcReleaseClient.start(proposedFederation);
+
+        // Act
+        ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
+
+        // Assert
+        verify(federatorSupport).addSignature(
+            anyList(),
+            any(byte[].class)
+        );
+    }
+
+
+    @Test
     void onBestBlock_whenBothPegoutAndSvpSpendTxWaitingForSignaturesIsAvailable_shouldAddSignatureForBoth() throws Exception {
         // Arrange
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(9).toList();
