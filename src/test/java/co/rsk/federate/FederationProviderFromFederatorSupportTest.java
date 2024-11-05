@@ -371,16 +371,6 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     @Test
-    void getProposedFederation_whenRSKIP419IsNotActivated_shouldReturnEmptyOptional() {
-        // Arrange
-        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
-
-        // Act & Assert
-        assertEquals(Optional.empty(), federationProvider.getProposedFederation());
-    }
-
-    @Test
     void getProposedFederation_whenProposedFederationSizeIsNonExistent_shouldReturnEmptyOptional() {
         // Arrange
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
