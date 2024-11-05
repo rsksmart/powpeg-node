@@ -713,8 +713,7 @@ class BtcReleaseClientTest {
         doReturn(mock(StateForFederator.class)).when(federatorSupport).getStateForFederator();
 
         ECKey ecKey = new ECKey();
-        BtcECKey fedKey = new BtcECKey();
-        ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
+        ECPublicKey signerPublicKey = new ECPublicKey(federationMember.getBtcPublicKey().getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
@@ -1044,8 +1043,7 @@ class BtcReleaseClientTest {
         doReturn(mock(StateForFederator.class)).when(federatorSupport).getStateForFederator();
 
         ECKey ecKey = new ECKey();
-        BtcECKey fedKey = new BtcECKey();
-        ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
+        ECPublicKey signerPublicKey = new ECPublicKey(federationMember.getBtcPublicKey().getPubKey());
 
         ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
