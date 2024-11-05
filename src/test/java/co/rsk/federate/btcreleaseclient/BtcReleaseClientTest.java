@@ -138,7 +138,7 @@ class BtcReleaseClientTest {
     void start_whenFederationMemberNotPartOfDesiredFederation_shouldThrowException() {
         // Arrange
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -165,7 +165,7 @@ class BtcReleaseClientTest {
     void if_start_not_called_rsk_blockchain_not_listened() {
         Ethereum ethereum = mock(Ethereum.class);
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        Mockito.doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        Mockito.doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -186,7 +186,7 @@ class BtcReleaseClientTest {
         Ethereum ethereum = mock(Ethereum.class);
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        Mockito.doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        Mockito.doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -217,7 +217,7 @@ class BtcReleaseClientTest {
         Ethereum ethereum = mock(Ethereum.class);
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        Mockito.doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        Mockito.doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
       
@@ -251,7 +251,7 @@ class BtcReleaseClientTest {
         Ethereum ethereum = mock(Ethereum.class);
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        Mockito.doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        Mockito.doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -306,7 +306,7 @@ class BtcReleaseClientTest {
         when(signer.sign(eq(BTC.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -412,7 +412,7 @@ class BtcReleaseClientTest {
         doReturn(ethSig).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -512,7 +512,7 @@ class BtcReleaseClientTest {
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -618,7 +618,7 @@ class BtcReleaseClientTest {
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -702,12 +702,12 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenOnlySvpSpendTxWaitingForSignaturesIsAvailable_shouldAddSignature() throws Exception {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 9);
-        FederationMember federationMember = federation.getMembers().get(0);
-        BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, federation);
+        Federation proposedFederation = TestUtils.createFederation(params, 9);
+        FederationMember federationMember = proposedFederation.getMembers().get(0);
+        BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(0);
-        Map.Entry<Keccak256, BtcTransaction> entry = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
-        StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(entry);
+        Map.Entry<Keccak256, BtcTransaction> svpSpendTxWFS = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
+        StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(svpSpendTxWFS);
 
         Ethereum ethereum = mock(Ethereum.class);
         AtomicReference<EthereumListener> ethereumListener = new AtomicReference<>();
@@ -733,7 +733,7 @@ class BtcReleaseClientTest {
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -780,7 +780,7 @@ class BtcReleaseClientTest {
             storageSynchronizer
         );
 
-        btcReleaseClient.start(federation);
+        btcReleaseClient.start(proposedFederation);
 
         // Act
         ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
@@ -795,12 +795,12 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenSvpSpendTxIsNotReadyToBeSigned_shouldNotAddSignature() throws Exception {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 9);
-        FederationMember federationMember = federation.getMembers().get(0);
-        BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, federation);
+        Federation proposedFederation = TestUtils.createFederation(params, 9);
+        FederationMember federationMember = proposedFederation.getMembers().get(0);
+        BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(0);
-        Map.Entry<Keccak256, BtcTransaction> entry = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
-        StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(entry);
+        Map.Entry<Keccak256, BtcTransaction> svpSpendTxWFS = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
+        StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(svpSpendTxWFS);
 
         Ethereum ethereum = mock(Ethereum.class);
         AtomicReference<EthereumListener> ethereumListener = new AtomicReference<>();
@@ -826,7 +826,7 @@ class BtcReleaseClientTest {
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -873,7 +873,7 @@ class BtcReleaseClientTest {
             storageSynchronizer
         );
 
-        btcReleaseClient.start(federation);
+        btcReleaseClient.start(proposedFederation);
       
         // Since the current best block will also be the block that 
         // contains the svp spend tx waiting for signatures hash then 
@@ -910,7 +910,7 @@ class BtcReleaseClientTest {
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -962,7 +962,7 @@ class BtcReleaseClientTest {
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         doReturn(false).when(powpegNodeSystemProperties).isPegoutEnabled();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -1014,7 +1014,7 @@ class BtcReleaseClientTest {
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -1062,7 +1062,7 @@ class BtcReleaseClientTest {
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.regtest()).when(powpegNodeSystemProperties).getNetworkConstants();
+        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
         doReturn(false).when(powpegNodeSystemProperties).isPegoutEnabled();
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -1179,7 +1179,7 @@ class BtcReleaseClientTest {
         releaseInput.setScriptSig(inputScript);
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -1226,7 +1226,7 @@ class BtcReleaseClientTest {
         releaseTx.addInput(releaseInput);
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -1291,7 +1291,7 @@ class BtcReleaseClientTest {
         releaseInput.setScriptSig(inputScript);
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -1377,7 +1377,7 @@ class BtcReleaseClientTest {
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -1414,7 +1414,7 @@ class BtcReleaseClientTest {
         Script redeemScriptToExtract)
     {
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
@@ -1489,7 +1489,7 @@ class BtcReleaseClientTest {
         HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
         when(powpegNodeSystemProperties.isPegoutEnabled()).thenReturn(true);
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
@@ -1600,7 +1600,7 @@ class BtcReleaseClientTest {
 
     private BtcReleaseClient createBtcClient() {
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.regtest());
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
         when(powpegNodeSystemProperties.isPegoutEnabled()).thenReturn(true); // Enabled by default
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
