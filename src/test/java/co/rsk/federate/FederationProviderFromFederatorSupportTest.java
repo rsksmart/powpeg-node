@@ -373,8 +373,6 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenProposedFederationSizeIsNonExistent_shouldReturnEmptyOptional() {
         // Arrange
-        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getProposedFederationSize())
             .thenReturn(Optional.of(FEDERATION_NON_EXISTENT.getCode()));
 
@@ -386,9 +384,6 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenSomeDataDoesNotExists_shouldReturnEmptyOptional() {
         // Arrange
-        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
-
         Federation expectedFederation = createP2shErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000));
         Address expectedFederationAddress = expectedFederation.getAddress();
@@ -411,9 +406,6 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenExistsAndIsP2shErpFederation_shouldReturnProposedFederation() {
         // Arrange
-        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
-
         Federation expectedFederation = createP2shErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000));
         Address expectedFederationAddress = expectedFederation.getAddress();
@@ -445,8 +437,6 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederationAddress_whenAddressExists_shouldReturnAddress() {
         // Arrange
-        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.of(DEFAULT_ADDRESS));
 
         // Act
@@ -460,8 +450,6 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederationAddress_whenNoAddressExists_shouldReturnEmptyOptional() {
         // Arrange
-        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.empty());
 
         // Act
