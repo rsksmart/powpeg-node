@@ -48,7 +48,7 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
         }
 
         try {
-            // start BtcReleaseClient with proposed federation
+            // start {@code BtcReleaseClient} with proposed federation
             // so it can sign svp spend tx
             btcReleaseClient.start(newProposedFederation);
           
