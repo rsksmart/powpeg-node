@@ -101,6 +101,11 @@ class FederationWatcherTest {
             public void onRetiringFederationChange(Federation newFederation) {
                 retiringCalls.incrementAndGet();
             }
+
+            @Override
+            public void onProposedFederationChange(Federation newFederation) {
+                throw new UnsupportedOperationException();
+            }
         });
         rskListener.onBestBlock(null, null);
 
@@ -136,6 +141,11 @@ class FederationWatcherTest {
             public void onRetiringFederationChange(Federation newFederation) {
                 retiringCalls.incrementAndGet();
             }
+
+            @Override
+            public void onProposedFederationChange(Federation newFederation) {
+                throw new UnsupportedOperationException();
+            }
         });
         rskListener.onBestBlock(null, null);
 
@@ -169,6 +179,11 @@ class FederationWatcherTest {
             public void onRetiringFederationChange(Federation newFederation) {
                 retiringCalls.incrementAndGet();
             }
+
+            @Override
+            public void onProposedFederationChange(Federation newFederation) {
+                throw new UnsupportedOperationException();
+            }
         });
         rskListener.onBestBlock(null, null);
 
@@ -201,6 +216,11 @@ class FederationWatcherTest {
             @Override
             public void onRetiringFederationChange(Federation newFederation) {
                 retiringCalls.incrementAndGet();
+            }
+
+            @Override
+            public void onProposedFederationChange(Federation newFederation) {
+                throw new UnsupportedOperationException();
             }
         });
         rskListener.onBestBlock(null, null);
@@ -237,6 +257,11 @@ class FederationWatcherTest {
                 assertEquals(FIRST_FEDERATION, newFederation);
                 retiringCalls.incrementAndGet();
             }
+
+            @Override
+            public void onProposedFederationChange(Federation newFederation) {
+                throw new UnsupportedOperationException();
+            }
         });
         rskListener.onBestBlock(null, null);
 
@@ -272,6 +297,11 @@ class FederationWatcherTest {
                 assertNull(newFederation);
                 retiringCalls.incrementAndGet();
             }
+
+            @Override
+            public void onProposedFederationChange(Federation newFederation) {
+                throw new UnsupportedOperationException();
+            }
         });
         rskListener.onBestBlock(null, null);
 
@@ -306,6 +336,11 @@ class FederationWatcherTest {
             public void onRetiringFederationChange(Federation newFederation) {
                 assertEquals(SECOND_FEDERATION, newFederation);
                 retiringCalls.incrementAndGet();
+            }
+
+            @Override
+            public void onProposedFederationChange(Federation newFederation) {
+                throw new UnsupportedOperationException();
             }
         });
         rskListener.onBestBlock(null, null);
