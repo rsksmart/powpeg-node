@@ -4,13 +4,15 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public enum PowpegNodeConfigParameter {
-  FEDERATOR_ENABLED("federator.enabled", Boolean.toString(true)),
-  PEGOUT_ENABLED("federator.pegout.enabled", Boolean.toString(true)),
-  UPDATE_BRIDGE_TIMER_ENABLED("federator.updateBridgeTimerEnabled", Boolean.toString(true)),
-  UPDATE_BRIDGE_BTC_BLOCKCHAIN("federator.updateBridgeBtcBlockchain", Boolean.toString(true)),
-  UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS("federator.updateBridgeBtcCoinbaseTransactions", Boolean.toString(true)),
-  UPDATE_BRIDGE_BTC_TRANSACTIONS("federator.updateBridgeBtcTransactions", Boolean.toString(true)),
-  UPDATE_COLLECTIONS("federator.updateCollections", Boolean.toString(true)),
+  FEDERATOR_ENABLED("federator.enabled", Boolean.TRUE.toString()),
+  // when enabled the federator will be able to attempt signing
+  // rsk transactions waiting for signatures reported by the Bridge
+  PEGOUT_ENABLED("federator.pegout.enabled", Boolean.TRUE.toString()),
+  UPDATE_BRIDGE_TIMER_ENABLED("federator.updateBridgeTimerEnabled", Boolean.TRUE.toString()),
+  UPDATE_BRIDGE_BTC_BLOCKCHAIN("federator.updateBridgeBtcBlockchain", Boolean.TRUE.toString()),
+  UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS("federator.updateBridgeBtcCoinbaseTransactions", Boolean.TRUE.toString()),
+  UPDATE_BRIDGE_BTC_TRANSACTIONS("federator.updateBridgeBtcTransactions", Boolean.TRUE.toString()),
+  UPDATE_COLLECTIONS("federator.updateCollections", Boolean.TRUE.toString()),
   GAS_PRICE("federator.gasPrice", "0"),
   GAS_PRICE_PROVIDER("federator.gasPriceProvider", ""),
   AMOUNT_HEADERS("federator.amountOfHeadersToSend", "25"),
