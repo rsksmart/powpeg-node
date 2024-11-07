@@ -140,17 +140,6 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         return federatorSupport.getProposedFederationAddress();
     }
 
-    @Override
-    public List<Federation> getLiveFederations() {
-        List<Federation> result = new ArrayList<>();
-        result.add(getActiveFederation());
-
-        Optional<Federation> retiringFederation = getRetiringFederation();
-        retiringFederation.ifPresent(result::add);
-
-        return result;
-    }
-
     private Federation getExpectedFederation(Federation initialFederation, Address expectedFederationAddress) {
         // First check if the initial federation address matches the expected one
         if (initialFederation.getAddress().equals(expectedFederationAddress)) {
