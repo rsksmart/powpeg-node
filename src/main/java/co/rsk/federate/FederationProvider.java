@@ -19,7 +19,6 @@ package co.rsk.federate;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.peg.federation.Federation;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -41,9 +40,4 @@ public interface FederationProvider {
 
     // The currently "proposed" federation's address
     Optional<Address> getProposedFederationAddress();
-
-    // The federations that are "live", that is, are still
-    // operational. This should be the active federation
-    // plus the retiring federation, if one exists
-    List<Federation> getLiveFederations();
 }
