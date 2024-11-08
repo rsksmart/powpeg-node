@@ -100,8 +100,6 @@ public class BtcReleaseClient {
     private static final DataWord SINGLE_RELEASE_BTC_TOPIC_SOLIDITY = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
 
     private final Ethereum ethereum;
-    private final BlockStore blockStore;
-    private final ReceiptStore receiptStore;
     private final FederatorSupport federatorSupport;
     private final Set<Federation> observedFederations;
     private final NodeBlockProcessor nodeBlockProcessor;
@@ -121,15 +119,11 @@ public class BtcReleaseClient {
 
     public BtcReleaseClient(
         Ethereum ethereum,
-        BlockStore blockStore,
-        ReceiptStore receiptStore,
         FederatorSupport federatorSupport,
         PowpegNodeSystemProperties systemProperties,
         NodeBlockProcessor nodeBlockProcessor
     ) {
         this.ethereum = ethereum;
-        this.blockStore = blockStore;
-        this.receiptStore = receiptStore;
         this.federatorSupport = federatorSupport;
         this.observedFederations = new HashSet<>();
         this.blockListener = new BtcReleaseEthereumListener();
@@ -248,7 +242,7 @@ public class BtcReleaseClient {
             // before attempting to sign any pegouts.
             federatorSupport.getStateForProposedFederator()
                 .map(StateForProposedFederator::getSvpSpendTxWaitingForSignatures)
-                .filter(svpSpendTxWaitingForSignatures -> isSVPSpendTxReadyToSign(block.getNumber(), svpSpendTxWaitingForSignatures.getKey()))
+                .filter(svpSpendTxWaitingForSignatures -> isSVPSpendTxReadyToSign(block.getNumber(), svpSpendTxWaitingForSignatures))
                 .ifPresent(svpSpendTxReadyToBeSigned -> processReleases(Set.of(svpSpendTxReadyToBeSigned)));
 
             // Processing transactions waiting for signatures on best block only still "works",
@@ -297,23 +291,30 @@ public class BtcReleaseClient {
          * @return {@code true} if the transaction has the required number of confirmations and is ready to be signed;
          *         {@code false} otherwise
          */
-        private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Keccak256 svpTxHash) {
-            boolean isReadyToSign = Optional.ofNullable(svpTxHash)
-                .map(Keccak256::getBytes)
-                .flatMap(txHash -> receiptStore.getInMainChain(txHash, blockStore))
-                .map(TransactionInfo::getBlockHash)
-                .map(blockStore::getBlockByHash)
-                .map(Block::getNumber)
-                .map(blockNumberWithSvpSpendTx -> currentBlockNumber - blockNumberWithSvpSpendTx)
-                .filter(confirmationDifference -> confirmationDifference >= bridgeConstants.getRsk2BtcMinimumAcceptableConfirmations())
-                .isPresent();
+        private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Map.Entry<Keccak256, BtcTransaction> svpSpendTx) {
+            try {
+                int version = signer.getVersionForKeyId(BTC.getKeyId());
+                ReleaseCreationInformation releaseCreationInformation = releaseCreationInformationGetter.getTxInfoToSign(
+                    version, svpSpendTx.getKey(), svpSpendTx.getValue());
 
-            logger.info("[isSvpSpendTxReadyToSign] SVP spend tx readiness check for signing: tx hash [{}], Current block [{}], Ready to sign? [{}]",
-                svpTxHash,
-                currentBlockNumber,
-                isReadyToSign ? "YES" : "NO");
+                boolean isReadyToSign = Optional.ofNullable(releaseCreationInformation)
+                    .map(ReleaseCreationInformation::getPegoutCreationBlock)
+                    .map(Block::getNumber)
+                    .map(blockNumberWithSvpSpendTx -> currentBlockNumber - blockNumberWithSvpSpendTx)
+                    .filter(confirmationDifference -> confirmationDifference >= bridgeConstants.getRsk2BtcMinimumAcceptableConfirmations())
+                    .isPresent();
+                
+                logger.info("[isSvpSpendTxReadyToSign] SVP spend tx readiness check for signing: tx hash [{}], Current block [{}], Ready to sign? [{}]",
+                    svpSpendTx.getKey(),
+                    currentBlockNumber,
+                    isReadyToSign ? "YES" : "NO");
 
-            return isReadyToSign;
+                return isReadyToSign;
+            } catch (Exception e) {
+                logger.error("[isSvpSpendTxReadyToSign] Error ocurred while checking if SVP spend tx is ready to be signed", e);
+               
+                return false;
+            }
         }
 
         private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
