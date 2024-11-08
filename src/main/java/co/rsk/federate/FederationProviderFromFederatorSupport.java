@@ -98,13 +98,12 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     @Override
     public Optional<Federation> getRetiringFederation() {
         Integer federationSize = federatorSupport.getRetiringFederationSize();
-        Optional<Address> optionalRetiringFederationAddress = getRetiringFederationAddress();
 
-        if (federationSize == FEDERATION_NON_EXISTENT.getCode() || optionalRetiringFederationAddress.isEmpty()) {
+        if (federationSize == FEDERATION_NON_EXISTENT.getCode()) {
             return Optional.empty();
         }
 
-        Address retiringFederationAddress = optionalRetiringFederationAddress.get();
+        Address retiringFederationAddress = getRetiringFederationAddress().orElse(null);
         boolean useTypedPublicKeyGetter = federatorSupport.getConfigForBestBlock().isActive(RSKIP123);
         List<FederationMember> members = new ArrayList<>();
         for (int i = 0; i < federationSize; i++) {
