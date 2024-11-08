@@ -228,6 +228,7 @@ public class BtcReleaseClient {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
             if (!isPegoutEnabled) {
+                logger.warn("[onBestBlock] Processing of RSK transactions waiting for signatures is disabled");
                 return;
             }
 
