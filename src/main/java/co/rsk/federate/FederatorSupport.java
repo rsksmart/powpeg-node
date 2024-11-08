@@ -291,7 +291,7 @@ public class FederatorSupport {
 
         return Optional.ofNullable(creationTime)
             .map(BigInteger::longValue)
-            .map(Instant::ofEpochMilli);
+            .map(Instant::ofEpochSecond);
     }
 
     public Optional<Long> getProposedFederationCreationBlockNumber() {
