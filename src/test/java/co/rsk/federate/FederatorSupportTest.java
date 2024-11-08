@@ -4,27 +4,32 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import co.rsk.peg.constants.BridgeMainNetConstants;
-import co.rsk.peg.constants.BridgeRegTestConstants;
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
+import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.crypto.Keccak256;
 import co.rsk.federate.adapter.ThinConverter;
+import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.config.TestSystemProperties;
+import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeMethods;
-import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import co.rsk.peg.StateForProposedFederator;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.Coin;
@@ -145,6 +150,37 @@ class FederatorSupportTest {
 
         assertTrue(fs.hasBlockCoinbaseInformed(Sha256Hash.ZERO_HASH));
     }
+
+    @Test
+    void getStateForProposedFederator_whenCallTxReturnsNull_shouldReturnEmptyOptional() {
+        // Arrange
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_STATE_FOR_SVP_CLIENT)))
+            .thenReturn(null);
+
+        // Act
+        Optional<StateForProposedFederator> result = federatorSupport.getStateForProposedFederator();
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getStateForProposedFederator_whenCallTxReturnsValidData_shouldReturnStateForProposedFederator() {
+        // Arrange
+        Keccak256 rskTxHash = TestUtils.createHash(1);
+        BtcTransaction btcTx = new BtcTransaction(NETWORK_PARAMETERS);
+        Map.Entry<Keccak256, BtcTransaction> svpSpendTx = new AbstractMap.SimpleEntry<>(rskTxHash, btcTx);
+        StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(svpSpendTx); 
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_STATE_FOR_SVP_CLIENT)))
+            .thenReturn(stateForProposedFederator.encodeToRlp());
+
+        // Act
+        Optional<StateForProposedFederator> result = federatorSupport.getStateForProposedFederator();
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(svpSpendTx, result.get().getSvpSpendTxWaitingForSignatures());
+    }
     
     @Test
     void getProposedFederationAddress_whenAddressStringIsEmpty_shouldReturnEmptyOptional() {
@@ -160,7 +196,7 @@ class FederatorSupportTest {
     }
 
     @Test
-    void getProposedFederation_whenAddressStringIsNull_shouldReturnEmptyOptional() {
+    void getProposedFederationAddress_whenAddressStringIsNull_shouldReturnEmptyOptional() {
         // Arrange
         when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_ADDRESS)))
             .thenReturn(null);
@@ -173,7 +209,7 @@ class FederatorSupportTest {
     }
 
     @Test
-    void getProposedFederation_whenAddressStringIsValid_shouldReturnAddress() {
+    void getProposedFederationAddress_whenAddressStringIsValid_shouldReturnAddress() {
         // Arrange
         when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_ADDRESS)))
             .thenReturn(DEFAULT_ADDRESS.toBase58());
