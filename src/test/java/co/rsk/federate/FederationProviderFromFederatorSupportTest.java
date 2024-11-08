@@ -231,16 +231,6 @@ class FederationProviderFromFederatorSupportTest {
 
         assertEquals(Optional.empty(), federationProvider.getRetiringFederation());
         verify(federatorSupportMock).getRetiringFederationSize();
-        verify(federatorSupportMock).getRetiringFederationAddress();
-    }
-
-    @Test
-    void getRetiringFederation_no_address() {
-        when(federatorSupportMock.getRetiringFederationSize()).thenReturn(5);
-
-        assertEquals(Optional.empty(), federationProvider.getRetiringFederation());
-        verify(federatorSupportMock).getRetiringFederationSize();
-        verify(federatorSupportMock).getRetiringFederationAddress();
     }
 
     @Test
