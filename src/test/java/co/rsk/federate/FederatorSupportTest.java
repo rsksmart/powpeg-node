@@ -331,7 +331,7 @@ class FederatorSupportTest {
 
         // Assert
         assertTrue(result.isPresent());
-        assertEquals(expectedCreationTime.longValue(), result.get().toEpochMilli());
+        assertEquals(expectedCreationTime.longValue(), result.get().getEpochSecond());
     }
 
     @Test
