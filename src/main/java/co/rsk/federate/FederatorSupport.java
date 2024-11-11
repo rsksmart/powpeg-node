@@ -11,6 +11,7 @@ import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.peg.Bridge;
 import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.StateForFederator;
+import co.rsk.peg.StateForProposedFederator;
 import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Sha256Hash;
@@ -35,13 +36,10 @@ public class FederatorSupport {
 
     private final Blockchain blockchain;
     private final PowpegNodeSystemProperties config;
-
     private final NetworkParameters parameters;
-
     private final BridgeTransactionSender bridgeTransactionSender;
 
     private ECDSASigner signer;
-
     private FederationMember federationMember;
     private RskAddress federatorAddress;
 
@@ -51,9 +49,7 @@ public class FederatorSupport {
             BridgeTransactionSender bridgeTransactionSender) {
         this.blockchain = blockchain;
         this.config = config;
-
         this.parameters = config.getNetworkConstants().getBridgeConstants().getBtcParams();
-
         this.bridgeTransactionSender = bridgeTransactionSender;
     }
 
@@ -150,6 +146,13 @@ public class FederatorSupport {
         return new StateForFederator(result, this.parameters);
     }
 
+    public Optional<StateForProposedFederator> getStateForProposedFederator() {
+        byte[] result = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_STATE_FOR_SVP_CLIENT);
+
+        return Optional.ofNullable(result)
+            .map(rlpData -> new StateForProposedFederator(rlpData, parameters));
+    }
 
     public void addSignature(List<byte[]> signatures, byte[] rskTxHash) {
         byte[] federatorPublicKeyBytes = federationMember.getBtcPublicKey().getPubKey();
