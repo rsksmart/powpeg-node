@@ -28,6 +28,7 @@ public class FederationWatcher {
 
     private Federation activeFederation;
     private Federation retiringFederation;
+    private Federation proposedFederation;
 
     /**
      * Constructs a new {@code FederationWatcher} with the specified RSK client.
@@ -85,6 +86,7 @@ public class FederationWatcher {
     private void updateState() {
         updateActiveFederation();
         updateRetiringFederation();
+        updateProposedFederation();
     }
 
     private void updateActiveFederation() {
@@ -124,6 +126,25 @@ public class FederationWatcher {
 
             federationWatcherListener.onRetiringFederationChange(currentlyRetiringFederation);
             this.retiringFederation = currentlyRetiringFederation;
+        }
+    }    
+
+    private void updateProposedFederation() {
+        Optional<Address> currentlyProposedFederationAddress = federationProvider.getProposedFederationAddress();
+        Optional<Address> oldProposedFederationAddress = Optional.ofNullable(proposedFederation)
+            .map(Federation::getAddress);
+
+        boolean hasProposedFederationChanged = !currentlyProposedFederationAddress.equals(oldProposedFederationAddress);
+
+        if (hasProposedFederationChanged) {
+            logger.info("[updateRetiringFederation] Proposed federation changed from {} to {}",
+                    oldProposedFederationAddress.orElse(null),
+                    currentlyProposedFederationAddress.orElse(null));
+
+            Federation currentlyProposedFederation = federationProvider.getProposedFederation().orElse(null);
+
+            federationWatcherListener.onProposedFederationChange(currentlyProposedFederation);
+            this.proposedFederation = currentlyProposedFederation;
         }
     }    
 }
