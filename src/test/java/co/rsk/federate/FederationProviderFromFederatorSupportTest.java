@@ -234,6 +234,19 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     @Test
+    void getRetiringFederation_whenAddressNotPresent_shouldThrowIllegalStateException() {
+        // Arrange
+        when(federatorSupportMock.getRetiringFederationSize()).thenReturn(3);
+        when(federatorSupportMock.getRetiringFederationAddress()).thenReturn(Optional.empty()); // Address is missing
+    
+        // Act
+        Optional<Federation> retiringFederation = federationProvider.getRetiringFederation();
+
+        // Assert
+        assertTrue(retiringFederation.isEmpty());
+    }
+
+    @Test
     void getRetiringFederation_present_beforeMultikey() {
         ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
         when(configMock.isActive(RSKIP123)).thenReturn(false);
