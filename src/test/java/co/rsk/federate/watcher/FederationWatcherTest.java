@@ -68,7 +68,7 @@ class FederationWatcherTest {
     private final FederationWatcher federationWatcher = new FederationWatcher(rsk);
 
     @Test
-    void whenFederationWatcherIsSetUp_shouldAddListener() throws Exception {
+    void onBestBlock_whenFederationWatcherIsSetUp_shouldAddListener() throws Exception {
         // Act
         federationWatcher.start(federationProvider, federationWatcherListener);
 
@@ -79,279 +79,162 @@ class FederationWatcherTest {
     }
 
     @Test
-    void whenNoActiveFederation_shouldTriggerActiveFederationChange() throws Exception {
+    void onBestBlock_whenNoActiveFederation_shouldTriggerActiveFederationChange() throws Exception {
         // Arrange
         var rskListener = setupAndGetRskListener(null, null);
-        var activeCalls = new AtomicInteger(0);
-        var retiringCalls = new AtomicInteger(0);
-
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getActiveFederation()).thenReturn(FIRST_FEDERATION);
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
         // Act
-        federationWatcher.start(federationProvider, new FederationWatcherListener() {
-            @Override
-            public void onActiveFederationChange(Federation newFederation) {
-                assertEquals(FIRST_FEDERATION, newFederation);
-                activeCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onRetiringFederationChange(Federation newFederation) {
-                retiringCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onProposedFederationChange(Federation newFederation) {
-                throw new UnsupportedOperationException();
-            }
-        });
         rskListener.onBestBlock(null, null);
 
         // Assert
-        assertEquals(1, activeCalls.get());
-        assertEquals(0, retiringCalls.get());
         verify(federationProvider).getActiveFederationAddress();
         verify(federationProvider).getRetiringFederationAddress();
+        verify(federationWatcherListener).onActiveFederationChange(FIRST_FEDERATION);
+
         verify(federationProvider).getActiveFederation();
         verify(federationProvider, never()).getRetiringFederation();
+        verify(federationWatcherListener, never()).onRetiringFederationChange(any(Federation.class));
     }
 
     @Test
-    void whenActiveFederationChangesFromActiveToOtherActive_shouldTriggerActiveFederationChange() throws Exception {
+    void onBestBlock_whenActiveFederationChangesFromActiveToOtherActive_shouldTriggerActiveFederationChange() throws Exception {
         // Arrange
         var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null);
-        var activeCalls = new AtomicInteger(0);
-        var retiringCalls = new AtomicInteger(0);
-
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getActiveFederation()).thenReturn(SECOND_FEDERATION);
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
         // Act
-        federationWatcher.start(federationProvider, new FederationWatcherListener() {
-            @Override
-            public void onActiveFederationChange(Federation newFederation) {
-                assertEquals(SECOND_FEDERATION, newFederation);
-                activeCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onRetiringFederationChange(Federation newFederation) {
-                retiringCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onProposedFederationChange(Federation newFederation) {
-                throw new UnsupportedOperationException();
-            }
-        });
         rskListener.onBestBlock(null, null);
 
         // Assert
-        assertEquals(1, activeCalls.get());
-        assertEquals(0, retiringCalls.get());
         verify(federationProvider).getActiveFederationAddress();
-        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider).getActiveFederation();
+        verify(federationWatcherListener).onActiveFederationChange(SECOND_FEDERATION);
+
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getRetiringFederation();
+        verify(federationWatcherListener, never()).onRetiringFederationChange(any(Federation.class));
     }
 
     @Test
-    void whenNoActiveFederationChange_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
+    void onBestBlock_whenNoActiveFederationChange_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
         // Arrange
         var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null);
-        var activeCalls = new AtomicInteger(0);
-        var retiringCalls = new AtomicInteger(0);
-
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
         // Act
-        federationWatcher.start(federationProvider, new FederationWatcherListener() {
-            @Override
-            public void onActiveFederationChange(Federation newFederation) {
-                activeCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onRetiringFederationChange(Federation newFederation) {
-                retiringCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onProposedFederationChange(Federation newFederation) {
-                throw new UnsupportedOperationException();
-            }
-        });
         rskListener.onBestBlock(null, null);
 
         // Assert
-        assertEquals(0, activeCalls.get());
-        assertEquals(0, retiringCalls.get());
         verify(federationProvider).getActiveFederationAddress();
-        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
+        verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
+
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getRetiringFederation();
+        verify(federationWatcherListener, never()).onRetiringFederationChange(any(Federation.class));
     }
 
     @Test
-    void whenNoActiveAndRetiringChangeInFederation_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
+    void onBestBlock_whenNoActiveAndRetiringChangeInFederation_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
         // Arrange
         var rskListener = setupAndGetRskListener(FIRST_FEDERATION, SECOND_FEDERATION);
-        var activeCalls = new AtomicInteger(0);
-        var retiringCalls = new AtomicInteger(0);
-
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
 
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
         // Act
-        federationWatcher.start(federationProvider, new FederationWatcherListener() {
-            @Override
-            public void onActiveFederationChange(Federation newFederation) {
-                activeCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onRetiringFederationChange(Federation newFederation) {
-                retiringCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onProposedFederationChange(Federation newFederation) {
-                throw new UnsupportedOperationException();
-            }
-        });
         rskListener.onBestBlock(null, null);
 
         // Assert
-        assertEquals(0, activeCalls.get());
-        assertEquals(0, retiringCalls.get());
         verify(federationProvider).getActiveFederationAddress();
-        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
+        verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
+
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getRetiringFederation();
+        verify(federationWatcherListener, never()).onRetiringFederationChange(any(Federation.class));
     }
 
     @Test
-    void whenActiveFederationChangesToRetiring_shouldTriggerRetiringFederationChange() throws Exception {
+    void onBestBlock_whenActiveFederationChangesToRetiring_shouldTriggerRetiringFederationChange() throws Exception {
         // Arrange
         var rskListener = setupAndGetRskListener(SECOND_FEDERATION, null);
-        var activeCalls = new AtomicInteger(0);
-        var retiringCalls = new AtomicInteger(0);
-
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(FIRST_FEDERATION.getAddress()));
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(FIRST_FEDERATION));
 
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
         // Act
-        federationWatcher.start(federationProvider, new FederationWatcherListener() {
-            @Override
-            public void onActiveFederationChange(Federation newFederation) {
-                activeCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onRetiringFederationChange(Federation newFederation) {
-                assertEquals(FIRST_FEDERATION, newFederation);
-                retiringCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onProposedFederationChange(Federation newFederation) {
-                throw new UnsupportedOperationException();
-            }
-        });
         rskListener.onBestBlock(null, null);
 
         // Assert
-        assertEquals(0, activeCalls.get());
-        assertEquals(1, retiringCalls.get());
         verify(federationProvider).getActiveFederationAddress();
-        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
+        verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
+
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider).getRetiringFederation();
+        verify(federationWatcherListener).onRetiringFederationChange(FIRST_FEDERATION);
     }
 
     @Test
-    void whenRetiringFederationChangesToNone_shouldTriggerRetiringFederationChange() throws Exception {
+    void onBestBlock_whenRetiringFederationChangesToNone_shouldTriggerRetiringFederationChange() throws Exception {
         // Arrange
         var rskListener = setupAndGetRskListener(SECOND_FEDERATION, FIRST_FEDERATION);
-        var activeCalls = new AtomicInteger(0);
-        var retiringCalls = new AtomicInteger(0);
-
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.empty());
 
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
         // Act
-        federationWatcher.start(federationProvider, new FederationWatcherListener() {
-            @Override
-            public void onActiveFederationChange(Federation newFederation) {
-                activeCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onRetiringFederationChange(Federation newFederation) {
-                assertNull(newFederation);
-                retiringCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onProposedFederationChange(Federation newFederation) {
-                throw new UnsupportedOperationException();
-            }
-        });
         rskListener.onBestBlock(null, null);
 
         // Assert
-        assertEquals(0, activeCalls.get());
-        assertEquals(1, retiringCalls.get());
         verify(federationProvider).getActiveFederationAddress();
-        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
+        verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
+
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider).getRetiringFederation();
+        verify(federationWatcherListener).onRetiringFederationChange(null);
     }
 
     @Test
-    void whenRetiringFederationChangesToOtherRetiring_shouldTriggerRetiringFederationChange() throws Exception {
+    void onBestBlock_whenRetiringFederationChangesToOtherRetiring_shouldTriggerRetiringFederationChange() throws Exception {
         // Arrange
         var rskListener = setupAndGetRskListener(THIRD_FEDERATION, FIRST_FEDERATION);
-        var activeCalls = new AtomicInteger(0);
-        var retiringCalls = new AtomicInteger(0);
-
         when(federationProvider.getActiveFederationAddress()).thenReturn(THIRD_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(SECOND_FEDERATION));
 
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
         // Act
-        federationWatcher.start(federationProvider, new FederationWatcherListener() {
-            @Override
-            public void onActiveFederationChange(Federation newFederation) {
-                activeCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onRetiringFederationChange(Federation newFederation) {
-                assertEquals(SECOND_FEDERATION, newFederation);
-                retiringCalls.incrementAndGet();
-            }
-
-            @Override
-            public void onProposedFederationChange(Federation newFederation) {
-                throw new UnsupportedOperationException();
-            }
-        });
         rskListener.onBestBlock(null, null);
 
         // Assert
-        assertEquals(0, activeCalls.get());
-        assertEquals(1, retiringCalls.get());
         verify(federationProvider).getActiveFederationAddress();
-        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
+        verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
+
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider).getRetiringFederation();
+        verify(federationWatcherListener).onRetiringFederationChange(SECOND_FEDERATION);
     }
 
     private EthereumListenerAdapter setupAndGetRskListener(
