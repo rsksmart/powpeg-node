@@ -76,6 +76,122 @@ class FederationWatcherTest {
     }
 
     @Test
+    void onBestBlock_whenNoActiveFederationAndProposedFederationExists_shouldTriggerActiveAndProposedFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(null, null, null);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
+        when(federationProvider.getProposedFederation()).thenReturn(Optional.of(SECOND_FEDERATION));
+        when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
+        when(federationProvider.getActiveFederation()).thenReturn(FIRST_FEDERATION);
+        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
+
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
+        // Act
+        rskListener.onBestBlock(null, null);
+
+        // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider).getProposedFederation();
+        verify(federationWatcherListener).onProposedFederationChange(SECOND_FEDERATION);
+
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider).getActiveFederation();
+        verify(federationWatcherListener).onActiveFederationChange(FIRST_FEDERATION);
+
+        verify(federationProvider).getActiveFederation();
+        verify(federationProvider, never()).getRetiringFederation();
+        verify(federationWatcherListener, never()).onRetiringFederationChange(any(Federation.class));
+    }
+
+    @Test
+    void onBestBlock_whenProposedFederationChangesFromProposedToOtherProposed_shouldTriggerProposedFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, SECOND_FEDERATION);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.of(THIRD_FEDERATION.getAddress()));
+        when(federationProvider.getProposedFederation()).thenReturn(Optional.of(THIRD_FEDERATION));
+        when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
+        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
+
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
+        // Act
+        rskListener.onBestBlock(null, null);
+
+        // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider).getProposedFederation();
+        verify(federationWatcherListener).onProposedFederationChange(THIRD_FEDERATION);
+
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider, never()).getActiveFederation();
+        verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
+
+        verify(federationProvider).getRetiringFederationAddress();
+        verify(federationProvider, never()).getRetiringFederation();
+        verify(federationWatcherListener, never()).onRetiringFederationChange(any(Federation.class));
+    }
+
+    @Test
+    void onBestBlock_whenProposedFederationChangesFromProposedToNone_shouldTriggerProposedFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, SECOND_FEDERATION);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
+        when(federationProvider.getProposedFederation()).thenReturn(Optional.empty());
+        when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
+        when(federationProvider.getActiveFederation()).thenReturn(FIRST_FEDERATION);
+        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
+
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
+        // Act
+        rskListener.onBestBlock(null, null);
+
+        // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider).getProposedFederation();
+        verify(federationWatcherListener).onProposedFederationChange(null);
+
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider, never()).getActiveFederation();
+        verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
+
+        verify(federationProvider).getRetiringFederationAddress();
+        verify(federationProvider, never()).getRetiringFederation();
+        verify(federationWatcherListener, never()).onRetiringFederationChange(any(Federation.class));
+    }
+
+    @Test
+    void onBestBlock_whenProposedFederationChangesToActive_shouldTriggerActiveAndProposedFederationChange() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, SECOND_FEDERATION);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
+        when(federationProvider.getProposedFederation()).thenReturn(Optional.empty());
+        when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
+        when(federationProvider.getActiveFederation()).thenReturn(SECOND_FEDERATION);
+        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
+        when(federationProvider.getRetiringFederation()).thenReturn(Optional.empty());
+
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
+        // Act
+        rskListener.onBestBlock(null, null);
+
+        // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider).getProposedFederation();
+        verify(federationWatcherListener).onProposedFederationChange(null);
+
+        verify(federationProvider).getActiveFederationAddress();
+        verify(federationProvider).getActiveFederation();
+        verify(federationWatcherListener).onActiveFederationChange(SECOND_FEDERATION);
+
+        verify(federationProvider).getRetiringFederationAddress();
+        verify(federationProvider, never()).getRetiringFederation();
+        verify(federationWatcherListener, never()).onProposedFederationChange(any(Federation.class));
+    }
+
+    @Test
     void onBestBlock_whenNoActiveFederation_shouldTriggerActiveFederationChange() throws Exception {
         // Arrange
         var rskListener = setupAndGetRskListener(null, null, null);
