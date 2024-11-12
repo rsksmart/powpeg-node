@@ -43,7 +43,7 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
     public void onProposedFederationChange(Federation newProposedFederation) {
         if (newProposedFederation == null) {
             logger.info(
-                "[onProposedFederationChange] New proposed federation changed to null");
+                "[onProposedFederationChange] New proposed federation changed to none");
             return;
         }
 
