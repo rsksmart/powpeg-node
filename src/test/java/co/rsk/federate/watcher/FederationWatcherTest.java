@@ -99,15 +99,15 @@ class FederationWatcherTest {
         verify(federationProvider).getActiveFederation();
         verify(federationWatcherListener).onActiveFederationChange(FIRST_FEDERATION);
 
-        verify(federationProvider).getActiveFederation();
+        verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider, never()).getRetiringFederation();
         verify(federationWatcherListener, never()).onRetiringFederationChange(any(Federation.class));
     }
 
     @Test
-    void onBestBlock_whenProposedFederationChangesFromProposedToOtherProposed_shouldTriggerProposedFederationChange() throws Exception {
+    void onBestBlock_whenProposedFederationChanged_shouldTriggerProposedFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, SECOND_FEDERATION);
+        var rskListener = setupAndGetRskListener(SECOND_FEDERATION, FIRST_FEDERATION, null);
         when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.of(THIRD_FEDERATION.getAddress()));
         when(federationProvider.getProposedFederation()).thenReturn(Optional.of(THIRD_FEDERATION));
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
@@ -133,9 +133,9 @@ class FederationWatcherTest {
     }
 
     @Test
-    void onBestBlock_whenProposedFederationChangesFromProposedToNone_shouldTriggerProposedFederationChange() throws Exception {
+    void onBestBlock_whenProposedFederationIsCleared_shouldTriggerProposedFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, SECOND_FEDERATION);
+        var rskListener = setupAndGetRskListener(SECOND_FEDERATION, FIRST_FEDERATION, null);
         when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getProposedFederation()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
@@ -164,7 +164,7 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenProposedFederationChangesToActive_shouldTriggerActiveAndProposedFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, SECOND_FEDERATION);
+        var rskListener = setupAndGetRskListener(SECOND_FEDERATION, FIRST_FEDERATION, null);
         when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getProposedFederation()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
@@ -222,7 +222,7 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenActiveFederationChangesFromActiveToOtherActive_shouldTriggerActiveFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, null);
+        var rskListener = setupAndGetRskListener(null, FIRST_FEDERATION, null);
         when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getActiveFederation()).thenReturn(SECOND_FEDERATION);
@@ -248,9 +248,9 @@ class FederationWatcherTest {
     }
 
     @Test
-    void onBestBlock_whenNoActiveFederationChange_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
+    void onBestBlock_whenNoActiveFederationChange_shouldNotTriggerActiveOrRetiringOrProposedFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, null);
+        var rskListener = setupAndGetRskListener(null, FIRST_FEDERATION, null);
         when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
@@ -275,9 +275,9 @@ class FederationWatcherTest {
     }
 
     @Test
-    void onBestBlock_whenNoActiveAndRetiringAndProposedChangeInFederation_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
+    void onBestBlock_whenNoActiveAndRetiringAndProposedChangeInFederation_shouldNotTriggerActiveOrRetiringOrProposedFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, SECOND_FEDERATION, THIRD_FEDERATION);
+        var rskListener = setupAndGetRskListener(THIRD_FEDERATION, FIRST_FEDERATION, SECOND_FEDERATION);
         when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.of(THIRD_FEDERATION.getAddress()));
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
@@ -304,7 +304,7 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenActiveFederationChangesToRetiring_shouldTriggerRetiringFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(SECOND_FEDERATION, null, null);
+        var rskListener = setupAndGetRskListener(null, SECOND_FEDERATION, null);
         when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(FIRST_FEDERATION.getAddress()));
@@ -332,7 +332,7 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenRetiringFederationChangesToNone_shouldTriggerRetiringFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(SECOND_FEDERATION, FIRST_FEDERATION, null);
+        var rskListener = setupAndGetRskListener(null, SECOND_FEDERATION, FIRST_FEDERATION);
         when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
@@ -360,7 +360,7 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenRetiringFederationChangesToOtherRetiring_shouldTriggerRetiringFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(THIRD_FEDERATION, FIRST_FEDERATION, null);
+        var rskListener = setupAndGetRskListener(null, THIRD_FEDERATION, FIRST_FEDERATION);
         when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(THIRD_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
@@ -386,7 +386,7 @@ class FederationWatcherTest {
     }
 
     private EthereumListenerAdapter setupAndGetRskListener(
-            Federation activeFederation, Federation retiringFederation, Federation proposedFederation) throws Exception {
+            Federation proposedFederation, Federation activeFederation, Federation retiringFederation) throws Exception {
         // Mock the behavior of adding a listener
         AtomicReference<EthereumListenerAdapter> listenerRef = new AtomicReference<>();
         doAnswer((InvocationOnMock m) -> {
@@ -397,9 +397,9 @@ class FederationWatcherTest {
         federationWatcher.start(federationProvider, null);
 
         // Set up federationWatcher and internal states
+        TestUtils.setInternalState(federationWatcher, "proposedFederation", proposedFederation);
         TestUtils.setInternalState(federationWatcher, "activeFederation", activeFederation);
         TestUtils.setInternalState(federationWatcher, "retiringFederation", retiringFederation);
-        TestUtils.setInternalState(federationWatcher, "proposedFederation", proposedFederation);
 
         // Retrieve and return the listener
         EthereumListenerAdapter listener = listenerRef.get();
