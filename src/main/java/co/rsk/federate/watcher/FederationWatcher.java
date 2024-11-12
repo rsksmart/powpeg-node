@@ -84,10 +84,29 @@ public class FederationWatcher {
      * the {@code FederationWatcherListener}.
      */
     private void updateState() {
+        updateProposedFederation();
         updateActiveFederation();
         updateRetiringFederation();
-        updateProposedFederation();
     }
+
+    private void updateProposedFederation() {
+        Optional<Address> currentlyProposedFederationAddress = federationProvider.getProposedFederationAddress();
+        Optional<Address> oldProposedFederationAddress = Optional.ofNullable(proposedFederation)
+            .map(Federation::getAddress);
+
+        boolean hasProposedFederationChanged = !currentlyProposedFederationAddress.equals(oldProposedFederationAddress);
+
+        if (hasProposedFederationChanged) {
+            logger.info("[updateRetiringFederation] Proposed federation changed from {} to {}",
+                    oldProposedFederationAddress.orElse(null),
+                    currentlyProposedFederationAddress.orElse(null));
+
+            Federation currentlyProposedFederation = federationProvider.getProposedFederation().orElse(null);
+
+            federationWatcherListener.onProposedFederationChange(currentlyProposedFederation);
+            this.proposedFederation = currentlyProposedFederation;
+        }
+    }    
 
     private void updateActiveFederation() {
         Address currentlyActiveFederationAddress = Objects.requireNonNull(
@@ -126,25 +145,6 @@ public class FederationWatcher {
 
             federationWatcherListener.onRetiringFederationChange(currentlyRetiringFederation);
             this.retiringFederation = currentlyRetiringFederation;
-        }
-    }    
-
-    private void updateProposedFederation() {
-        Optional<Address> currentlyProposedFederationAddress = federationProvider.getProposedFederationAddress();
-        Optional<Address> oldProposedFederationAddress = Optional.ofNullable(proposedFederation)
-            .map(Federation::getAddress);
-
-        boolean hasProposedFederationChanged = !currentlyProposedFederationAddress.equals(oldProposedFederationAddress);
-
-        if (hasProposedFederationChanged) {
-            logger.info("[updateRetiringFederation] Proposed federation changed from {} to {}",
-                    oldProposedFederationAddress.orElse(null),
-                    currentlyProposedFederationAddress.orElse(null));
-
-            Federation currentlyProposedFederation = federationProvider.getProposedFederation().orElse(null);
-
-            federationWatcherListener.onProposedFederationChange(currentlyProposedFederation);
-            this.proposedFederation = currentlyProposedFederation;
         }
     }    
 }
