@@ -103,37 +103,43 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             return Optional.empty();
         }
 
-        Address retiringFederationAddress = getRetiringFederationAddress().orElse(null);
-        boolean useTypedPublicKeyGetter = federatorSupport.getConfigForBestBlock().isActive(RSKIP123);
-        List<FederationMember> members = new ArrayList<>();
-        for (int i = 0; i < federationSize; i++) {
-            // Select method depending on network configuration for best block
-            FederationMember member;
-            if (useTypedPublicKeyGetter) {
-                BtcECKey btcKey = BtcECKey.fromPublicOnly(federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC).getPubKey());
-                ECKey rskKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK);
-                ECKey mstKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.MST);
+        try {
+            Address retiringFederationAddress = getRetiringFederationAddress().orElseThrow(IllegalStateException::new);
+            boolean useTypedPublicKeyGetter = federatorSupport.getConfigForBestBlock().isActive(RSKIP123);
+            List<FederationMember> members = new ArrayList<>();
+            for (int i = 0; i < federationSize; i++) {
+                // Select method depending on network configuration for best block
+                FederationMember member;
+                if (useTypedPublicKeyGetter) {
+                    BtcECKey btcKey = BtcECKey.fromPublicOnly(federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC).getPubKey());
+                    ECKey rskKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK);
+                    ECKey mstKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.MST);
 
-                member = new FederationMember(btcKey, rskKey, mstKey);
-            } else {
-                // Before the fork, all of BTC, RSK and MST keys are the same
-                BtcECKey btcKey = federatorSupport.getRetiringFederatorPublicKey(i);
-                ECKey rskMstKey = ECKey.fromPublicOnly(btcKey.getPubKey());
+                    member = new FederationMember(btcKey, rskKey, mstKey);
+                } else {
+                    // Before the fork, all of BTC, RSK and MST keys are the same
+                    BtcECKey btcKey = federatorSupport.getRetiringFederatorPublicKey(i);
+                    ECKey rskMstKey = ECKey.fromPublicOnly(btcKey.getPubKey());
 
-                member = new FederationMember(btcKey, rskMstKey, rskMstKey);
+                    member = new FederationMember(btcKey, rskMstKey, rskMstKey);
+                }
+
+                members.add(member);
             }
 
-            members.add(member);
+            Instant creationTime = federatorSupport.getRetiringFederationCreationTime();
+            long creationBlockNumber = federatorSupport.getRetiringFederationCreationBlockNumber();
+            NetworkParameters btcParams = federatorSupport.getBtcParams();
+            FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, btcParams);
+
+            Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
+
+            return Optional.of(getExpectedFederation(initialFederation, retiringFederationAddress));
+        } catch (Exception e) {
+            logger.error("[getRetiringFederation] Unable to build the retiring federation", e);
+
+            return Optional.empty();
         }
-
-        Instant creationTime = federatorSupport.getRetiringFederationCreationTime();
-        long creationBlockNumber = federatorSupport.getRetiringFederationCreationBlockNumber();
-        NetworkParameters btcParams = federatorSupport.getBtcParams();
-        FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, btcParams);
-
-        Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
-
-        return Optional.of(getExpectedFederation(initialFederation, retiringFederationAddress));
     }
 
     @Override
