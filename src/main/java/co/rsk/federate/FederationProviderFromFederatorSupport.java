@@ -37,11 +37,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Provides a federation using a FederatorSupport instance, which in turn
- * gathers the federation from the bridge contract of the ethereum
- * network it is attached to.
+ * A provider that supplies the current active, retiring, and proposed federations by
+ * using a {@link FederatorSupport} instance, which interacts with the Bridge contract.
  *
- * @author Ariel Mendelzon
+ * <p>The {@code FederationProviderFromFederatorSupport} enables access to:
+ * <ul>
+ *     <li><strong>Active Federation</strong>
+ *     <li><strong>Retiring Federation</strong>
+ *     <li><strong>Proposed Federation</strong>
+ * </ul>
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
 
