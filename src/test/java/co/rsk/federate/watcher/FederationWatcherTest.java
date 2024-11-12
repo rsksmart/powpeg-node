@@ -1,8 +1,6 @@
 package co.rsk.federate.watcher;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -24,7 +22,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.facade.Ethereum;
@@ -68,7 +65,7 @@ class FederationWatcherTest {
     private final FederationWatcher federationWatcher = new FederationWatcher(rsk);
 
     @Test
-    void onBestBlock_whenFederationWatcherIsSetUp_shouldAddListener() throws Exception {
+    void start_whenFederationWatcherIsSetUp_shouldAddListener() throws Exception {
         // Act
         federationWatcher.start(federationProvider, federationWatcherListener);
 
@@ -81,7 +78,8 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenNoActiveFederation_shouldTriggerActiveFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(null, null);
+        var rskListener = setupAndGetRskListener(null, null, null);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getActiveFederation()).thenReturn(FIRST_FEDERATION);
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
@@ -92,6 +90,10 @@ class FederationWatcherTest {
         rskListener.onBestBlock(null, null);
 
         // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider, never()).getProposedFederation();
+        verify(federationWatcherListener, never()).onProposedFederationChange(any(Federation.class));
+
         verify(federationProvider).getActiveFederationAddress();
         verify(federationProvider).getRetiringFederationAddress();
         verify(federationWatcherListener).onActiveFederationChange(FIRST_FEDERATION);
@@ -104,7 +106,8 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenActiveFederationChangesFromActiveToOtherActive_shouldTriggerActiveFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null);
+        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, null);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getActiveFederation()).thenReturn(SECOND_FEDERATION);
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
@@ -115,6 +118,10 @@ class FederationWatcherTest {
         rskListener.onBestBlock(null, null);
 
         // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider, never()).getProposedFederation();
+        verify(federationWatcherListener, never()).onProposedFederationChange(any(Federation.class));
+
         verify(federationProvider).getActiveFederationAddress();
         verify(federationProvider).getActiveFederation();
         verify(federationWatcherListener).onActiveFederationChange(SECOND_FEDERATION);
@@ -127,7 +134,8 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenNoActiveFederationChange_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null);
+        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, null, null);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
 
@@ -137,6 +145,10 @@ class FederationWatcherTest {
         rskListener.onBestBlock(null, null);
 
         // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider, never()).getProposedFederation();
+        verify(federationWatcherListener, never()).onProposedFederationChange(any(Federation.class));
+
         verify(federationProvider).getActiveFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
         verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
@@ -147,9 +159,10 @@ class FederationWatcherTest {
     }
 
     @Test
-    void onBestBlock_whenNoActiveAndRetiringChangeInFederation_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
+    void onBestBlock_whenNoActiveAndRetiringAndProposedChangeInFederation_shouldNotTriggerActiveOrRetiringFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, SECOND_FEDERATION);
+        var rskListener = setupAndGetRskListener(FIRST_FEDERATION, SECOND_FEDERATION, THIRD_FEDERATION);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.of(THIRD_FEDERATION.getAddress()));
         when(federationProvider.getActiveFederationAddress()).thenReturn(FIRST_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
 
@@ -159,6 +172,10 @@ class FederationWatcherTest {
         rskListener.onBestBlock(null, null);
 
         // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider, never()).getProposedFederation();
+        verify(federationWatcherListener, never()).onProposedFederationChange(any(Federation.class));
+
         verify(federationProvider).getActiveFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
         verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
@@ -171,7 +188,8 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenActiveFederationChangesToRetiring_shouldTriggerRetiringFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(SECOND_FEDERATION, null);
+        var rskListener = setupAndGetRskListener(SECOND_FEDERATION, null, null);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(FIRST_FEDERATION.getAddress()));
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(FIRST_FEDERATION));
@@ -182,6 +200,10 @@ class FederationWatcherTest {
         rskListener.onBestBlock(null, null);
 
         // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider, never()).getProposedFederation();
+        verify(federationWatcherListener, never()).onProposedFederationChange(any(Federation.class));
+
         verify(federationProvider).getActiveFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
         verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
@@ -194,7 +216,8 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenRetiringFederationChangesToNone_shouldTriggerRetiringFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(SECOND_FEDERATION, FIRST_FEDERATION);
+        var rskListener = setupAndGetRskListener(SECOND_FEDERATION, FIRST_FEDERATION, null);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.empty());
@@ -205,6 +228,10 @@ class FederationWatcherTest {
         rskListener.onBestBlock(null, null);
 
         // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider, never()).getProposedFederation();
+        verify(federationWatcherListener, never()).onProposedFederationChange(any(Federation.class));
+
         verify(federationProvider).getActiveFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
         verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
@@ -217,7 +244,8 @@ class FederationWatcherTest {
     @Test
     void onBestBlock_whenRetiringFederationChangesToOtherRetiring_shouldTriggerRetiringFederationChange() throws Exception {
         // Arrange
-        var rskListener = setupAndGetRskListener(THIRD_FEDERATION, FIRST_FEDERATION);
+        var rskListener = setupAndGetRskListener(THIRD_FEDERATION, FIRST_FEDERATION, null);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
         when(federationProvider.getActiveFederationAddress()).thenReturn(THIRD_FEDERATION.getAddress());
         when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.of(SECOND_FEDERATION.getAddress()));
         when(federationProvider.getRetiringFederation()).thenReturn(Optional.of(SECOND_FEDERATION));
@@ -228,6 +256,10 @@ class FederationWatcherTest {
         rskListener.onBestBlock(null, null);
 
         // Assert
+        verify(federationProvider).getProposedFederationAddress();
+        verify(federationProvider, never()).getProposedFederation();
+        verify(federationWatcherListener, never()).onProposedFederationChange(any(Federation.class));
+
         verify(federationProvider).getActiveFederationAddress();
         verify(federationProvider, never()).getActiveFederation();
         verify(federationWatcherListener, never()).onActiveFederationChange(any(Federation.class));
@@ -238,7 +270,7 @@ class FederationWatcherTest {
     }
 
     private EthereumListenerAdapter setupAndGetRskListener(
-            Federation activeFederation, Federation retiringFederation) throws Exception {
+            Federation activeFederation, Federation retiringFederation, Federation proposedFederation) throws Exception {
         // Mock the behavior of adding a listener
         AtomicReference<EthereumListenerAdapter> listenerRef = new AtomicReference<>();
         doAnswer((InvocationOnMock m) -> {
@@ -247,9 +279,11 @@ class FederationWatcherTest {
         }).when(rsk).addListener(any());
         
         federationWatcher.start(federationProvider, null);
+
         // Set up federationWatcher and internal states
         TestUtils.setInternalState(federationWatcher, "activeFederation", activeFederation);
         TestUtils.setInternalState(federationWatcher, "retiringFederation", retiringFederation);
+        TestUtils.setInternalState(federationWatcher, "proposedFederation", proposedFederation);
 
         // Retrieve and return the listener
         EthereumListenerAdapter listener = listenerRef.get();
