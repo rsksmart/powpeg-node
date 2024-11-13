@@ -2,6 +2,7 @@ package co.rsk.federate;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import co.rsk.peg.constants.BridgeMainNetConstants;
+import co.rsk.peg.federation.FederationMember;
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
@@ -26,6 +28,9 @@ import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeMethods;
 import co.rsk.peg.StateForProposedFederator;
 import java.util.AbstractMap;
+import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import java.math.BigInteger;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,6 +45,7 @@ import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionWitness;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.Blockchain;
+import org.ethereum.crypto.ECKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
@@ -49,6 +55,7 @@ class FederatorSupportTest {
     private static final NetworkParameters NETWORK_PARAMETERS = BridgeMainNetConstants.getInstance().getBtcParams();
     private static final List<BtcECKey> KEYS = BitcoinTestUtils.getBtcEcKeysFromSeeds(new String[]{"k1", "k2", "k3"}, true);
     private static final Address DEFAULT_ADDRESS = BitcoinTestUtils.createP2SHMultisigAddress(NETWORK_PARAMETERS, KEYS);
+    private static final byte[] PUBLIC_KEY = ECKey.fromPrivate(BigInteger.valueOf(100)).getPubKey();
 
     private BridgeTransactionSender bridgeTransactionSender;
     private FederatorSupport federatorSupport;
@@ -220,6 +227,139 @@ class FederatorSupportTest {
         // Assert
         assertTrue(result.isPresent());
         assertEquals(DEFAULT_ADDRESS.toString(), result.get().toString());
+    }
+
+    @Test
+    void getProposedFederationSize_whenSizeIsNull_shouldReturnEmptyOptional() {
+        // Arrange
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_SIZE)))
+            .thenReturn(null);
+
+        // Act
+        Optional<Integer> result = federatorSupport.getProposedFederationSize();
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getProposedFederationSize_whenSizeIsPresent_shouldReturnInteger() {
+        // Arrange
+        BigInteger expectedSize = BigInteger.valueOf(9);
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_SIZE)))
+            .thenReturn(expectedSize);
+
+        // Act
+        Optional<Integer> result = federatorSupport.getProposedFederationSize();
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(expectedSize.intValue(), result.get());
+    }
+
+    @Test
+    void getProposedFederatorPublicKeyOfType_whenPublicKeyIsNull_shouldReturnEmptyOptional() {
+        // Arrange
+        int index = 0;
+        FederationMember.KeyType keyType = FederationMember.KeyType.BTC;
+        when(bridgeTransactionSender.callTx(
+               any(),
+               eq(Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE),
+               eq(new Object[]{ index, keyType.getValue() })))
+            .thenReturn(null);
+
+        // Act
+        Optional<ECKey> result = federatorSupport.getProposedFederatorPublicKeyOfType(index, keyType);
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getProposedFederatorPublicKeyOfType_whenPublicKeyIsPresent_shouldReturnECKey() {
+        // Arrange
+        int index = 0; 
+        FederationMember.KeyType keyType = FederationMember.KeyType.BTC;
+        ECKey expectedKey = ECKey.fromPublicOnly(PUBLIC_KEY);
+        when(bridgeTransactionSender.callTx(
+               any(),
+               eq(Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE),
+               eq(new Object[]{ index, keyType.getValue() })))
+            .thenReturn(PUBLIC_KEY);
+
+        // Act
+        Optional<ECKey> result = federatorSupport.getProposedFederatorPublicKeyOfType(index, keyType);
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertArrayEquals(expectedKey.getPubKey(), result.get().getPubKey());
+    }
+
+    @Test
+    void getProposedFederatorPublicKeyOfType_whenKeyTypeIsNull_shouldThrowNullPointerException() {
+        // Arrange
+        int index = 0;
+        
+        // Act & Assert
+        assertThrows(NullPointerException.class, () -> {
+            federatorSupport.getProposedFederatorPublicKeyOfType(index, null);
+        });
+    }
+
+    @Test
+    void getProposedFederationCreationTime_whenCreationTimeIsNull_shouldReturnEmptyOptional() {
+        // Arrange
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME)))
+            .thenReturn(null);
+
+        // Act
+        Optional<Instant> result = federatorSupport.getProposedFederationCreationTime();
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getProposedFederationCreationTime_whenCreationTimeIsValid_shouldReturnInstant() {
+        // Arrange
+        BigInteger expectedCreationTime = BigInteger.valueOf(System.currentTimeMillis());
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME)))
+            .thenReturn(expectedCreationTime);
+
+        // Act
+        Optional<Instant> result = federatorSupport.getProposedFederationCreationTime();
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(expectedCreationTime.longValue(), result.get().getEpochSecond());
+    }
+
+    @Test
+    void getProposedFederationCreationBlockNumber_whenBlockNumberIsNull_shouldReturnEmptyOptional() {
+        // Arrange
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER)))
+            .thenReturn(null);
+
+        // Act
+        Optional<Long> result = federatorSupport.getProposedFederationCreationBlockNumber();
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getProposedFederationCreationBlockNumber_whenBlockNumberIsValid_shouldReturnLong() {
+        // Arrange
+        BigInteger expectedBlockNumber = BigInteger.valueOf(123456);
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER)))
+            .thenReturn(expectedBlockNumber);
+
+        // Act
+        Optional<Long> result = federatorSupport.getProposedFederationCreationBlockNumber();
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(expectedBlockNumber.longValue(), result.get());
     }
 
     private Sha256Hash createHash() {
