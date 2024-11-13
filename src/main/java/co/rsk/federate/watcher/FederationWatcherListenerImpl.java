@@ -39,6 +39,30 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
         triggerClientChange(btcToRskClientRetiring, newRetiringFederation);
     }
 
+    @Override
+    public void onProposedFederationChange(Federation newProposedFederation) {
+        if (newProposedFederation == null) {
+            logger.info(
+                "[onProposedFederationChange] Proposed federation was cleared");
+            return;
+        }
+
+        try {
+            // start {@code BtcReleaseClient} with proposed federation
+            // so it can sign svp spend tx
+            btcReleaseClient.start(newProposedFederation);
+          
+            logger.info(
+                "[onProposedFederationChange] Client for proposed federation [{}] started with success",
+                newProposedFederation.getAddress());
+        } catch (Exception e) {
+            logger.error(
+                "[onProposedFederationChange] Client for proposed federation [{}] failed to start",
+                newProposedFederation.getAddress(),
+                e);
+        }
+    }
+
     private void triggerClientChange(BtcToRskClient btcToRskClient, Federation newFederation) {
         // This method assumes that the new federation cannot be null
         Objects.requireNonNull(newFederation);
@@ -57,9 +81,9 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
                 newFederation.getAddress());
         } catch (Exception e) {
             logger.error(
-                "[triggerClientChange] Clients for federation [{}] cannot be changed: {}",
+                "[triggerClientChange] Clients for federation [{}] cannot be changed",
                 newFederation.getAddress(),
-                e.getMessage());
+                e);
         }
     }
     
