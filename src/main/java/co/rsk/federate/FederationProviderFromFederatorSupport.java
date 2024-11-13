@@ -33,8 +33,6 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.crypto.ECKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A provider that supplies the current active, retiring, and proposed federations by
@@ -48,8 +46,6 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
-
-    private static final Logger logger = LoggerFactory.getLogger(FederationProviderFromFederatorSupport.class);
 
     private final FederatorSupport federatorSupport;
     private final FederationConstants federationConstants;
@@ -107,43 +103,37 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             return Optional.empty();
         }
 
-        try {
-            Address retiringFederationAddress = getRetiringFederationAddress().orElseThrow(IllegalStateException::new);
-            boolean useTypedPublicKeyGetter = federatorSupport.getConfigForBestBlock().isActive(RSKIP123);
-            List<FederationMember> members = new ArrayList<>();
-            for (int i = 0; i < federationSize; i++) {
-                // Select method depending on network configuration for best block
-                FederationMember member;
-                if (useTypedPublicKeyGetter) {
-                    BtcECKey btcKey = BtcECKey.fromPublicOnly(federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC).getPubKey());
-                    ECKey rskKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK);
-                    ECKey mstKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.MST);
+        Address retiringFederationAddress = getRetiringFederationAddress().orElseThrow(IllegalStateException::new);
+        boolean useTypedPublicKeyGetter = federatorSupport.getConfigForBestBlock().isActive(RSKIP123);
+        List<FederationMember> members = new ArrayList<>();
+        for (int i = 0; i < federationSize; i++) {
+            // Select method depending on network configuration for best block
+            FederationMember member;
+            if (useTypedPublicKeyGetter) {
+                BtcECKey btcKey = BtcECKey.fromPublicOnly(federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC).getPubKey());
+                ECKey rskKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK);
+                ECKey mstKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.MST);
 
-                    member = new FederationMember(btcKey, rskKey, mstKey);
-                } else {
-                    // Before the fork, all of BTC, RSK and MST keys are the same
-                    BtcECKey btcKey = federatorSupport.getRetiringFederatorPublicKey(i);
-                    ECKey rskMstKey = ECKey.fromPublicOnly(btcKey.getPubKey());
+                member = new FederationMember(btcKey, rskKey, mstKey);
+            } else {
+                // Before the fork, all of BTC, RSK and MST keys are the same
+                BtcECKey btcKey = federatorSupport.getRetiringFederatorPublicKey(i);
+                ECKey rskMstKey = ECKey.fromPublicOnly(btcKey.getPubKey());
 
-                    member = new FederationMember(btcKey, rskMstKey, rskMstKey);
-                }
-
-                members.add(member);
+                member = new FederationMember(btcKey, rskMstKey, rskMstKey);
             }
 
-            Instant creationTime = federatorSupport.getRetiringFederationCreationTime();
-            long creationBlockNumber = federatorSupport.getRetiringFederationCreationBlockNumber();
-            NetworkParameters btcParams = federatorSupport.getBtcParams();
-            FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, btcParams);
-
-            Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
-
-            return Optional.of(getExpectedFederation(initialFederation, retiringFederationAddress));
-        } catch (Exception e) {
-            logger.error("[getRetiringFederation] Unable to build the retiring federation", e);
-
-            return Optional.empty();
+            members.add(member);
         }
+
+        Instant creationTime = federatorSupport.getRetiringFederationCreationTime();
+        long creationBlockNumber = federatorSupport.getRetiringFederationCreationBlockNumber();
+        NetworkParameters btcParams = federatorSupport.getBtcParams();
+        FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, btcParams);
+
+        Federation initialFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
+
+        return Optional.of(getExpectedFederation(initialFederation, retiringFederationAddress));
     }
 
     @Override
@@ -159,40 +149,34 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             return Optional.empty();
         }
 
-        try {
-            List<FederationMember> federationMembers = IntStream.range(0, federationSize)
-                .mapToObj(i -> new FederationMember(
-                    federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.BTC)
-                        .map(ECKey::getPubKey)
-                        .map(BtcECKey::fromPublicOnly)
-                        .orElseThrow(IllegalStateException::new),
-                    federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.RSK)
-                        .orElseThrow(IllegalStateException::new),
-                    federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.MST)
-                        .orElseThrow(IllegalStateException::new)
-                ))
-                .toList();
-
-            FederationArgs federationArgs = new FederationArgs(
-                federationMembers,
-                federatorSupport.getProposedFederationCreationTime()
+        List<FederationMember> federationMembers = IntStream.range(0, federationSize)
+            .mapToObj(i -> new FederationMember(
+                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.BTC)
+                    .map(ECKey::getPubKey)
+                    .map(BtcECKey::fromPublicOnly)
                     .orElseThrow(IllegalStateException::new),
-                federatorSupport.getProposedFederationCreationBlockNumber()
+                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.RSK)
                     .orElseThrow(IllegalStateException::new),
-                federatorSupport.getBtcParams()
-            );
+                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.MST)
+                    .orElseThrow(IllegalStateException::new)
+            ))
+            .toList();
 
-            Federation federation = FederationFactory.buildP2shErpFederation(
-                federationArgs,
-                federationConstants.getErpFedPubKeysList(),
-                federationConstants.getErpFedActivationDelay());
+        FederationArgs federationArgs = new FederationArgs(
+            federationMembers,
+            federatorSupport.getProposedFederationCreationTime()
+                .orElseThrow(IllegalStateException::new),
+            federatorSupport.getProposedFederationCreationBlockNumber()
+                .orElseThrow(IllegalStateException::new),
+            federatorSupport.getBtcParams()
+        );
 
-            return Optional.of(federation);
-        } catch (Exception e) {
-            logger.error("[getProposedFederation] Unable to build the proposed federation", e);
+        Federation federation = FederationFactory.buildP2shErpFederation(
+            federationArgs,
+            federationConstants.getErpFedPubKeysList(),
+            federationConstants.getErpFedActivationDelay());
 
-            return Optional.empty();
-        }
+        return Optional.of(federation);
     }
 
     @Override
