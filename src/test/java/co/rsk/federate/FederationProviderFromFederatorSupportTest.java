@@ -5,6 +5,7 @@ import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
 import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP284;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -239,11 +240,8 @@ class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getRetiringFederationSize()).thenReturn(3);
         when(federatorSupportMock.getRetiringFederationAddress()).thenReturn(Optional.empty()); // Address is missing
     
-        // Act
-        Optional<Federation> retiringFederation = federationProvider.getRetiringFederation();
-
-        // Assert
-        assertTrue(retiringFederation.isEmpty());
+        // Act & Assert
+        assertThrows(IllegalStateException.class, () -> federationProvider.getRetiringFederation());
     }
 
     @Test
@@ -385,7 +383,7 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     @Test
-    void getProposedFederation_whenSomeDataDoesNotExists_shouldReturnEmptyOptional() {
+    void getProposedFederation_whenSomeDataDoesNotExists_shouldThrowIllegalStateException() {
         // Arrange
         Federation expectedFederation = createP2shErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000));
@@ -397,13 +395,10 @@ class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getBtcParams()).thenReturn(testnetParams);
         when(federatorSupportMock.getProposedFederationCreationBlockNumber()).thenReturn(Optional.of(0L));
         when(federatorSupportMock.getProposedFederatorPublicKeyOfType(0, FederationMember.KeyType.BTC))
-            .thenThrow(new IllegalStateException());
+            .thenReturn(Optional.empty());
 
-        // Act
-        Optional<Federation> proposedFederation = federationProvider.getProposedFederation();
-
-        // Assert
-        assertFalse(proposedFederation.isPresent());
+        // Act & Assert
+        assertThrows(IllegalStateException.class, () -> federationProvider.getProposedFederation());
     }
 
     @Test
