@@ -3,6 +3,7 @@ package co.rsk.federate;
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
 import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP284;
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP419;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -374,6 +375,9 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenProposedFederationSizeIsNonExistent_shouldReturnEmptyOptional() {
         // Arrange
+        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
+        when(configMock.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getProposedFederationSize())
             .thenReturn(Optional.of(FEDERATION_NON_EXISTENT.getCode()));
 
@@ -385,6 +389,9 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenSomeDataDoesNotExists_shouldThrowIllegalStateException() {
         // Arrange
+        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
+        when(configMock.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         Federation expectedFederation = createP2shErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000));
         Address expectedFederationAddress = expectedFederation.getAddress();
@@ -404,6 +411,9 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenExistsAndIsP2shErpFederation_shouldReturnProposedFederation() {
         // Arrange
+        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
+        when(configMock.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         Federation expectedFederation = createP2shErpFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000));
         Address expectedFederationAddress = expectedFederation.getAddress();
@@ -433,8 +443,25 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     @Test
+    void getProposedFederation_whenRSKIP419IsNotActivated_shouldReturnEmptyOptional() {
+        // Arrange
+        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
+        when(configMock.isActive(RSKIP419)).thenReturn(false);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+
+        // Act
+        Optional<Federation> result = federationProvider.getProposedFederation();
+
+        // Assert
+        assertFalse(result.isPresent());
+    }
+
+    @Test
     void getProposedFederationAddress_whenAddressExists_shouldReturnAddress() {
         // Arrange
+        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
+        when(configMock.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.of(DEFAULT_ADDRESS));
 
         // Act
@@ -448,7 +475,24 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederationAddress_whenNoAddressExists_shouldReturnEmptyOptional() {
         // Arrange
+        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
+        when(configMock.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.empty());
+
+        // Act
+        Optional<Address> result = federationProvider.getProposedFederationAddress();
+
+        // Assert
+        assertFalse(result.isPresent());
+    }
+  
+    @Test
+    void getProposedFederationAddress_whenRSKIP419IsNotActivated_shouldReturnEmptyOptional() {
+        // Arrange
+        ActivationConfig.ForBlock configMock = mock(ActivationConfig.ForBlock.class);
+        when(configMock.isActive(RSKIP419)).thenReturn(false);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
 
         // Act
         Optional<Address> result = federationProvider.getProposedFederationAddress();
