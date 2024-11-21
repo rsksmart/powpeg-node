@@ -240,10 +240,12 @@ public class BtcReleaseClient {
           
             // Sign svp spend tx waiting for signatures, if it exists,
             // before attempting to sign any pegouts.
-            federatorSupport.getStateForProposedFederator()
-                .map(StateForProposedFederator::getSvpSpendTxWaitingForSignatures)
-                .filter(svpSpendTxWaitingForSignatures -> isSVPSpendTxReadyToSign(block.getNumber(), svpSpendTxWaitingForSignatures))
-                .ifPresent(svpSpendTxReadyToBeSigned -> processReleases(Set.of(svpSpendTxReadyToBeSigned)));
+            if (activationConfig.isActive(ConsensusRule.RSKIP419, block.getNumber())) {
+                federatorSupport.getStateForProposedFederator()
+                    .map(StateForProposedFederator::getSvpSpendTxWaitingForSignatures)
+                    .filter(svpSpendTxWaitingForSignatures -> isSVPSpendTxReadyToSign(block.getNumber(), svpSpendTxWaitingForSignatures))
+                    .ifPresent(svpSpendTxReadyToBeSigned -> processReleases(Set.of(svpSpendTxReadyToBeSigned)));
+            }
 
             // Processing transactions waiting for signatures on best block only still "works",
             // since it all lies within RSK's blockchain and normal rules apply. I.e., this
