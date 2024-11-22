@@ -97,7 +97,7 @@ public class FederationWatcher {
         boolean hasProposedFederationChanged = !currentlyProposedFederationAddress.equals(oldProposedFederationAddress);
 
         if (hasProposedFederationChanged) {
-            logger.info("[updateRetiringFederation] Proposed federation changed from {} to {}",
+            logger.info("[updateProposedFederation] Proposed federation changed from {} to {}",
                     oldProposedFederationAddress.orElse(null),
                     currentlyProposedFederationAddress.orElse(null));
 
