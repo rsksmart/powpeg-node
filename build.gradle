@@ -190,3 +190,4 @@ static def amendPathIfNeeded(details) {
         details.path = newPath
     }
 }
+
