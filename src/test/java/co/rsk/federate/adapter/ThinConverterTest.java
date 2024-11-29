@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
-import co.rsk.peg.constants.BridgeRegTestConstants;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.stream.Stream;
@@ -21,7 +20,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class ThinConverterTest {
 
     private static final BigInteger NEGATIVE_CHAIN_WORK = BigInteger.valueOf(-1);
-    private static final BigInteger EIGHT_BYTES_WORK_V1 = new BigInteger("ffffffffffffffff", 16); // 8 bytes
+    private static final BigInteger BELOW_MAX_WORK_V1 = new BigInteger("ffffffffffffffff", 16); // 8 bytes
     private static final BigInteger MAX_WORK_V1 = new BigInteger(/* 12 bytes */ "ffffffffffffffffffffffff", 16);
     private static final BigInteger MAX_WORK_V2 = new BigInteger(/* 32 bytes */
         "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16);
@@ -42,7 +41,7 @@ class ThinConverterTest {
         return Stream.of(
             Arguments.of(BigInteger.ZERO),
             Arguments.of(BigInteger.ONE),
-            Arguments.of(EIGHT_BYTES_WORK_V1),
+            Arguments.of(BELOW_MAX_WORK_V1),
             Arguments.of(MAX_WORK_V1),
             Arguments.of(TOO_LARGE_WORK_V1),
             Arguments.of(MAX_WORK_V2)
@@ -82,7 +81,6 @@ class ThinConverterTest {
         assertEquals(chainWork, thinStoredBlock.getChainWork());
         assertEquals(height, thinStoredBlock.getHeight());
         assertArrayEquals(originalBlock.bitcoinSerialize(), thinStoredBlock.getHeader().bitcoinSerialize());
-        assertNull(ThinConverter.toThinInstance(null, bridgeConstants));
     }
 
     @ParameterizedTest
@@ -94,6 +92,11 @@ class ThinConverterTest {
 
         // act and assert
         Assertions.assertThrows(IllegalArgumentException.class, () -> ThinConverter.toThinInstance(originalStoredBlock, bridgeConstants));
+    }
+
+    @Test
+    void toThinInstanceStoredBlock_whenPassingNull_shouldReturnNull() {
+        assertNull(ThinConverter.toThinInstance(null, bridgeConstants));
     }
 
     @ParameterizedTest
@@ -110,7 +113,6 @@ class ThinConverterTest {
         assertEquals(chainWork, originalStoredBlock.getChainWork());
         assertEquals(height, originalStoredBlock.getHeight());
         assertArrayEquals(thinBlock.bitcoinSerialize(), originalStoredBlock.getHeader().bitcoinSerialize());
-        assertNull(ThinConverter.toOriginalInstance(null, bridgeConstants));
     }
 
     @ParameterizedTest
@@ -122,6 +124,11 @@ class ThinConverterTest {
 
         // act and assert
         Assertions.assertThrows(IllegalArgumentException.class, () -> ThinConverter.toOriginalInstance(thinStoredBlock, bridgeConstants));
+    }
+
+    @Test
+    void toOriginalInstance_whenPassingNull_shouldReturnNull() {
+        assertNull(ThinConverter.toOriginalInstance(null, bridgeConstants));
     }
 
     @Test
