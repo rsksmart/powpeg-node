@@ -66,7 +66,7 @@ class FederationProviderFromFederatorSupportTest {
             federationConstants
         );
         testnetParams = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
-        creationTime = Instant.ofEpochMilli(5005L);
+        creationTime = Instant.ofEpochSecond(5);
     }
 
     @Test
