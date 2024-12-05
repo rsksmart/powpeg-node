@@ -333,9 +333,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             witnessMerkleRoot.getReversedBytes(),
             witnessReservedValue
         );
-        Optional<co.rsk.bitcoinj.core.Sha256Hash> expectedWitnessCommitment = BitcoinUtils.findWitnessCommitment(coinbaseTransaction);
 
-        expectedWitnessCommitment
+        BitcoinUtils.findWitnessCommitment(coinbaseTransaction)
             .filter(commitment -> commitment.equals(calculatedWitnessCommitment))
             .orElseThrow(() -> {
                 String message = String.format(
