@@ -1,9 +1,6 @@
 package co.rsk.federate;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
@@ -28,7 +25,6 @@ import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeMethods;
 import co.rsk.peg.StateForProposedFederator;
 import java.util.AbstractMap;
-import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -360,6 +356,63 @@ class FederatorSupportTest {
         // Assert
         assertTrue(result.isPresent());
         assertEquals(expectedBlockNumber.longValue(), result.get());
+    }
+
+    @Test
+    void getActiveFederationCreationTime_whenCreationTimeIsValid_shouldReturnInstantFromSeconds() {
+        // Arrange
+        BigInteger expectedCreationTime = BigInteger.valueOf(System.currentTimeMillis());
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_FEDERATION_CREATION_TIME)))
+            .thenReturn(expectedCreationTime);
+
+        // all rskips are activated since block 0
+        org.ethereum.core.Block mockBlock = mock(org.ethereum.core.Block.class);
+        when(mockBlock.getNumber()).thenReturn(1L);
+        Blockchain blockchain = mock(Blockchain.class);
+        when(blockchain.getBestBlock()).thenReturn(mockBlock);
+
+        federatorSupport = new FederatorSupport(blockchain, new TestSystemProperties(), bridgeTransactionSender);
+
+        // Act
+        Instant result = federatorSupport.getFederationCreationTime();
+
+        // Assert
+        assertEquals(expectedCreationTime.longValue(), result.getEpochSecond());
+    }
+
+    @Test
+    void getRetiringFederationCreationTime_whenCreationTimeIsNull_shouldReturnNull() {
+        // Arrange
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_RETIRING_FEDERATION_CREATION_TIME)))
+            .thenReturn(null);
+
+        // Act
+        Instant result = federatorSupport.getRetiringFederationCreationTime();
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    void getRetiringFederationCreationTime_whenCreationTimeIsValid_shouldReturnInstantFromSeconds() {
+        // Arrange
+        BigInteger expectedCreationTime = BigInteger.valueOf(System.currentTimeMillis());
+        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_RETIRING_FEDERATION_CREATION_TIME)))
+            .thenReturn(expectedCreationTime);
+
+        // all rskips are activated since block 0
+        org.ethereum.core.Block mockBlock = mock(org.ethereum.core.Block.class);
+        when(mockBlock.getNumber()).thenReturn(1L);
+        Blockchain blockchain = mock(Blockchain.class);
+        when(blockchain.getBestBlock()).thenReturn(mockBlock);
+
+        federatorSupport = new FederatorSupport(blockchain, new TestSystemProperties(), bridgeTransactionSender);
+
+        // Act
+        Instant result = federatorSupport.getRetiringFederationCreationTime();
+
+        // Assert
+        assertEquals(expectedCreationTime.longValue(), result.getEpochSecond());
     }
 
     private Sha256Hash createHash() {
