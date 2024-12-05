@@ -607,8 +607,7 @@ class BtcToRskClientTest {
         Transaction coinbaseTx = getCoinbaseTransactionWithWrongWitnessCommitment();
 
         Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), segwitTx.getTxId().getReversedBytes()));
-        EnumSet<Block.VerifyFlag> flags = mock(EnumSet.class);
-        when(flags.contains(any())).thenReturn(false);
+        EnumSet<Block.VerifyFlag> flags = EnumSet.noneOf(Block.VerifyFlag.class);
         Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, segwitTx));
         block.verifyTransactions(0, flags);
 
