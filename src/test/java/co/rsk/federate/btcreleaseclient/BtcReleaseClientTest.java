@@ -80,7 +80,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
+import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.config.Constants;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
@@ -740,9 +740,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
+        ActivationConfig activationConfig = mock(ActivationConfig.class);
+        when(activationConfig.isActive(ConsensusRule.RSKIP419, bestBlock.getNumber())).thenReturn(true);
+
         btcReleaseClient.setup(
             signer,
-            mock(ActivationConfig.class),
+            activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class),
@@ -853,9 +856,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
+        ActivationConfig activationConfig = mock(ActivationConfig.class);
+        when(activationConfig.isActive(ConsensusRule.RSKIP419, bestBlock.getNumber())).thenReturn(true);
+
         btcReleaseClient.setup(
             signer,
-            mock(ActivationConfig.class),
+            activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class),
@@ -971,9 +977,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
+        ActivationConfig activationConfig = mock(ActivationConfig.class);
+        when(activationConfig.isActive(ConsensusRule.RSKIP419, bestBlock.getNumber())).thenReturn(true);
+
         btcReleaseClient.setup(
             signer,
-            mock(ActivationConfig.class),
+            activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class),
