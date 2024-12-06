@@ -1,6 +1,9 @@
 package co.rsk.federate.bitcoin;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.core.TransactionOutPoint;
+import co.rsk.bitcoinj.core.TransactionOutput;
 import co.rsk.bitcoinj.wallet.Wallet;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.FederatorSupport;
@@ -20,6 +23,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Context;
@@ -316,43 +320,74 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     }
 
     protected void coinsReceivedOrSent(Transaction tx) {
-        if (watchedFederations.size() > 0) {
-            LOGGER.debug("[coinsReceivedOrSent] Received filtered transaction {}", tx.getWTxId().toString());
-            Context.propagate(btcContext);
-            // Wrap tx in a co.rsk.bitcoinj.core.BtcTransaction
-            BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
-            co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
-            for (FederationListener watched : watchedFederations) {
-                Federation watchedFederation = watched.getFederation();
-                TransactionListener listener = watched.getListener();
-                Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
-                if (PegUtilsLegacy.isValidPegInTx(btcTx, watchedFederation, watchedFederationWallet, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
+        if (watchedFederations.isEmpty()) {
+            return;
+        }
 
-                    PeginInformation peginInformation = new PeginInformation(
-                        btcLockSenderProvider,
-                        peginInstructionsProvider,
-                        federatorSupport.getConfigForBestBlock()
-                    );
-                    try {
-                        peginInformation.parse(btcTx);
-                    } catch (PeginInstructionsException e) {
-                        // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
-                        if (peginInformation.getSenderBtcAddress() != null) {
-                            LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx, funds will be refunded to sender", tx.getWTxId());
-                        } else {
-                            LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx and won't be processed!", tx.getWTxId());
-                            continue;
-                        }
+        LOGGER.debug("[coinsReceivedOrSent] Received filtered transaction {}", tx.getWTxId().toString());
+        Context.propagate(btcContext);
+
+        // Wrap tx in a co.rsk.bitcoinj.core.BtcTransaction
+        BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
+        co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
+
+        for (FederationListener watched : watchedFederations) {
+            Federation watchedFederation = watched.getFederation();
+            TransactionListener listener = watched.getListener();
+            Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
+
+            if (isTheSvpSpendTx(btcTx)) {
+                LOGGER.debug("[coinsReceivedOrSent] [btctx with hash {} and witness hash {}] is a svp spend tx", tx.getTxId(), tx.getWTxId());
+                listener.onTransaction(tx);
+            }
+
+            if (PegUtilsLegacy.isValidPegInTx(btcTx, watchedFederation, watchedFederationWallet, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
+                PeginInformation peginInformation = new PeginInformation(
+                    btcLockSenderProvider,
+                    peginInstructionsProvider,
+                    federatorSupport.getConfigForBestBlock()
+                );
+
+                try {
+                    peginInformation.parse(btcTx);
+                } catch (PeginInstructionsException e) {
+                    // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
+                    if (peginInformation.getSenderBtcAddress() != null) {
+                        LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx, funds will be refunded to sender", tx.getWTxId());
+                    } else {
+                        LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx and won't be processed!", tx.getWTxId());
+                        continue;
                     }
+                }
 
-                    LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a lock", tx.getWTxId());
-                    listener.onTransaction(tx);
-                }
-                if (PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
-                    LOGGER.debug("[coinsReceivedOrSent] [btctx with hash {} and witness hash {}] is a pegout", tx.getTxId(), tx.getWTxId());
-                    listener.onTransaction(tx);
-                }
+                LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a lock", tx.getWTxId());
+                listener.onTransaction(tx);
+            }
+
+            if (PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
+                LOGGER.debug("[coinsReceivedOrSent] [btctx with hash {} and witness hash {}] is a pegout", tx.getTxId(), tx.getWTxId());
+                listener.onTransaction(tx);
             }
         }
+    }
+
+    private boolean isTheSvpSpendTx(BtcTransaction btcTx) {
+        return federatorSupport.getProposedFederationAddress()
+            .map(proposedFedAddress ->
+                btcTx.getInputs().stream()
+                    .map(input -> getAddressFromInput(input))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .anyMatch(proposedFedAddress::equals)
+            )
+            .orElse(false);  // Return false if no proposed address is present
+    }
+
+    private Optional<co.rsk.bitcoinj.core.Address> getAddressFromInput(TransactionInput input) {
+        return Optional.ofNullable(input)
+            .map(TransactionInput::getOutpoint)
+            .map(TransactionOutPoint::getConnectedOutput)
+            .map(TransactionOutput::getScriptPubKey)
+            .map(scriptPubKey -> scriptPubKey.getToAddress(bridgeConstants.getBtcParams()));
     }
 }
