@@ -16,6 +16,7 @@ import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Sha256Hash;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.Blockchain;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
@@ -190,7 +191,11 @@ public class FederatorSupport {
 
     public Instant getFederationCreationTime() {
         BigInteger federationCreationTime = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_FEDERATION_CREATION_TIME);
-        return Instant.ofEpochMilli(federationCreationTime.longValue());
+
+        if (!getConfigForBestBlock().isActive(ConsensusRule.RSKIP419)) {
+            return Instant.ofEpochMilli(federationCreationTime.longValue());
+        }
+        return Instant.ofEpochSecond(federationCreationTime.longValue());
     }
 
     public long getFederationCreationBlockNumber() {
@@ -248,12 +253,15 @@ public class FederatorSupport {
     }
 
     public Instant getRetiringFederationCreationTime() {
-        BigInteger creationTime = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_FEDERATION_CREATION_TIME);
+        BigInteger creationTime = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_RETIRING_FEDERATION_CREATION_TIME);
         if (creationTime == null) {
             return null;
         }
 
-        return Instant.ofEpochMilli(creationTime.longValue());
+        if (!getConfigForBestBlock().isActive(ConsensusRule.RSKIP419)) {
+            return Instant.ofEpochMilli(creationTime.longValue());
+        }
+        return Instant.ofEpochSecond(creationTime.longValue());
     }
 
     public Optional<Address> getProposedFederationAddress() {
