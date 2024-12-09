@@ -57,7 +57,6 @@ import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import org.bitcoinj.core.Context;
-import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
