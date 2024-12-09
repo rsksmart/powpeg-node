@@ -3,6 +3,7 @@ package co.rsk.federate.adapter;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Context;
 import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.bitcoinj.core.StoredBlock;
 import co.rsk.peg.constants.BridgeConstants;
 
 import java.nio.ByteBuffer;
@@ -20,20 +21,20 @@ public class ThinConverter {
         if (storedBlock == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(96);
-        storedBlock.serializeCompact(buffer);
+        ByteBuffer buffer = ByteBuffer.allocate(StoredBlock.COMPACT_SERIALIZED_SIZE_V2);
+        storedBlock.serializeCompactV2(buffer);
         buffer.flip();
-        return org.bitcoinj.core.StoredBlock.deserializeCompact(org.bitcoinj.core.NetworkParameters.fromID(bridgeConstants.getBtcParamsString()), buffer);
+        return org.bitcoinj.core.StoredBlock.deserializeCompactV2(org.bitcoinj.core.NetworkParameters.fromID(bridgeConstants.getBtcParamsString()), buffer);
     }
 
     public static co.rsk.bitcoinj.core.StoredBlock toThinInstance(org.bitcoinj.core.StoredBlock storedBlock, BridgeConstants bridgeConstants) {
         if (storedBlock == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(96);
-        storedBlock.serializeCompact(buffer);
+        ByteBuffer buffer = ByteBuffer.allocate(StoredBlock.COMPACT_SERIALIZED_SIZE_V2);
+        storedBlock.serializeCompactV2(buffer);
         buffer.flip();
-        return co.rsk.bitcoinj.core.StoredBlock.deserializeCompact(bridgeConstants.getBtcParams(), buffer);
+        return co.rsk.bitcoinj.core.StoredBlock.deserializeCompactV2(bridgeConstants.getBtcParams(), buffer);
     }
 
 
