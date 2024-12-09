@@ -329,22 +329,22 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             throw new IllegalArgumentException(message);
         }
 
+        Optional<co.rsk.bitcoinj.core.Sha256Hash> expectedWitnessCommitment = BitcoinUtils.findWitnessCommitment(coinbaseTransaction);
         co.rsk.bitcoinj.core.Sha256Hash calculatedWitnessCommitment = co.rsk.bitcoinj.core.Sha256Hash.twiceOf(
             witnessMerkleRoot.getReversedBytes(),
             witnessReservedValue
         );
 
-        BitcoinUtils.findWitnessCommitment(coinbaseTransaction)
-            .filter(commitment -> commitment.equals(calculatedWitnessCommitment))
-            .orElseThrow(() -> {
-                String message = String.format(
-                    "Block %s with segwit peg-in tx %s generated an invalid witness merkle root",
-                    coinbaseInformation.getBlockHash(),
-                    coinbaseTransaction.getHash()
-                );
-                logger.error("[validateCoinbaseInformation] {}", message);
-                return new IllegalArgumentException(message);
-            });
+        if (expectedWitnessCommitment.isEmpty() || !expectedWitnessCommitment.get().equals(calculatedWitnessCommitment)) {
+            String message = String.format(
+                "Block %s with segwit peg-in tx %s generated an invalid witness commitment",
+                coinbaseInformation.getBlockHash(),
+                coinbaseTransaction.getHash()
+            );
+            logger.error("[validateCoinbaseInformation] {}", message);
+            throw new IllegalArgumentException(message);
+        }
+
         logger.debug(
             "[validateCoinbaseInformation] Block {} with segwit peg-in tx {} has a valid witness merkle root",
             coinbaseInformation.getBlockHash(),
