@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.BtcToRskClient;
+import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationArgs;
@@ -38,6 +39,7 @@ class FederationWatcherListenerImplTest {
     private BtcToRskClient btcToRskClientActive;
     private BtcToRskClient btcToRskClientRetiring;
     private BtcReleaseClient btcReleaseClient;
+    private BitcoinWrapper bitcoinWrapper;
     private FederationWatcherListener federationWatcherListener;
 
     @BeforeEach
@@ -45,8 +47,9 @@ class FederationWatcherListenerImplTest {
         btcToRskClientActive = mock(BtcToRskClient.class);
         btcToRskClientRetiring = mock(BtcToRskClient.class);
         btcReleaseClient = mock(BtcReleaseClient.class);
+        bitcoinWrapper = mock(BitcoinWrapper.class);
         federationWatcherListener = new FederationWatcherListenerImpl(
-            btcToRskClientActive, btcToRskClientRetiring, btcReleaseClient);
+            btcToRskClientActive, btcToRskClientRetiring, btcReleaseClient, bitcoinWrapper);
     }
    
     @Test
@@ -99,6 +102,7 @@ class FederationWatcherListenerImplTest {
 
         // Assert
         verify(btcReleaseClient, never()).start(any(Federation.class));
+        verify(bitcoinWrapper, never()).addFederationListener(any(Federation.class), any(BtcToRskClient.class));
     }
 
     @Test
@@ -108,6 +112,7 @@ class FederationWatcherListenerImplTest {
 
         // Assert
         verify(btcReleaseClient).start(FEDERATION);
+        verify(bitcoinWrapper).addFederationListener(FEDERATION, btcToRskClientActive);
     }
 
     @Test
