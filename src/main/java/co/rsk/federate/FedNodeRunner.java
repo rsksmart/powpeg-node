@@ -347,7 +347,8 @@ public class FedNodeRunner implements NodeRunner {
             FederationWatcherListener federationWatcherListener = new FederationWatcherListenerImpl(
                 btcToRskClientActive,
                 btcToRskClientRetiring,
-                btcReleaseClient);
+                btcReleaseClient,
+                bitcoinWrapper);
 
             federationWatcher.start(federationProvider, federationWatcherListener);
         }
