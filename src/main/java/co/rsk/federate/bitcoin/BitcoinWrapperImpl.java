@@ -1,9 +1,6 @@
 package co.rsk.federate.bitcoin;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.TransactionInput;
-import co.rsk.bitcoinj.core.TransactionOutPoint;
-import co.rsk.bitcoinj.core.TransactionOutput;
 import co.rsk.bitcoinj.wallet.Wallet;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.FederatorSupport;
@@ -23,7 +20,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Context;
@@ -47,6 +43,7 @@ import org.slf4j.LoggerFactory;
  * @author Oscar Guindzberg
  */
 public class BitcoinWrapperImpl implements BitcoinWrapper {
+
     private class FederationListener {
         private Federation federation;
         private TransactionListener listener;
@@ -77,6 +74,9 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         }
     }
 
+    private static final int MAX_SIZE_MAP_STORED_BLOCKS = 10_000;
+    private static final Logger LOGGER = LoggerFactory.getLogger(BitcoinWrapperImpl.class);
+
     private Context btcContext;
     private BridgeConstants bridgeConstants;
     private boolean running = false;
@@ -89,9 +89,6 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     private final PeginInstructionsProvider peginInstructionsProvider;
     private final FederatorSupport federatorSupport;
     private final Kit kit;
-
-    public static final int MAX_SIZE_MAP_STORED_BLOCKS = 10_000;
-    private static final Logger LOGGER = LoggerFactory.getLogger(BitcoinWrapperImpl.class);
 
     public BitcoinWrapperImpl(
         Context btcContext,
@@ -336,11 +333,6 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             TransactionListener listener = watched.getListener();
             Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
 
-            if (isTheSvpSpendTx(btcTx)) {
-                LOGGER.debug("[coinsReceivedOrSent] [btctx with hash {} and witness hash {}] is a svp spend tx", tx.getTxId(), tx.getWTxId());
-                listener.onTransaction(tx);
-            }
-
             if (PegUtilsLegacy.isValidPegInTx(btcTx, watchedFederation, watchedFederationWallet, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
                 PeginInformation peginInformation = new PeginInformation(
                     btcLockSenderProvider,
@@ -369,25 +361,5 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                 listener.onTransaction(tx);
             }
         }
-    }
-
-    private boolean isTheSvpSpendTx(BtcTransaction btcTx) {
-        return federatorSupport.getProposedFederationAddress()
-            .map(proposedFedAddress ->
-                btcTx.getInputs().stream()
-                    .map(input -> getAddressFromInput(input))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .anyMatch(proposedFedAddress::equals)
-            )
-            .orElse(false);  // Return false if no proposed address is present
-    }
-
-    private Optional<co.rsk.bitcoinj.core.Address> getAddressFromInput(TransactionInput input) {
-        return Optional.ofNullable(input)
-            .map(TransactionInput::getOutpoint)
-            .map(TransactionOutPoint::getConnectedOutput)
-            .map(TransactionOutput::getScriptPubKey)
-            .map(scriptPubKey -> scriptPubKey.getToAddress(bridgeConstants.getBtcParams()));
     }
 }
