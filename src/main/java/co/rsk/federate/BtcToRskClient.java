@@ -180,13 +180,15 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         if (federation == null) {
             logger.warn("[updateBridge] updateBridge skipped because no Federation is associated to this BtcToRskClient");
         }
+
         if (nodeBlockProcessor.hasBetterBlockToSync()) {
             logger.warn("[updateBridge] updateBridge skipped because the node is syncing blocks");
             return;
         }
+
         logger.debug("[updateBridge] Updating bridge");
 
-        if(shouldUpdateBridgeBtcBlockchain) {
+        if (shouldUpdateBridgeBtcBlockchain) {
             // Call receiveHeaders
             try {
                 int numberOfBlocksSent = updateBridgeBtcBlockchain();
@@ -197,7 +199,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
         }
 
-        if(shouldUpdateBridgeBtcCoinbaseTransactions) {
+        if (shouldUpdateBridgeBtcCoinbaseTransactions) {
             // Call registerBtcCoinbaseTransaction
             try {
                 logger.debug("[updateBridge] Updating transactions and sending update");
@@ -208,7 +210,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
         }
 
-        if(shouldUpdateBridgeBtcTransactions) {
+        if (shouldUpdateBridgeBtcTransactions) {
             // Call registerBtcTransaction
             try {
                 logger.debug("[updateBridge] Updating transactions and sending update");
@@ -219,7 +221,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
         }
 
-        if(shouldUpdateCollections) {
+        if (shouldUpdateCollections) {
             // Call updateCollections
             try {
                 logger.debug("[updateBridge] Sending updateCollections");
