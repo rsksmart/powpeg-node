@@ -111,9 +111,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public void start(Federation federation) {
         logger.info("[start] Starting for Federation {}", federation.getAddress());
         this.federation = federation;
+
         FederationMember federator = federatorSupport.getFederationMember();
         boolean isMember = federation.isMember(federator);
-
         if (!isMember) {
             String message = String.format(
                 "Member %s is no part of the federation %s",
@@ -128,10 +128,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         logger.info("[start] Watching federation {} since I belong to it",
             federation.getAddress());
         bitcoinWrapper.addFederationListener(federation, this);
-        Optional<Integer> federatorIndex = federation.getBtcPublicKeyIndex(
-            federatorSupport.getFederationMember().getBtcPublicKey()
-        );
 
+        Optional<Integer> federatorIndex = federation.getBtcPublicKeyIndex(
+            federatorSupport.getFederationMember().getBtcPublicKey());
         if (!federatorIndex.isPresent()) {
             String message = String.format(
                 "Federator %s is a member of the federation %s but could not find the btcPublicKeyIndex",
@@ -142,20 +141,19 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             throw new IllegalStateException(message);
         }
 
-        TurnScheduler scheduler = new TurnScheduler(
-                bridgeConstants.getUpdateBridgeExecutionPeriod(),
-                federation.getSize()
-        );
-        long now = Clock.systemUTC().instant().toEpochMilli();
-
         if (isUpdateBridgeTimerEnabled) {
-            updateBridgeTimer = Executors.newSingleThreadScheduledExecutor();
+            long now = Clock.systemUTC().instant().toEpochMilli();
+            TurnScheduler scheduler = new TurnScheduler(
+              bridgeConstants.getUpdateBridgeExecutionPeriod(),
+              federation.getSize());
+
+            this.updateBridgeTimer = Executors.newSingleThreadScheduledExecutor();
+
             updateBridgeTimer.scheduleAtFixedRate(
                 this::updateBridge,
                 scheduler.getDelay(now, federatorIndex.get()),
                 scheduler.getInterval(),
-                TimeUnit.MILLISECONDS
-            );
+                TimeUnit.MILLISECONDS);
         } else {
             logger.info("[start] updateBridgeTimer is disabled");
         }
@@ -164,11 +162,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public void stop() {
         logger.info("Stopping");
 
-        federation = null;
+        this.federation = null;
 
         if (updateBridgeTimer != null) {
             updateBridgeTimer.shutdown();
-            updateBridgeTimer = null;
+            this.updateBridgeTimer = null;
         }
     }
 
