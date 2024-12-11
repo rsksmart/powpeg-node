@@ -1,6 +1,7 @@
 package co.rsk.federate.watcher;
 
 import co.rsk.federate.BtcToRskClient;
+import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.peg.federation.Federation;
 import org.slf4j.Logger;
@@ -14,14 +15,17 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
     private final BtcToRskClient btcToRskClientActive;
     private final BtcToRskClient btcToRskClientRetiring;
     private final BtcReleaseClient btcReleaseClient;
+    private final BitcoinWrapper bitcoinWrapper;
 
     public FederationWatcherListenerImpl(
             BtcToRskClient btcToRskClientActive,
             BtcToRskClient btcToRskClientRetiring,
-            BtcReleaseClient btcReleaseClient) {
+            BtcReleaseClient btcReleaseClient,
+            BitcoinWrapper bitcoinWrapper) {
         this.btcToRskClientActive = btcToRskClientActive;
         this.btcToRskClientRetiring = btcToRskClientRetiring;
         this.btcReleaseClient = btcReleaseClient;
+        this.bitcoinWrapper = bitcoinWrapper;
     }
 
     @Override
@@ -51,13 +55,17 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
             // start {@code BtcReleaseClient} with proposed federation
             // so it can sign svp spend tx
             btcReleaseClient.start(newProposedFederation);
+
+            // add proposed federation to active btc to rsk client so
+            // it can register svp spend tx in the bridge
+            bitcoinWrapper.addFederationListener(newProposedFederation, btcToRskClientActive);
           
             logger.info(
-                "[onProposedFederationChange] Client for proposed federation [{}] started with success",
+                "[onProposedFederationChange] Clients for proposed federation [{}] started with success",
                 newProposedFederation.getAddress());
         } catch (Exception e) {
             logger.error(
-                "[onProposedFederationChange] Client for proposed federation [{}] failed to start",
+                "[onProposedFederationChange] Clients for proposed federation [{}] failed to start",
                 newProposedFederation.getAddress(),
                 e);
         }
