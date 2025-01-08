@@ -21,7 +21,6 @@ import co.rsk.federate.mock.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.PegUtilsLegacy;
-import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.btcLockSender.*;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
 import co.rsk.peg.constants.BridgeConstants;

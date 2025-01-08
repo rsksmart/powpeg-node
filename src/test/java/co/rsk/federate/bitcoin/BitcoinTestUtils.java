@@ -9,9 +9,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.HashUtil;
 
 public final class BitcoinTestUtils {
+
+    public static final byte[]  WITNESS_COMMITMENT_HEADER = Hex.decode("aa21a9ed");
+    public static final Sha256Hash WITNESS_RESERVED_VALUE = Sha256Hash.ZERO_HASH;
+    public static final int WITNESS_COMMITMENT_LENGTH = WITNESS_COMMITMENT_HEADER.length + Sha256Hash.LENGTH;
 
     private BitcoinTestUtils() { }
 
