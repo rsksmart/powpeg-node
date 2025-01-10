@@ -51,6 +51,8 @@ import org.spongycastle.util.encoders.Hex;
  * Created by ajlopez on 6/1/2016.
  */
 class BtcToRskClientTest {
+    private static final Sha256Hash WITNESS_RESERVED_VALUE = Sha256Hash.ZERO_HASH;
+    private static final int WITNESS_COMMITMENT_LENGTH = 36; // 4 bytes for header, 32 for hash
     private int nhash = 0;
     private ActivationConfig activationConfig;
     private BridgeConstants bridgeRegTestConstants;
@@ -2774,7 +2776,7 @@ class BtcToRskClientTest {
         coinbaseTx.verify();
 
         TransactionWitness txWitness = new TransactionWitness(1);
-        txWitness.setPush(0, BitcoinUtils.WITNESS_RESERVED_VALUE.getBytes());
+        txWitness.setPush(0, WITNESS_RESERVED_VALUE.getBytes());
         coinbaseTx.getInput(0).setWitness(txWitness);
 
         Sha256Hash witnessCommitment = Sha256Hash.wrap("0011223344556677889900112233445566778899001122334455667788990011");
@@ -2782,7 +2784,7 @@ class BtcToRskClientTest {
         byte[] wrongWitnessCommitmentWithHeader = ByteUtil.merge(
             new byte[]{ScriptOpCodes.OP_RETURN},
             new byte[]{ScriptOpCodes.OP_PUSHDATA1},
-            new byte[]{BitcoinUtils.WITNESS_COMMITMENT_LENGTH},
+            new byte[]{WITNESS_COMMITMENT_LENGTH},
             Hex.decode(witnessCommitmentHeader),
             witnessCommitment.getBytes()
         );
