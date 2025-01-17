@@ -9,7 +9,7 @@ public enum PowHSMConfigParameter {
   PORT("port", ""),
   INTERVAL_BETWEEN_ATTEMPTS("intervalBetweenAttempts", "1000"),
   MAX_ATTEMPTS("maxAttempts", "2"),
-  SOCKET_TIMEOUT("socketTimeout", "20000"),
+  SOCKET_TIMEOUT("socketTimeout", "30000"),
   // bookkeeping
   DIFFICULTY_TARGET("bookkeeping.difficultyTarget", ""),
   INFORMER_INTERVAL("bookkeeping.informerInterval", "360000"), // 6 minutes in milliseconds
