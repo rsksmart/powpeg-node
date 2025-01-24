@@ -38,6 +38,7 @@ import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig.ForBlock;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.crypto.HashUtil;
 import org.ethereum.util.ByteUtil;
@@ -60,12 +61,18 @@ class BtcToRskClientTest {
     private BtcToRskClientBuilder btcToRskClientBuilder;
     private List<BtcECKey> federationPrivateKeys;
     private NetworkParameters networkParameters;
+    private ForBlock activationsForBlock;
 
     @BeforeEach
     void setup() throws PeginInstructionsException, IOException {
         activationConfig = mock(ActivationConfig.class);
-        when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
         when(activationConfig.isActive(eq(ConsensusRule.RSKIP89), anyLong())).thenReturn(true);
+        when(activationConfig.isActive(eq(ConsensusRule.RSKIP460), anyLong())).thenReturn(true);
+
+        activationsForBlock = mock(ForBlock.class);
+        when(activationConfig.forBlock(anyLong())).thenReturn(activationsForBlock);
+        when(activationsForBlock.isActive(eq(ConsensusRule.RSKIP89))).thenReturn(true);
+        when(activationsForBlock.isActive(eq(ConsensusRule.RSKIP460))).thenReturn(true);
 
         bridgeRegTestConstants = new BridgeRegTestConstants();
         networkParameters = ThinConverter.toOriginalInstance(bridgeRegTestConstants.getBtcParamsString());
@@ -475,10 +482,11 @@ class BtcToRskClientTest {
 
         ActivationConfig mockedActivationConfig = mock(ActivationConfig.class);
         when(mockedActivationConfig.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(true);
+        when(mockedActivationConfig.isActive(eq(ConsensusRule.RSKIP460), anyLong())).thenReturn(true);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
-        when(federatorSupport.getConfigForBestBlock()).thenReturn(mock(ActivationConfig.ForBlock.class));
+        when(federatorSupport.getConfigForBestBlock()).thenReturn(activationsForBlock);
 
         BtcToRskClient client = spy(buildWithFactoryAndSetup(
             federatorSupport,
