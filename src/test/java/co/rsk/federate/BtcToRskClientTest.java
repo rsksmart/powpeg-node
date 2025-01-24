@@ -57,7 +57,7 @@ class BtcToRskClientTest {
     private ActivationConfig activationConfig;
     private BridgeConstants bridgeRegTestConstants;
     private Federation activeFederation;
-    private FederationMember fakeMember;
+    private FederationMember activeFederationMember;
     private BtcToRskClientBuilder btcToRskClientBuilder;
     private List<BtcECKey> federationPrivateKeys;
     private NetworkParameters networkParameters;
@@ -72,9 +72,7 @@ class BtcToRskClientTest {
         networkParameters = ThinConverter.toOriginalInstance(bridgeRegTestConstants.getBtcParamsString());
         federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
         activeFederation = TestUtils.createFederation(bridgeRegTestConstants.getBtcParams(), federationPrivateKeys);
-        fakeMember = FederationMember.getFederationMemberFromKey(
-            BtcECKey.fromPrivate(HashUtil.keccak256("00".getBytes(StandardCharsets.UTF_8)))
-        );
+        activeFederationMember = FederationMember.getFederationMemberFromKey(federationPrivateKeys.get(0));
         btcToRskClientBuilder = new BtcToRskClientBuilder();
     }
 
@@ -94,7 +92,7 @@ class BtcToRskClientTest {
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
 
-        fh.setMember(fakeMember);
+        fh.setMember(activeFederationMember);
         BtcToRskClient client = createClientWithMocks(bw, fh);
         assertDoesNotThrow(() -> client.start(activeFederation));
     }
@@ -480,7 +478,7 @@ class BtcToRskClientTest {
         when(mockedActivationConfig.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(true);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BtcToRskClient client = spy(buildWithFactoryAndSetup(
             federatorSupport,
@@ -1752,7 +1750,7 @@ class BtcToRskClientTest {
 
         SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
         // set a fake member to federatorSupport to recreate a not-null runner
-        federatorSupport.setMember(fakeMember);
+        federatorSupport.setMember(activeFederationMember);
 
         BtcToRskClient client = buildWithFactoryAndSetup(
             federatorSupport,
@@ -2242,7 +2240,7 @@ class BtcToRskClientTest {
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BtcToRskClient client = buildWithFactoryAndSetup(
             federatorSupport,
@@ -2282,7 +2280,7 @@ class BtcToRskClientTest {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         // mocking that the coinbase was already informed
         when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(true);
-        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BtcToRskClient client = buildWithFactoryAndSetup(
             federatorSupport,
@@ -2326,7 +2324,7 @@ class BtcToRskClientTest {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         // Mocking the Bridge to indicate the coinbase was not informed, and then it was
         when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(false, true);
-        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BtcToRskClient client = buildWithFactoryAndSetup(
             federatorSupport,
@@ -2373,7 +2371,7 @@ class BtcToRskClientTest {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         // mocking that the coinbase was not informed
         when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(false);
-        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BtcToRskClient client = buildWithFactoryAndSetup(
             federatorSupport,
@@ -2415,7 +2413,7 @@ class BtcToRskClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
-        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
         when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
@@ -2447,7 +2445,7 @@ class BtcToRskClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
-        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
         when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
@@ -2481,7 +2479,7 @@ class BtcToRskClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
-        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
         when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
@@ -2525,7 +2523,7 @@ class BtcToRskClientTest {
         when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
         when(federatorSupport.isBtcTxHashAlreadyProcessed(peginTx.getTxId())).thenReturn(true);
         when(federatorSupport.getBtcTxHashProcessedHeight(peginTx.getTxId())).thenReturn(1L);
-        when(federatorSupport.getFederationMember()).thenReturn(fakeMember);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
         when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
@@ -2600,7 +2598,7 @@ class BtcToRskClientTest {
 
         PowpegNodeSystemProperties config = nonNull(fedNodeSystemProperties) ? fedNodeSystemProperties : getMockedFedNodeSystemProperties(true);
 
-        if(MockUtil.isMock(config)) {
+        if (MockUtil.isMock(config)) {
             when(config.getActivationConfig()).thenReturn(activationConfig);
         }
 

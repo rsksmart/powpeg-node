@@ -111,14 +111,16 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public void start(Federation federation) {
         logger.info("[start] Starting for Federation {}", federation.getAddress());
         this.federation = federation;
+
         FederationMember federator = federatorSupport.getFederationMember();
         boolean isMember = federation.isMember(federator);
-
         if (!isMember) {
-            logger.info("[start] member {} is no part of the federation {} ",
+            String message = String.format(
+                "Member %s is no part of the federation %s",
                 federator.getBtcPublicKey(),
                 federation.getAddress());
-            return;
+            logger.error("[start] {}", message);
+            throw new IllegalStateException(message);
         }
 
         logger.info("[start] {} is member of the federation {}",
@@ -126,9 +128,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         logger.info("[start] Watching federation {} since I belong to it",
             federation.getAddress());
         bitcoinWrapper.addFederationListener(federation, this);
+
         Optional<Integer> federatorIndex = federation.getBtcPublicKeyIndex(
-            federatorSupport.getFederationMember().getBtcPublicKey()
-        );
+            federatorSupport.getFederationMember().getBtcPublicKey());
         if (!federatorIndex.isPresent()) {
             String message = String.format(
                 "Federator %s is a member of the federation %s but could not find the btcPublicKeyIndex",
@@ -138,22 +140,21 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             logger.error("[start] {}", message);
             throw new IllegalStateException(message);
         }
-        TurnScheduler scheduler = new TurnScheduler(
-                bridgeConstants.getUpdateBridgeExecutionPeriod(),
-                federation.getSize()
-        );
-        long now = Clock.systemUTC().instant().toEpochMilli();
 
         if (isUpdateBridgeTimerEnabled) {
-            updateBridgeTimer = Executors.newSingleThreadScheduledExecutor();
+            long now = Clock.systemUTC().instant().toEpochMilli();
+            TurnScheduler scheduler = new TurnScheduler(
+              bridgeConstants.getUpdateBridgeExecutionPeriod(),
+              federation.getSize());
+
+            this.updateBridgeTimer = Executors.newSingleThreadScheduledExecutor();
+
             updateBridgeTimer.scheduleAtFixedRate(
                 this::updateBridge,
                 scheduler.getDelay(now, federatorIndex.get()),
                 scheduler.getInterval(),
-                TimeUnit.MILLISECONDS
-            );
-        }
-        else {
+                TimeUnit.MILLISECONDS);
+        } else {
             logger.info("[start] updateBridgeTimer is disabled");
         }
     }
@@ -161,11 +162,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public void stop() {
         logger.info("Stopping");
 
-        federation = null;
+        this.federation = null;
 
         if (updateBridgeTimer != null) {
             updateBridgeTimer.shutdown();
-            updateBridgeTimer = null;
+            this.updateBridgeTimer = null;
         }
     }
 
@@ -177,13 +178,15 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         if (federation == null) {
             logger.warn("[updateBridge] updateBridge skipped because no Federation is associated to this BtcToRskClient");
         }
+
         if (nodeBlockProcessor.hasBetterBlockToSync()) {
             logger.warn("[updateBridge] updateBridge skipped because the node is syncing blocks");
             return;
         }
+
         logger.debug("[updateBridge] Updating bridge");
 
-        if(shouldUpdateBridgeBtcBlockchain) {
+        if (shouldUpdateBridgeBtcBlockchain) {
             // Call receiveHeaders
             try {
                 int numberOfBlocksSent = updateBridgeBtcBlockchain();
@@ -194,7 +197,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
         }
 
-        if(shouldUpdateBridgeBtcCoinbaseTransactions) {
+        if (shouldUpdateBridgeBtcCoinbaseTransactions) {
             // Call registerBtcCoinbaseTransaction
             try {
                 logger.debug("[updateBridge] Updating transactions and sending update");
@@ -205,7 +208,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
         }
 
-        if(shouldUpdateBridgeBtcTransactions) {
+        if (shouldUpdateBridgeBtcTransactions) {
             // Call registerBtcTransaction
             try {
                 logger.debug("[updateBridge] Updating transactions and sending update");
@@ -216,7 +219,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
         }
 
-        if(shouldUpdateCollections) {
+        if (shouldUpdateCollections) {
             // Call updateCollections
             try {
                 logger.debug("[updateBridge] Sending updateCollections");

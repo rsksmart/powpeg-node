@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
  * @author Oscar Guindzberg
  */
 public class BitcoinWrapperImpl implements BitcoinWrapper {
+
     private class FederationListener {
         private Federation federation;
         private TransactionListener listener;
@@ -73,6 +74,9 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         }
     }
 
+    private static final int MAX_SIZE_MAP_STORED_BLOCKS = 10_000;
+    private static final Logger LOGGER = LoggerFactory.getLogger(BitcoinWrapperImpl.class);
+
     private Context btcContext;
     private BridgeConstants bridgeConstants;
     private boolean running = false;
@@ -85,9 +89,6 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     private final PeginInstructionsProvider peginInstructionsProvider;
     private final FederatorSupport federatorSupport;
     private final Kit kit;
-
-    public static final int MAX_SIZE_MAP_STORED_BLOCKS = 10_000;
-    private static final Logger LOGGER = LoggerFactory.getLogger(BitcoinWrapperImpl.class);
 
     public BitcoinWrapperImpl(
         Context btcContext,
@@ -316,42 +317,48 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     }
 
     protected void coinsReceivedOrSent(Transaction tx) {
-        if (watchedFederations.size() > 0) {
-            LOGGER.debug("[coinsReceivedOrSent] Received filtered transaction {}", tx.getWTxId().toString());
-            Context.propagate(btcContext);
-            // Wrap tx in a co.rsk.bitcoinj.core.BtcTransaction
-            BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
-            co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
-            for (FederationListener watched : watchedFederations) {
-                Federation watchedFederation = watched.getFederation();
-                TransactionListener listener = watched.getListener();
-                Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
-                if (PegUtilsLegacy.isValidPegInTx(btcTx, watchedFederation, watchedFederationWallet, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
+        if (watchedFederations.isEmpty()) {
+            return;
+        }
 
-                    PeginInformation peginInformation = new PeginInformation(
-                        btcLockSenderProvider,
-                        peginInstructionsProvider,
-                        federatorSupport.getConfigForBestBlock()
-                    );
-                    try {
-                        peginInformation.parse(btcTx);
-                    } catch (PeginInstructionsException e) {
-                        // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
-                        if (peginInformation.getSenderBtcAddress() != null) {
-                            LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx, funds will be refunded to sender", tx.getWTxId());
-                        } else {
-                            LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx and won't be processed!", tx.getWTxId());
-                            continue;
-                        }
+        LOGGER.debug("[coinsReceivedOrSent] Received filtered transaction {}", tx.getWTxId().toString());
+        Context.propagate(btcContext);
+
+        // Wrap tx in a co.rsk.bitcoinj.core.BtcTransaction
+        BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
+        co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
+
+        for (FederationListener watched : watchedFederations) {
+            Federation watchedFederation = watched.getFederation();
+            TransactionListener listener = watched.getListener();
+            Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
+
+            if (PegUtilsLegacy.isValidPegInTx(btcTx, watchedFederation, watchedFederationWallet, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
+                PeginInformation peginInformation = new PeginInformation(
+                    btcLockSenderProvider,
+                    peginInstructionsProvider,
+                    federatorSupport.getConfigForBestBlock()
+                );
+
+                try {
+                    peginInformation.parse(btcTx);
+                } catch (PeginInstructionsException e) {
+                    // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
+                    if (peginInformation.getSenderBtcAddress() != null) {
+                        LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx, funds will be refunded to sender", tx.getWTxId());
+                    } else {
+                        LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx and won't be processed!", tx.getWTxId());
+                        continue;
                     }
+                }
 
-                    LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a lock", tx.getWTxId());
-                    listener.onTransaction(tx);
-                }
-                if (PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
-                    LOGGER.debug("[coinsReceivedOrSent] [btctx with hash {} and witness hash {}] is a pegout", tx.getTxId(), tx.getWTxId());
-                    listener.onTransaction(tx);
-                }
+                LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a lock", tx.getWTxId());
+                listener.onTransaction(tx);
+            }
+
+            if (PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
+                LOGGER.debug("[coinsReceivedOrSent] [btctx with hash {} and witness hash {}] is a pegout", tx.getTxId(), tx.getWTxId());
+                listener.onTransaction(tx);
             }
         }
     }

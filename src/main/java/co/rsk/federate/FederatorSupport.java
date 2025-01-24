@@ -11,19 +11,21 @@ import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.peg.Bridge;
 import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.StateForFederator;
+import co.rsk.peg.StateForProposedFederator;
 import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Sha256Hash;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.Blockchain;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.math.BigInteger;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -32,17 +34,14 @@ import java.util.Optional;
  */
 public class FederatorSupport {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(FederatorSupport.class);
+    private static final Logger logger = LoggerFactory.getLogger(FederatorSupport.class);
 
     private final Blockchain blockchain;
     private final PowpegNodeSystemProperties config;
-
     private final NetworkParameters parameters;
-
     private final BridgeTransactionSender bridgeTransactionSender;
 
     private ECDSASigner signer;
-
     private FederationMember federationMember;
     private RskAddress federatorAddress;
 
@@ -52,9 +51,7 @@ public class FederatorSupport {
             BridgeTransactionSender bridgeTransactionSender) {
         this.blockchain = blockchain;
         this.config = config;
-
         this.parameters = config.getNetworkConstants().getBridgeConstants().getBtcParams();
-
         this.bridgeTransactionSender = bridgeTransactionSender;
     }
 
@@ -99,7 +96,7 @@ public class FederatorSupport {
     }
 
     public void sendReceiveHeaders(org.bitcoinj.core.Block[] headers) {
-        LOGGER.debug("About to send to the bridge headers from {} to {}", headers[0].getHash(), headers[headers.length - 1].getHash());
+        logger.debug("About to send to the bridge headers from {} to {}", headers[0].getHash(), headers[headers.length - 1].getHash());
 
         Object[] objectArray = new Object[headers.length];
 
@@ -119,7 +116,7 @@ public class FederatorSupport {
     }
 
     public void sendRegisterBtcTransaction(org.bitcoinj.core.Transaction tx, int blockHeight, PartialMerkleTree pmt) {
-        LOGGER.debug("About to send to the bridge btc tx hash {}. Block height {}", tx.getWTxId(), blockHeight);
+        logger.debug("About to send to the bridge btc tx hash {}. Block height {}", tx.getWTxId(), blockHeight);
 
         byte[] txSerialized = tx.bitcoinSerialize();
         byte[] pmtSerialized = pmt.bitcoinSerialize();
@@ -127,7 +124,7 @@ public class FederatorSupport {
     }
 
     public void sendRegisterCoinbaseTransaction(CoinbaseInformation coinbaseInformation) {
-        LOGGER.debug("About to send to the bridge btc coinbase tx hash {}. Block hash {}", coinbaseInformation.getCoinbaseTransaction().getTxId(), coinbaseInformation.getBlockHash());
+        logger.debug("About to send to the bridge btc coinbase tx hash {}. Block hash {}", coinbaseInformation.getCoinbaseTransaction().getTxId(), coinbaseInformation.getBlockHash());
 
         byte[] txSerialized = coinbaseInformation.getSerializedCoinbaseTransactionWithoutWitness();
         byte[] pmtSerialized = coinbaseInformation.getPmt().bitcoinSerialize();
@@ -151,6 +148,13 @@ public class FederatorSupport {
         return new StateForFederator(result, this.parameters);
     }
 
+    public Optional<StateForProposedFederator> getStateForProposedFederator() {
+        byte[] result = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_STATE_FOR_SVP_CLIENT);
+
+        return Optional.ofNullable(result)
+            .map(rlpData -> new StateForProposedFederator(rlpData, parameters));
+    }
 
     public void addSignature(List<byte[]> signatures, byte[] rskTxHash) {
         byte[] federatorPublicKeyBytes = federationMember.getBtcPublicKey().getPubKey();
@@ -187,7 +191,11 @@ public class FederatorSupport {
 
     public Instant getFederationCreationTime() {
         BigInteger federationCreationTime = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_FEDERATION_CREATION_TIME);
-        return Instant.ofEpochMilli(federationCreationTime.longValue());
+
+        if (!getConfigForBestBlock().isActive(ConsensusRule.RSKIP419)) {
+            return Instant.ofEpochMilli(federationCreationTime.longValue());
+        }
+        return Instant.ofEpochSecond(federationCreationTime.longValue());
     }
 
     public long getFederationCreationBlockNumber() {
@@ -198,7 +206,7 @@ public class FederatorSupport {
     public Optional<Address> getRetiringFederationAddress() {
         String addressString = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_RETIRING_FEDERATION_ADDRESS);
 
-        if (addressString.equals("")) {
+        if (addressString.isEmpty()) {
             return Optional.empty();
         }
 
@@ -245,12 +253,61 @@ public class FederatorSupport {
     }
 
     public Instant getRetiringFederationCreationTime() {
-        BigInteger creationTime = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_FEDERATION_CREATION_TIME);
+        BigInteger creationTime = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_RETIRING_FEDERATION_CREATION_TIME);
         if (creationTime == null) {
             return null;
         }
 
-        return Instant.ofEpochMilli(creationTime.longValue());
+        if (!getConfigForBestBlock().isActive(ConsensusRule.RSKIP419)) {
+            return Instant.ofEpochMilli(creationTime.longValue());
+        }
+        return Instant.ofEpochSecond(creationTime.longValue());
+    }
+
+    public Optional<Address> getProposedFederationAddress() {
+        String proposedFederationAddress = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_PROPOSED_FEDERATION_ADDRESS);
+
+        return Optional.ofNullable(proposedFederationAddress)
+            .filter(addr -> !addr.isEmpty())
+            .map(addr -> Address.fromBase58(getBtcParams(), addr));
+    }
+
+    public Optional<Integer> getProposedFederationSize() {
+        BigInteger size = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_PROPOSED_FEDERATION_SIZE);
+
+        return Optional.ofNullable(size)
+            .map(BigInteger::intValue);
+    }
+
+    public Optional<ECKey> getProposedFederatorPublicKeyOfType(int index, FederationMember.KeyType keyType) {
+        Objects.requireNonNull(keyType);
+
+        byte[] publicKeyBytes = bridgeTransactionSender.callTx(
+            federatorAddress,
+            Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE,
+            new Object[]{ index, keyType.getValue() });
+       
+        return Optional.ofNullable(publicKeyBytes)
+            .map(ECKey::fromPublicOnly);
+    }
+
+    public Optional<Instant> getProposedFederationCreationTime() {
+        BigInteger creationTime = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME);
+
+        return Optional.ofNullable(creationTime)
+            .map(BigInteger::longValue)
+            .map(Instant::ofEpochSecond);
+    }
+
+    public Optional<Long> getProposedFederationCreationBlockNumber() {
+        BigInteger creationBlockNumber = bridgeTransactionSender.callTx(
+            federatorAddress, Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER);
+
+        return Optional.ofNullable(creationBlockNumber)
+            .map(BigInteger::longValue);
     }
 
     public int getBtcBlockchainBestChainHeight() {

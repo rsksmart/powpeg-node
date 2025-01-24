@@ -1,5 +1,7 @@
 package co.rsk.federate.btcreleaseclient;
 
+import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
+
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.TransactionInput;
@@ -36,8 +38,10 @@ import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.federation.Federation;
+import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
+import co.rsk.peg.StateForProposedFederator;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,8 +63,12 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.script.ScriptPattern;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
+import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.crypto.ECKey;
+import org.ethereum.db.BlockStore;
+import org.ethereum.db.ReceiptStore;
+import org.ethereum.db.TransactionInfo;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
 import org.ethereum.util.RLP;
@@ -71,20 +79,25 @@ import org.ethereum.vm.PrecompiledContracts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
-
 /**
- * Manages signing and broadcasting pegouts
- * @author Oscar Guindzberg
+ * Responsible for managing the signing and broadcasting of pegout transactions
+ * to the Bitcoin network in a federated bridge environment. The BtcReleaseClient
+ * coordinates the execution of pegout operations, ensuring transactions are 
+ * correctly signed and propagated.
+ *
+ * <p>Key responsibilities include:</p>
+ * <ul>
+ *   <li>Assembling transaction data and managing signing processes</li>
+ *   <li>Validating transaction information before broadcast</li>
+ *   <li>Ensuring successful pegout transaction broadcast to the Bitcoin network</li>
+ * </ul>
  */
 public class BtcReleaseClient {
+
     private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClient.class);
     private static final PanicProcessor panicProcessor = new PanicProcessor();
     private static final List<DataWord> SINGLE_RELEASE_BTC_TOPIC_RLP = Collections.singletonList(Bridge.RELEASE_BTC_TOPIC);
     private static final DataWord SINGLE_RELEASE_BTC_TOPIC_SOLIDITY = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
-
-    private ActivationConfig activationConfig;
-    private PeerGroup peerGroup;
 
     private final Ethereum ethereum;
     private final FederatorSupport federatorSupport;
@@ -94,13 +107,13 @@ public class BtcReleaseClient {
     private final boolean isPegoutEnabled;
     private final PegoutSignedCache pegoutSignedCache;
 
+    private ActivationConfig activationConfig;
+    private PeerGroup peerGroup;
     private ECDSASigner signer;
     private BtcReleaseEthereumListener blockListener;
     private SignerMessageBuilderFactory signerMessageBuilderFactory;
-
     private ReleaseCreationInformationGetter releaseCreationInformationGetter;
     private ReleaseRequirementsEnforcer releaseRequirementsEnforcer;
-
     private BtcReleaseClientStorageAccessor storageAccessor;
     private BtcReleaseClientStorageSynchronizer storageSynchronizer;
 
@@ -134,7 +147,8 @@ public class BtcReleaseClient {
         this.activationConfig = activationConfig;
         logger.debug("[setup] Signer: {}", signer.getClass());
 
-        org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
+        org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(
+            ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
         peerGroup = new PeerGroup(btcContext);
         try {
             if (!federatorSupport.getBitcoinPeerAddresses().isEmpty()) {
@@ -143,7 +157,7 @@ public class BtcReleaseClient {
                 }
                 peerGroup.setMaxConnections(federatorSupport.getBitcoinPeerAddresses().size());
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new BtcReleaseClientException("Error configuring peerSupport", e);
         }
         peerGroup.start();
@@ -160,32 +174,46 @@ public class BtcReleaseClient {
     }
 
     public void start(Federation federation) {
+       FederationMember federationMember = federatorSupport.getFederationMember();
+       if (!federation.isMember(federationMember)) {
+            String message = String.format(
+                "Member %s is no part of the federation %s",
+                federationMember.getBtcPublicKey(),
+                federation.getAddress());
+            logger.error("[start] {}", message);
+            throw new IllegalStateException(message);
+        }
+
         if (!observedFederations.contains(federation)) {
             observedFederations.add(federation);
-            logger.debug("[start] observing Federation {}", federation.getAddress());
+            logger.info("[start] Observing federation {}", federation.getAddress());
         }
+
         if (observedFederations.size() == 1) {
             // If there is just one observed Federation, it means the btcReleaseClient wasn't started
-            logger.debug("[start] Starting");
-            ethereum.addListener(this.blockListener);
+            logger.info("[start] Starting block listener");
+            ethereum.addListener(blockListener);
         }
     }
 
     public void stop(Federation federation) {
         if (observedFederations.contains(federation)) {
             observedFederations.remove(federation);
-            logger.debug("[stop] not observing Federation {}", federation.getAddress());
+            logger.info("[stop] Stopping observing federation {}", federation.getAddress());
         }
+
         if (observedFederations.isEmpty()) {
             // If there are no more observed Federations, the btcReleaseClient should stop
-            logger.debug("[stop] Stopping");
-            ethereum.removeListener(this.blockListener);
+            logger.info("[stop] Stopping block listener");
+            ethereum.removeListener(blockListener);
         }
     }
 
     @PreDestroy
     public void tearDown() {
-        org.bitcoinj.core.Context.propagate(new org.bitcoinj.core.Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString())));
+        org.bitcoinj.core.Context.propagate(
+            new org.bitcoinj.core.Context(
+                ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString())));
         peerGroup.stop();
         peerGroup = null;
     }
@@ -193,27 +221,37 @@ public class BtcReleaseClient {
     private class BtcReleaseEthereumListener extends EthereumListenerAdapter {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
+            if (!isPegoutEnabled) {
+                logger.warn("[onBestBlock] Processing of RSK transactions waiting for signatures is disabled");
+                return;
+            }
+
             boolean hasBetterBlockToSync = nodeBlockProcessor.hasBetterBlockToSync();
             boolean isStorageSynced = storageSynchronizer.isSynced();
             if (hasBetterBlockToSync || !isStorageSynced) {
                 logger.trace(
-                    "[onBestBlock] Node is not ready to process pegouts. hasBetterBlockToSync: {} isStorageSynced: {}",
+                    "[onBestBlock] Node is not ready to process pegouts. hasBetterBlockToSync: {} - isStorageSynced: {}",
                     hasBetterBlockToSync,
                     isStorageSynced
                 );
                 return;
             }
+            storageSynchronizer.processBlock(block, receipts);
+          
+            // Sign svp spend tx waiting for signatures, if it exists,
+            // before attempting to sign any pegouts.
+            if (activationConfig.isActive(ConsensusRule.RSKIP419, block.getNumber())) {
+                federatorSupport.getStateForProposedFederator()
+                    .map(StateForProposedFederator::getSvpSpendTxWaitingForSignatures)
+                    .filter(svpSpendTxWaitingForSignatures -> isSVPSpendTxReadyToSign(block.getNumber(), svpSpendTxWaitingForSignatures))
+                    .ifPresent(svpSpendTxReadyToBeSigned -> processReleases(Set.of(svpSpendTxReadyToBeSigned)));
+            }
+
             // Processing transactions waiting for signatures on best block only still "works",
             // since it all lies within RSK's blockchain and normal rules apply. I.e., this
             // process works on a block-by-block basis.
             StateForFederator stateForFederator = federatorSupport.getStateForFederator();
-            storageSynchronizer.processBlock(block, receipts);
-
-            // Delegate processing to our own method
-            logger.trace("[onBestBlock] Got {} pegouts", stateForFederator.getRskTxsWaitingForSignatures().entrySet().size());
-            if (isPegoutEnabled) {
-                processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
-            }
+            processReleases(stateForFederator.getRskTxsWaitingForSignatures().entrySet());
         }
 
         @Override
@@ -221,6 +259,7 @@ public class BtcReleaseClient {
             if (!isPegoutEnabled || nodeBlockProcessor.hasBetterBlockToSync()) {
                 return;
             }
+
             /* Pegout events must be processed on an every-single-block basis,
              since otherwise we could be missing pegouts potentially mined
              on what originally were side-chains and then turned into best-chains.*/
@@ -239,21 +278,62 @@ public class BtcReleaseClient {
             pegoutTxs.forEach(BtcReleaseClient.this::onBtcRelease);
         }
 
+        /**
+         * Determines if the svp spend transaction hash is ready to be signed based on its block confirmations.
+         *
+         * <p>
+         * This method retrieves the block associated with the given transaction hash and calculates
+         * the difference in block numbers between the current block and the block containing the transaction.
+         * If the difference meets or exceeds the required confirmation threshold defined in the bridge constants,
+         * the transaction is considered ready for signing.
+         * </p>
+         *
+         * @param currentBlockNumber the current block number in the blockchain
+         * @param svpTxHash the Keccak256 hash of the svp spend transaction waiting to be signed
+         * @return {@code true} if the transaction has the required number of confirmations and is ready to be signed;
+         *         {@code false} otherwise
+         */
+        private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Map.Entry<Keccak256, BtcTransaction> svpSpendTx) {
+            try {
+                int version = signer.getVersionForKeyId(BTC.getKeyId());
+                ReleaseCreationInformation releaseCreationInformation = releaseCreationInformationGetter.getTxInfoToSign(
+                    version, svpSpendTx.getKey(), svpSpendTx.getValue());
+
+                boolean isReadyToSign = Optional.ofNullable(releaseCreationInformation)
+                    .map(ReleaseCreationInformation::getPegoutCreationBlock)
+                    .map(Block::getNumber)
+                    .map(blockNumberWithSvpSpendTx -> currentBlockNumber - blockNumberWithSvpSpendTx)
+                    .filter(confirmationDifference -> confirmationDifference >= bridgeConstants.getRsk2BtcMinimumAcceptableConfirmations())
+                    .isPresent();
+                
+                logger.info("[isSvpSpendTxReadyToSign] SVP spend tx readiness check for signing: tx hash [{}], Current block [{}], Ready to sign? [{}]",
+                    svpSpendTx.getKey(),
+                    currentBlockNumber,
+                    isReadyToSign ? "YES" : "NO");
+
+                return isReadyToSign;
+            } catch (Exception e) {
+                logger.error("[isSvpSpendTxReadyToSign] Error ocurred while checking if SVP spend tx is ready to be signed", e);
+               
+                return false;
+            }
+        }
+
         private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
-            RLPList dataElements = (RLPList)RLP.decode2(dataFromBtcReleaseTopic).get(0);
+            RLPList dataElements = (RLPList) RLP.decode2(dataFromBtcReleaseTopic).get(0);
 
             return new BtcTransaction(bridgeConstants.getBtcParams(), dataElements.get(1).getRLPData());
         }
 
         private BtcTransaction convertToBtcTxFromSolidityData(byte[] dataFromBtcReleaseTopic) {
             return new BtcTransaction(bridgeConstants.getBtcParams(),
-                (byte[])BridgeEvents.RELEASE_BTC.getEvent().decodeEventData(dataFromBtcReleaseTopic)[0]);
+                (byte[]) BridgeEvents.RELEASE_BTC.getEvent().decodeEventData(dataFromBtcReleaseTopic)[0]);
         }
     }
 
     protected void processReleases(Set<Map.Entry<Keccak256, BtcTransaction>> pegouts) {
         try {
-            logger.debug("[processReleases] Starting process with {} pegouts", pegouts.size());
+            logger.info("[processReleases] Starting signing process with {} pegouts", pegouts.size());
             int version = signer.getVersionForKeyId(BTC.getKeyId());
             // Get pegout information and store it in a new list
             List<ReleaseCreationInformation> pegoutsReadyToSign = new ArrayList<>();

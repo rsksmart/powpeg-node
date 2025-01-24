@@ -15,38 +15,45 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 package co.rsk.federate;
+
+import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
+import static co.rsk.peg.federation.FederationMember.KeyType;
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP419;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.peg.federation.*;
 import co.rsk.peg.federation.constants.FederationConstants;
-import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.crypto.ECKey;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
+import java.util.stream.IntStream;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.crypto.ECKey;
 
 /**
- * Provides a federation using a FederatorSupport instance, which in turn
- * gathers the federation from the bridge contract of the ethereum
- * network it is attached to.
+ * A provider that supplies the current active, retiring, and proposed federations by
+ * using a {@link FederatorSupport} instance, which interacts with the Bridge contract.
  *
- * @author Ariel Mendelzon
+ * <p>The {@code FederationProviderFromFederatorSupport} enables access to:
+ * <ul>
+ *     <li><strong>Active Federation</strong>
+ *     <li><strong>Retiring Federation</strong>
+ *     <li><strong>Proposed Federation</strong>
+ * </ul>
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
+
     private final FederatorSupport federatorSupport;
     private final FederationConstants federationConstants;
 
     public FederationProviderFromFederatorSupport(
         FederatorSupport federatorSupport,
         FederationConstants federationConstants) {
-
         this.federatorSupport = federatorSupport;
         this.federationConstants = federationConstants;
     }
@@ -92,13 +99,12 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     @Override
     public Optional<Federation> getRetiringFederation() {
         Integer federationSize = federatorSupport.getRetiringFederationSize();
-        Optional<Address> optionalRetiringFederationAddress = getRetiringFederationAddress();
 
-        if (federationSize == -1 || !optionalRetiringFederationAddress.isPresent()) {
+        if (federationSize == FEDERATION_NON_EXISTENT.getCode()) {
             return Optional.empty();
         }
 
-        Address retiringFederationAddress = optionalRetiringFederationAddress.get();
+        Address retiringFederationAddress = getRetiringFederationAddress().orElseThrow(IllegalStateException::new);
         boolean useTypedPublicKeyGetter = federatorSupport.getConfigForBestBlock().isActive(RSKIP123);
         List<FederationMember> members = new ArrayList<>();
         for (int i = 0; i < federationSize; i++) {
@@ -137,14 +143,52 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     }
 
     @Override
-    public List<Federation> getLiveFederations() {
-        List<Federation> result = new ArrayList<>();
-        result.add(getActiveFederation());
+    public Optional<Federation> getProposedFederation() {
+        if (!federatorSupport.getConfigForBestBlock().isActive(RSKIP419)) {
+            return Optional.empty();
+        }
 
-        Optional<Federation> retiringFederation = getRetiringFederation();
-        retiringFederation.ifPresent(result::add);
+        Integer federationSize = federatorSupport.getProposedFederationSize()
+            .orElse(FEDERATION_NON_EXISTENT.getCode());
+        if (federationSize == FEDERATION_NON_EXISTENT.getCode()) {
+            return Optional.empty();
+        }
 
-        return result;
+        List<FederationMember> federationMembers = IntStream.range(0, federationSize)
+            .mapToObj(i -> new FederationMember(
+                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.BTC)
+                    .map(ECKey::getPubKey)
+                    .map(BtcECKey::fromPublicOnly)
+                    .orElseThrow(IllegalStateException::new),
+                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.RSK)
+                    .orElseThrow(IllegalStateException::new),
+                federatorSupport.getProposedFederatorPublicKeyOfType(i, KeyType.MST)
+                    .orElseThrow(IllegalStateException::new)
+            ))
+            .toList();
+
+        FederationArgs federationArgs = new FederationArgs(
+            federationMembers,
+            federatorSupport.getProposedFederationCreationTime()
+                .orElseThrow(IllegalStateException::new),
+            federatorSupport.getProposedFederationCreationBlockNumber()
+                .orElseThrow(IllegalStateException::new),
+            federatorSupport.getBtcParams()
+        );
+
+        Federation federation = FederationFactory.buildP2shErpFederation(
+            federationArgs,
+            federationConstants.getErpFedPubKeysList(),
+            federationConstants.getErpFedActivationDelay());
+
+        return Optional.of(federation);
+    }
+
+    @Override
+    public Optional<Address> getProposedFederationAddress() {
+        return Optional.of(federatorSupport)
+            .filter(fedSupport -> fedSupport.getConfigForBestBlock().isActive(RSKIP419))
+            .flatMap(FederatorSupport::getProposedFederationAddress);
     }
 
     private Federation getExpectedFederation(Federation initialFederation, Address expectedFederationAddress) {
