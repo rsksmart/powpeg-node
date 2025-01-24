@@ -15,6 +15,7 @@ import co.rsk.config.*;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
+import co.rsk.federate.config.ActivationConfigsForTest;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.io.*;
 import co.rsk.federate.mock.*;
@@ -38,11 +39,15 @@ import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig.ForBlock;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.crypto.HashUtil;
 import org.ethereum.util.ByteUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.internal.util.MockUtil;
 import org.spongycastle.util.encoders.Hex;
 
@@ -60,6 +65,8 @@ class BtcToRskClientTest {
     private BtcToRskClientBuilder btcToRskClientBuilder;
     private List<BtcECKey> federationPrivateKeys;
     private NetworkParameters networkParameters;
+
+
 
     @BeforeEach
     void setup() throws PeginInstructionsException, IOException {
@@ -457,8 +464,9 @@ class BtcToRskClientTest {
         assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
     }
 
-    @Test
-    void onBlock_including_segwit_tx_registers_coinbase() throws Exception {
+    @ParameterizedTest
+    @MethodSource("activationsProvider")
+    void onBlock_including_segwit_tx_registers_coinbase(ActivationConfig activations) throws Exception {
         Transaction segwitTx = getTx(true);
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
@@ -473,16 +481,14 @@ class BtcToRskClientTest {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
-        ActivationConfig mockedActivationConfig = mock(ActivationConfig.class);
-        when(mockedActivationConfig.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(true);
-
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
+        when(federatorSupport.getConfigForBestBlock()).thenReturn(activations.forBlock(0));
 
         BtcToRskClient client = spy(buildWithFactoryAndSetup(
             federatorSupport,
             mock(NodeBlockProcessor.class),
-            mockedActivationConfig,
+            activations,
             mock(BitcoinWrapperImpl.class),
             bridgeRegTestConstants,
             btcToRskClientFileStorageMock,
@@ -499,8 +505,17 @@ class BtcToRskClientTest {
         assertEquals(coinbaseTx, btcToRskClientFileData.getCoinbaseInformationMap().get(block.getHash()).getCoinbaseTransaction());
     }
 
-    @Test
-    void onBlock_without_segwit_tx_doesnt_register_coinbase() throws Exception {
+    public static Stream<Arguments> activationsProvider() {
+        return Stream.of(
+            Arguments.of(ActivationConfigsForTest.arrowhead631()),
+            Arguments.of(ActivationConfigsForTest.all())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("activationsProvider")
+    void onBlock_without_segwit_tx_doesnt_register_coinbase(ActivationConfig activations) throws Exception {
+        activationConfig = activations;
         Transaction tx = getTx(false);
         // Though there aren't segwit txs in this block let's set the data as if there were
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), tx.getWTxId().getReversedBytes()));
@@ -525,8 +540,10 @@ class BtcToRskClientTest {
         assertTrue(btcToRskClientFileData.getCoinbaseInformationMap().isEmpty());
     }
 
-    @Test
-    void onBlock_coinbase_invalid_witness_reserved_value() throws Exception {
+    @ParameterizedTest
+    @MethodSource("activationsProvider")
+    void onBlock_coinbase_invalid_witness_reserved_value(ActivationConfig activations) throws Exception {
+        activationConfig = activations;
         Transaction segwitTx = getTx(true);
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, new byte[]{1,2,3});
@@ -550,8 +567,10 @@ class BtcToRskClientTest {
         assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
     }
 
-    @Test
-    void onBlock_including_segwit_tx_coinbase_without_witness() throws Exception {
+    @ParameterizedTest
+    @MethodSource("activationsProvider")
+    void onBlock_including_segwit_tx_coinbase_without_witness(ActivationConfig activations) throws Exception {
+        activationConfig = activations;
         Transaction segwitTx = getTx(true);
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
         Transaction coinbaseTx = getCoinbaseTx(false, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
@@ -575,8 +594,10 @@ class BtcToRskClientTest {
         assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
     }
 
-    @Test
-    void onBlock_including_segwit_tx_coinbase_witness_commitment_doesnt_match() throws Exception {
+    @ParameterizedTest
+    @MethodSource("activationsProvider")
+    void onBlock_including_segwit_tx_coinbase_witness_commitment_doesnt_match(ActivationConfig activations) throws Exception {
+        activationConfig = activations;
         Transaction segwitTx = getTx(true);
         Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
         Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes(), Sha256Hash.of(new byte[]{6,6,6}).getBytes());
@@ -600,8 +621,10 @@ class BtcToRskClientTest {
         assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
     }
 
-    @Test
-    void onBlock_including_segwit_tx_coinbase_witness_commitment_malformed() throws Exception {
+    @ParameterizedTest
+    @MethodSource("activationsProvider")
+    void onBlock_including_segwit_tx_coinbase_witness_commitment_malformed(ActivationConfig activations) throws Exception {
+        activationConfig = activations;
         Transaction segwitTx = getTx(true);
         Transaction coinbaseTx = getCoinbaseTransactionWithWrongWitnessCommitment();
 
@@ -625,8 +648,10 @@ class BtcToRskClientTest {
         assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
     }
 
-    @Test
-    void when_markCoinbasesAsReadyToBeInformed_coinbaseInformationMap_isEmpty_return() throws Exception {
+    @ParameterizedTest
+    @MethodSource("activationsProvider")
+    void when_markCoinbasesAsReadyToBeInformed_coinbaseInformationMap_isEmpty_return(ActivationConfig activations) throws Exception {
+        activationConfig = activations;
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, new BtcToRskClientFileData()));
         BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
@@ -636,8 +661,10 @@ class BtcToRskClientTest {
         verify(btcToRskClientFileStorageMock, never()).write(any());
     }
 
-    @Test
-    void when_markCoinbasesAsReadyToBeInformed_informedBlocks_isEmpty_return() throws Exception {
+    @ParameterizedTest
+    @MethodSource("activationsProvider")
+    void when_markCoinbasesAsReadyToBeInformed_informedBlocks_isEmpty_return(ActivationConfig activations) throws Exception {
+        activationConfig = activations;
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         btcToRskClientFileData.getCoinbaseInformationMap().put(Sha256Hash.ZERO_HASH, mock(CoinbaseInformation.class));
 
@@ -651,8 +678,10 @@ class BtcToRskClientTest {
         verify(btcToRskClientFileStorageMock, never()).write(any());
     }
 
-    @Test
-    void when_markCoinbasesAsReadyToBeInformed_informedBlocks_notEmpty_writeToStorage() throws Exception {
+    @ParameterizedTest
+    @MethodSource("activationsProvider")
+    void when_markCoinbasesAsReadyToBeInformed_informedBlocks_notEmpty_writeToStorage(ActivationConfig activations) throws Exception {
+        activationConfig = activations;
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
         CoinbaseInformation coinbaseInformation = mock(CoinbaseInformation.class);
         when(coinbaseInformation.getCoinbaseTransaction()).thenReturn(mock(Transaction.class));
