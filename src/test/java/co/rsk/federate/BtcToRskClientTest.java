@@ -478,6 +478,7 @@ class BtcToRskClientTest {
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
+        when(federatorSupport.getConfigForBestBlock()).thenReturn(mock(ActivationConfig.ForBlock.class));
 
         BtcToRskClient client = spy(buildWithFactoryAndSetup(
             federatorSupport,
