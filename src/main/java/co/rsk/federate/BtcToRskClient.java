@@ -332,7 +332,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             throw new IllegalArgumentException(message);
         }
 
-        Optional<co.rsk.bitcoinj.core.Sha256Hash> expectedWitnessCommitment = BitcoinUtils.findWitnessCommitment(coinbaseTransaction);
+        Optional<co.rsk.bitcoinj.core.Sha256Hash> expectedWitnessCommitment = BitcoinUtils.findWitnessCommitment(coinbaseTransaction, federatorSupport.getConfigForBestBlock());
         co.rsk.bitcoinj.core.Sha256Hash calculatedWitnessCommitment = co.rsk.bitcoinj.core.Sha256Hash.twiceOf(
             witnessMerkleRoot.getReversedBytes(),
             witnessReservedValue
