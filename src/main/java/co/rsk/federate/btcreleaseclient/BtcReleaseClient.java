@@ -286,19 +286,23 @@ public class BtcReleaseClient {
          * </p>
          *
          * @param currentBlockNumber the current block number in the blockchain
-         * @param svpTxHash the Keccak256 hash of the svp spend transaction waiting to be signed
+         * @param svpSpendTx the Keccak256 hash and the Bitcoin transaction of the svp spend transaction waiting to be signed
          * @return {@code true} if the transaction has the required number of confirmations and is ready to be signed;
          *         {@code false} otherwise
          */
         private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Map.Entry<Keccak256, BtcTransaction> svpSpendTx) {
             try {
-                BtcTransaction btcTx = svpSpendTx.getValue();
-                Federation spendingFed = getSpendingFederation(btcTx);
-                removeSignaturesFromTransaction(btcTx, spendingFed);
+
+                BtcTransaction svpSpendTxWithoutSignatures = svpSpendTx.getValue();
+                Federation spendingFed = getSpendingFederation(svpSpendTxWithoutSignatures);
+
+                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx before removing signatures [{}]", svpSpendTxWithoutSignatures);
+                removeSignaturesFromTransaction(svpSpendTxWithoutSignatures, spendingFed);
+                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx after removing signatures [{}]", svpSpendTxWithoutSignatures);
 
                 int version = signer.getVersionForKeyId(BTC.getKeyId());
                 ReleaseCreationInformation releaseCreationInformation = releaseCreationInformationGetter.getTxInfoToSign(
-                    version, svpSpendTx.getKey(), btcTx);
+                    version, svpSpendTx.getKey(), svpSpendTxWithoutSignatures);
 
                 boolean isReadyToSign = Optional.ofNullable(releaseCreationInformation)
                     .map(ReleaseCreationInformation::getPegoutCreationBlock)
