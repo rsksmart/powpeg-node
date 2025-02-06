@@ -33,7 +33,7 @@ import co.rsk.bitcoinj.params.MainNetParams;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.script.ScriptChunk;
-import co.rsk.peg.bitcoin.BitcoinTestUtils;
+import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.bitcoin.FlyoverRedeemScriptBuilderImpl;
 import co.rsk.peg.constants.BridgeConstants;
@@ -771,7 +771,8 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenSvpSpendTxWaitingForSignaturesIsAvailableWithSignatureFromAnotherFederationMember_shouldSendAddSignature() throws Exception {
         // Arrange
-        Federation proposedFederation = TestUtils.createFederation(params, 9);
+        List<BtcECKey> federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
+        Federation proposedFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), federationPrivateKeys);
         FederationMember federationMember = proposedFederation.getMembers().get(0);
         Script scriptSig = proposedFederation.getP2SHScript().createEmptyInputScript(null, proposedFederation.getRedeemScript());
 
@@ -787,7 +788,7 @@ class BtcReleaseClientTest {
             BitcoinTestUtils.signTransactionInputFromP2shMultiSig(
                 svpSpendTx,
                 inputs.indexOf(input),
-                List.of(new BtcECKey())
+                List.of(federationPrivateKeys.get(0))
             );
         }
       
@@ -879,7 +880,7 @@ class BtcReleaseClientTest {
         BitcoinUtils.removeSignaturesFromTransactionWithP2shMultiSigInputs(svpSpendTx);
         assertEquals(svpSpendTxHashBeforeSigning, svpSpendTx.getHash());
         verify(releaseCreationInformationGetter).getTxInfoToSign(
-            any(),
+            anyInt(),
             eq(svpSpendCreationRskTxHash),
             eq(svpSpendTx));
 
