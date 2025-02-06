@@ -42,6 +42,8 @@ import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
 import co.rsk.peg.StateForProposedFederator;
+import co.rsk.peg.bitcoin.BitcoinUtils;
+
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -293,16 +295,15 @@ public class BtcReleaseClient {
         private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Map.Entry<Keccak256, BtcTransaction> svpSpendTx) {
             try {
 
-                BtcTransaction svpSpendTxWithoutSignatures = svpSpendTx.getValue();
-                Federation spendingFed = getSpendingFederation(svpSpendTxWithoutSignatures);
+                BtcTransaction btcTx = svpSpendTx.getValue();
 
-                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx before removing signatures [{}]", svpSpendTxWithoutSignatures);
-                removeSignaturesFromTransaction(svpSpendTxWithoutSignatures, spendingFed);
-                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx after removing signatures [{}]", svpSpendTxWithoutSignatures);
+                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx before removing signatures [{}]", btcTx.getHash());
+                BitcoinUtils.removeSignaturesFromTransactionWithP2shMultiSigInputs(btcTx);
+                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx after removing signatures [{}]", btcTx.getHash());
 
                 int version = signer.getVersionForKeyId(BTC.getKeyId());
                 ReleaseCreationInformation releaseCreationInformation = releaseCreationInformationGetter.getTxInfoToSign(
-                    version, svpSpendTx.getKey(), svpSpendTxWithoutSignatures);
+                    version, svpSpendTx.getKey(), btcTx);
 
                 boolean isReadyToSign = Optional.ofNullable(releaseCreationInformation)
                     .map(ReleaseCreationInformation::getPegoutCreationBlock)
