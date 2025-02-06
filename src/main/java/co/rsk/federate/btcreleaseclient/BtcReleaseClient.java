@@ -43,7 +43,6 @@ import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
 import co.rsk.peg.StateForProposedFederator;
 import co.rsk.peg.bitcoin.BitcoinUtils;
-
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
