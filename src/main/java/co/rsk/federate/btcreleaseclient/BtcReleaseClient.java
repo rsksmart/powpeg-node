@@ -287,22 +287,22 @@ public class BtcReleaseClient {
          * </p>
          *
          * @param currentBlockNumber the current block number in the blockchain
-         * @param svpSpendTx the Keccak256 hash and the Bitcoin transaction of the svp spend transaction waiting to be signed
+         * @param svpSpendTxEntry the Keccak256 hash and the Bitcoin transaction of the svp spend transaction waiting to be signed
          * @return {@code true} if the transaction has the required number of confirmations and is ready to be signed;
          *         {@code false} otherwise
          */
-        private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Map.Entry<Keccak256, BtcTransaction> svpSpendTx) {
+        private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Map.Entry<Keccak256, BtcTransaction> svpSpendTxEntry) {
             try {
 
-                BtcTransaction btcTx = svpSpendTx.getValue();
+                BtcTransaction svpSpendTx = svpSpendTxEntry.getValue();
 
-                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx before removing signatures [{}]", btcTx.getHash());
-                BitcoinUtils.removeSignaturesFromTransactionWithP2shMultiSigInputs(btcTx);
-                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx after removing signatures [{}]", btcTx.getHash());
+                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx before removing signatures [{}]", svpSpendTx.getHash());
+                BitcoinUtils.removeSignaturesFromTransactionWithP2shMultiSigInputs(svpSpendTx);
+                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx after removing signatures [{}]", svpSpendTx.getHash());
 
                 int version = signer.getVersionForKeyId(BTC.getKeyId());
                 ReleaseCreationInformation releaseCreationInformation = releaseCreationInformationGetter.getTxInfoToSign(
-                    version, svpSpendTx.getKey(), btcTx);
+                    version, svpSpendTxEntry.getKey(), svpSpendTx);
 
                 boolean isReadyToSign = Optional.ofNullable(releaseCreationInformation)
                     .map(ReleaseCreationInformation::getPegoutCreationBlock)
@@ -312,7 +312,7 @@ public class BtcReleaseClient {
                     .isPresent();
                 
                 logger.info("[isSvpSpendTxReadyToSign] SVP spend tx readiness check for signing: tx hash [{}], Current block [{}], Ready to sign? [{}]",
-                    svpSpendTx.getKey(),
+                    svpSpendTxEntry.getKey(),
                     currentBlockNumber,
                     isReadyToSign ? "YES" : "NO");
 

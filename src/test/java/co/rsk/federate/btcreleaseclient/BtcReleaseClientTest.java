@@ -771,9 +771,8 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenSvpSpendTxWaitingForSignaturesIsAvailableWithSignatureFromAnotherFederationMember_shouldSendAddSignature() throws Exception {
         // Arrange
-        List<BtcECKey> federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
-        Federation proposedFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), federationPrivateKeys);
-        FederationMember federationMember = proposedFederation.getMembers().get(0);
+        List<BtcECKey> federationKeys = TestUtils.getFederationPrivateKeys(9);
+        Federation proposedFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), federationKeys);
         Script scriptSig = proposedFederation.getP2SHScript().createEmptyInputScript(null, proposedFederation.getRedeemScript());
 
         BtcTransaction svpSpendTx = new BtcTransaction(params);
@@ -788,7 +787,7 @@ class BtcReleaseClientTest {
             BitcoinTestUtils.signTransactionInputFromP2shMultiSig(
                 svpSpendTx,
                 inputs.indexOf(input),
-                List.of(federationPrivateKeys.get(0))
+                List.of(federationKeys.get(0))
             );
         }
       
@@ -804,6 +803,7 @@ class BtcReleaseClientTest {
         }).when(ethereum).addListener(any(EthereumListener.class));
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        FederationMember federationMember = proposedFederation.getMembers().get(0);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
         // return svp spend tx waiting for signatures
         doReturn(Optional.of(stateForProposedFederator)).when(federatorSupport).getStateForProposedFederator();
