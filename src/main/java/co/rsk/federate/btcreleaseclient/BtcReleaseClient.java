@@ -42,6 +42,7 @@ import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.StateForFederator;
 import co.rsk.peg.StateForProposedFederator;
+import co.rsk.peg.bitcoin.BitcoinUtils;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,9 +67,6 @@ import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.crypto.ECKey;
-import org.ethereum.db.BlockStore;
-import org.ethereum.db.ReceiptStore;
-import org.ethereum.db.TransactionInfo;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
 import org.ethereum.util.RLP;
@@ -289,15 +287,22 @@ public class BtcReleaseClient {
          * </p>
          *
          * @param currentBlockNumber the current block number in the blockchain
-         * @param svpTxHash the Keccak256 hash of the svp spend transaction waiting to be signed
+         * @param svpSpendTxEntry the Keccak256 hash and the Bitcoin transaction of the svp spend transaction waiting to be signed
          * @return {@code true} if the transaction has the required number of confirmations and is ready to be signed;
          *         {@code false} otherwise
          */
-        private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Map.Entry<Keccak256, BtcTransaction> svpSpendTx) {
+        private boolean isSVPSpendTxReadyToSign(long currentBlockNumber, Map.Entry<Keccak256, BtcTransaction> svpSpendTxEntry) {
             try {
+
+                BtcTransaction svpSpendTx = svpSpendTxEntry.getValue();
+
+                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx before removing signatures [{}]", svpSpendTx.getHash());
+                BitcoinUtils.removeSignaturesFromTransactionWithP2shMultiSigInputs(svpSpendTx);
+                logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx after removing signatures [{}]", svpSpendTx.getHash());
+
                 int version = signer.getVersionForKeyId(BTC.getKeyId());
                 ReleaseCreationInformation releaseCreationInformation = releaseCreationInformationGetter.getTxInfoToSign(
-                    version, svpSpendTx.getKey(), svpSpendTx.getValue());
+                    version, svpSpendTxEntry.getKey(), svpSpendTx);
 
                 boolean isReadyToSign = Optional.ofNullable(releaseCreationInformation)
                     .map(ReleaseCreationInformation::getPegoutCreationBlock)
@@ -307,7 +312,7 @@ public class BtcReleaseClient {
                     .isPresent();
                 
                 logger.info("[isSvpSpendTxReadyToSign] SVP spend tx readiness check for signing: tx hash [{}], Current block [{}], Ready to sign? [{}]",
-                    svpSpendTx.getKey(),
+                    svpSpendTxEntry.getKey(),
                     currentBlockNumber,
                     isReadyToSign ? "YES" : "NO");
 
