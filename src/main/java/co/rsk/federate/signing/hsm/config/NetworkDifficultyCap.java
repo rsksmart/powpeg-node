@@ -4,7 +4,7 @@ import java.math.BigInteger;
 
 public enum NetworkDifficultyCap {
   MAINNET(new BigInteger("7000000000000000000000")),
-  TESTNET(BigInteger.valueOf(1000000000000000L)),
+  TESTNET(BigInteger.valueOf(3000000000L)),
   REGTEST(BigInteger.valueOf(20L));
 
   private final BigInteger difficultyCap;
