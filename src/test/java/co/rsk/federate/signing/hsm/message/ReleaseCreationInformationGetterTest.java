@@ -96,7 +96,7 @@ class ReleaseCreationInformationGetterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {2, 3, 4})
+    @ValueSource(ints = {2, 4, 5})
     void createGetTxInfoToSign_returnOK(int versionNumber)
         throws HSMReleaseCreationInformationException {
         List<LogInfo> logs = new ArrayList<>();
