@@ -95,7 +95,7 @@ public class ConfirmedBlocksProvider {
     private BigInteger getBlockDifficultyToConsider(Block block) {
         BigInteger blockDifficulty = block.getDifficulty().asBigInteger();
         BigInteger difficultyToConsider = blockDifficulty;
-        if (hsmVersion >= HSMVersion.V3.getNumber()) {
+        if (hsmVersion >= HSMVersion.V4.getNumber()) {
             BigInteger unclesDifficulty = block.getUncleList().stream()
                 .map(uncle -> uncle.getDifficulty().asBigInteger())
                 .reduce(BigInteger.ZERO, BigInteger::add);
