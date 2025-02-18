@@ -107,7 +107,7 @@ public class ECDSAHSMSigner implements ECDSASigner {
 
     @Override
     public int getVersionForKeyId(KeyId keyId) throws SignerException {
-        int version = 0;
+        int version;
         if (!canSignWith(keyId)) {
             throw new SignerException(String.format("Can't find version for this key for the requested signing key: %s", keyId));
         }

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,11 +41,6 @@ class ReleaseRequirementsEnforcerTest {
     }
 
     @Test
-    void enforce_version_three_ok() throws Exception {
-        test_enforce_version(ancestorBlockUpdater, enforcer, HSMVersion.V3);
-    }
-
-    @Test
     void enforce_version_four_ok() throws Exception {
         test_enforce_version(ancestorBlockUpdater, enforcer, HSMVersion.V4);
     }
@@ -53,6 +49,13 @@ class ReleaseRequirementsEnforcerTest {
         enforcer.enforce(version.getNumber(), mock(ReleaseCreationInformation.class));
 
         verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
+    }
+
+    @Test
+    void enforce_version_three_fail() throws Exception {
+        Assertions.assertThrows(ReleaseRequirementsEnforcerException.class, () -> {
+            enforcer.enforce(3, mock(ReleaseCreationInformation.class));
+        }, "Unsupported version 3");
     }
 
     @Test
