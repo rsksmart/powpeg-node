@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class HSMSigningClientProviderTest {
@@ -74,36 +75,33 @@ class HSMSigningClientProviderTest {
     }
 
     @Test
-    void getClientV3BTC() throws Exception {
+    void getClientV3BTC_shouldFail() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(3);
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "BTC");
-        HSMSigningClient client = clientProvider.getSigningClient();
-
-        assertTrue(client instanceof PowHSMSigningClientBtc);
+        Assertions.assertThrows(HSMUnsupportedVersionException.class,
+            clientProvider::getSigningClient, "Unsupported HSM version 3");
     }
 
     @Test
-    void getClientV3RSK() throws Exception {
+    void getClientV3RSK_shouldFail() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(3);
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "RSK");
-        HSMSigningClient client = clientProvider.getSigningClient();
-
-        assertTrue(client instanceof PowHSMSigningClientRskMst);
+        Assertions.assertThrows(HSMUnsupportedVersionException.class,
+            clientProvider::getSigningClient, "Unsupported HSM version 3");
     }
 
     @Test
-    void getClientV3MST() throws Exception {
+    void getClientV3MST_shouldFail() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(3);
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "MST");
-        HSMSigningClient client = clientProvider.getSigningClient();
-
-        assertTrue(client instanceof PowHSMSigningClientRskMst);
+        Assertions.assertThrows(HSMUnsupportedVersionException.class,
+            clientProvider::getSigningClient, "Unsupported HSM version 3");
     }
 
     @Test

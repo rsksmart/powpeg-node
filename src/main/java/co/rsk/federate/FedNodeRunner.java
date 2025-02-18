@@ -22,6 +22,7 @@ import static co.rsk.federate.signing.PowPegNodeKeyId.*;
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.core.RskAddress;
+import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
@@ -162,10 +163,18 @@ public class FedNodeRunner implements NodeRunner {
         HSMClientProtocol protocol =
             hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
-        int hsmVersion = protocol.getVersion();
+        int version = protocol.getVersion();
+        HSMVersion hsmVersion;
+        try {
+            hsmVersion = HSMVersion.valueOf("V" + version);
+        } catch (IllegalArgumentException e) {
+            logger.debug("[run] Unsupported HSM version  {}", version);
+            throw new HSMUnsupportedVersionException("Unsupported HSM version " + version);
+        }
+
         logger.debug("[run] Using HSM version {}", hsmVersion);
 
-        if (HSMVersion.isPowHSM(hsmVersion)) {
+        if (HSMVersion.isPowHSM(hsmVersion.getNumber())) {
             hsmBookkeepingClient = buildBookKeepingClient(
                 protocol, powHsmConfig);
             hsmBookkeepingService = buildBookKeepingService(
