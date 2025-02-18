@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import org.ethereum.core.Block;
+import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,16 +93,23 @@ public class ConfirmedBlocksProvider {
         return confirmedBlocks;
     }
 
-    private BigInteger getBlockDifficultyToConsider(Block block) {
+    protected BigInteger getBlockDifficultyToConsider(Block block) {
         BigInteger blockDifficulty = block.getDifficulty().asBigInteger();
         BigInteger difficultyToConsider = blockDifficulty;
+
         if (hsmVersion >= HSMVersion.V4.getNumber()) {
-            BigInteger unclesDifficulty = block.getUncleList().stream()
-                .map(uncle -> uncle.getDifficulty().asBigInteger())
-                .reduce(BigInteger.ZERO, BigInteger::add);
-            blockDifficulty = blockDifficulty.add(unclesDifficulty);
             difficultyToConsider = difficultyCap.min(blockDifficulty);
+
+            List<BlockHeader> uncles = block.getUncleList();
+            for (BlockHeader uncle : uncles) {
+                BigInteger uncleDifficulty = uncle.getDifficulty().asBigInteger();
+                blockDifficulty = blockDifficulty.add(uncleDifficulty);
+
+                BigInteger uncleDifficultyToConsider = difficultyCap.min(uncleDifficulty);
+                difficultyToConsider = difficultyToConsider.add(uncleDifficultyToConsider);
+            }
         }
+
         logger.trace(
             "[getBlockDifficultyToConsider] Block {} (height {}), total difficulty {}, considering {}",
             block.getHash(),

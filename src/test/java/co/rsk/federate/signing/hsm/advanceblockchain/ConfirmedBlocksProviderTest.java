@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
+import static co.rsk.federate.signing.hsm.config.NetworkDifficultyCap.MAINNET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -12,6 +13,7 @@ import co.rsk.federate.signing.utils.TestUtils;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
@@ -277,5 +279,67 @@ class ConfirmedBlocksProviderTest {
         // HSM 3 considers brothers difficulty
         // Assert 1 element in confirmed and 7 in potential list
         assertEquals(8, confirmedBlocks.size());
+    }
+
+    @Test
+    void getBlockDifficultyToConsider_forBlockWithUncles_capsEachDifficulty() {
+        BigInteger difficultyCapMainnet = MAINNET.getDifficultyCap();
+        // Block 1 - Brothers: 2, 3
+        // Block 4 - Parent: 1, Uncles: 2, 3
+
+        // block 1
+        BlockHeader block1Header = blockHeaderBuilder
+            .setNumber(1)
+            .setParentHashFromKeccak256(TestUtils.createHash(0))
+            .build();
+        Keccak256 block1ParentHash = block1Header.getParentHash();
+
+        // block 2
+        BigInteger difficultyBelowCap = new BigInteger("1000000000000000000000");
+        BlockHeader block2Header = blockHeaderBuilder
+            .setNumber(2)
+            .setParentHashFromKeccak256(block1ParentHash)
+            .setDifficulty(new BlockDifficulty(difficultyBelowCap))
+            .build();
+
+        // block 3
+        BigInteger difficultyAboveCap = new BigInteger("8000000000000000000000");
+        BlockHeader block3Header = blockHeaderBuilder
+            .setNumber(3)
+            .setParentHashFromKeccak256(block1ParentHash)
+            .setDifficulty(new BlockDifficulty(difficultyAboveCap))
+            .build();
+
+        // block 4
+        BigInteger difficultyRightAboveCap = new BigInteger("7000000000000000000001");
+        BlockHeader block4Header = blockHeaderBuilder
+            .setNumber(4)
+            .setParentHashFromKeccak256(block1Header.getHash())
+            .setDifficulty(new BlockDifficulty(difficultyRightAboveCap))
+            .build();
+        // build block 4 with block 2 and block 3 as uncles
+        List<BlockHeader> block4Uncles = Arrays.asList(block2Header, block3Header);
+        Block block4 = new Block(block4Header, Collections.emptyList(), block4Uncles, true, true);
+
+        // build blocks provider
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
+            BigInteger.valueOf(160),
+            100,
+            mock(BlockStore.class),
+            difficultyCapMainnet,
+            HSMVersion.V4.getNumber()
+        );
+
+        // act
+        BigInteger consideredDifficulty = confirmedBlocksProvider.getBlockDifficultyToConsider(block4);
+
+        // assert
+        // HSM 4 considers brothers difficulty
+        // 7000000000000000000001 difficulty round to 7000000000000000000000 from block 4
+        // + 1000000000000000000000 difficulty from block 2 (uncle)
+        // + 8000000000000000000000 difficulty round to 7000000000000000000000 from block 3 (uncle)
+        // = 15000000000000000000000 considered difficulty
+        BigInteger expectedConsideredDifficulty = new BigInteger("15000000000000000000000");
+        assertEquals(expectedConsideredDifficulty, consideredDifficulty);
     }
 }
