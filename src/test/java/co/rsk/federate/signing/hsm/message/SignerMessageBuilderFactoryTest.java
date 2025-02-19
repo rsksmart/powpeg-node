@@ -23,7 +23,7 @@ class SignerMessageBuilderFactoryTest {
     private SignerMessageBuilderFactory factory;
 
     @BeforeEach
-    public void createFactory() {
+    void createFactory() {
         factory = new SignerMessageBuilderFactory(mock(ReceiptStore.class));
     }
 

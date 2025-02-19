@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  */
 public class ECDSAHSMSigner implements ECDSASigner {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ECDSAHSMSigner.class);
+    private static final Logger logger = LoggerFactory.getLogger(ECDSAHSMSigner.class);
 
     private final HSMSigningClientProvider clientProvider;
     private final Map<KeyId, String> keyIdMapping;
@@ -78,7 +78,8 @@ public class ECDSAHSMSigner implements ECDSASigner {
         try {
             ensureHsmClient();
         } catch (HSMClientException e) {
-            String keysIds = keyIdMapping.keySet().stream().map(keyId -> keyId.toString()).collect(Collectors.joining(", "));
+            logger.error("[check] Unable to create HSM client", e);
+            String keysIds = keyIdMapping.keySet().stream().map(KeyId::toString).collect(Collectors.joining(", "));
             return new ECDSASignerCheckResult(Collections.singletonList("HSM "+ keysIds + " Signer: " + e.getMessage()));
         }
 
@@ -90,7 +91,7 @@ public class ECDSAHSMSigner implements ECDSASigner {
                 client.getPublicKey(mapping.getValue());
             } catch (HSMClientException e) {
                 messages.add(e.getMessage());
-                LOGGER.error("[check] Unable to retrieve public key", e);
+                logger.error("[check] Unable to retrieve public key", e);
             }
         }
 
@@ -131,7 +132,7 @@ public class ECDSAHSMSigner implements ECDSASigner {
 
     @Override
     public String getVersionString() throws SignerException {
-        String keysIds = keyIdMapping.keySet().stream().map(keyId -> keyId.toString()).collect(Collectors.joining(", "));
+        String keysIds = keyIdMapping.keySet().stream().map(KeyId::toString).collect(Collectors.joining(", "));
         try {
             ensureHsmClient();
             return "HSM " + keysIds + " Signer Version:" + client.getVersion();
@@ -159,6 +160,7 @@ public class ECDSAHSMSigner implements ECDSASigner {
             ensureHsmClient();
             return call.invoke(client);
         } catch(HSMChangedVersionException e) {
+            logger.debug("[invokeWithVersionRetry] HSM client version changed, retrying", e);
             client = null;
             return invokeWithVersionRetry(keyId, call);
         } catch (HSMClientException e) {
