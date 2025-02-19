@@ -75,7 +75,7 @@ class HSMSigningClientProviderTest {
     }
 
     @Test
-    void getClientV3BTC_shouldFail() throws Exception {
+    void getSigningClient_whenBtcAndProtocolVersion3_shouldFail() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(3);
 
@@ -85,7 +85,7 @@ class HSMSigningClientProviderTest {
     }
 
     @Test
-    void getClientV3RSK_shouldFail() throws Exception {
+    void getSigningClient_whenRskAndProtocolVersion3_shouldFail() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(3);
 
@@ -95,7 +95,7 @@ class HSMSigningClientProviderTest {
     }
 
     @Test
-    void getClientV3MST_shouldFail() throws Exception {
+    void getSigningClient_whenMstAndProtocolVersion3_shouldFail() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(3);
 
