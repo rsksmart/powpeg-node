@@ -164,21 +164,27 @@ public class FedNodeRunner implements NodeRunner {
             hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
         int version = protocol.getVersion();
-        HSMVersion hsmVersion;
+        evaluateHsmVersion(version);
+
+        logger.debug("[run] Using HSM version {}", version);
+
+        // Only start bookkeeping services for PoW HSMs. HSM version 1 doesn't support bookkeeping.
+        if (!HSMVersion.isPowHSM(version)) {
+            return;
+        }
+
+        hsmBookkeepingClient = buildBookKeepingClient(
+            protocol, powHsmConfig);
+        hsmBookkeepingService = buildBookKeepingService(
+            hsmBookkeepingClient, powHsmConfig);
+    }
+
+    private static void evaluateHsmVersion(int version) throws HSMUnsupportedVersionException {
         try {
-            hsmVersion = HSMVersion.valueOf("V" + version);
+            HSMVersion.valueOf("V" + version);
         } catch (IllegalArgumentException e) {
             logger.debug("[run] Unsupported HSM version  {}", version);
             throw new HSMUnsupportedVersionException("Unsupported HSM version " + version);
-        }
-
-        logger.debug("[run] Using HSM version {}", hsmVersion);
-
-        if (HSMVersion.isPowHSM(hsmVersion.getNumber())) {
-            hsmBookkeepingClient = buildBookKeepingClient(
-                protocol, powHsmConfig);
-            hsmBookkeepingService = buildBookKeepingService(
-                hsmBookkeepingClient, powHsmConfig);
         }
     }
 
