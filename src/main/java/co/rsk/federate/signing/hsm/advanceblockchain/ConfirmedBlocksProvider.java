@@ -94,30 +94,35 @@ public class ConfirmedBlocksProvider {
     }
 
     protected BigInteger getBlockDifficultyToConsider(Block block) {
+        logger.trace(
+            "[getBlockDifficultyToConsider] Get difficulty for block {} at height {}", block.getHash(), block.getNumber()
+        );
+
         BigInteger blockDifficulty = block.getDifficulty().asBigInteger();
-        BigInteger difficultyToConsider = blockDifficulty;
+        if (hsmVersion < HSMVersion.V4.getNumber()) {
+            logger.trace("[getBlockDifficultyToConsider] Considering {}", blockDifficulty);
+            return blockDifficulty;
+        }
 
-        if (hsmVersion >= HSMVersion.V4.getNumber()) {
-            difficultyToConsider = difficultyCap.min(blockDifficulty);
+        return getBlockDifficultyConsideringUnclesAndDifficultyCap(block.getUncleList(), blockDifficulty);
+    }
 
-            List<BlockHeader> uncles = block.getUncleList();
-            for (BlockHeader uncle : uncles) {
-                BigInteger uncleDifficulty = uncle.getDifficulty().asBigInteger();
-                blockDifficulty = blockDifficulty.add(uncleDifficulty);
+    private BigInteger getBlockDifficultyConsideringUnclesAndDifficultyCap(List<BlockHeader> uncles, BigInteger blockTotalDifficulty) {
+        BigInteger blockDifficultyToConsider = difficultyCap.min(blockTotalDifficulty);
 
-                BigInteger uncleDifficultyToConsider = difficultyCap.min(uncleDifficulty);
-                difficultyToConsider = difficultyToConsider.add(uncleDifficultyToConsider);
-            }
+        for (BlockHeader uncle : uncles) {
+            BigInteger uncleTotalDifficulty = uncle.getDifficulty().asBigInteger();
+            blockTotalDifficulty = blockTotalDifficulty.add(uncleTotalDifficulty);
+
+            BigInteger uncleDifficultyToConsider = difficultyCap.min(uncleTotalDifficulty);
+            blockDifficultyToConsider = blockDifficultyToConsider.add(uncleDifficultyToConsider);
         }
 
         logger.trace(
-            "[getBlockDifficultyToConsider] Block {} (height {}), total difficulty {}, considering {}",
-            block.getHash(),
-            block.getNumber(),
-            blockDifficulty,
-            difficultyToConsider
+            "[getBlockDifficultyConsideringUnclesAndDifficultyCap] Total difficulty {}, considering {}",
+            blockTotalDifficulty,
+            blockDifficultyToConsider
         );
-
-        return difficultyToConsider;
+        return blockDifficultyToConsider;
     }
 }
