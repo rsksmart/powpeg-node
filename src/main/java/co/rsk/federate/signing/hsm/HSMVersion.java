@@ -27,4 +27,8 @@ public enum HSMVersion {
     public static boolean isPowHSM(int version) {
         return getPowHSMVersions().stream().anyMatch(hsmVersion -> hsmVersion.number == version);
     }
+
+    public static boolean isValidHSMVersion(int version) {
+        return Arrays.stream(values()).anyMatch(hsmVersion -> hsmVersion.number == version);
+    }
 }
