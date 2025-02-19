@@ -167,7 +167,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
             ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), getVersion());
             addBlocksToPayload(payload, blockHeaderChunk);
 
-            if (getVersion() >= HSMVersion.V3.getNumber()) {
+            if (getVersion() >= HSMVersion.V4.getNumber()) {
                 List<String[]> brothers = getBrothers(blockHeaderChunk, message);
                 addBrothersToPayload(payload, brothers);
             }
