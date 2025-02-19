@@ -282,8 +282,57 @@ class ConfirmedBlocksProviderTest {
     }
 
     @Test
-    void getBlockDifficultyToConsider_forBlockWithUncles_capsEachDifficulty() {
-        BigInteger difficultyCapMainnet = MAINNET.getDifficultyCap();
+    void getBlockDifficultyToConsider_forHSMVersionLessThan4_doesNotConsiderUnclesAndCapDifficulty() {
+        // arrange
+        Block block = buildBlockWithUncles();
+
+        // build blocks provider for hsm version 2
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
+            BigInteger.valueOf(160),
+            100,
+            mock(BlockStore.class),
+            MAINNET.getDifficultyCap(),
+            HSMVersion.V2.getNumber()
+        );
+
+        // act
+        BigInteger consideredDifficulty = confirmedBlocksProvider.getBlockDifficultyToConsider(block);
+
+        // assert
+        // HSM version less than 4 does not consider brothers nor cap difficulty
+        // = 7000000000000000000001 difficulty from block 4
+        BigInteger expectedConsideredDifficulty = new BigInteger("7000000000000000000001");
+        assertEquals(expectedConsideredDifficulty, consideredDifficulty);
+    }
+
+    @Test
+    void getBlockDifficultyToConsider_forHSMVersionMoreThan4_considersUnclesAndCapDifficulty() {
+        // arrange
+        Block block = buildBlockWithUncles();
+
+        // build blocks provider for hsm version 4
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
+            BigInteger.valueOf(160),
+            100,
+            mock(BlockStore.class),
+            MAINNET.getDifficultyCap(),
+            HSMVersion.V4.getNumber()
+        );
+
+        // act
+        BigInteger consideredDifficulty = confirmedBlocksProvider.getBlockDifficultyToConsider(block);
+
+        // assert
+        // HSM 4 considers brothers difficulty
+        // 7000000000000000000001 difficulty round to 7000000000000000000000 from block 4
+        // + 1000000000000000000000 difficulty from block 2 (uncle)
+        // + 8000000000000000000000 difficulty round to 7000000000000000000000 from block 3 (uncle)
+        // = 15000000000000000000000 considered difficulty
+        BigInteger expectedConsideredDifficulty = new BigInteger("15000000000000000000000");
+        assertEquals(expectedConsideredDifficulty, consideredDifficulty);
+    }
+
+    private Block buildBlockWithUncles() {
         // Block 1 - Brothers: 2, 3
         // Block 4 - Parent: 1, Uncles: 2, 3
 
@@ -319,27 +368,6 @@ class ConfirmedBlocksProviderTest {
             .build();
         // build block 4 with block 2 and block 3 as uncles
         List<BlockHeader> block4Uncles = Arrays.asList(block2Header, block3Header);
-        Block block4 = new Block(block4Header, Collections.emptyList(), block4Uncles, true, true);
-
-        // build blocks provider
-        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
-            BigInteger.valueOf(160),
-            100,
-            mock(BlockStore.class),
-            difficultyCapMainnet,
-            HSMVersion.V4.getNumber()
-        );
-
-        // act
-        BigInteger consideredDifficulty = confirmedBlocksProvider.getBlockDifficultyToConsider(block4);
-
-        // assert
-        // HSM 4 considers brothers difficulty
-        // 7000000000000000000001 difficulty round to 7000000000000000000000 from block 4
-        // + 1000000000000000000000 difficulty from block 2 (uncle)
-        // + 8000000000000000000000 difficulty round to 7000000000000000000000 from block 3 (uncle)
-        // = 15000000000000000000000 considered difficulty
-        BigInteger expectedConsideredDifficulty = new BigInteger("15000000000000000000000");
-        assertEquals(expectedConsideredDifficulty, consideredDifficulty);
+        return new Block(block4Header, Collections.emptyList(), block4Uncles, true, true);
     }
 }
