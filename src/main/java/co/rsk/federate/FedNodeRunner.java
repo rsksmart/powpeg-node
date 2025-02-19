@@ -164,7 +164,9 @@ public class FedNodeRunner implements NodeRunner {
             hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
         int version = protocol.getVersion();
-        evaluateHsmVersion(version);
+        if (!HSMVersion.isValidHSMVersion(version)) {
+            throw new HSMUnsupportedVersionException("Unsupported HSM version " + version);
+        }
 
         logger.debug("[run] Using HSM version {}", version);
 
@@ -177,15 +179,6 @@ public class FedNodeRunner implements NodeRunner {
             protocol, powHsmConfig);
         hsmBookkeepingService = buildBookKeepingService(
             hsmBookkeepingClient, powHsmConfig);
-    }
-
-    private static void evaluateHsmVersion(int version) throws HSMUnsupportedVersionException {
-        try {
-            HSMVersion.valueOf("V" + version);
-        } catch (IllegalArgumentException e) {
-            logger.debug("[run] Unsupported HSM version  {}", version);
-            throw new HSMUnsupportedVersionException("Unsupported HSM version " + version);
-        }
     }
 
     private void configureFederatorSupport() throws SignerException {
