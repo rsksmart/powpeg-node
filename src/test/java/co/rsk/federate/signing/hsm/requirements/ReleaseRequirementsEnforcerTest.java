@@ -56,9 +56,8 @@ class ReleaseRequirementsEnforcerTest {
 
     @Test
     void enforce_version_two_updater_fails() throws Exception {
-        AncestorBlockUpdater blockUpdater = mock(AncestorBlockUpdater.class);
-        doThrow(new Exception()).when(blockUpdater).ensureAncestorBlockInPosition(any());
-        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(blockUpdater);
+        doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
+        ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
 
         assertThrows(ReleaseRequirementsEnforcerException.class, () -> enforcer.enforce(HSMVersion.V2.getNumber(), mock(ReleaseCreationInformation.class)));
     }
