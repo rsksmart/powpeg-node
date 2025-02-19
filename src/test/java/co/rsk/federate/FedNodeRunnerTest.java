@@ -17,7 +17,6 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.federate.signing.config.SignerType;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
@@ -524,7 +523,7 @@ class FedNodeRunnerTest {
                 new PowHSMBlockchainParameters(
                     createHash(1).toHexString(),
                     new BigInteger("4405500"),
-                    NetworkParameters.ID_UNITTESTNET.toString()));
+                    NetworkParameters.ID_UNITTESTNET));
         }
 
         return configBuilder.build(PowPegNodeKeyId.BTC);
