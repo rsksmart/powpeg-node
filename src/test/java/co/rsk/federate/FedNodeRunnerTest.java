@@ -193,7 +193,7 @@ class FedNodeRunnerTest {
     }
 
     @Test
-    void test_with_hsm_v3_config_shouldFail() throws Exception {
+    void hsm_v3_config_shouldFail() throws Exception {
         SignerConfigBuilder configBuilder = SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/0'/0'/0/0");
         SignerConfig btcSignerConfig = configBuilder.build(BTC);
