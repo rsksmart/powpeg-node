@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import org.ethereum.core.Block;
+import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,24 +93,36 @@ public class ConfirmedBlocksProvider {
         return confirmedBlocks;
     }
 
-    private BigInteger getBlockDifficultyToConsider(Block block) {
-        BigInteger blockDifficulty = block.getDifficulty().asBigInteger();
-        BigInteger difficultyToConsider = blockDifficulty;
-        if (hsmVersion >= HSMVersion.V4.getNumber()) {
-            BigInteger unclesDifficulty = block.getUncleList().stream()
-                .map(uncle -> uncle.getDifficulty().asBigInteger())
-                .reduce(BigInteger.ZERO, BigInteger::add);
-            blockDifficulty = blockDifficulty.add(unclesDifficulty);
-            difficultyToConsider = difficultyCap.min(blockDifficulty);
-        }
+    protected BigInteger getBlockDifficultyToConsider(Block block) {
         logger.trace(
-            "[getBlockDifficultyToConsider] Block {} (height {}), total difficulty {}, considering {}",
-            block.getHash(),
-            block.getNumber(),
-            blockDifficulty,
-            difficultyToConsider
+            "[getBlockDifficultyToConsider] Get difficulty for block {} at height {}", block.getHash(), block.getNumber()
         );
 
-        return difficultyToConsider;
+        BigInteger blockDifficulty = block.getDifficulty().asBigInteger();
+        if (hsmVersion < HSMVersion.V4.getNumber()) {
+            logger.trace("[getBlockDifficultyToConsider] Considering {}", blockDifficulty);
+            return blockDifficulty;
+        }
+
+        return getBlockDifficultyConsideringUnclesAndDifficultyCap(block.getUncleList(), blockDifficulty);
+    }
+
+    private BigInteger getBlockDifficultyConsideringUnclesAndDifficultyCap(List<BlockHeader> uncles, BigInteger blockTotalDifficulty) {
+        BigInteger blockDifficultyToConsider = difficultyCap.min(blockTotalDifficulty);
+
+        for (BlockHeader uncle : uncles) {
+            BigInteger uncleTotalDifficulty = uncle.getDifficulty().asBigInteger();
+            blockTotalDifficulty = blockTotalDifficulty.add(uncleTotalDifficulty);
+
+            BigInteger uncleDifficultyToConsider = difficultyCap.min(uncleTotalDifficulty);
+            blockDifficultyToConsider = blockDifficultyToConsider.add(uncleDifficultyToConsider);
+        }
+
+        logger.trace(
+            "[getBlockDifficultyConsideringUnclesAndDifficultyCap] Total difficulty {}, considering {}",
+            blockTotalDifficulty,
+            blockDifficultyToConsider
+        );
+        return blockDifficultyToConsider;
     }
 }
