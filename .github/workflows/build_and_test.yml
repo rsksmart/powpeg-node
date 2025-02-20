@@ -109,7 +109,7 @@ jobs:
           name: rskj
           path: rskj
 
-      - uses: actions/cache@3624ceb22c1c5a301c8db4169662070a689d9ea8 #v4.1.1
+      - uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f #v4.2.1
         name: Cache Gradle Wrapper
         id: cache-gradle-wrapper
         with:
@@ -182,7 +182,7 @@ jobs:
           name: rskj
           path: rskj
 
-      - uses: actions/cache/restore@3624ceb22c1c5a301c8db4169662070a689d9ea8 #v4.1.1
+      - uses: actions/cache/restore@0c907a75c2c80ebcb7f088228285e798b750cf8f #v4.2.1
         name: Restore Gradle Wrapper
         with:
           path: |
@@ -246,7 +246,7 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - uses: actions/cache/restore@3624ceb22c1c5a301c8db4169662070a689d9ea8 #v4.1.1
+      - uses: actions/cache/restore@0c907a75c2c80ebcb7f088228285e798b750cf8f #v4.2.1
         name: Restore Gradle Wrapper
         with:
           path: |
