@@ -45,6 +45,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -96,8 +97,8 @@ class ReleaseCreationInformationGetterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {2, 4, 5})
-    void createGetTxInfoToSign_returnOK(int versionNumber)
+    @EnumSource(HSMVersion.class)
+    void createGetTxInfoToSign_returnOK(HSMVersion hsmVersion)
         throws HSMReleaseCreationInformationException {
         List<LogInfo> logs = new ArrayList<>();
 
@@ -119,7 +120,7 @@ class ReleaseCreationInformationGetterTest {
         );
 
         createGetTxInfoToSign_returnOK(pegoutCreationInformation, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutCreationBlock, pegoutCreationRskTxReceipt, versionNumber);
+            pegoutBtcTx, pegoutCreationBlock, pegoutCreationRskTxReceipt, hsmVersion.getNumber());
     }
 
     private void createGetTxInfoToSign_returnOK(
