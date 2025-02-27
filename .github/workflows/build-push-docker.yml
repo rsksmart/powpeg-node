@@ -64,7 +64,12 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push Images
-        run: |
-          docker push ${{ env.DOCKERHUB_REPO }}
-          docker push ${{ env.GHCR_REPO }}
+      - name: Build Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: RSK_RELEASE=${{ github.ref_name }}
+          push: true
+
