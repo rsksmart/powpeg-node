@@ -121,7 +121,7 @@ class ConfirmedBlocksProviderTest {
     }
 
     @Test
-    void getConfirmedBlocksHSMVersion3AboveDifficultyCap() {
+    void getConfirmedBlocksHSMVersion4AboveDifficultyCap() {
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
         Block startingBlock = TestUtils.mockBlock(10, startingPoint);
@@ -150,7 +150,7 @@ class ConfirmedBlocksProviderTest {
     }
 
     @Test
-    void getConfirmedBlocksHSMVersion3BelowDifficultyCap() {
+    void getConfirmedBlocksHSMVersion4BelowDifficultyCap() {
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
         Block startingBlock = TestUtils.mockBlock(10, startingPoint);

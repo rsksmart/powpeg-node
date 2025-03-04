@@ -38,7 +38,6 @@ class HSMBookKeepingClientProviderTest {
     @Test
     void test_getHSMBookkeepingClient() throws HSMClientException{
         getHSMBookkeepingClient(2);
-        getHSMBookkeepingClient(3);
         getHSMBookkeepingClient(4);
     }
 
@@ -51,7 +50,7 @@ class HSMBookKeepingClientProviderTest {
 
     @Test
     void getHSMBookkeepingClient_unknown_version() throws HSMClientException {
-        when(hsmClientProtocol.getVersion()).thenReturn(-5);
+        when(hsmClientProtocol.getVersion()).thenReturn(3);
 
         assertThrows(HSMUnsupportedVersionException.class, () ->
             hsmBookKeepingClientProvider.getHSMBookKeepingClient(hsmClientProtocol)

@@ -22,6 +22,7 @@ import static co.rsk.federate.signing.PowPegNodeKeyId.*;
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.core.RskAddress;
+import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
@@ -162,15 +163,22 @@ public class FedNodeRunner implements NodeRunner {
         HSMClientProtocol protocol =
             hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
-        int hsmVersion = protocol.getVersion();
-        logger.debug("[run] Using HSM version {}", hsmVersion);
-
-        if (HSMVersion.isPowHSM(hsmVersion)) {
-            hsmBookkeepingClient = buildBookKeepingClient(
-                protocol, powHsmConfig);
-            hsmBookkeepingService = buildBookKeepingService(
-                hsmBookkeepingClient, powHsmConfig);
+        int version = protocol.getVersion();
+        if (!HSMVersion.isValidHSMVersion(version)) {
+            throw new HSMUnsupportedVersionException("Unsupported HSM version " + version);
         }
+
+        logger.debug("[run] Using HSM version {}", version);
+
+        // Only start bookkeeping services for PoW HSMs. HSM version 1 doesn't support bookkeeping.
+        if (!HSMVersion.isPowHSM(version)) {
+            return;
+        }
+
+        hsmBookkeepingClient = buildBookKeepingClient(
+            protocol, powHsmConfig);
+        hsmBookkeepingService = buildBookKeepingService(
+            hsmBookkeepingClient, powHsmConfig);
     }
 
     private void configureFederatorSupport() throws SignerException {
