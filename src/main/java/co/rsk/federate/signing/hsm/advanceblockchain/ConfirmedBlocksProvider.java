@@ -98,31 +98,23 @@ public class ConfirmedBlocksProvider {
             "[getBlockDifficultyToConsider] Get difficulty for block {} at height {}", block.getHash(), block.getNumber()
         );
 
-        BigInteger blockDifficulty = block.getDifficulty().asBigInteger();
+        BigInteger blockTotalDifficulty = block.getDifficulty().asBigInteger();
         if (hsmVersion < HSMVersion.V4.getNumber()) {
-            logger.trace("[getBlockDifficultyToConsider] Considering {}", blockDifficulty);
-            return blockDifficulty;
+            logger.trace("[getBlockDifficultyToConsider] Considering block total difficulty {}", blockTotalDifficulty);
+            return blockTotalDifficulty;
         }
 
-        return getBlockDifficultyConsideringUnclesAndDifficultyCap(block.getUncleList(), blockDifficulty);
-    }
-
-    private BigInteger getBlockDifficultyConsideringUnclesAndDifficultyCap(List<BlockHeader> uncles, BigInteger blockTotalDifficulty) {
+        // Considering uncles difficulty and cap
         BigInteger blockDifficultyToConsider = difficultyCap.min(blockTotalDifficulty);
-
-        for (BlockHeader uncle : uncles) {
-            BigInteger uncleTotalDifficulty = uncle.getDifficulty().asBigInteger();
-            blockTotalDifficulty = blockTotalDifficulty.add(uncleTotalDifficulty);
-
-            BigInteger uncleDifficultyToConsider = difficultyCap.min(uncleTotalDifficulty);
-            blockDifficultyToConsider = blockDifficultyToConsider.add(uncleDifficultyToConsider);
-        }
+        BigInteger unclesDifficultyToConsider = block.getUncleList().stream()
+            .map(uncle -> difficultyCap.min(uncle.getDifficulty().asBigInteger()))
+            .reduce(BigInteger.ZERO, BigInteger::add);
 
         logger.trace(
-            "[getBlockDifficultyConsideringUnclesAndDifficultyCap] Total difficulty {}, considering {}",
+            "[getBlockDifficultyToConsider] Block difficulty {}, considering {}",
             blockTotalDifficulty,
             blockDifficultyToConsider
         );
-        return blockDifficultyToConsider;
+        return blockDifficultyToConsider.add(unclesDifficultyToConsider);
     }
 }
