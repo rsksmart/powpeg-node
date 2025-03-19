@@ -257,18 +257,11 @@ class ECDSAHSMSignerTest {
     @Test
     void getVersionForKeyId_SignerException() throws HSMClientException {
         KeyId key = new KeyId("keyAB");
-        int version = HSMVersion.V3.getNumber();
+
         when(providerMock.getSigningClient()).thenReturn(clientMock);
-        when(clientMock.getVersion()).thenReturn( version);
 
-        try {
-            signer.getVersionForKeyId(key);
-            fail();
-        } catch (SignerException e) {
-            assertEquals(e.getMessage(),String.format("Can't find version for this key for the requested signing key: %s", key));
-        }
-
-        verify(clientMock,times(0)).getVersion();
+        assertThrows(SignerException.class, () -> signer.getVersionForKeyId(key), "No mapped HSM key id found");
+        verify(clientMock,never()).getVersion();
     }
 
     @Test

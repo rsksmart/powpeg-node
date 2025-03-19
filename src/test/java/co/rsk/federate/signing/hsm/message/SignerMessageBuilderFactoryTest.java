@@ -17,20 +17,23 @@ import org.ethereum.core.TransactionReceipt;
 import org.ethereum.db.ReceiptStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class SignerMessageBuilderFactoryTest {
 
     private SignerMessageBuilderFactory factory;
 
     @BeforeEach
-    public void createFactory() {
+    void createFactory() {
         factory = new SignerMessageBuilderFactory(mock(ReceiptStore.class));
     }
 
-    @Test
-    void buildWithWrongVersion() {
+    @ParameterizedTest()
+    @ValueSource(ints = {-4, -3, -2, -1, 0, 3})
+    void buildWithWrongVersion(int wrongVersion) {
         assertThrows(HSMUnsupportedVersionException.class, () -> factory.buildFromConfig(
-            -5,
+            wrongVersion,
             mock(ReleaseCreationInformation.class)
         ));
 
@@ -48,11 +51,6 @@ class SignerMessageBuilderFactoryTest {
     @Test
     void buildFromConfig_hsm_2_ok() throws HSMClientException {
         test_buildFromConfig_hsm(2);
-    }
-
-    @Test
-    void buildFromConfig_hsm_3_ok() throws HSMClientException {
-        test_buildFromConfig_hsm(3);
     }
 
     @Test

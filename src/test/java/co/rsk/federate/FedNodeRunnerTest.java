@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
@@ -50,6 +51,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Collections;
 import java.util.List;
 import org.ethereum.config.Constants;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -82,7 +84,7 @@ class FedNodeRunnerTest {
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
 
-        int hsmVersion = HSMVersion.V3.getNumber();
+        int hsmVersion = HSMVersion.V4.getNumber();
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(hsmVersion);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
@@ -187,6 +189,36 @@ class FedNodeRunnerTest {
 
         HSMBookkeepingService bookkeepingService = TestUtils.getInternalState(fedNodeRunner, "hsmBookkeepingService");
         assertNull(bookkeepingService);
+    }
+
+    @Test
+    void hsm_v3_config_shouldFail() throws Exception {
+        SignerConfigBuilder configBuilder = SignerConfigBuilder.builder()
+            .withHsmSigner("m/44'/0'/0'/0/0");
+        SignerConfig btcSignerConfig = configBuilder.build(BTC);
+
+        when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
+        HSMClientProtocol protocol = mock(HSMClientProtocol.class);
+        when(protocol.getVersion()).thenReturn(3);
+        HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
+        when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
+
+        fedNodeRunner = new FedNodeRunner(
+            mock(BtcToRskClient.class),
+            mock(BtcToRskClient.class),
+            mock(BtcReleaseClient.class),
+            mock(FederationWatcher.class),
+            mock(FederatorSupport.class),
+            mock(FederateLogger.class),
+            mock(RskLogMonitor.class),
+            mock(NodeRunner.class),
+            fedNodeSystemProperties,
+            hsmClientProtocolFactory,
+            mock(HSMBookKeepingClientProvider.class),
+            mock(FedNodeContext.class)
+        );
+
+        Assertions.assertThrows(HSMUnsupportedVersionException.class, fedNodeRunner::run, "Unsupported HSM version 3");
     }
 
     @Test
@@ -486,12 +518,12 @@ class FedNodeRunnerTest {
                 new BigInteger("4405500"), 500000L, 1000, 100, true);
         }
 
-        if (version.getNumber() >= 3) {
+        if (version.getNumber() >= 4) {
             when(hsmBookkeepingClient.getBlockchainParameters()).thenReturn(
                 new PowHSMBlockchainParameters(
                     createHash(1).toHexString(),
                     new BigInteger("4405500"),
-                    NetworkParameters.ID_UNITTESTNET.toString()));
+                    NetworkParameters.ID_UNITTESTNET));
         }
 
         return configBuilder.build(PowPegNodeKeyId.BTC);
