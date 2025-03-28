@@ -108,7 +108,7 @@ class PowHSMSignerMessageBuilderTest {
         BlockHeader blockHeader = new BlockHeaderBuilder(mock(ActivationConfig.class)).setNumber(
                 blockNumber).setParentHashFromKeccak256(TestUtils.createHash(parentBlockNumber))
             .build();
-        return new Block(blockHeader, rskTxs, Collections.emptyList(), true, true);
+        return new Block(blockHeader, rskTxs, Collections.emptyList(), null, true, true);
     }
 
     @Test
@@ -154,7 +154,7 @@ class PowHSMSignerMessageBuilderTest {
     void buildMessageForIndex_fails() {
         BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(
             mock(ActivationConfig.class));
-        Block block = new Block(blockHeaderBuilder.setNumber(1).build(), Collections.singletonList(pegoutCreationRskTx), Collections.emptyList(), true, true);
+        Block block = new Block(blockHeaderBuilder.setNumber(1).build(), Collections.singletonList(pegoutCreationRskTx), Collections.emptyList(), null, true, true);
 
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
             block, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(), mock(BtcTransaction.class),

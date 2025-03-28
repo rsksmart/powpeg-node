@@ -633,11 +633,11 @@ class HsmBookkeepingClientImplTest {
         );
 
         return Arrays.asList(
-            new Block(block1Header, Collections.emptyList(), block1Uncles, true, true),
-            new Block(block2Header, Collections.emptyList(), block2Uncles, true, true),
-            new Block(block3Header, Collections.emptyList(), block3Uncles, true, true),
-            new Block(block4Header, Collections.emptyList(), block4Uncles, true, true),
-            new Block(block5Header, Collections.emptyList(), block5Uncles, true, true)
+            new Block(block1Header, Collections.emptyList(), block1Uncles, null, true, true),
+            new Block(block2Header, Collections.emptyList(), block2Uncles, null, true, true),
+            new Block(block3Header, Collections.emptyList(), block3Uncles, null, true, true),
+            new Block(block4Header, Collections.emptyList(), block4Uncles, null, true, true),
+            new Block(block5Header, Collections.emptyList(), block5Uncles, null, true, true)
         );
     }
 

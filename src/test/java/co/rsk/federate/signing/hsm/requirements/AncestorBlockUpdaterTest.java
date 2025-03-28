@@ -99,6 +99,7 @@ class AncestorBlockUpdaterTest {
             blockHeaderBuilder.setNumber(1).build(),
             Collections.emptyList(),
             Collections.emptyList(),
+            null,
             true,
             true
         );
