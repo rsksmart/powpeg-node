@@ -215,8 +215,16 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             return nonStandardErpFederation;
         }
 
-        // Finally, try building a P2SH ERP federation
-        return FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
+        // If addresses match build a P2SH ERP federation
+        ErpFederation p2shErpFederation =
+            FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
+
+        if (p2shErpFederation.getAddress().equals(expectedFederationAddress)) {
+            return p2shErpFederation;
+        }
+
+        // Finally, try building a P2SH P2WSH ERP federation
+        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpPubKeys, activationDelay);
 
         // TODO: what if no federation built matches the expected address?
         //  It could mean that there is a different type of federation in the Bridge that we are not considering here
