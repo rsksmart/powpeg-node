@@ -80,13 +80,12 @@ public final class BitcoinTestUtils {
     }
 
     private static void signLegacyTransactionInputFromP2shMultiSig(BtcTransaction transaction, int inputIndex, List<BtcECKey> keys) {
-        TransactionInput input = transaction.getInput(inputIndex);
-
-        Script inputRedeemScript = extractRedeemScriptFromInput(input)
+        Script inputRedeemScript = extractRedeemScriptFromInput(transaction, inputIndex)
             .orElseThrow(() -> new IllegalArgumentException("Cannot sign inputs that are not from a p2sh multisig"));
 
         Script outputScript = createP2SHOutputScript(inputRedeemScript);
         Sha256Hash sigHash = transaction.hashForSignature(inputIndex, inputRedeemScript, BtcTransaction.SigHash.ALL, false);
+        TransactionInput input = transaction.getInput(inputIndex);
         Script inputScriptSig = input.getScriptSig();
 
         for (BtcECKey key : keys) {
