@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.bouncycastle.util.encoders.Hex;
@@ -59,14 +58,14 @@ class FederationProviderFromFederatorSupportTest {
     private static final FederationConstants federationConstants = FederationTestNetConstants.getInstance();
     private static final NetworkParameters testnetParams = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
     private static final Instant creationTime = Instant.ofEpochSecond(5);
-    private static ActivationConfig.ForBlock configMock;
+    private static ActivationConfig.ForBlock activations;
 
     private FederatorSupport federatorSupportMock;
     private FederationProvider federationProvider;
 
     @BeforeEach
     void createProvider() {
-        configMock = mock(ActivationConfig.ForBlock.class);
+        activations = mock(ActivationConfig.ForBlock.class);
         federatorSupportMock = mock(FederatorSupport.class);
         federationProvider = new FederationProviderFromFederatorSupport(
             federatorSupportMock,
@@ -76,14 +75,14 @@ class FederationProviderFromFederatorSupportTest {
 
     @Test
     void getActiveFederation_beforeMultikey() {
-        when(configMock.isActive(RSKIP123)).thenReturn(false);
+        when(activations.isActive(RSKIP123)).thenReturn(false);
 
         Federation expectedFederation = createFederation(
             getFederationMembersFromPks(0, 1000, 2000, 3000, 4000)
         );
         Address expectedFederationAddress = expectedFederation.getAddress();
 
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         int expectedFederationSize = expectedFederation.getSize();
         when(federatorSupportMock.getFederationSize()).thenReturn(expectedFederationSize);
         when(federatorSupportMock.getFederationThreshold()).thenReturn(expectedFederation.getNumberOfSignaturesRequired());
@@ -103,14 +102,14 @@ class FederationProviderFromFederatorSupportTest {
 
     @Test
     void getActiveFederation_afterMultikey() {
-        when(configMock.isActive(RSKIP123)).thenReturn(true);
+        when(activations.isActive(RSKIP123)).thenReturn(true);
 
         Federation expectedFederation = createFederation(
             getFederationMembersFromPks(1, 1000, 2000, 3000, 4000)
         );
         Address expectedFederationAddress = expectedFederation.getAddress();
 
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         int expectedFederationSize = expectedFederation.getSize();
         when(federatorSupportMock.getFederationSize()).thenReturn(expectedFederationSize);
         when(federatorSupportMock.getFederationThreshold()).thenReturn(expectedFederation.getNumberOfSignaturesRequired());
@@ -153,16 +152,16 @@ class FederationProviderFromFederatorSupportTest {
 
     @Test
     void getActiveFederation_erp_federation_testnet_hardcoded() {
-        when(configMock.isActive(RSKIP123)).thenReturn(true);
-        when(configMock.isActive(RSKIP284)).thenReturn(false);
+        when(activations.isActive(RSKIP123)).thenReturn(true);
+        when(activations.isActive(RSKIP284)).thenReturn(false);
 
         Federation expectedFederation = createNonStandardErpFederation(
             federationMembersFromPks,
-            configMock
+            activations
         );
         Address expectedFederationAddress = expectedFederation.getAddress();
 
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         int expectedFederationSize = expectedFederation.getSize();
         when(federatorSupportMock.getFederationSize()).thenReturn(expectedFederationSize);
         when(federatorSupportMock.getFederationThreshold()).thenReturn(expectedFederation.getNumberOfSignaturesRequired());
@@ -218,7 +217,7 @@ class FederationProviderFromFederatorSupportTest {
 
     @Test
     void getRetiringFederation_present_beforeMultikey() {
-        when(configMock.isActive(RSKIP123)).thenReturn(false);
+        when(activations.isActive(RSKIP123)).thenReturn(false);
 
         List<FederationMember> retiringFederationMembers = getFederationMembersFromPks(0, 2000, 4000, 6000, 8000, 10000, 12000);
         Federation expectedFederation = createFederation(
@@ -226,7 +225,7 @@ class FederationProviderFromFederatorSupportTest {
         );
         Address expectedFederationAddress = expectedFederation.getAddress();
 
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         int expectedFederationSize = retiringFederationMembers.size();
         when(federatorSupportMock.getRetiringFederationSize()).thenReturn(expectedFederationSize);
         when(federatorSupportMock.getRetiringFederationThreshold()).thenReturn(expectedFederation.getNumberOfSignaturesRequired());
@@ -249,7 +248,7 @@ class FederationProviderFromFederatorSupportTest {
 
     @Test
     void getRetiringFederation_present_afterMultikey() {
-        when(configMock.isActive(RSKIP123)).thenReturn(true);
+        when(activations.isActive(RSKIP123)).thenReturn(true);
 
         List<FederationMember> retiringFederationMembers = getFederationMembersFromPks(1, 2000, 4000, 6000, 8000, 10000, 12000);
         Federation expectedFederation = createFederation(
@@ -257,7 +256,7 @@ class FederationProviderFromFederatorSupportTest {
         );
         Address expectedFederationAddress = expectedFederation.getAddress();
 
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         int expectedFederationSize = expectedFederation.getSize();
         when(federatorSupportMock.getRetiringFederationSize()).thenReturn(expectedFederationSize);
         when(federatorSupportMock.getRetiringFederationThreshold()).thenReturn(expectedFederation.getNumberOfSignaturesRequired());
@@ -287,22 +286,22 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     private static Stream<Arguments> federation_args() {
-        when(configMock.isActive(RSKIP123)).thenReturn(true);
+        when(activations.isActive(RSKIP123)).thenReturn(true);
         return Stream.of(
-            Arguments.of(configMock,
+            Arguments.of(activations,
                 createNonStandardErpFederation(
                     federationMembersFromPks,
-                    configMock
+                    activations
                 ),
                 NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION
             ),
             Arguments.of(
-                configMock,
+                activations,
                 createP2shErpFederation(federationMembersFromPks),
                 P2SH_ERP_FEDERATION_FORMAT_VERSION
             ),
             Arguments.of(
-                configMock,
+                activations,
                 createP2shP2wshErpFederation(federationMembersFromPks),
                 P2SH_P2WSH_ERP_FEDERATION_FORMAT_VERSION
             )
@@ -338,8 +337,8 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenProposedFederationSizeIsNonExistent_shouldReturnEmptyOptional() {
         // Arrange
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(activations.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         when(federatorSupportMock.getProposedFederationSize())
             .thenReturn(Optional.of(FEDERATION_NON_EXISTENT.getCode()));
 
@@ -351,8 +350,8 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenSomeDataDoesNotExists_shouldThrowIllegalStateException() {
         // Arrange
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(activations.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         Federation expectedFederation = createP2shErpFederation(federationMembersFromPks);
         Address expectedFederationAddress = expectedFederation.getAddress();
         Integer federationSize = 5;
@@ -371,8 +370,8 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenExistsAndIsP2shErpFederation_shouldReturnProposedFederation() {
         // Arrange
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(activations.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         Federation expectedFederation = createP2shErpFederation(federationMembersFromPks);
         Address expectedFederationAddress = expectedFederation.getAddress();
         Integer federationSize = expectedFederation.getSize();
@@ -403,8 +402,8 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederation_whenRSKIP419IsNotActivated_shouldReturnEmptyOptional() {
         // Arrange
-        when(configMock.isActive(RSKIP419)).thenReturn(false);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(activations.isActive(RSKIP419)).thenReturn(false);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
 
         // Act
         Optional<Federation> result = federationProvider.getProposedFederation();
@@ -416,8 +415,8 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederationAddress_whenAddressExists_shouldReturnAddress() {
         // Arrange
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(activations.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.of(DEFAULT_ADDRESS));
 
         // Act
@@ -431,8 +430,8 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederationAddress_whenNoAddressExists_shouldReturnEmptyOptional() {
         // Arrange
-        when(configMock.isActive(RSKIP419)).thenReturn(true);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(activations.isActive(RSKIP419)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.empty());
 
         // Act
@@ -445,8 +444,8 @@ class FederationProviderFromFederatorSupportTest {
     @Test
     void getProposedFederationAddress_whenRSKIP419IsNotActivated_shouldReturnEmptyOptional() {
         // Arrange
-        when(configMock.isActive(RSKIP419)).thenReturn(false);
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
+        when(activations.isActive(RSKIP419)).thenReturn(false);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
 
         // Act
         Optional<Address> result = federationProvider.getProposedFederationAddress();
