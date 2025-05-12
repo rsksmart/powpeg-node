@@ -448,7 +448,7 @@ public class BtcReleaseClient {
                         BtcTransaction.SigHash.ALL,
                         false
                 );
-                if (BridgeUtils.isInputSignedByThisFederator(federatorPublicKey, sigHash, txIn)) {
+                if (BridgeUtils.isInputSignedByThisFederator(pegoutBtcTx, inputIndex, federatorPublicKey, sigHash)) {
                     String message = String.format(
                             "Btc tx %s input %d already signed by current federator with public key %s",
                             pegoutBtcTx.getHashAsString(),
