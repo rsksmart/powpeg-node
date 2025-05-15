@@ -1637,10 +1637,10 @@ class BtcReleaseClientTest {
         BtcTransaction releaseTx = new BtcTransaction(params);
 
         int outputIndex = 0;
-        Script redeemScript = federation.getRedeemScript();
         releaseTx.addInput(prevTx.getOutput(outputIndex));
 
         int inputIndex = 0;
+        Script redeemScript = federation.getRedeemScript();
         BitcoinUtils.addSpendingFederationBaseScript(releaseTx, inputIndex, redeemScript, federation.getFormatVersion());
         Sha256Hash unsignedTxHash = releaseTx.getHash();
 
