@@ -109,7 +109,7 @@ class BtcReleaseClientTest {
         "03b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b24",
         "029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e43301",
         "03284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd",
-    }).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).collect(Collectors.toList());
+    }).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).toList();
 
     @BeforeEach
     void setup() {
@@ -1588,20 +1588,12 @@ class BtcReleaseClientTest {
         Sha256Hash unsignedTxHash = releaseTx.getHash();
 
         // Sign the transaction
-        Script inputScript = releaseInput.getScriptSig();
-        List<ScriptChunk> chunks = inputScript.getChunks();
-        byte[] program = chunks.get(chunks.size() - 1).data;
-        Script redeemScript = new Script(program);
-
-        Sha256Hash sighash = releaseTx.hashForSignature(0, redeemScript, BtcTransaction.SigHash.ALL, false);
-        BtcECKey.ECDSASignature sig = federator1PrivKey.sign(sighash);
-
-        TransactionSignature txSig = new TransactionSignature(sig, BtcTransaction.SigHash.ALL, false);
-        byte[] txSigEncoded = txSig.encodeToBitcoin();
-
-        int sigIndex = inputScript.getSigInsertionIndex(sighash, federator1PrivKey);
-        inputScript = ScriptBuilder.updateScriptWithSignature(inputScript, txSigEncoded, sigIndex, 1, 1);
-        releaseInput.setScriptSig(inputScript);
+        int inputIndex = 0;
+        Sha256Hash sigHash = BitcoinUtils.generateSigHashForP2SHTransactionInput(releaseTx, inputIndex);
+        int sigInsertionIndex = BitcoinUtils.getSigInsertionIndex(releaseTx, inputIndex, sigHash, federator1PrivKey);
+        byte[] federatorSig = federator1PrivKey.sign(sigHash).encodeToDER();
+        TransactionSignature federatorTxSig = new TransactionSignature(BtcECKey.ECDSASignature.decodeFromDER(federatorSig), BtcTransaction.SigHash.ALL, false);
+        BitcoinUtils.signInput(releaseTx, inputIndex, federatorTxSig, sigInsertionIndex, federation.getP2SHScript());
 
         PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
         when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
