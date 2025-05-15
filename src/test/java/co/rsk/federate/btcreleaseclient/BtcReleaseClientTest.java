@@ -2,10 +2,7 @@ package co.rsk.federate.btcreleaseclient;
 
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -22,12 +19,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.spy;
 
-import co.rsk.bitcoinj.core.BtcECKey;
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Coin;
-import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.MainNetParams;
 import co.rsk.bitcoinj.script.Script;
@@ -83,6 +75,8 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import co.rsk.peg.federation.constants.FederationConstants;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.config.Constants;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
@@ -1630,6 +1624,61 @@ class BtcReleaseClientTest {
         // Assert
         assertNotEquals(unsignedTxHash, signedTxHash);
         assertNotEquals(signedTxHash, removedSignaturesTxHash);
+        assertEquals(unsignedTxHash, removedSignaturesTxHash);
+    }
+
+    @Test
+    void removeSignatures_withASegwitCompatibleTransaction_shouldReturnExpectedTx() {
+        // Arrange
+        BtcECKey federator1PrivKey = new BtcECKey();
+        BtcECKey federator2PrivKey = new BtcECKey();
+        List<FederationMember> fedMembers = FederationMember.getFederationMembersFromKeys(Arrays.asList(federator1PrivKey, federator2PrivKey));
+        List<BtcECKey> erpPublicKeys = fedMembers.stream().map(FederationMember::getBtcPublicKey).toList();
+        FederationArgs federationArgs = new FederationArgs(fedMembers, Instant.now(), 0, params);
+        FederationConstants federationConstants = bridgeConstants.getFederationConstants();
+        Federation federation = FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpPublicKeys, federationConstants.getErpFedActivationDelay());
+
+        BtcTransaction prevTx = new BtcTransaction(params);
+        Coin prevValue = Coin.COIN;
+        prevTx.addOutput(prevValue, federation.getAddress());
+
+        BtcTransaction releaseTx = new BtcTransaction(params);
+
+        int outputIndex = 0;
+        Script redeemScript = federation.getRedeemScript();
+        releaseTx.addInput(prevTx.getOutput(outputIndex));
+
+        int inputIndex = 0;
+        BitcoinUtils.addSpendingFederationBaseScript(releaseTx, inputIndex, redeemScript, federation.getFormatVersion());
+        Sha256Hash unsignedTxHash = releaseTx.getHash();
+
+        // Sign the transaction
+        Sha256Hash sigHash = BitcoinUtils.generateSigHashForSegwitTransactionInput(releaseTx, inputIndex, releaseTx.getInput(inputIndex).getValue());
+        int sigInsertionIndex = BitcoinUtils.getSigInsertionIndex(releaseTx, inputIndex, sigHash, federator1PrivKey);
+        byte[] federatorSig = federator1PrivKey.sign(sigHash).encodeToDER();
+        TransactionSignature federatorTxSig = new TransactionSignature(BtcECKey.ECDSASignature.decodeFromDER(federatorSig), BtcTransaction.SigHash.ALL, false);
+        BitcoinUtils.signInput(releaseTx, inputIndex, federatorTxSig, sigInsertionIndex, federation.getP2SHScript());
+
+        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
+            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
+
+        BtcReleaseClient client = new BtcReleaseClient(
+            mock(Ethereum.class),
+            mock(FederatorSupport.class),
+            powpegNodeSystemProperties,
+            mock(NodeBlockProcessor.class)
+        );
+
+        Sha256Hash signedTxHash = releaseTx.getHash();
+
+        // Act
+        assertEquals(unsignedTxHash, signedTxHash);
+        client.removeSignaturesFromTransaction(releaseTx, federation);
+        Sha256Hash removedSignaturesTxHash = releaseTx.getHash();
+
+        // Assert
         assertEquals(unsignedTxHash, removedSignaturesTxHash);
     }
 
