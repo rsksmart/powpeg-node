@@ -557,8 +557,9 @@ public class BtcReleaseClient {
             Script inputRedeemScript = getRedeemScriptFromInput(txInput);
             logger.trace("[removeSignaturesFromTransaction] input {} scriptSig {}", inputIndex, pegoutBtcTx.getInput(inputIndex).getScriptSig());
             logger.trace("[removeSignaturesFromTransaction] input {} redeem script {}", inputIndex, inputRedeemScript);
-
-            txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed, inputRedeemScript));
+            if (!BitcoinUtils.inputHasWitness(pegoutBtcTx, inputIndex)) {
+                txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed, inputRedeemScript));
+            }
             logger.debug("[removeSignaturesFromTransaction] Updated input {} scriptSig with base input script that " +
                     "spends from the federation {}", inputIndex, spendingFed.getAddress());
         }
