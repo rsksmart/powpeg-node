@@ -552,6 +552,7 @@ public class BtcReleaseClient {
      */
     protected void removeSignaturesFromTransaction(BtcTransaction pegoutBtcTx, Federation spendingFed) {
         if (pegoutBtcTx.hasWitness()) {
+            logger.debug("[removeSignaturesFromTransaction] No signature removed because the signatures are in the witness");
             return;
         }
 
