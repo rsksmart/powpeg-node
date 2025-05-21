@@ -448,7 +448,7 @@ public class BtcReleaseClient {
                         BtcTransaction.SigHash.ALL,
                         false
                 );
-                if (BridgeUtils.isInputSignedByThisFederator(federatorPublicKey, sigHash, txIn)) {
+                if (BridgeUtils.isInputSignedByThisFederator(pegoutBtcTx, inputIndex, federatorPublicKey, sigHash)) {
                     String message = String.format(
                             "Btc tx %s input %d already signed by current federator with public key %s",
                             pegoutBtcTx.getHashAsString(),
@@ -551,13 +551,17 @@ public class BtcReleaseClient {
     This way the pegoutBtcTx has the same hash as the one registered in release_requested event topics.
      */
     protected void removeSignaturesFromTransaction(BtcTransaction pegoutBtcTx, Federation spendingFed) {
+        if (pegoutBtcTx.hasWitness()) {
+            logger.debug("[removeSignaturesFromTransaction] No signature removed because the signatures are in the witness");
+            return;
+        }
+
         for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
             //Get redeem script for current input
             TransactionInput txInput = pegoutBtcTx.getInput(inputIndex);
             Script inputRedeemScript = getRedeemScriptFromInput(txInput);
             logger.trace("[removeSignaturesFromTransaction] input {} scriptSig {}", inputIndex, pegoutBtcTx.getInput(inputIndex).getScriptSig());
             logger.trace("[removeSignaturesFromTransaction] input {} redeem script {}", inputIndex, inputRedeemScript);
-
             txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed, inputRedeemScript));
             logger.debug("[removeSignaturesFromTransaction] Updated input {} scriptSig with base input script that " +
                     "spends from the federation {}", inputIndex, spendingFed.getAddress());
