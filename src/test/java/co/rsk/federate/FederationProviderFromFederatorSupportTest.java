@@ -374,7 +374,7 @@ class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
         Federation expectedFederation = createP2shErpFederation(federationMembersFromPks);
         Address expectedFederationAddress = expectedFederation.getAddress();
-        Integer federationSize = expectedFederation.getSize();
+        int federationSize = expectedFederation.getSize();
         when(federatorSupportMock.getProposedFederationSize()).thenReturn(Optional.of(federationSize));
         when(federatorSupportMock.getProposedFederationCreationTime()).thenReturn(Optional.of(creationTime));
         when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.of(expectedFederationAddress));
