@@ -280,9 +280,9 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     private void mockRetiringFederationMemberKeys(int memberIndex) {
-        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.BTC)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((memberIndex+1)*1000)));
-        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.RSK)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((memberIndex+1)*1000+1)));
-        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.MST)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf((memberIndex+1)*1000+2)));
+        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.BTC)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf(((long)(memberIndex+1))*1000)));
+        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.RSK)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf(((long)(memberIndex+1))*1000+1)));
+        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.MST)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf(((long)(memberIndex+1))*1000+2)));
     }
 
     private static Stream<Arguments> federation_args() {
