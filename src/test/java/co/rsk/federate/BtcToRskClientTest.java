@@ -2259,7 +2259,7 @@ class BtcToRskClientTest {
         );
 
         client.updateBridgeBtcCoinbaseTransactions();
-        verify(coinbases, times(1)).remove(any(Sha256Hash.class));
+        verify(coinbases, times(1)).remove(any());
     }
 
     @Test
@@ -2302,7 +2302,7 @@ class BtcToRskClientTest {
 
         verify(federatorSupport, times(1)).hasBlockCoinbaseInformed(any());
         verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any());
-        verify(coinbases, times(1)).remove(any(Sha256Hash.class));
+        verify(coinbases, times(1)).remove(any());
     }
 
     @Test
