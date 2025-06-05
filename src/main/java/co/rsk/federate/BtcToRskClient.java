@@ -9,7 +9,6 @@ import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.io.*;
 import co.rsk.federate.timing.TurnScheduler;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.BridgeUtils;
 import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.PeginInformation;
@@ -40,13 +39,10 @@ import org.slf4j.LoggerFactory;
  * Manages the process of informing the RSK bridge news about the bitcoin blockchain
  * @author Oscar Guindzberg
  */
-
 public class BtcToRskClient implements BlockListener, TransactionListener {
+    protected static final int MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN = 40;
 
-    static final int MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN = 40;
-
-    private static final Logger logger = LoggerFactory.getLogger("BtcToRskClient");
-    private static final PanicProcessor panicProcessor = new PanicProcessor();
+    private static final Logger logger = LoggerFactory.getLogger(BtcToRskClient.class);
 
     private ActivationConfig activationConfig;
     private BridgeConstants bridgeConstants;
@@ -58,7 +54,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     private PeginInstructionsProvider peginInstructionsProvider;
     private boolean isUpdateBridgeTimerEnabled;
     private Federation federation; // Federation on which this client is operating
-    ScheduledExecutorService updateBridgeTimer; // Timer that updates the bridge periodically
+    private ScheduledExecutorService updateBridgeTimer; // Timer that updates the bridge periodically
     private int amountOfHeadersToSend; // Set amount of headers to inform in a single call
     private BtcToRskClientFileData fileData = new BtcToRskClientFileData();
     private boolean shouldUpdateBridgeBtcBlockchain;
@@ -68,7 +64,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     public BtcToRskClient() {}
 
-    /// This constructor should only be used by tests.
+    // This constructor should only be used by tests.
     protected BtcToRskClient(
         BitcoinWrapper bitcoinWrapper,
         FederatorSupport federatorSupport,
@@ -131,7 +127,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
         Optional<Integer> federatorIndex = federation.getBtcPublicKeyIndex(
             federatorSupport.getFederationMember().getBtcPublicKey());
-        if (!federatorIndex.isPresent()) {
+        if (federatorIndex.isEmpty()) {
             String message = String.format(
                 "Federator %s is a member of the federation %s but could not find the btcPublicKeyIndex",
                 federator,
@@ -193,29 +189,26 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 logger.debug("[updateBridge] Updated bridge blockchain with {} blocks", numberOfBlocksSent);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
-                panicProcessor.panic("btclock", e.getMessage());
             }
         }
 
         if (shouldUpdateBridgeBtcCoinbaseTransactions) {
             // Call registerBtcCoinbaseTransaction
             try {
-                logger.debug("[updateBridge] Updating transactions and sending update");
+                logger.debug("[updateBridge] Updating coinbase transactions");
                 updateBridgeBtcCoinbaseTransactions();
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
-                panicProcessor.panic("btclock", e.getMessage());
             }
         }
 
         if (shouldUpdateBridgeBtcTransactions) {
             // Call registerBtcTransaction
             try {
-                logger.debug("[updateBridge] Updating transactions and sending update");
+                logger.debug("[updateBridge] Updating BTC transactions");
                 updateBridgeBtcTransactions();
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
-                panicProcessor.panic("btclock", e.getMessage());
             }
         }
 
@@ -226,7 +219,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 federatorSupport.sendUpdateCollections();
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
-                panicProcessor.panic("btclock", e.getMessage());
             }
         }
     }
@@ -308,8 +300,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 this.btcToRskClientFileStorage.write(fileData);
                 logger.info("[onBlock] Stored proofs for block {}", block.getHash());
             } catch (IOException e) {
-                logger.error("[onBlock] {}", e.getMessage());
-                panicProcessor.panic("btclock", e.getMessage());
+                logger.error("[onBlock] Error storing proof for block {}. {}", block.getHash(), e.getMessage());
             }
         }
     }
@@ -364,7 +355,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 this.btcToRskClientFileStorage.write(this.fileData);
             } catch (IOException e) {
                 logger.error(e.getMessage(), e);
-                panicProcessor.panic("btclock", e.getMessage());
             }
         }
     }
@@ -387,7 +377,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             // First, find the common ancestor that is in the federator's bestchain
             // using either the old method -- block locator
             // or the new one -- block depth incremental search
-            StoredBlock commonAncestor = null;
+            StoredBlock commonAncestor;
             if (useBlockDepth) {
                 commonAncestor = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
             } else {
@@ -598,8 +588,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     peginInformation.parse(btcTx);
                 } catch (PeginInstructionsException e) {
                     String message = String.format(
-                        "Could not get peg-in information for tx %s",
-                        btcTx.getHash()
+                        "Could not get peg-in information for tx %s. %s",
+                        btcTx.getHash(),
+                        e.getMessage()
                     );
                     logger.warn("[updateBridgeBtcTransactions] {}", message);
                     // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
@@ -745,7 +736,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 this.btcToRskClientFileStorage.write(this.fileData);
             } catch (IOException e) {
                 logger.error(e.getMessage(), e);
-                panicProcessor.panic("btclock", e.getMessage());
             }
         }
     }
@@ -794,17 +784,16 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         synchronized (this) {
             try {
                 BtcToRskClientFileReadResult result = this.btcToRskClientFileStorage.read(networkParameters);
-                if (result.getSuccess()) {
+                if (result.getSuccess().equals(Boolean.TRUE)) {
                     this.fileData = result.getData();
                 } else {
                     String errorMessage = "Can't operate without a valid storage file";
-                    logger.error(errorMessage);
-                    panicProcessor.panic("fed-storage",errorMessage);
+                    logger.error("[restoreFileData] {}", errorMessage);
                     throw new Exception(errorMessage);
                 }
             } catch (IOException e) {
-                logger.error("Failed to read data from BtcToRskClient file: {}", e.getMessage(), e);
-                panicProcessor.panic("fed-storage",e.getMessage());
+                String errorMessage = "Failed to read data from BtcToRskClient file";
+                logger.error("[restoreFileData] {}: {}", errorMessage, e.getMessage(), e);
                 throw new Exception("Failed to read data from BtcToRskClient file", e);
             }
         }
