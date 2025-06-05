@@ -2,19 +2,14 @@ package co.rsk.federate.signing.hsm.config;
 
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.*;
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.signing.config.SignerType;
-import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
-import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
+import co.rsk.federate.signing.hsm.*;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import com.typesafe.config.Config;
@@ -29,7 +24,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class PowHSMConfigTest {
-
   private final SignerConfig signerConfig = mock(SignerConfig.class);
   private final Config config = mock(Config.class);
   private final HSMBookkeepingClient hsmClient = mock(HSMBookkeepingClient.class);
@@ -49,7 +43,7 @@ class PowHSMConfigTest {
     BigInteger expectedDifficultyTarget = BigInteger.valueOf(1L);
     String blockCheckpoint = createHash(1).toHexString(); 
     PowHSMBlockchainParameters response = new PowHSMBlockchainParameters(
-        blockCheckpoint, expectedDifficultyTarget, NetworkParameters.ID_UNITTESTNET.toString());
+        blockCheckpoint, expectedDifficultyTarget, NetworkParameters.ID_UNITTESTNET);
     when(hsmClient.getBlockchainParameters()).thenReturn(response);
 
     assertEquals(expectedDifficultyTarget, powHsmConfig.getDifficultyTarget(hsmClient));

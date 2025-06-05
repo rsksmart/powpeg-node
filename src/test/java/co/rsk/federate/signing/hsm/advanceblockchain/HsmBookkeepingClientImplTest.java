@@ -1,54 +1,20 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
-import static co.rsk.federate.signing.HSMCommand.ADVANCE_BLOCKCHAIN;
-import static co.rsk.federate.signing.HSMCommand.BLOCKCHAIN_PARAMETERS;
-import static co.rsk.federate.signing.HSMCommand.BLOCKCHAIN_STATE;
-import static co.rsk.federate.signing.HSMCommand.RESET_ADVANCE_BLOCKCHAIN;
-import static co.rsk.federate.signing.HSMCommand.UPDATE_ANCESTOR_BLOCK;
-import static co.rsk.federate.signing.HSMCommand.VERSION;
-import static co.rsk.federate.signing.HSMField.ANCESTOR_BLOCK;
-import static co.rsk.federate.signing.HSMField.BEST_BLOCK;
-import static co.rsk.federate.signing.HSMField.BLOCKS;
-import static co.rsk.federate.signing.HSMField.BROTHERS;
-import static co.rsk.federate.signing.HSMField.CHECKPOINT;
-import static co.rsk.federate.signing.HSMField.COMMAND;
-import static co.rsk.federate.signing.HSMField.ERROR_CODE;
-import static co.rsk.federate.signing.HSMField.IN_PROGRESS;
-import static co.rsk.federate.signing.HSMField.MINIMUM_DIFFICULTY;
-import static co.rsk.federate.signing.HSMField.NETWORK;
-import static co.rsk.federate.signing.HSMField.PARAMETERS;
-import static co.rsk.federate.signing.HSMField.STATE;
-import static co.rsk.federate.signing.HSMField.UPDATING;
-import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static co.rsk.federate.signing.HSMCommand.*;
+import static co.rsk.federate.signing.HSMField.*;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.rpc.JsonRpcClient;
-import co.rsk.federate.rpc.JsonRpcClientProvider;
-import co.rsk.federate.rpc.JsonRpcException;
+import co.rsk.federate.rpc.*;
+import co.rsk.federate.signing.HSMCommand;
 import co.rsk.federate.signing.HSMField;
-import co.rsk.federate.signing.hsm.HSMVersion;
-import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
-import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
-import co.rsk.federate.signing.hsm.HSMInvalidResponseException;
-import co.rsk.federate.signing.hsm.HSMUnknownErrorException;
-import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
+import co.rsk.federate.signing.hsm.*;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
-import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
-import co.rsk.federate.signing.hsm.message.PowHSMState;
-import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
+import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -56,13 +22,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigInteger;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
-import org.ethereum.core.BlockHeaderBuilder;
+import org.ethereum.core.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,9 +33,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
-/**
- * Created by Kelvin Isievwore on 14/03/2023.
- */
 class HsmBookkeepingClientImplTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private JsonRpcClient jsonRpcClientMock;
@@ -98,7 +58,7 @@ class HsmBookkeepingClientImplTest {
 
         blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
         blocks = buildBlocks();
-        blockHeaders = blocks.stream().map(Block::getHeader).collect(Collectors.toList());
+        blockHeaders = blocks.stream().map(Block::getHeader).toList();
         blocksBrothers = getBlocksBrothers();
     }
 
@@ -276,7 +236,7 @@ class HsmBookkeepingClientImplTest {
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(jsonRpcClientMock, times(expectedNumberOfRequests)).send(captor.capture());
         List<JsonNode> capturedArguments = captor.getAllValues();
-        assertEquals(VERSION.getCommand(), capturedArguments.get(0).get(COMMAND.getFieldName()).asText());
+        assertEquals(HSMCommand.VERSION.getCommand(), capturedArguments.get(0).get(COMMAND.getFieldName()).asText());
         assertEquals(BLOCKCHAIN_STATE.getCommand(), capturedArguments.get(1).get(COMMAND.getFieldName()).asText());
 
         // Headers should be in the same order
@@ -379,7 +339,7 @@ class HsmBookkeepingClientImplTest {
         List<JsonNode> capturedArguments = captor.getAllValues();
 
         assertEquals(
-            VERSION.getCommand(),
+            HSMCommand.VERSION.getCommand(),
             capturedArguments.get(0).get(COMMAND.getFieldName()).asText()
         );
         assertEquals(
@@ -583,7 +543,7 @@ class HsmBookkeepingClientImplTest {
 
     private ObjectNode buildVersionRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
-        request.put(COMMAND.getFieldName(), VERSION.getCommand());
+        request.put(COMMAND.getFieldName(), HSMCommand.VERSION.getCommand());
         return request;
     }
 
