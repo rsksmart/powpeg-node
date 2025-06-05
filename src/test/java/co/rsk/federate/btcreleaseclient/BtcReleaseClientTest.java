@@ -3,89 +3,49 @@ package co.rsk.federate.btcreleaseclient;
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.spy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.MainNetParams;
-import co.rsk.bitcoinj.script.Script;
-import co.rsk.bitcoinj.script.ScriptBuilder;
-import co.rsk.bitcoinj.script.ScriptChunk;
-import co.rsk.federate.bitcoin.BitcoinTestUtils;
-import co.rsk.peg.bitcoin.BitcoinUtils;
-import co.rsk.peg.bitcoin.FlyoverRedeemScriptBuilderImpl;
-import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.bitcoinj.script.*;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
+import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCache;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCacheImpl;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.mock.SimpleEthereumImpl;
-import co.rsk.federate.signing.ECDSASigner;
-import co.rsk.federate.signing.ECPublicKey;
-import co.rsk.federate.signing.FederationCantSignException;
-import co.rsk.federate.signing.FederatorAlreadySignedException;
-import co.rsk.federate.signing.KeyId;
+import co.rsk.federate.signing.*;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
-import co.rsk.federate.signing.hsm.message.SignerMessage;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderV1;
+import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.peg.federation.*;
 import co.rsk.peg.StateForFederator;
 import co.rsk.peg.StateForProposedFederator;
+import co.rsk.peg.bitcoin.BitcoinUtils;
+import co.rsk.peg.bitcoin.FlyoverRedeemScriptBuilderImpl;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.federation.*;
+import co.rsk.peg.federation.constants.FederationConstants;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.time.*;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import co.rsk.peg.federation.constants.FederationConstants;
-import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.config.Constants;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.crypto.ECKey;
-import org.ethereum.db.BlockStore;
-import org.ethereum.db.ReceiptStore;
-import org.ethereum.db.TransactionInfo;
+import org.ethereum.db.*;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListener;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,7 +56,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.spongycastle.util.encoders.Hex;
 
 class BtcReleaseClientTest {
-
     private static final Duration PEGOUT_SIGNED_CACHE_TTL = Duration.ofMinutes(30);
     private static final List<BtcECKey> erpFedKeys = Arrays.stream(new String[]{
         "03b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b24",
@@ -106,20 +65,20 @@ class BtcReleaseClientTest {
 
     private static PowpegNodeSystemProperties powpegNodeSystemProperties;
     private final BlockStore blockStore = mock(BlockStore.class);
-    private final ReceiptStore receiptStore = mock(ReceiptStore.class);
     private final Block bestBlock = mock(Block.class);
     private final NetworkParameters params = MainNetParams.get();
     private final BridgeConstants bridgeConstants = Constants.mainnet().bridgeConstants;
 
-
+    private ReceiptStore receiptStore;
 
     @BeforeEach
     void setup() {
+        receiptStore = mock(ReceiptStore.class);
+
         Keccak256 blockHash = createHash(123);
         when(bestBlock.getHash()).thenReturn(blockHash); 
         when(bestBlock.getNumber()).thenReturn(5_000L); 
-        when(blockStore.getBlockByHash(blockHash.getBytes()))
-            .thenReturn(bestBlock);
+        when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(bestBlock);
     }
 
     @Test
@@ -371,8 +330,6 @@ class BtcReleaseClientTest {
             mock(ReceiptStore.class)
         );
 
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
-
         Keccak256 blockHash1 = createHash(2);
         Block block1 = mock(Block.class);
         TransactionReceipt txReceipt1 = mock(TransactionReceipt.class);
@@ -463,8 +420,6 @@ class BtcReleaseClientTest {
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
         );
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
 
         Keccak256 blockHash = createHash(2);
         Block block = mock(Block.class);
@@ -561,8 +516,6 @@ class BtcReleaseClientTest {
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
         );
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
 
         Keccak256 blockHash = createHash(2);
         Block block = mock(Block.class);
