@@ -1,15 +1,9 @@
 package co.rsk.federate.bitcoin;
 
 import static co.rsk.bitcoinj.script.ScriptBuilder.createP2SHOutputScript;
-import static co.rsk.peg.bitcoin.BitcoinUtils.*;
+import static co.rsk.peg.bitcoin.BitcoinUtils.extractRedeemScriptFromInput;
 
-import co.rsk.bitcoinj.core.Address;
-import co.rsk.bitcoinj.core.BtcECKey;
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Coin;
-import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
@@ -17,21 +11,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.HashUtil;
 
 public final class BitcoinTestUtils {
-
-    public static final byte[]  WITNESS_COMMITMENT_HEADER = Hex.decode("aa21a9ed");
-    public static final Sha256Hash WITNESS_RESERVED_VALUE = Sha256Hash.ZERO_HASH;
-    public static final int WITNESS_COMMITMENT_LENGTH = WITNESS_COMMITMENT_HEADER.length + Sha256Hash.LENGTH;
-
     private BitcoinTestUtils() { }
 
     public static List<Coin> coinListOf(long... values) {
         return Arrays.stream(values)
             .mapToObj(Coin::valueOf)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     public static Sha256Hash createHash(int nHash) {

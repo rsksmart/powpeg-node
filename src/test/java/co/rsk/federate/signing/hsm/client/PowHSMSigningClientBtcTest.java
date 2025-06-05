@@ -1,61 +1,28 @@
 package co.rsk.federate.signing.hsm.client;
 
-import static co.rsk.federate.EventsTestUtils.createBatchPegoutCreatedLog;
-import static co.rsk.federate.EventsTestUtils.createPegoutTransactionCreatedLog;
-import static co.rsk.federate.EventsTestUtils.createReleaseRequestedLog;
-import static co.rsk.federate.EventsTestUtils.createUpdateCollectionsLog;
+import static co.rsk.federate.EventsTestUtils.*;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
 import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
 import static co.rsk.federate.signing.HSMCommand.SIGN;
-import static co.rsk.federate.signing.HSMField.AUTH;
-import static co.rsk.federate.signing.HSMField.COMMAND;
-import static co.rsk.federate.signing.HSMField.ERROR_CODE;
-import static co.rsk.federate.signing.HSMField.INPUT;
-import static co.rsk.federate.signing.HSMField.KEY_ID;
-import static co.rsk.federate.signing.HSMField.MESSAGE;
-import static co.rsk.federate.signing.HSMField.PUB_KEY;
-import static co.rsk.federate.signing.HSMField.R;
-import static co.rsk.federate.signing.HSMField.RECEIPT;
-import static co.rsk.federate.signing.HSMField.RECEIPT_MERKLE_PROOF;
-import static co.rsk.federate.signing.HSMField.S;
-import static co.rsk.federate.signing.HSMField.SIGNATURE;
-import static co.rsk.federate.signing.HSMField.TX;
-import static co.rsk.federate.signing.HSMField.VERSION;
+import static co.rsk.federate.signing.HSMField.*;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
 import static co.rsk.federate.signing.utils.TestUtils.createBaseInputScriptThatSpendsFromTheFederation;
 import static co.rsk.federate.signing.utils.TestUtils.createBlock;
-import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
-import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-import co.rsk.bitcoinj.core.Address;
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Coin;
-import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
-import co.rsk.bitcoinj.core.TransactionWitness;
+import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.bitcoin.BtcTransactionBuilder;
-import co.rsk.federate.rpc.JsonRpcClient;
-import co.rsk.federate.rpc.JsonRpcClientProvider;
-import co.rsk.federate.rpc.JsonRpcException;
+import co.rsk.federate.rpc.*;
 import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
-import co.rsk.federate.signing.hsm.message.PowHSMSignerMessage;
-import co.rsk.federate.signing.hsm.message.PowHSMSignerMessageBuilder;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
+import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
@@ -64,16 +31,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.IntStream;
 import org.bouncycastle.util.encoders.Hex;
-import org.ethereum.core.Block;
-import org.ethereum.core.Transaction;
-import org.ethereum.core.TransactionReceipt;
+import org.ethereum.core.*;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.db.ReceiptStore;
 import org.ethereum.db.TransactionInfo;
@@ -90,9 +51,13 @@ class PowHSMSigningClientBtcTest {
     private static final NetworkParameters btcMainnetParams = bridgeMainnetConstants.getBtcParams();
 
     private static final Federation newFederation = TestUtils.createFederation(
-        bridgeMainnetConstants.getBtcParams(), 9);
+        bridgeMainnetConstants.getBtcParams(),
+        9
+    );
     private static final Federation oldFederation = TestUtils.createFederation(
-        bridgeMainnetConstants.getBtcParams(), 5);
+        bridgeMainnetConstants.getBtcParams(),
+        5
+    );
 
     private static final HSMSignature expectedSignature = createMockSignature();
     private final ECKey signerPk = ECKey.fromPrivate(Hex.decode("fa01"));
@@ -467,9 +432,8 @@ class PowHSMSigningClientBtcTest {
 
     private List<Address> createDestinationAddresses(int numberOfAddresses) {
         return IntStream.range(0, numberOfAddresses)
-            .mapToObj(index -> BitcoinTestUtils.createP2PKHAddress(btcMainnetParams,
-                "userAddress" + index))
-            .collect(Collectors.toList());
+            .mapToObj(index -> BitcoinTestUtils.createP2PKHAddress(btcMainnetParams, "userAddress" + index))
+            .toList();
     }
 
     private void signAndExecuteAssertions(HSMVersion hsmVersion, List<Coin> expectedOutpointValues,
@@ -488,8 +452,10 @@ class PowHSMSigningClientBtcTest {
             PowHSMSignerMessage powHSMSignerMessage = (PowHSMSignerMessage) powHSMSignerMessageBuilder.buildMessageForIndex(
                 inputIndex);
 
-            ObjectNode expectedSignCommand = buildSignCommand(hsmVersion.getNumber(),
-                powHSMSignerMessage);
+            ObjectNode expectedSignCommand = buildSignCommand(
+                hsmVersion.getNumber(),
+                powHSMSignerMessage
+            );
             when(jsonRpcClientMock.send(expectedSignCommand)).thenReturn(response);
 
             HSMSignature signature = client.sign(signerBtcKeyId.getId(), powHSMSignerMessage);
