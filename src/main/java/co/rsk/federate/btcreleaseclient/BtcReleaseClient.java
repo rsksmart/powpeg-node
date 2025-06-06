@@ -4,56 +4,27 @@ import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.TransactionInput;
-import co.rsk.bitcoinj.script.RedeemScriptParser;
-import co.rsk.bitcoinj.script.RedeemScriptParserFactory;
-import co.rsk.bitcoinj.script.Script;
-import co.rsk.bitcoinj.script.ScriptBuilder;
-import co.rsk.bitcoinj.script.ScriptChunk;
-import co.rsk.bitcoinj.wallet.RedeemData;
-import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.bitcoinj.script.*;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCache;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCacheImpl;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
-import co.rsk.federate.signing.ECDSASigner;
-import co.rsk.federate.signing.FederationCantSignException;
-import co.rsk.federate.signing.FederatorAlreadySignedException;
+import co.rsk.federate.signing.*;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
-import co.rsk.federate.signing.hsm.message.SignerMessage;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
+import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.panic.PanicProcessor;
-import co.rsk.peg.Bridge;
-import co.rsk.peg.BridgeEvents;
-import co.rsk.peg.BridgeUtils;
-import co.rsk.peg.federation.Federation;
-import co.rsk.peg.federation.FederationMember;
-import co.rsk.peg.federation.ErpFederation;
-import co.rsk.peg.StateForFederator;
-import co.rsk.peg.StateForProposedFederator;
+import co.rsk.peg.*;
 import co.rsk.peg.bitcoin.BitcoinUtils;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.federation.*;
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.Stream;
 import javax.annotation.PreDestroy;
 import org.bitcoinj.core.LegacyAddress;
@@ -71,9 +42,7 @@ import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
 import org.ethereum.util.RLP;
 import org.ethereum.util.RLPList;
-import org.ethereum.vm.DataWord;
-import org.ethereum.vm.LogInfo;
-import org.ethereum.vm.PrecompiledContracts;
+import org.ethereum.vm.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -297,7 +266,7 @@ public class BtcReleaseClient {
                 BtcTransaction svpSpendTx = svpSpendTxEntry.getValue();
 
                 logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx before removing signatures [{}]", svpSpendTx.getHash());
-                BitcoinUtils.removeSignaturesFromTransactionWithP2shMultiSigInputs(svpSpendTx);
+                BitcoinUtils.removeSignaturesFromMultiSigTransaction(svpSpendTx);
                 logger.debug("[isSvpSpendTxReadyToSign] SVP spend tx after removing signatures [{}]", svpSpendTx.getHash());
 
                 int version = signer.getVersionForKeyId(BTC.getKeyId());
@@ -388,8 +357,7 @@ public class BtcReleaseClient {
             // by different federations. Taking this into account, when removing the signatures from the tx new
             // scriptSigs are created that all spend from the same federation
             logger.trace("[tryGetReleaseInformation] Removing possible signatures from pegout btcTxHash {}", pegoutBtcTx.getHash());
-            Federation spendingFed = getSpendingFederation(pegoutBtcTx);
-            removeSignaturesFromTransaction(pegoutBtcTx, spendingFed);
+            BitcoinUtils.removeSignaturesFromMultiSigTransaction(pegoutBtcTx);
             logger.trace("[tryGetReleaseInformation] pegout btcTxHash without signatures {}", pegoutBtcTx.getHash());
 
             logger.trace("[tryGetReleaseInformation] Is pegout btc in storage? {}", storageAccessor.hasBtcTxHash(pegoutBtcTx.getHash()));
@@ -436,24 +404,26 @@ public class BtcReleaseClient {
             logger.trace("[validateTxCanBeSigned] Federator public key {}", federatorPublicKey);
 
             for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
-                TransactionInput txIn = pegoutBtcTx.getInput(inputIndex);
-                Script redeemScript = getRedeemScriptFromInput(txIn);
+                final int index = inputIndex; // Required for lambda expression
+                Script redeemScript = BitcoinUtils.extractRedeemScriptFromInput(pegoutBtcTx, inputIndex).orElseThrow(
+                    () -> new IllegalStateException(String.format("Redeem script not found for input %d in pegout btc tx %s", index, pegoutBtcTx.getHashAsString()))
+                );
                 Script standardRedeemScript = extractStandardRedeemScript(redeemScript);
 
                 // Check if input is not already signed by the current federator
                 logger.trace("[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator", inputIndex);
                 co.rsk.bitcoinj.core.Sha256Hash sigHash = pegoutBtcTx.hashForSignature(
-                        inputIndex,
-                        redeemScript,
-                        BtcTransaction.SigHash.ALL,
-                        false
+                    inputIndex,
+                    redeemScript,
+                    BtcTransaction.SigHash.ALL,
+                    false
                 );
                 if (BridgeUtils.isInputSignedByThisFederator(pegoutBtcTx, inputIndex, federatorPublicKey, sigHash)) {
                     String message = String.format(
-                            "Btc tx %s input %d already signed by current federator with public key %s",
-                            pegoutBtcTx.getHashAsString(),
-                            inputIndex,
-                            federatorPublicKey
+                        "Btc tx %s input %d already signed by current federator with public key %s",
+                        pegoutBtcTx.getHashAsString(),
+                        inputIndex,
+                        federatorPublicKey
                     );
                     throw new FederatorAlreadySignedException(message);
                 }
@@ -463,12 +433,12 @@ public class BtcReleaseClient {
                 observedFederations.forEach(
                     f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
                 List<Federation> spendingFedFilter = observedFederations.stream()
-                        .filter(f -> (extractDefaultRedeemScript(f)).equals(standardRedeemScript)).collect(Collectors.toList());
+                        .filter(f -> (extractDefaultRedeemScript(f)).equals(standardRedeemScript)).toList();
                 logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
                 if (spendingFedFilter.isEmpty()) {
                     String message = String.format(
-                            "Transaction %s can't be signed by any of the observed federations",
-                            pegoutBtcTx.getHash()
+                        "Transaction %s can't be signed by any of the observed federations",
+                        pegoutBtcTx.getHash()
                     );
                     throw new FederationCantSignException(message);
                 }
@@ -546,28 +516,6 @@ public class BtcReleaseClient {
         });
     }
 
-    /*
-    Received pegoutBtcTx inputs are replaced by base inputs without signatures that spend from the given federation.
-    This way the pegoutBtcTx has the same hash as the one registered in release_requested event topics.
-     */
-    protected void removeSignaturesFromTransaction(BtcTransaction pegoutBtcTx, Federation spendingFed) {
-        if (pegoutBtcTx.hasWitness()) {
-            logger.debug("[removeSignaturesFromTransaction] No signature removed because the signatures are in the witness");
-            return;
-        }
-
-        for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
-            //Get redeem script for current input
-            TransactionInput txInput = pegoutBtcTx.getInput(inputIndex);
-            Script inputRedeemScript = getRedeemScriptFromInput(txInput);
-            logger.trace("[removeSignaturesFromTransaction] input {} scriptSig {}", inputIndex, pegoutBtcTx.getInput(inputIndex).getScriptSig());
-            logger.trace("[removeSignaturesFromTransaction] input {} redeem script {}", inputIndex, inputRedeemScript);
-            txInput.setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(spendingFed, inputRedeemScript));
-            logger.debug("[removeSignaturesFromTransaction] Updated input {} scriptSig with base input script that " +
-                    "spends from the federation {}", inputIndex, spendingFed.getAddress());
-        }
-    }
-
     protected Script extractStandardRedeemScript(Script redeemScript) {
         RedeemScriptParser redeemScriptParser = RedeemScriptParserFactory.get(redeemScript.getChunks());
         List<ScriptChunk> defaultRedeemScriptChunks = redeemScriptParser.extractStandardRedeemScriptChunks();
@@ -579,32 +527,5 @@ public class BtcReleaseClient {
             return ((ErpFederation) federation).getDefaultRedeemScript();
         }
         return federation.getRedeemScript();
-    }
-
-    protected Script getRedeemScriptFromInput(TransactionInput txInput) {
-        Script inputScript = txInput.getScriptSig();
-        List<ScriptChunk> chunks = inputScript.getChunks();
-        // Last chunk of the scriptSig contains the redeem script
-        byte[] program = chunks.get(chunks.size() - 1).data;
-        return new Script(program);
-    }
-
-    protected Federation getSpendingFederation(BtcTransaction btcTx) {
-        TransactionInput firstInput = btcTx.getInput(0);
-        Script redeemScript = extractStandardRedeemScript(getRedeemScriptFromInput(firstInput));
-
-        List<Federation> spendingFedFilter = observedFederations.stream()
-                .filter(f -> (extractDefaultRedeemScript(f)).equals(redeemScript)).collect(Collectors.toList());
-
-        return spendingFedFilter.get(0);
-    }
-
-    private static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation, Script customRedeemScript) {
-        Script scriptPubKey = federation.getP2SHScript();
-        Script redeemScript = federation.getRedeemScript();
-        RedeemData redeemData = RedeemData.of(federation.getBtcPublicKeys(), redeemScript);
-
-        // customRedeemScript might not be actually custom, but just in case, use the provided redeemScript
-        return scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), customRedeemScript);
     }
 }
