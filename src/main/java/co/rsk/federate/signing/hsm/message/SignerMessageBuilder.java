@@ -1,28 +1,41 @@
 package co.rsk.federate.signing.hsm.message;
 
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.script.Script;
-import co.rsk.bitcoinj.script.ScriptChunk;
-import java.util.List;
+
+import static co.rsk.peg.bitcoin.BitcoinUtils.extractRedeemScriptFromInput;
+import static co.rsk.peg.bitcoin.BitcoinUtils.inputHasWitness;
 
 public abstract class SignerMessageBuilder {
+    private final ReleaseCreationInformation releaseCreationInformation;
 
     protected BtcTransaction unsignedBtcTx;
 
-    protected SignerMessageBuilder(BtcTransaction unsignedBtcTx) {
-        this.unsignedBtcTx = unsignedBtcTx;
+    protected SignerMessageBuilder(ReleaseCreationInformation releaseCreationInformation) {
+        this.releaseCreationInformation = releaseCreationInformation;
+        this.unsignedBtcTx = releaseCreationInformation.getPegoutBtcTx();
     }
 
     public abstract SignerMessage buildMessageForIndex(int inputIndex) throws SignerMessageBuilderException;
 
-    protected Sha256Hash getSigHashByInputIndex(int inputIndex) {
-        TransactionInput txInput = unsignedBtcTx.getInput(inputIndex);
-        Script inputScript = txInput.getScriptSig();
-        List<ScriptChunk> chunks = inputScript.getChunks();
-        byte[] program = chunks.get(chunks.size() - 1).data;
-        Script redeemScript = new Script(program);
+    protected Sha256Hash getSigHashForInputIndex(int inputIndex) {
+        if (inputHasWitness(unsignedBtcTx, inputIndex)) {
+            return extractRedeemScriptFromInput(unsignedBtcTx, inputIndex)
+                .map(redeemScript -> getSegwitSigHashForInputIndex(inputIndex, redeemScript))
+                .orElseThrow(() -> new IllegalStateException("Couldn't extract redeem script from input"));
+        }
+
+        return extractRedeemScriptFromInput(unsignedBtcTx, inputIndex)
+            .map(redeemScript -> getLegacySigHashForInputIndex(inputIndex, redeemScript))
+            .orElseThrow(() -> new IllegalStateException("Couldn't extract redeem script from input"));
+    }
+
+    private Sha256Hash getLegacySigHashForInputIndex(int inputIndex, Script redeemScript) {
         return unsignedBtcTx.hashForSignature(inputIndex, redeemScript, BtcTransaction.SigHash.ALL, false);
+    }
+
+    private Sha256Hash getSegwitSigHashForInputIndex(int inputIndex, Script redeemScript) {
+        Coin prevValue = releaseCreationInformation.getUtxoOutpointValues().get(inputIndex);
+        return unsignedBtcTx.hashForWitnessSignature(inputIndex, redeemScript, prevValue, BtcTransaction.SigHash.ALL, false);
     }
 }
