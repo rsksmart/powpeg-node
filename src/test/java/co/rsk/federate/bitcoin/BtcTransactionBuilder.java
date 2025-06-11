@@ -99,14 +99,12 @@ public final class BtcTransactionBuilder {
         }
 
         public TransactionInput build() {
-            TransactionOutPoint transactionOutpoint = new TransactionOutPoint(networkParameters,
+            TransactionOutPoint transactionOutpoint = new TransactionOutPoint(
+                networkParameters,
                 outpointIndex,
-                BitcoinTestUtils.createHash(outpointIndex));
-            TransactionInput transactionInput = new TransactionInput(
-                networkParameters, null, new byte[]{}, transactionOutpoint, amount
+                BitcoinTestUtils.createHash(outpointIndex)
             );
-            transactionInput.setScriptSig(scriptSig);
-            return transactionInput;
+            return new TransactionInput(networkParameters, null, new byte[]{}, transactionOutpoint, amount);
         }
     }
 }
