@@ -19,15 +19,14 @@
 package co.rsk.federate.signing.hsm.message;
 
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
+import static co.rsk.federate.bitcoin.BitcoinTestUtils.createPegout;
 import static co.rsk.federate.signing.HSMField.*;
-import static co.rsk.federate.signing.utils.TestUtils.createBaseInputScriptThatSpendsFromTheFederation;
+import static co.rsk.federate.signing.utils.TestUtils.createSegwitFederation;
 import static org.junit.jupiter.api.Assertions.*;
 
 import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.params.RegTestParams;
-import co.rsk.bitcoinj.script.Script;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
-import co.rsk.federate.bitcoin.BtcTransactionBuilder;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
@@ -52,6 +51,10 @@ class PowHSMSignerMessageTest {
     private static final Address userAddress = BitcoinTestUtils.createP2PKHAddress(btcMainnetParams,
         "userAddress");
     private static final Federation activeFederation = TestUtils.createFederation(
+        bridgeMainnetConstants.getBtcParams(),
+        9
+    );
+    private static final Federation activeSegwitFederation = TestUtils.createSegwitFederation(
         bridgeMainnetConstants.getBtcParams(),
         9
     );
@@ -213,8 +216,16 @@ class PowHSMSignerMessageTest {
     void getMessageToSign_whenSighashSegwitMode_ok() {
         // arrange
         List<Coin> outpointValues = coinListOf(50_000_000, 75_000_000, 100_000_000);
+        Address userAddress2 = BitcoinTestUtils.createP2PKHAddress(btcMainnetParams,
+            "userAddress");
+        List<Address> destinationAddresses = Arrays.asList(userAddress, userAddress2);
 
-        BtcTransaction segwitPegoutBtcTx = createSegwitPegout(outpointValues);
+        BtcTransaction segwitPegoutBtcTx = createPegout(
+            btcMainnetParams,
+            activeSegwitFederation,
+            outpointValues,
+            destinationAddresses
+        );
 
         txReceipt = new TransactionReceipt();
 
@@ -239,47 +250,6 @@ class PowHSMSignerMessageTest {
             assertHsmMessageValues(segwitPegoutBtcTx, actualMessageToSign, inputIndex,
                 expectedOutpointValues);
         }
-    }
-
-    private BtcTransaction createSegwitPegout(List<Coin> outpointValues) {
-        BtcTransactionBuilder btcTransactionBuilder = new BtcTransactionBuilder();
-
-        // TODO: improve this method to create a more realistic btc segwit transaction
-        //  once {@link SignerMessageBuilder#getSigHashByInputIndex(int)} is refactored to support segwit
-        Script inputScriptThatSpendsFromTheFederation = createBaseInputScriptThatSpendsFromTheFederation(
-            activeFederation);
-
-        Address userAddress2 = BitcoinTestUtils.createP2PKHAddress(btcMainnetParams,
-            "userAddress");
-        List<Address> destinationAddresses = Arrays.asList(userAddress, userAddress2);
-        Coin fee = Coin.MILLICOIN;
-        for (int inputIndex = 0; inputIndex < outpointValues.size(); inputIndex++) {
-            Coin outpointValue = outpointValues.get(inputIndex);
-            Coin amountToSend = outpointValue.minus(fee);
-            // Iterate over the addresses using inputIndex % addresses.size() to have outputs to different addresses
-            Address destinationAddress = destinationAddresses.get(
-                inputIndex % destinationAddresses.size());
-
-            TransactionInput txInput = btcTransactionBuilder.createInputBuilder()
-                .withAmount(outpointValue).withOutpointIndex(inputIndex)
-                .withScriptSig(inputScriptThatSpendsFromTheFederation)
-                .build();
-
-            btcTransactionBuilder
-                .withInput(
-                    txInput
-                )
-                .withOutput(amountToSend, destinationAddress);
-
-            // TODO: change this dummy witness for a real witness once segwit is fully implemented in bitcoinj-thin
-            // make it a segwit tx by adding a single witness
-            TransactionWitness witness = new TransactionWitness(1);
-            witness.setPush(0, new byte[]{1});
-
-            btcTransactionBuilder.withWitness(inputIndex, witness);
-        }
-
-        return btcTransactionBuilder.build();
     }
 
     private void assertHsmMessageValues(BtcTransaction segwitPegoutBtcTx,

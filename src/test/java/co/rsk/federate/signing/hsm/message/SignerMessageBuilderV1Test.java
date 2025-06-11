@@ -1,6 +1,9 @@
 package co.rsk.federate.signing.hsm.message;
 
+import static co.rsk.federate.signing.utils.TestUtils.createBaseInputScriptThatSpendsFromTheFederation;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.NetworkParameters;
@@ -44,13 +47,10 @@ class SignerMessageBuilderV1Test {
             false
         );
 
-        SignerMessageBuilderV1 sigMessVersion1 = new SignerMessageBuilderV1(releaseTx1) ;
+        ReleaseCreationInformation releaseCreationInformation = mock(ReleaseCreationInformation.class);
+        when(releaseCreationInformation.getPegoutBtcTx()).thenReturn(releaseTx1);
+        SignerMessageBuilderV1 sigMessVersion1 = new SignerMessageBuilderV1(releaseCreationInformation);
         SignerMessage message = sigMessVersion1.buildMessageForIndex(0);
         assertArrayEquals(message.getBytes(), sigHash.getBytes());
-    }
-
-    private Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
-        Script scriptPubKey = federation.getP2SHScript();
-        return scriptPubKey.createEmptyInputScript(null, federation.getRedeemScript());
     }
 }

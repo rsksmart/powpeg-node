@@ -225,7 +225,18 @@ class BtcReleaseClientTest {
         when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(1);
         when(signer.sign(eq(BTC.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
 
-        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx);
+        Keccak256 rskTxHash = Keccak256.ZERO_HASH;
+
+        Block block = mock(Block.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            block,
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
+        );
+
+        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseCreationInformation);
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
         when(signerMessageBuilderFactory.buildFromConfig(ArgumentMatchers.anyInt(), ArgumentMatchers
             .any(ReleaseCreationInformation.class)))
@@ -241,16 +252,6 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        Keccak256 rskTxHash = Keccak256.ZERO_HASH;
-
-        Block block = mock(Block.class);
-        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
-            block,
-            mock(TransactionReceipt.class),
-            rskTxHash,
-            releaseTx,
-            rskTxHash
-        );
         ReleaseCreationInformationGetter releaseCreationInformationGetter = mock(ReleaseCreationInformationGetter.class);
         when(releaseCreationInformationGetter.getTxInfoToSign(
             anyInt(),

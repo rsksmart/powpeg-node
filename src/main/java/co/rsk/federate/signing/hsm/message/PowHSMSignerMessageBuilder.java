@@ -24,8 +24,9 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
 
     public PowHSMSignerMessageBuilder(
         ReceiptStore receiptStore,
-        ReleaseCreationInformation releaseCreationInformation) {
-        super(releaseCreationInformation.getPegoutBtcTx());
+        ReleaseCreationInformation releaseCreationInformation
+    ) {
+        super(releaseCreationInformation);
 
         this.txReceipt = releaseCreationInformation.getTransactionReceipt();
         this.rskBlock = releaseCreationInformation.getPegoutCreationBlock();
@@ -55,7 +56,7 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
             throw new SignerMessageBuilderException("There was an error building message", e);
         }
 
-        Sha256Hash sigHash = getSigHashByInputIndex(inputIndex);
+        Sha256Hash sigHash = getSigHashForInputIndex(inputIndex);
 
         return new PowHSMSignerMessage(
                 unsignedBtcTx,
