@@ -104,7 +104,11 @@ public final class BtcTransactionBuilder {
                 outpointIndex,
                 BitcoinTestUtils.createHash(outpointIndex)
             );
-            return new TransactionInput(networkParameters, null, new byte[]{}, transactionOutpoint, amount);
+            TransactionInput transactionInput =
+                new TransactionInput(networkParameters, null, new byte[]{}, transactionOutpoint, amount);
+            transactionInput.setScriptSig(scriptSig);
+
+            return transactionInput;
         }
     }
 }

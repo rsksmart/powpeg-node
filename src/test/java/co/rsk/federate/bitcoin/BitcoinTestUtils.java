@@ -96,7 +96,6 @@ public final class BitcoinTestUtils {
         List<Coin> outpointValues,
         List<Address> destinationAddresses
     ) {
-        BtcTransactionBuilder btcTransactionBuilder = new BtcTransactionBuilder();
         BtcTransaction tx = new BtcTransaction(btcMainnetParams);
 
         Coin fee = Coin.MILLICOIN;
@@ -107,10 +106,15 @@ public final class BitcoinTestUtils {
             Address destinationAddress = destinationAddresses.get(inputIndex % destinationAddresses.size());
             tx.addOutput(amountToSend, destinationAddress);
 
-            TransactionInput txInput = btcTransactionBuilder.createInputBuilder()
-                .withAmount(outpointValue).withOutpointIndex(inputIndex)
-                .build();
+            TransactionOutPoint transactionOutpoint = new TransactionOutPoint(
+                btcMainnetParams,
+                inputIndex,
+                BitcoinTestUtils.createHash(inputIndex)
+            );
+
+            TransactionInput txInput = new TransactionInput(btcMainnetParams, null, new byte[]{}, transactionOutpoint, outpointValue);
             tx.addInput(txInput);
+
             addSpendingFederationBaseScript(tx, inputIndex, fromFederation.getRedeemScript(), fromFederation.getFormatVersion());
         }
 
