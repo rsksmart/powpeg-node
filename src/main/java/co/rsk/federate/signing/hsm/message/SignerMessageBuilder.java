@@ -3,17 +3,22 @@ package co.rsk.federate.signing.hsm.message;
 import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.script.Script;
 
+import java.util.List;
+
 import static co.rsk.peg.bitcoin.BitcoinUtils.extractRedeemScriptFromInput;
 import static co.rsk.peg.bitcoin.BitcoinUtils.inputHasWitness;
 
 public abstract class SignerMessageBuilder {
-    private final ReleaseCreationInformation releaseCreationInformation;
-
+    protected List<Coin> releaseOutpointsValues;
     protected BtcTransaction unsignedBtcTx;
 
-    protected SignerMessageBuilder(ReleaseCreationInformation releaseCreationInformation) {
-        this.releaseCreationInformation = releaseCreationInformation;
-        this.unsignedBtcTx = releaseCreationInformation.getPegoutBtcTx();
+    protected SignerMessageBuilder(BtcTransaction unsignedBtcTx) {
+        this.unsignedBtcTx = unsignedBtcTx;
+    }
+
+    protected SignerMessageBuilder(BtcTransaction unsignedBtcTx, List<Coin> releaseOutpointsValues) {
+        this.unsignedBtcTx = unsignedBtcTx;
+        this.releaseOutpointsValues = releaseOutpointsValues;
     }
 
     public abstract SignerMessage buildMessageForIndex(int inputIndex) throws SignerMessageBuilderException;
@@ -35,7 +40,7 @@ public abstract class SignerMessageBuilder {
     }
 
     private Sha256Hash getSegwitSigHashForInputIndex(int inputIndex, Script redeemScript) {
-        Coin prevValue = releaseCreationInformation.getUtxoOutpointValues().get(inputIndex);
+        Coin prevValue = releaseOutpointsValues.get(inputIndex);
         return unsignedBtcTx.hashForWitnessSignature(inputIndex, redeemScript, prevValue, BtcTransaction.SigHash.ALL, false);
     }
 }

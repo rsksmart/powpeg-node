@@ -20,19 +20,18 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
 
     private List<Trie> receiptMerkleProof;
     private boolean envelopeCreated;
-    private final List<Coin> outpointValues;
 
     public PowHSMSignerMessageBuilder(
         ReceiptStore receiptStore,
         ReleaseCreationInformation releaseCreationInformation
     ) {
-        super(releaseCreationInformation);
+        super(releaseCreationInformation.getPegoutBtcTx(), releaseCreationInformation.getUtxoOutpointValues());
 
         this.txReceipt = releaseCreationInformation.getTransactionReceipt();
         this.rskBlock = releaseCreationInformation.getPegoutCreationBlock();
         this.receiptStore = receiptStore;
         this.envelopeCreated = false;
-        this.outpointValues = releaseCreationInformation.getUtxoOutpointValues();
+        //this.outpointValues = releaseCreationInformation.getUtxoOutpointValues();
     }
 
     private void buildMessageEnvelope() throws BlockHashesHelperException {
@@ -64,7 +63,7 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
                 txReceipt,
                 receiptMerkleProof,
                 sigHash,
-                outpointValues
+                releaseOutpointsValues
         );
     }
 }
