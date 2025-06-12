@@ -31,7 +31,6 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
         this.rskBlock = releaseCreationInformation.getPegoutCreationBlock();
         this.receiptStore = receiptStore;
         this.envelopeCreated = false;
-        //this.outpointValues = releaseCreationInformation.getUtxoOutpointValues();
     }
 
     private void buildMessageEnvelope() throws BlockHashesHelperException {
