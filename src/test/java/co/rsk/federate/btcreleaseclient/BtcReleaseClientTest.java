@@ -1408,8 +1408,17 @@ class BtcReleaseClientTest {
 
         client.start(federation);
 
+        Keccak256 rskTxHash = mock(Keccak256.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            mock(Block.class),
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
+        );
+
         // Act
-        assertThrows(FederatorAlreadySignedException.class, () -> client.validateTxCanBeSigned(releaseTx));
+        assertThrows(FederatorAlreadySignedException.class, () -> client.validateTxCanBeSigned(releaseCreationInformation));
     }
 
     @Test
@@ -1445,8 +1454,17 @@ class BtcReleaseClientTest {
             mock(BtcReleaseClientStorageSynchronizer.class)
         );
 
+        Keccak256 rskTxHash = mock(Keccak256.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            mock(Block.class),
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
+        );
+
         // Act
-        assertThrows(FederationCantSignException.class, () -> client.validateTxCanBeSigned(releaseTx));
+        assertThrows(FederationCantSignException.class, () -> client.validateTxCanBeSigned(releaseCreationInformation));
     }
 
     @Test
@@ -1522,8 +1540,17 @@ class BtcReleaseClientTest {
 
         client.start(federation);
 
+        Keccak256 rskTxHash = mock(Keccak256.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            mock(Block.class),
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
+        );
+
         // Act
-        client.validateTxCanBeSigned(releaseTx);
+        client.validateTxCanBeSigned(releaseCreationInformation);
     }
 
     private void test_extractStandardRedeemScript(
