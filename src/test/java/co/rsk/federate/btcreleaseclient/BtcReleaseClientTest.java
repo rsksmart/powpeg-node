@@ -236,7 +236,7 @@ class BtcReleaseClientTest {
             rskTxHash
         );
 
-        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseCreationInformation);
+        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx);
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
         when(signerMessageBuilderFactory.buildFromConfig(ArgumentMatchers.anyInt(), ArgumentMatchers
             .any(ReleaseCreationInformation.class)))

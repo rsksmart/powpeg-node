@@ -49,7 +49,7 @@ class SignerMessageBuilderV1Test {
 
         ReleaseCreationInformation releaseCreationInformation = mock(ReleaseCreationInformation.class);
         when(releaseCreationInformation.getPegoutBtcTx()).thenReturn(releaseTx1);
-        SignerMessageBuilderV1 sigMessVersion1 = new SignerMessageBuilderV1(releaseCreationInformation);
+        SignerMessageBuilderV1 sigMessVersion1 = new SignerMessageBuilderV1(releaseCreationInformation.getPegoutBtcTx());
         SignerMessage message = sigMessVersion1.buildMessageForIndex(0);
         assertArrayEquals(message.getBytes(), sigHash.getBytes());
     }
