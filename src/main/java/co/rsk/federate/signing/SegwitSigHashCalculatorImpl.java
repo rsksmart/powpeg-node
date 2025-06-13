@@ -10,7 +10,7 @@ import java.util.List;
 import static co.rsk.peg.bitcoin.BitcoinUtils.extractRedeemScriptFromInput;
 
 public class SegwitSigHashCalculatorImpl implements SigHashCalculator {
-    List<Coin> releaseOutpointsValues;
+    private final List<Coin> releaseOutpointsValues;
 
     public SegwitSigHashCalculatorImpl(List<Coin> releaseOutpointsValues) {
         this.releaseOutpointsValues = releaseOutpointsValues;
