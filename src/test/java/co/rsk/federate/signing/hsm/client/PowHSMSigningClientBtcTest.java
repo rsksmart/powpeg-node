@@ -18,6 +18,8 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.rpc.*;
 import co.rsk.federate.signing.KeyId;
+import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
+import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.*;
@@ -264,8 +266,9 @@ class PowHSMSigningClientBtcTest {
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion.getNumber());
 
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
-            receiptStore, releaseCreationInformation);
+            receiptStore, releaseCreationInformation, sigHashCalculator);
 
         signAndExecuteAssertions(hsmVersion, expectedOutpointValues, powHSMSignerMessageBuilder);
     }
@@ -307,8 +310,9 @@ class PowHSMSigningClientBtcTest {
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion.getNumber());
 
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
-            receiptStore, releaseCreationInformation);
+            receiptStore, releaseCreationInformation, sigHashCalculator);
 
         signAndExecuteAssertions(hsmVersion, expectedOutpointValues, powHSMSignerMessageBuilder);
     }
@@ -343,8 +347,9 @@ class PowHSMSigningClientBtcTest {
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion.getNumber());
 
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
-            receiptStore, releaseCreationInformation);
+            receiptStore, releaseCreationInformation, sigHashCalculator);
 
         signAndExecuteAssertions(hsmVersion, expectedOutpointValues, powHSMSignerMessageBuilder);
     }

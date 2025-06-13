@@ -98,10 +98,6 @@ public class PowHSMSignerMessage extends SignerMessage {
         return sigHash;
     }
 
-    public List<Coin> getOutpointValues() {
-        return outpointValues;
-    }
-
     public JsonNode getMessageToSign(int version) {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
         messageToSend.put(TX.getFieldName(), getBtcTransactionSerialized());

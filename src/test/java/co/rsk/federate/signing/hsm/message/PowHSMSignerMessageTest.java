@@ -21,7 +21,6 @@ package co.rsk.federate.signing.hsm.message;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.createPegout;
 import static co.rsk.federate.signing.HSMField.*;
-import static co.rsk.federate.signing.utils.TestUtils.createSegwitFederation;
 import static org.junit.jupiter.api.Assertions.*;
 
 import co.rsk.bitcoinj.core.*;

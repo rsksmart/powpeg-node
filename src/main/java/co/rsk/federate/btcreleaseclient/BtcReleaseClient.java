@@ -457,13 +457,14 @@ public class BtcReleaseClient {
             logger.debug("[signRelease] Going to sign pegout created in rsk transaction: {}", pegoutCreationInformation.getPegoutCreationRskTxHash());
             logger.trace("[signRelease] Enforce signer requirements");
             releaseRequirementsEnforcer.enforce(signerVersion, pegoutCreationInformation);
-            SignerMessageBuilder messageBuilder = signerMessageBuilderFactory.buildFromConfig(
-                signerVersion,
-                pegoutCreationInformation
-            );
             co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(bridgeConstants.getBtcParams()));
             List<byte[]> signatures = new ArrayList<>();
             for (int inputIndex = 0; inputIndex < pegoutCreationInformation.getPegoutBtcTx().getInputs().size(); inputIndex++) {
+                SignerMessageBuilder messageBuilder = signerMessageBuilderFactory.buildFromConfig(
+                    signerVersion,
+                    pegoutCreationInformation,
+                    inputIndex
+                );
                 SignerMessage messageToSign = messageBuilder.buildMessageForIndex(inputIndex);
                 logger.trace("[signRelease] Message to sign: {}", messageToSign.getClass());
                 ECKey.ECDSASignature ethSig = signer.sign(BTC.getKeyId(), messageToSign);

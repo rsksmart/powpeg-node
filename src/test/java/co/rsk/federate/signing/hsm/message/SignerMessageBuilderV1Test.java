@@ -12,6 +12,8 @@ import co.rsk.bitcoinj.core.TransactionInput;
 import co.rsk.bitcoinj.core.TransactionOutPoint;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.bitcoinj.script.Script;
+import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
+import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
@@ -49,8 +51,11 @@ class SignerMessageBuilderV1Test {
 
         ReleaseCreationInformation releaseCreationInformation = mock(ReleaseCreationInformation.class);
         when(releaseCreationInformation.getPegoutBtcTx()).thenReturn(releaseTx1);
-        SignerMessageBuilderV1 sigMessVersion1 = new SignerMessageBuilderV1(releaseCreationInformation.getPegoutBtcTx());
+
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        SignerMessageBuilderV1 sigMessVersion1 = new SignerMessageBuilderV1(releaseCreationInformation.getPegoutBtcTx(), sigHashCalculator);
         SignerMessage message = sigMessVersion1.buildMessageForIndex(0);
+
         assertArrayEquals(message.getBytes(), sigHash.getBytes());
     }
 }
