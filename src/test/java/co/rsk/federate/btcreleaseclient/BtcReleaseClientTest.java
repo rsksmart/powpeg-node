@@ -225,10 +225,11 @@ class BtcReleaseClientTest {
         when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(1);
         when(signer.sign(eq(BTC.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
 
-        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx);
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx, sigHashCalculator);
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
         when(signerMessageBuilderFactory.buildFromConfig(ArgumentMatchers.anyInt(), ArgumentMatchers
-            .any(ReleaseCreationInformation.class)))
+            .any(ReleaseCreationInformation.class), ArgumentMatchers.anyInt()))
             .thenReturn(messageBuilder);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
@@ -1623,7 +1624,7 @@ class BtcReleaseClientTest {
         SignerMessageBuilder signerMessageBuilder = mock(SignerMessageBuilder.class);
         when(signerMessageBuilder.buildMessageForIndex(anyInt())).thenReturn(mock(SignerMessage.class));
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
-        when(signerMessageBuilderFactory.buildFromConfig(anyInt(), any())).thenReturn(signerMessageBuilder);
+        when(signerMessageBuilderFactory.buildFromConfig(anyInt(), any(), anyInt())).thenReturn(signerMessageBuilder);
 
         SimpleEthereumImpl ethereumImpl = new SimpleEthereumImpl();
 

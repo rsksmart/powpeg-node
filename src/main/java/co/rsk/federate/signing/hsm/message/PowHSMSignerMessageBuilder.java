@@ -4,6 +4,7 @@ import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.core.bc.BlockHashesHelperException;
+import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.trie.Trie;
 import java.util.List;
 import org.ethereum.core.Block;
@@ -17,20 +18,23 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
     private final ReceiptStore receiptStore;
     private final TransactionReceipt txReceipt;
     private final Block rskBlock;
+    private final List<Coin> outpointValues;
 
     private List<Trie> receiptMerkleProof;
     private boolean envelopeCreated;
 
     public PowHSMSignerMessageBuilder(
         ReceiptStore receiptStore,
-        ReleaseCreationInformation releaseCreationInformation
+        ReleaseCreationInformation releaseCreationInformation,
+        SigHashCalculator sigHashCalculator
     ) {
-        super(releaseCreationInformation.getPegoutBtcTx(), releaseCreationInformation.getUtxoOutpointValues());
+        super(releaseCreationInformation.getPegoutBtcTx(), sigHashCalculator);
 
         this.txReceipt = releaseCreationInformation.getTransactionReceipt();
         this.rskBlock = releaseCreationInformation.getPegoutCreationBlock();
         this.receiptStore = receiptStore;
         this.envelopeCreated = false;
+        this.outpointValues = releaseCreationInformation.getUtxoOutpointValues();
     }
 
     private void buildMessageEnvelope() throws BlockHashesHelperException {
@@ -54,15 +58,15 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
             throw new SignerMessageBuilderException("There was an error building message", e);
         }
 
-        Sha256Hash sigHash = getSigHashForInputIndex(inputIndex);
+        Sha256Hash sigHash = sigHashCalculator.calculate(unsignedBtcTx, inputIndex);
 
         return new PowHSMSignerMessage(
-                unsignedBtcTx,
-                inputIndex,
-                txReceipt,
-                receiptMerkleProof,
-                sigHash,
-                releaseOutpointsValues
+            unsignedBtcTx,
+            inputIndex,
+            txReceipt,
+            receiptMerkleProof,
+            sigHash,
+            outpointValues
         );
     }
 }
