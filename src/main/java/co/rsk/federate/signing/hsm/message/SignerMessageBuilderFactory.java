@@ -1,10 +1,19 @@
 package co.rsk.federate.signing.hsm.message;
 
+import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
+import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
+import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
+import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import org.ethereum.db.ReceiptStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+
+import static co.rsk.peg.bitcoin.BitcoinUtils.inputHasWitness;
 
 public class SignerMessageBuilderFactory {
     private static final Logger logger = LoggerFactory.getLogger(SignerMessageBuilderFactory.class);
@@ -16,20 +25,50 @@ public class SignerMessageBuilderFactory {
     }
 
     public SignerMessageBuilder buildFromConfig(
-        int version,
-        ReleaseCreationInformation pegoutCreationInformation
+        int signerVersion,
+        ReleaseCreationInformation releaseCreationInformation,
+        int inputIndex
     ) throws HSMUnsupportedVersionException {
-        SignerMessageBuilder messageBuilder;
-        if (version == HSMVersion.V1.getNumber()) {
-            messageBuilder = new SignerMessageBuilderV1(pegoutCreationInformation.getPegoutBtcTx());
-        } else if (HSMVersion.isPowHSM(version)) {
-            messageBuilder = new PowHSMSignerMessageBuilder(receiptStore, pegoutCreationInformation);
-        } else {
-            String message = String.format("Unsupported HSM signer version: %d", version);
-            logger.debug("[buildFromConfig] {}", message);
-            throw new HSMUnsupportedVersionException(message);
+        if (signerVersion == HSMVersion.V1.getNumber()) {
+            return buildSignerMessageBuilderV1(releaseCreationInformation, inputIndex);
         }
-        logger.trace("[buildFromConfig] SignerMessageBuilder built {}", messageBuilder.getClass());
-        return messageBuilder;
+        if (HSMVersion.isPowHSM(signerVersion)) {
+            return buildPowHSMSignerMessageBuilder(releaseCreationInformation, inputIndex);
+        }
+
+        String message = String.format("Unsupported HSM signer version: %d", signerVersion);
+        logger.debug("[buildFromConfig] {}", message);
+        throw new HSMUnsupportedVersionException(message);
+    }
+
+    private SignerMessageBuilderV1 buildSignerMessageBuilderV1(ReleaseCreationInformation releaseCreationInformation, int inputIndex) {
+        logger.trace("[buildSignerMessageBuilderV1] SignerMessageBuilder building SignerMessageBuilderV1");
+
+        BtcTransaction releaseTx = releaseCreationInformation.getPegoutBtcTx();
+        if (inputHasWitness(releaseTx, inputIndex)) {
+            SigHashCalculator sigHashCalculator = getSegwitSigHashCalculator(releaseCreationInformation);
+            return new SignerMessageBuilderV1(releaseTx, sigHashCalculator);
+        }
+
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        return new SignerMessageBuilderV1(releaseTx, sigHashCalculator);
+    }
+
+    private PowHSMSignerMessageBuilder buildPowHSMSignerMessageBuilder(ReleaseCreationInformation releaseCreationInformation, int inputIndex) {
+        logger.trace("[buildPowHSMSignerMessageBuilder] SignerMessageBuilder building PowHSMSignerMessageBuilder");
+
+        BtcTransaction releaseTx = releaseCreationInformation.getPegoutBtcTx();
+        if (inputHasWitness(releaseTx, inputIndex)) {
+            SigHashCalculator sigHashCalculator = getSegwitSigHashCalculator(releaseCreationInformation);
+            return new PowHSMSignerMessageBuilder(receiptStore, releaseCreationInformation, sigHashCalculator);
+        }
+
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        return new PowHSMSignerMessageBuilder(receiptStore, releaseCreationInformation, sigHashCalculator);
+    }
+
+    private SegwitSigHashCalculatorImpl getSegwitSigHashCalculator(ReleaseCreationInformation releaseCreationInformation) {
+        List<Coin> releaseOutpointsValues = releaseCreationInformation.getUtxoOutpointValues();
+        return new SegwitSigHashCalculatorImpl(releaseOutpointsValues);
     }
 }
