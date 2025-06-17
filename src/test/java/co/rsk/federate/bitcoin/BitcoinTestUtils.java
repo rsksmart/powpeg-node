@@ -1,6 +1,7 @@
 package co.rsk.federate.bitcoin;
 
 import static co.rsk.bitcoinj.script.ScriptBuilder.createP2SHOutputScript;
+import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
 import static co.rsk.peg.bitcoin.BitcoinUtils.extractRedeemScriptFromInput;
 
 import co.rsk.bitcoinj.core.*;
@@ -11,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import co.rsk.peg.federation.Federation;
 import org.ethereum.crypto.HashUtil;
 
 public final class BitcoinTestUtils {
@@ -85,5 +88,36 @@ public final class BitcoinTestUtils {
             inputScriptSig = outputScript.getScriptSigWithSignature(inputScriptSig, txSigEncoded, keyIndex);
             input.setScriptSig(inputScriptSig);
         }
+    }
+
+    public static BtcTransaction createPegout(
+        NetworkParameters btcMainnetParams,
+        Federation fromFederation,
+        List<Coin> outpointValues,
+        List<Address> destinationAddresses
+    ) {
+        BtcTransaction tx = new BtcTransaction(btcMainnetParams);
+
+        Coin fee = Coin.MILLICOIN;
+        for (int inputIndex = 0; inputIndex < outpointValues.size(); inputIndex++) {
+            Coin outpointValue = outpointValues.get(inputIndex);
+            Coin amountToSend = outpointValue.minus(fee);
+            // Iterate over the addresses using inputIndex % addresses.size() to have outputs to different addresses
+            Address destinationAddress = destinationAddresses.get(inputIndex % destinationAddresses.size());
+            tx.addOutput(amountToSend, destinationAddress);
+
+            TransactionOutPoint transactionOutpoint = new TransactionOutPoint(
+                btcMainnetParams,
+                inputIndex,
+                BitcoinTestUtils.createHash(inputIndex)
+            );
+
+            TransactionInput txInput = new TransactionInput(btcMainnetParams, null, new byte[]{}, transactionOutpoint, outpointValue);
+            tx.addInput(txInput);
+
+            addSpendingFederationBaseScript(tx, inputIndex, fromFederation.getRedeemScript(), fromFederation.getFormatVersion());
+        }
+
+        return tx;
     }
 }
