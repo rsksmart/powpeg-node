@@ -1,9 +1,7 @@
 package co.rsk.federate;
 
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP284;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP419;
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -410,6 +408,39 @@ class FederationProviderFromFederatorSupportTest {
 
         // Assert
         assertFalse(result.isPresent());
+    }
+
+    @Test
+    void getProposedFederation_whenExistsAndIsP2shP2wshErpFederation_shouldReturnProposedFederation() {
+        // Arrange
+        when(activations.isActive(RSKIP419)).thenReturn(true);
+        when(activations.isActive(RSKIP305)).thenReturn(true);
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
+        Federation expectedFederation = createP2shP2wshErpFederation(federationMembersFromPks);
+        Address expectedFederationAddress = expectedFederation.getAddress();
+        int federationSize = expectedFederation.getSize();
+        when(federatorSupportMock.getProposedFederationSize()).thenReturn(Optional.of(federationSize));
+        when(federatorSupportMock.getProposedFederationCreationTime()).thenReturn(Optional.of(creationTime));
+        when(federatorSupportMock.getProposedFederationAddress()).thenReturn(Optional.of(expectedFederationAddress));
+        when(federatorSupportMock.getBtcParams()).thenReturn(testnetParams);
+        when(federatorSupportMock.getProposedFederationCreationBlockNumber()).thenReturn(Optional.of(0L));
+        for (int i = 0; i < federationSize; i++) {
+            when(federatorSupportMock.getProposedFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC))
+                .thenReturn(Optional.of(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000))));
+            when(federatorSupportMock.getProposedFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK))
+                .thenReturn(Optional.of(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000+1))));
+            when(federatorSupportMock.getProposedFederatorPublicKeyOfType(i, FederationMember.KeyType.MST))
+                .thenReturn(Optional.of(ECKey.fromPrivate(BigInteger.valueOf((i+1)*1000+2))));
+        }
+
+        // Act
+        Optional<Federation> proposedFederation = federationProvider.getProposedFederation();
+
+        // Assert
+        assertTrue(proposedFederation.isPresent());
+        assertEquals(P2SH_P2WSH_ERP_FEDERATION_FORMAT_VERSION, proposedFederation.get().getFormatVersion());
+        assertEquals(expectedFederation, proposedFederation.get());
+        assertEquals(expectedFederationAddress, proposedFederation.get().getAddress());
     }
 
     @Test
