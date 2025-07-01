@@ -27,6 +27,7 @@ import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.signing.utils.TestUtils;
+import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.federation.Federation;
@@ -106,7 +107,7 @@ class PowHSMSignerMessageTest {
         PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, FIRST_INPUT_INDEX, txReceipt,
             receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
 
-        String txSerialized = message.getBtcTransactionSerialized();
+        String txSerialized = message.getBtcTransactionLegacySerialized();
 
         assertEquals(Hex.toHexString(btcTx.bitcoinSerialize()), txSerialized);
     }
@@ -254,7 +255,7 @@ class PowHSMSignerMessageTest {
     private void assertHsmMessageValues(BtcTransaction segwitPegoutBtcTx,
         JsonNode actualMessageToSign, int expectedIndex, List<Long> expectedOutpointValues) {
 
-        String serializedSegwitPegoutBtcTx = Hex.toHexString(segwitPegoutBtcTx.bitcoinSerialize());
+        String serializedSegwitPegoutBtcTx = Hex.toHexString(BitcoinUtils.getSerializedTransactionCopyWithoutWitness(segwitPegoutBtcTx));
         String actualSerializedBtcTxToSend = actualMessageToSign.get(TX.getFieldName()).textValue();
         assertEquals(actualSerializedBtcTxToSend, serializedSegwitPegoutBtcTx);
 
