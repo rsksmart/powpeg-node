@@ -29,6 +29,7 @@ import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionWitness;
 import co.rsk.federate.signing.hsm.HSMVersion;
+import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.trie.Trie;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,6 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
 import org.ethereum.core.TransactionReceipt;
 import org.spongycastle.util.encoders.Hex;
 
@@ -73,7 +75,12 @@ public class PowHSMSignerMessage extends SignerMessage {
         return sigHash.getBytes();
     }
 
-    public String getBtcTransactionSerialized() {
+    public String getBtcTransactionLegacySerialized() {
+        if (btcTransaction.hasWitness()) {
+            byte[] serializedTxWithoutWitness = BitcoinUtils.getSerializedTransactionCopyWithoutWitness(btcTransaction);
+            return Hex.toHexString(serializedTxWithoutWitness);
+        }
+
         byte[] serializedTx = btcTransaction.bitcoinSerialize();
         return Hex.toHexString(serializedTx);
     }
@@ -100,7 +107,8 @@ public class PowHSMSignerMessage extends SignerMessage {
 
     public JsonNode getMessageToSign(int version) {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
-        messageToSend.put(TX.getFieldName(), getBtcTransactionSerialized());
+        // since the hsm cannot parse the witness, we need to serialize it as legacy
+        messageToSend.put(TX.getFieldName(), getBtcTransactionLegacySerialized());
         messageToSend.put(INPUT.getFieldName(), inputIndex);
         if (version == HSMVersion.V5.getNumber()) {
             if (hasWitness()) {
