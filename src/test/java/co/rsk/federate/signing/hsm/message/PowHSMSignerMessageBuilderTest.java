@@ -144,7 +144,7 @@ class PowHSMSignerMessageBuilderTest {
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionLegacySerialized();
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
@@ -260,7 +260,7 @@ class PowHSMSignerMessageBuilderTest {
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionLegacySerialized();
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
@@ -429,7 +429,7 @@ class PowHSMSignerMessageBuilderTest {
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionLegacySerialized();
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
