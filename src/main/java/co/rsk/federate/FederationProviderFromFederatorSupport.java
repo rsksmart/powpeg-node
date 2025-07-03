@@ -19,8 +19,7 @@ package co.rsk.federate;
 
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static co.rsk.peg.federation.FederationMember.KeyType;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP419;
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.*;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -176,12 +175,22 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             federatorSupport.getBtcParams()
         );
 
-        Federation federation = FederationFactory.buildP2shErpFederation(
+        Federation proposedFederation = buildProposedFederation(federationArgs);
+        return Optional.of(proposedFederation);
+    }
+
+    private Federation buildProposedFederation(FederationArgs federationArgs) {
+        if (!federatorSupport.getConfigForBestBlock().isActive(RSKIP305)) {
+            return FederationFactory.buildP2shErpFederation(
+                federationArgs,
+                federationConstants.getErpFedPubKeysList(),
+                federationConstants.getErpFedActivationDelay());
+        }
+
+        return FederationFactory.buildP2shP2wshErpFederation(
             federationArgs,
             federationConstants.getErpFedPubKeysList(),
             federationConstants.getErpFedActivationDelay());
-
-        return Optional.of(federation);
     }
 
     @Override

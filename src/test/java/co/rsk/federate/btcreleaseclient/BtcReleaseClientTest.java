@@ -31,7 +31,6 @@ import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.bitcoin.FlyoverRedeemScriptBuilderImpl;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.*;
-import co.rsk.peg.federation.constants.FederationConstants;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.time.*;
@@ -226,10 +225,11 @@ class BtcReleaseClientTest {
         when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(1);
         when(signer.sign(eq(BTC.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
 
-        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx);
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx, sigHashCalculator);
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
         when(signerMessageBuilderFactory.buildFromConfig(ArgumentMatchers.anyInt(), ArgumentMatchers
-            .any(ReleaseCreationInformation.class)))
+            .any(ReleaseCreationInformation.class), ArgumentMatchers.anyInt()))
             .thenReturn(messageBuilder);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
@@ -788,7 +788,7 @@ class BtcReleaseClientTest {
         // Assert
         
         // We should have searched by the expected svp spend tx hash
-        BitcoinUtils.removeSignaturesFromTransactionWithP2shMultiSigInputs(svpSpendTx);
+        BitcoinUtils.removeSignaturesFromMultiSigTransaction(svpSpendTx);
         assertEquals(svpSpendTxHashBeforeSigning, svpSpendTx.getHash());
         verify(releaseCreationInformationGetter).getTxInfoToSign(
             anyInt(),
@@ -1408,8 +1408,17 @@ class BtcReleaseClientTest {
 
         client.start(federation);
 
+        Keccak256 rskTxHash = mock(Keccak256.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            mock(Block.class),
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
+        );
+
         // Act
-        assertThrows(FederatorAlreadySignedException.class, () -> client.validateTxCanBeSigned(releaseTx));
+        assertThrows(FederatorAlreadySignedException.class, () -> client.validateTxCanBeSigned(releaseCreationInformation));
     }
 
     @Test
@@ -1445,115 +1454,17 @@ class BtcReleaseClientTest {
             mock(BtcReleaseClientStorageSynchronizer.class)
         );
 
-        // Act
-        assertThrows(FederationCantSignException.class, () -> client.validateTxCanBeSigned(releaseTx));
-    }
-
-    @Test
-    void removeSignaturesFromTransaction() {
-        // Arrange
-        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        BtcECKey federator1PrivKey = new BtcECKey();
-        BtcECKey federator2PrivKey = new BtcECKey();
-        List<FederationMember> fedMembers = FederationMember.getFederationMembersFromKeys(Arrays.asList(federator1PrivKey, federator2PrivKey));
-        FederationArgs federationArgs = new FederationArgs(fedMembers, Instant.now(), 0, params);
-
-        Federation federation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
-
-        // Create a tx from the Fed to a random btc address
-        BtcTransaction releaseTx = new BtcTransaction(params);
-        TransactionInput releaseInput = TestUtils.createTransactionInput(params, releaseTx, federation);
-        releaseTx.addInput(releaseInput);
-
-        Sha256Hash unsignedTxHash = releaseTx.getHash();
-
-        // Sign the transaction
-        int inputIndex = 0;
-        Sha256Hash sigHash = BitcoinUtils.generateSigHashForP2SHTransactionInput(releaseTx, inputIndex);
-        int sigInsertionIndex = BitcoinUtils.getSigInsertionIndex(releaseTx, inputIndex, sigHash, federator1PrivKey);
-        byte[] federatorSig = federator1PrivKey.sign(sigHash).encodeToDER();
-        TransactionSignature federatorTxSig = new TransactionSignature(BtcECKey.ECDSASignature.decodeFromDER(federatorSig), BtcTransaction.SigHash.ALL, false);
-        BitcoinUtils.signInput(releaseTx, inputIndex, federatorTxSig, sigInsertionIndex, federation.getP2SHScript());
-
-
-        BtcReleaseClient client = new BtcReleaseClient(
-            mock(Ethereum.class),
-            mock(FederatorSupport.class),
-            powpegNodeSystemProperties,
-            mock(NodeBlockProcessor.class)
+        Keccak256 rskTxHash = mock(Keccak256.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            mock(Block.class),
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
         );
 
-        Sha256Hash signedTxHash = releaseTx.getHash();
-
         // Act
-        client.removeSignaturesFromTransaction(releaseTx, federation);
-        Sha256Hash removedSignaturesTxHash = releaseTx.getHash();
-
-        // Assert
-        assertNotEquals(unsignedTxHash, signedTxHash);
-        assertNotEquals(signedTxHash, removedSignaturesTxHash);
-        assertEquals(unsignedTxHash, removedSignaturesTxHash);
-    }
-
-    @Test
-    void removeSignatures_withASegwitCompatibleTransaction_shouldReturnExpectedTx() {
-        // Arrange
-        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        BtcECKey federator1PrivKey = new BtcECKey();
-        BtcECKey federator2PrivKey = new BtcECKey();
-        List<FederationMember> fedMembers = FederationMember.getFederationMembersFromKeys(Arrays.asList(federator1PrivKey, federator2PrivKey));
-        List<BtcECKey> erpPublicKeys = fedMembers.stream().map(FederationMember::getBtcPublicKey).toList();
-        FederationArgs federationArgs = new FederationArgs(fedMembers, Instant.now(), 0, params);
-        FederationConstants federationConstants = bridgeConstants.getFederationConstants();
-        Federation federation = FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpPublicKeys, federationConstants.getErpFedActivationDelay());
-
-        BtcTransaction prevTx = new BtcTransaction(params);
-        Coin prevValue = Coin.COIN;
-        prevTx.addOutput(prevValue, federation.getAddress());
-
-        BtcTransaction releaseTx = new BtcTransaction(params);
-
-        int outputIndex = 0;
-        releaseTx.addInput(prevTx.getOutput(outputIndex));
-
-        int inputIndex = 0;
-        Script redeemScript = federation.getRedeemScript();
-        BitcoinUtils.addSpendingFederationBaseScript(releaseTx, inputIndex, redeemScript, federation.getFormatVersion());
-        Sha256Hash unsignedTxHash = releaseTx.getHash();
-
-        // Sign the transaction
-        Sha256Hash sigHash = BitcoinUtils.generateSigHashForSegwitTransactionInput(releaseTx, inputIndex, releaseTx.getInput(inputIndex).getValue());
-        int sigInsertionIndex = BitcoinUtils.getSigInsertionIndex(releaseTx, inputIndex, sigHash, federator1PrivKey);
-        byte[] federatorSig = federator1PrivKey.sign(sigHash).encodeToDER();
-        TransactionSignature federatorTxSig = new TransactionSignature(BtcECKey.ECDSASignature.decodeFromDER(federatorSig), BtcTransaction.SigHash.ALL, false);
-        BitcoinUtils.signInput(releaseTx, inputIndex, federatorTxSig, sigInsertionIndex, federation.getP2SHScript());
-
-        BtcReleaseClient client = new BtcReleaseClient(
-            mock(Ethereum.class),
-            mock(FederatorSupport.class),
-            powpegNodeSystemProperties,
-            mock(NodeBlockProcessor.class)
-        );
-
-        Sha256Hash signedTxHash = releaseTx.getHash();
-
-        // Act
-        assertEquals(unsignedTxHash, signedTxHash);
-        client.removeSignaturesFromTransaction(releaseTx, federation);
-        Sha256Hash removedSignaturesTxHash = releaseTx.getHash();
-
-        // Assert
-        assertEquals(unsignedTxHash, removedSignaturesTxHash);
-    }
-
-    @Test
-    void getRedeemScriptFromInput_fast_bridge_redeem_script() {
-        test_getRedeemScriptFromInput(true);
-    }
-
-    @Test
-    void getRedeemScriptFromInput_standard_redeem_script() {
-        test_getRedeemScriptFromInput(false);
+        assertThrows(FederationCantSignException.class, () -> client.validateTxCanBeSigned(releaseCreationInformation));
     }
 
     @Test
@@ -1629,8 +1540,17 @@ class BtcReleaseClientTest {
 
         client.start(federation);
 
+        Keccak256 rskTxHash = mock(Keccak256.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            mock(Block.class),
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
+        );
+
         // Act
-        client.validateTxCanBeSigned(releaseTx);
+        client.validateTxCanBeSigned(releaseCreationInformation);
     }
 
     private void test_extractStandardRedeemScript(
@@ -1648,40 +1568,6 @@ class BtcReleaseClientTest {
         assertEquals(
             expectedRedeemScript,
             client.extractStandardRedeemScript(redeemScriptToExtract)
-        );
-    }
-
-    private void test_getRedeemScriptFromInput(boolean isFlyoverRedeemScript) {
-        BtcReleaseClient client = createBtcClient();
-
-        BtcECKey ecKey1 = BtcECKey.fromPrivate(BigInteger.valueOf(100));
-        BtcECKey ecKey2 = BtcECKey.fromPrivate(BigInteger.valueOf(200));
-        BtcECKey ecKey3 = BtcECKey.fromPrivate(BigInteger.valueOf(300));
-
-        List<BtcECKey> btcECKeys = Arrays.asList(ecKey1, ecKey2, ecKey3);
-        Federation federation = createFederation(btcECKeys);
-        Script federationRedeemScript = federation.getRedeemScript();
-        Script inputScript;
-
-        if (isFlyoverRedeemScript) {
-            Keccak256 flyoverDerivationHash = createHash(1);
-            federationRedeemScript = FlyoverRedeemScriptBuilderImpl.builder().of(
-                flyoverDerivationHash,
-                federation.getRedeemScript()
-            );
-        }
-        inputScript = federation.getP2SHScript().createEmptyInputScript(
-            null,
-            federationRedeemScript
-        );
-
-        BtcTransaction spendTx = new BtcTransaction(params);
-        spendTx.addInput(Sha256Hash.ZERO_HASH, 0, inputScript);
-        spendTx.addOutput(Coin.valueOf(190_000_000), federation.getAddress());
-
-        assertEquals(
-            federationRedeemScript,
-            client.getRedeemScriptFromInput(spendTx.getInput(0))
         );
     }
 
@@ -1765,7 +1651,7 @@ class BtcReleaseClientTest {
         SignerMessageBuilder signerMessageBuilder = mock(SignerMessageBuilder.class);
         when(signerMessageBuilder.buildMessageForIndex(anyInt())).thenReturn(mock(SignerMessage.class));
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
-        when(signerMessageBuilderFactory.buildFromConfig(anyInt(), any())).thenReturn(signerMessageBuilder);
+        when(signerMessageBuilderFactory.buildFromConfig(anyInt(), any(), anyInt())).thenReturn(signerMessageBuilder);
 
         SimpleEthereumImpl ethereumImpl = new SimpleEthereumImpl();
 
