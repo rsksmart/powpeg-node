@@ -3,6 +3,7 @@ package co.rsk.federate.signing.hsm.message;
 import static co.rsk.federate.EventsTestUtils.*;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.createPegout;
+import static co.rsk.federate.signing.HSMField.TX;
 import static co.rsk.peg.bitcoin.BitcoinUtils.inputHasWitness;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -13,15 +14,16 @@ import co.rsk.core.RskAddress;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
-import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
-import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
-import co.rsk.federate.signing.SigHashCalculator;
+import co.rsk.federate.signing.*;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.utils.TestUtils;
+import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.pegin.RejectedPeginReason;
 import co.rsk.trie.Trie;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.*;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.*;
@@ -144,7 +146,9 @@ class PowHSMSignerMessageBuilderTest {
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+
+        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5.getNumber());
+        String actualBtcTxSerialized = messageToSign.get(TX.getFieldName()).asText();
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
@@ -260,7 +264,9 @@ class PowHSMSignerMessageBuilderTest {
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5.getNumber());
+        String actualBtcTxSerialized = messageToSign.get(TX.getFieldName()).asText();
+
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
@@ -283,11 +289,14 @@ class PowHSMSignerMessageBuilderTest {
     @ParameterizedTest
     @MethodSource("serializedAndDeserializedOutpointValuesArgProvider")
     void buildMessageForIndex_whenSegwitBatchPegoutHasTransactionCreatedEvent_ok(
-        byte[] serializedOutpointValues, List<Coin> expectedOutpointValues)
-        throws SignerMessageBuilderException {
+        byte[] serializedOutpointValues,
+        List<Coin> expectedOutpointValues
+    ) throws SignerMessageBuilderException {
         // arrange
-        Address userAddress2 = BitcoinTestUtils.createP2PKHAddress(btcMainnetParams,
-            "userAddress2");
+        Address userAddress2 = BitcoinTestUtils.createP2PKHAddress(
+            btcMainnetParams,
+            "userAddress2"
+        );
         List<Address> destinationAddresses = Arrays.asList(userAddress, userAddress2);
 
         BtcTransaction pegoutBtcTx = createPegout(
@@ -389,8 +398,12 @@ class PowHSMSignerMessageBuilderTest {
         BtcTransaction pegoutBtcTx
     ) throws SignerMessageBuilderException {
         ReleaseCreationInformation releaseInformation = new ReleaseCreationInformation(
-            pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutConfirmationRskTx.getHash());
+            pegoutCreationBlock,
+            pegoutCreationRskTxReceipt,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            pegoutConfirmationRskTx.getHash()
+        );
 
         List<Coin> actualOutpointValues = releaseInformation.getUtxoOutpointValues();
         assertArrayEquals(actualOutpointValues.toArray(), expectedOutpointValues.toArray());
@@ -399,8 +412,11 @@ class PowHSMSignerMessageBuilderTest {
         if (pegoutBtcTx.hasWitness()) {
             sigHashCalculator = new SegwitSigHashCalculatorImpl(actualOutpointValues);
         }
-        PowHSMSignerMessageBuilder signerMessageBuilder =
-            new PowHSMSignerMessageBuilder(receiptStore, releaseInformation, sigHashCalculator);
+        PowHSMSignerMessageBuilder signerMessageBuilder = new PowHSMSignerMessageBuilder(
+            receiptStore,
+            releaseInformation,
+            sigHashCalculator
+        );
 
         int numOfInputsToSign = expectedOutpointValues.size();
 
@@ -413,7 +429,12 @@ class PowHSMSignerMessageBuilderTest {
         }
     }
 
-    private void assertSignerMessage(SignerMessage actualSignerMessage, BtcTransaction pegoutBtcTx, int inputIndex, List<Coin> expectedOutpointValues) {
+    private void assertSignerMessage(
+        SignerMessage actualSignerMessage,
+        BtcTransaction pegoutBtcTx,
+        int inputIndex,
+        List<Coin> expectedOutpointValues
+    ) {
         assertEquals(PowHSMSignerMessage.class, actualSignerMessage.getClass());
 
         PowHSMSignerMessage actualPowHSMSignerMessage = (PowHSMSignerMessage) actualSignerMessage;
@@ -428,13 +449,18 @@ class PowHSMSignerMessageBuilderTest {
         }
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
-        String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+        BtcTransaction txWithoutWitness = BitcoinUtils.getTransactionWithoutWitness(pegoutBtcTx);
+        String expectedBtcTxSerialized = Hex.toHexString(txWithoutWitness.bitcoinSerialize());
+        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5.getNumber());
+        String actualBtcTxSerialized = messageToSign.get(TX.getFieldName()).asText();
+
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
-        assertArrayEquals(expectedReceiptMerkleProof,
-            actualPowHSMSignerMessage.getReceiptMerkleProof());
+        assertArrayEquals(
+            expectedReceiptMerkleProof,
+            actualPowHSMSignerMessage.getReceiptMerkleProof()
+        );
     }
 
     private void addCommonPegoutLogs(List<LogInfo> logs, BtcTransaction pegoutBtcTx) {
