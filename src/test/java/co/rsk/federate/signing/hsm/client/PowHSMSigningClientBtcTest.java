@@ -498,14 +498,13 @@ class PowHSMSigningClientBtcTest {
     private PowHSMSignerMessage buildMessageForIndexTesting() {
         PowHSMSignerMessage messageForSignature = mock(PowHSMSignerMessage.class);
         when(messageForSignature.getInputIndex()).thenReturn(0);
-        when(messageForSignature.getBtcTransactionLegacySerialized()).thenReturn("aaaa");
         when(messageForSignature.getTransactionReceipt()).thenReturn("cccc");
         when(messageForSignature.getReceiptMerkleProof()).thenReturn(new String[]{"cccc"});
         Sha256Hash sigHash = Sha256Hash.of(Hex.decode("bbccddee"));
         when(messageForSignature.getSigHash()).thenReturn(sigHash);
 
         ObjectNode message = objectMapper.createObjectNode();
-        message.put(TX.getFieldName(), messageForSignature.getBtcTransactionLegacySerialized());
+        message.put(TX.getFieldName(), "aaaa");
         message.put(INPUT.getFieldName(), messageForSignature.getInputIndex());
         when(messageForSignature.getMessageToSign(HSMVersion.V2.getNumber())).thenReturn(message);
         return messageForSignature;

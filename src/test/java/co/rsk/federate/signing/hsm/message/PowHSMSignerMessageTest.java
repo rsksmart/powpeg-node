@@ -24,10 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
-import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
-import co.rsk.peg.federation.Federation;
 import co.rsk.trie.Trie;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -83,42 +81,6 @@ class PowHSMSignerMessageTest {
         assertNotEquals(m1.hashCode(), m3.hashCode());
         assertNotEquals(m2, m3);
         assertNotEquals(m2.hashCode(), m3.hashCode());
-    }
-
-    @Test
-    void getBtcTransactionLegacySerialized_forLegacyTx_shouldReturnAllTransactionSerialized() {
-        // data from https://mempool.space/testnet/tx/c862f41b888bc5d0757bee5f43aa06735a83be3f4819c41c66457b9eec2f93e8
-        String rawBtcTx = "0200000001d5488ac67454b9e641dc746a0b2b62b7a8946689163deb9a89ede1a9cfc2285101000000fd1603004730440220093f78d7827fea8a21e673ea0f0ddbbf3b89f0f5616456db76113c889c354c08022031b1c625acd08ac4e9f17864f9a2e71ebbb76c04c3d16d42f627062ffb5b48a401483045022100e2ba3e70eb4f66e8f71ab49514f4e2c68b08be11bf7ac0a94ee5aa8dc72a7fb602201d5eb3cb1fb385612310664b24f6ae24130d918af494fa3ff26c1a45dd899f470147304402204b48a81d2c98cb46cc181cfbe368f90f816b168b4f2addc2677f7117e7e4ff190220544df0cc460c1b64e08c315807bb6129afa4485bfa9cc95614d0ba62e1e5fe8301473044022041a5d8a35dd420dc32cc0dd449d050c27bdb8fa6a5fef888c3a10279f272ea9802207f1750d984af9ace47d2a52fd27eb9a5ac698701279dde37a378c640ce090cfa01483045022100e0c0481f29fa9449614ac2992b5422d22784d18fb5325a0042b8a9f865c87dc902203cd4c08688ea0dd36f6a9ec3daae31a30c2ecb5d2c0027972ea3bea2c55dc48c01004da70164552102099fd69cf6a350679a05593c3ff814bfaa281eb6dde505c953cf2875979b1209210222caa9b1436ebf8cdf0c97233a8ca6713ed37b5105bcbbc674fd91353f43d9f721022a159227df514c7b7808ee182ae07d71770b67eda1e5ee668272761eefb2c24c2102afc230c2d355b1a577682b07bc2646041b5d0177af0f98395a46018da699b6da2102b1645d3f0cff938e3b3382b93d2d5c082880b86cbb70b6600f5276f235c2839221039ee63f1e22ed0eb772fe0a03f6c34820ce8542f10e148bc3315078996cb81b252103d25ed2fcf9e05537f6e1daa7affcafdb3effc9f68cb2aecdcad66c901ae1b6572103e2fbfd55959660c94169320ed0a778507f8e4c7a248a71c6599a4ce8a3d956ac2103eae17ad1d0094a5bf33c037e722eaf3056d96851450fb7f514a9ed3af1dbb57059ae670350cd00b27552210216c23b2ea8e4f11c3f9e22711addb1d16a93964796913830856b568cc3ea21d3210275562901dd8faae20de0a4166362a4f82188db77dbed4ca887422ea1ec185f1421034db69f2112f4fb1bb6141bf6e2bd6631f0484d0bd95b16767902c9fe219d4a6f53ae68ffffffff01e18f0700000000001976a9141ae302de6607907116810e598b83897b00f764d588ac00000000";
-        BtcTransaction btcTx = new BtcTransaction(RegTestParams.get(), Hex.decode(rawBtcTx));
-
-        Sha256Hash sigHash = Sha256Hash.ZERO_HASH;
-        PowHSMSignerMessage message = new PowHSMSignerMessage(btcTx, FIRST_INPUT_INDEX, txReceipt,
-            receiptMerkleProof, sigHash, noOutpointValuesForLegacyPegouts);
-
-        String txSerialized = message.getBtcTransactionLegacySerialized();
-
-        assertEquals(rawBtcTx, txSerialized);
-    }
-
-    @Test
-    void getBtcTransactionLegacySerialized_whenTxIsSegwit_shouldReturnSerializationWithoutWitness() {
-        // using values from testing with rits
-        // arrange
-        NetworkParameters testnet = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
-        byte[] rawOriginalTx = Hex.decode("02000000000102ad63bb3d634405d7fc587e326ffded9a466c4f9a8994b3da04a238867c99ddee000000002322002064a977662a5a4bf9917f1ee212e3aef7419b3bb1618be1d57f5a33b99df87e78ffffffffad63bb3d634405d7fc587e326ffded9a466c4f9a8994b3da04a238867c99ddee0100000023220020cabce4c919445262a40e82c100cf4ef2386dc2cc07e7eafa145f72a576a2420bffffffff0158a80e000000000017a91453863f60cf78368efd11bd8cb89012a91027eb52870500000000fd1e01645221020b1d25b03d041028326ac5b27af941524c31bf09df5fece7476d3940f9cd23942102501878fb22fdf374921d168bb1ea02b324f00eb2c7610cb452167a9dcdab016421034ba6ec42eab139697c3614653e130e76fc15d1d7e5c91b3df63d3c06195d422653ae6702f401b2755321029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e433012103284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd2103776b1fd8f86da3c1db3d69699e8250a15877d286734ea9a6da8e9d8ad25d16c12103ab0e2cd7ed158687fc13b88019990860cdb72b1f5777b58513312550ea1584bc2103b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b2455ae680500000000fd400120000000000000000000000000000000000000000000000000000000000000000175645221020b1d25b03d041028326ac5b27af941524c31bf09df5fece7476d3940f9cd23942102501878fb22fdf374921d168bb1ea02b324f00eb2c7610cb452167a9dcdab016421034ba6ec42eab139697c3614653e130e76fc15d1d7e5c91b3df63d3c06195d422653ae6702f401b2755321029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e433012103284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd2103776b1fd8f86da3c1db3d69699e8250a15877d286734ea9a6da8e9d8ad25d16c12103ab0e2cd7ed158687fc13b88019990860cdb72b1f5777b58513312550ea1584bc2103b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b2455ae6800000000");
-        BtcTransaction segwitPegoutBtcTx = new BtcTransaction(testnet, rawOriginalTx);
-
-        Sha256Hash sigHash = BitcoinTestUtils.createHash(1);
-        Coin firstOutpointValue = Coin.valueOf(50_000_000L);
-        Coin secondOutpointValue = Coin.valueOf(50_000_000L);
-        List<Coin> outpointValues = List.of(firstOutpointValue, secondOutpointValue);
-
-        String expectedRawTxWithoutWitness = "0200000002ad63bb3d634405d7fc587e326ffded9a466c4f9a8994b3da04a238867c99ddee000000002322002064a977662a5a4bf9917f1ee212e3aef7419b3bb1618be1d57f5a33b99df87e78ffffffffad63bb3d634405d7fc587e326ffded9a466c4f9a8994b3da04a238867c99ddee0100000023220020cabce4c919445262a40e82c100cf4ef2386dc2cc07e7eafa145f72a576a2420bffffffff0158a80e000000000017a91453863f60cf78368efd11bd8cb89012a91027eb528700000000";
-        for (int i = 0; i < segwitPegoutBtcTx.getInputs().size(); i++) {
-            PowHSMSignerMessage firstPowHSMSignerMessage =
-                new PowHSMSignerMessage(segwitPegoutBtcTx, i, txReceipt, receiptMerkleProof, sigHash, outpointValues);
-            assertEquals(expectedRawTxWithoutWitness, firstPowHSMSignerMessage.getBtcTransactionLegacySerialized());
-        }
     }
 
     @Test
@@ -241,9 +203,15 @@ class PowHSMSignerMessageTest {
         // first input
         int firstInputIndex = 0;
         // act
-        PowHSMSignerMessage firstPowHSMSignerMessage =
-            new PowHSMSignerMessage(segwitPegoutBtcTx, firstInputIndex, txReceipt, receiptMerkleProof, sigHash, outpointValues);
-        assertEquals(expectedRawTxWithoutWitness, firstPowHSMSignerMessage.getBtcTransactionLegacySerialized());
+        PowHSMSignerMessage firstPowHSMSignerMessage = new PowHSMSignerMessage(
+            segwitPegoutBtcTx,
+            firstInputIndex,
+            txReceipt,
+            receiptMerkleProof,
+            sigHash,
+            outpointValues
+        );
+
         JsonNode firstMessageToSign = firstPowHSMSignerMessage.getMessageToSign(hsmVersion5);
 
         // assert
@@ -259,9 +227,15 @@ class PowHSMSignerMessageTest {
         // second input
         int secondInputIndex = 1;
         // act
-        PowHSMSignerMessage secondPowHSMSignerMessage =
-            new PowHSMSignerMessage(segwitPegoutBtcTx, secondInputIndex, txReceipt, receiptMerkleProof, sigHash, outpointValues);
-        assertEquals(expectedRawTxWithoutWitness, secondPowHSMSignerMessage.getBtcTransactionLegacySerialized());
+        PowHSMSignerMessage secondPowHSMSignerMessage = new PowHSMSignerMessage(
+            segwitPegoutBtcTx,
+            secondInputIndex,
+            txReceipt,
+            receiptMerkleProof,
+            sigHash,
+            outpointValues
+        );
+
         JsonNode secondMessageToSign = secondPowHSMSignerMessage.getMessageToSign(hsmVersion5);
 
         // assert
@@ -279,8 +253,11 @@ class PowHSMSignerMessageTest {
     }
 
     private void assertHsmMessageValues(
-        JsonNode actualMessageToSign, int expectedIndex, String expectedRawTxWithoutWitness,
-        long expectedOutpointValue, String expectedRawOriginalWitnessScript
+        JsonNode actualMessageToSign,
+        int expectedIndex,
+        String expectedRawTxWithoutWitness,
+        long expectedOutpointValue,
+        String expectedRawOriginalWitnessScript
     ) {
         int actualInputIndex = actualMessageToSign.get(INPUT.getFieldName()).intValue();
         assertEquals(actualInputIndex, expectedIndex);
