@@ -5,6 +5,7 @@ import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.script.Script;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static co.rsk.peg.bitcoin.BitcoinUtils.extractRedeemScriptFromInput;
@@ -13,7 +14,7 @@ public class SegwitSigHashCalculatorImpl implements SigHashCalculator {
     private final List<Coin> releaseOutpointsValues;
 
     public SegwitSigHashCalculatorImpl(List<Coin> releaseOutpointsValues) {
-        this.releaseOutpointsValues = releaseOutpointsValues;
+        this.releaseOutpointsValues = new ArrayList<>(releaseOutpointsValues);
     }
 
     @Override
