@@ -75,16 +75,6 @@ public class PowHSMSignerMessage extends SignerMessage {
         return sigHash.getBytes();
     }
 
-    public String getBtcTransactionLegacySerialized() {
-        if (btcTransaction.hasWitness()) {
-            byte[] serializedTxWithoutWitness = BitcoinUtils.getSerializedTransactionCopyWithoutWitness(btcTransaction);
-            return Hex.toHexString(serializedTxWithoutWitness);
-        }
-
-        byte[] serializedTx = btcTransaction.bitcoinSerialize();
-        return Hex.toHexString(serializedTx);
-    }
-
     public int getInputIndex() {
         return inputIndex;
     }
@@ -107,8 +97,10 @@ public class PowHSMSignerMessage extends SignerMessage {
 
     public JsonNode getMessageToSign(int version) {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
-        // since the hsm cannot parse the witness, we need to serialize it as legacy
-        messageToSend.put(TX.getFieldName(), getBtcTransactionLegacySerialized());
+        // The hsm expects the transaction without any witness data
+        BtcTransaction txWithoutWitness = BitcoinUtils.getTransactionWithoutWitness(btcTransaction);
+        byte[] serializedTx = txWithoutWitness.bitcoinSerialize();
+        messageToSend.put(TX.getFieldName(), Hex.toHexString(serializedTx));
         messageToSend.put(INPUT.getFieldName(), inputIndex);
         if (version == HSMVersion.V5.getNumber()) {
             if (hasWitness()) {
