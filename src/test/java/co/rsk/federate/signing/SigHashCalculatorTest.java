@@ -11,16 +11,15 @@ import java.util.List;
 import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SigHashCalculatorTest {
+class SigHashCalculatorTest {
     private final NetworkParameters mainnet = NetworkParameters.fromID(NetworkParameters.ID_MAINNET);
     private final int inputIndex = 0;
     private final Coin prevValue = Coin.COIN;
 
-    private BtcTransaction prevTx;
     private BtcTransaction transaction;
 
     void setUp(Federation federation) {
-        prevTx = new BtcTransaction(mainnet);
+        BtcTransaction prevTx = new BtcTransaction(mainnet);
         prevTx.addOutput(prevValue, federation.getAddress());
 
         transaction = new BtcTransaction(mainnet);
@@ -122,10 +121,10 @@ public class SigHashCalculatorTest {
         Federation federation = TestUtils.createSegwitFederation(mainnet, 20);
         setUp(federation);
 
-        int inputIndex = 0;
+        int firstInputIndex = 0;
         SigHashCalculator sigHashCalculator = new SegwitSigHashCalculatorImpl(List.of(prevValue));
 
         // act
-        assertThrows(IllegalStateException.class, () -> sigHashCalculator.calculate(transaction, inputIndex));
+        assertThrows(IllegalStateException.class, () -> sigHashCalculator.calculate(transaction, firstInputIndex));
     }
 }
