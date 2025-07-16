@@ -1,16 +1,23 @@
 package co.rsk.federate.signing.utils;
 
+import static co.rsk.peg.bitcoin.BitcoinUtils.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.*;
+import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.script.Script;
+import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
+import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
+import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.peg.federation.*;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
@@ -19,6 +26,8 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.*;
+import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.HashUtil;
 
 public final class TestUtils {
 
@@ -124,6 +133,17 @@ public final class TestUtils {
         return federationPrivateKeys;
     }
 
+
+    public static BtcECKey getBtcEcKeyFromSeed(String seed) {
+        byte[] serializedSeed = HashUtil.keccak256(seed.getBytes(StandardCharsets.UTF_8));
+        return BtcECKey.fromPrivate(serializedSeed);
+    }
+
+    public static ECKey getEcKeyFromSeed(String seed) {
+        byte[] seedHash = HashUtil.keccak256(seed.getBytes(StandardCharsets.UTF_8));
+        return ECKey.fromPrivate(seedHash);
+    }
+
     public static TransactionInput createTransactionInput(
         NetworkParameters params,
         BtcTransaction tx,
@@ -190,6 +210,55 @@ public final class TestUtils {
 
         // customRedeemScript might not be actually custom, but just in case, use the provided redeemScript
         return scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), customRedeemScript);
+    }
+
+    public static void addSignatures(BtcTransaction btcTx, BtcECKey signer) {
+        for (int i = 0; i < btcTx.getInputs().size(); i++) {
+            if (inputHasWitness(btcTx, i)) {
+                addSignaturesToSegwitInput(btcTx, i, signer);
+            } else {
+                addSignatureToLegacyInput(btcTx, i, signer);
+            }
+        }
+    }
+
+    private static void addSignatureToLegacyInput(BtcTransaction btcTx, int inputToSignIndex, BtcECKey signer){
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        Sha256Hash sigHash = sigHashCalculator.calculate(btcTx, inputToSignIndex);
+
+        int sigIndex = getSigInsertionIndex(btcTx, inputToSignIndex, sigHash, signer);
+
+        Optional<Script> redeemScript = extractRedeemScriptFromInput(btcTx, inputToSignIndex);
+        Script outputScript = buildOutputScript(btcTx, inputToSignIndex, redeemScript.get());
+
+        BtcECKey.ECDSASignature signature = signer.sign(sigHash);
+        TransactionSignature txSig = new TransactionSignature(signature, BtcTransaction.SigHash.ALL, false);
+        signInput(btcTx, inputToSignIndex, txSig, sigIndex, outputScript);
+    }
+
+    private static void addSignaturesToSegwitInput(BtcTransaction btcTx, int inputToSignIndex, BtcECKey signer) {
+        List<Coin> releaseOutpointsValues = new ArrayList<>();
+        for (int i = 0; i < btcTx.getInputs().size(); i++) {
+            releaseOutpointsValues.add(btcTx.getInput(i).getValue());
+        }
+        SigHashCalculator sigHashCalculator = new SegwitSigHashCalculatorImpl(releaseOutpointsValues);
+
+        Sha256Hash sigHash = sigHashCalculator.calculate(btcTx, inputToSignIndex);
+        int sigIndex = getSigInsertionIndex(btcTx, inputToSignIndex, sigHash, signer);
+
+        Optional<Script> redeemScript = extractRedeemScriptFromInput(btcTx, inputToSignIndex);
+        Script outputScript = buildOutputScript(btcTx, inputToSignIndex, redeemScript.get());
+
+        BtcECKey.ECDSASignature signature = signer.sign(sigHash);
+        TransactionSignature txSig = new TransactionSignature(signature, BtcTransaction.SigHash.ALL, false);
+        signInput(btcTx, inputToSignIndex, txSig, sigIndex, outputScript);
+    }
+
+    private static Script buildOutputScript(BtcTransaction btcTx, int inputIndex, Script redeemScript) {
+        if (!inputHasWitness(btcTx, inputIndex)) {
+            return ScriptBuilder.createP2SHOutputScript(redeemScript);
+        }
+        return ScriptBuilder.createP2SHP2WSHOutputScript(redeemScript);
     }
 
     public static <T, V> void setInternalState(T instance, String fieldName, V value) {
