@@ -408,15 +408,15 @@ public class BtcReleaseClient {
         }
     }
 
-    protected void validateTxCanBeSigned(ReleaseCreationInformation releaseCreationInformation, BtcTransaction release) throws FederatorAlreadySignedException, FederationCantSignException {
+    protected void validateTxCanBeSigned(ReleaseCreationInformation releaseCreationInformation, BtcTransaction pegoutBtcTx) throws FederatorAlreadySignedException, FederationCantSignException {
         try {
             BtcECKey federatorPublicKey = signer.getPublicKey(BTC.getKeyId()).toBtcKey();
             logger.trace("[validateTxCanBeSigned] Federator public key {}", federatorPublicKey);
 
-            for (int inputIndex = 0; inputIndex < release.getInputs().size(); inputIndex++) {
+            for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
                 final int index = inputIndex; // Required for lambda expression
-                Script redeemScript = BitcoinUtils.extractRedeemScriptFromInput(release, inputIndex).orElseThrow(
-                    () -> new IllegalStateException(String.format("Redeem script not found for input %d in pegout btc tx %s", index, release.getHashAsString()))
+                Script redeemScript = BitcoinUtils.extractRedeemScriptFromInput(pegoutBtcTx, inputIndex).orElseThrow(
+                    () -> new IllegalStateException(String.format("Redeem script not found for input %d in pegout btc tx %s", index, pegoutBtcTx.getHashAsString()))
                 );
                 Script standardRedeemScript = extractStandardRedeemScript(redeemScript);
 
@@ -424,15 +424,15 @@ public class BtcReleaseClient {
                 logger.trace("[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator", inputIndex);
 
                 SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
-                if (inputHasWitness(release, inputIndex)) {
+                if (inputHasWitness(pegoutBtcTx, inputIndex)) {
                     sigHashCalculator = new SegwitSigHashCalculatorImpl(releaseCreationInformation.getUtxoOutpointValues());
                 }
 
-                co.rsk.bitcoinj.core.Sha256Hash sigHash = sigHashCalculator.calculate(release, inputIndex);
-                if (BridgeUtils.isInputSignedByThisFederator(release, inputIndex, federatorPublicKey, sigHash)) {
+                co.rsk.bitcoinj.core.Sha256Hash sigHash = sigHashCalculator.calculate(pegoutBtcTx, inputIndex);
+                if (BridgeUtils.isInputSignedByThisFederator(pegoutBtcTx, inputIndex, federatorPublicKey, sigHash)) {
                     String message = String.format(
                         "Btc tx %s input %d already signed by current federator with public key %s",
-                        release.getHashAsString(),
+                        pegoutBtcTx.getHashAsString(),
                         inputIndex,
                         federatorPublicKey
                     );
@@ -449,14 +449,14 @@ public class BtcReleaseClient {
                 if (spendingFedFilter.isEmpty()) {
                     String message = String.format(
                         "Transaction %s can't be signed by any of the observed federations",
-                        release.getHash()
+                        pegoutBtcTx.getHash()
                     );
                     throw new FederationCantSignException(message);
                 }
             }
         } catch (SignerException e) {
             String message = String.format("[validateTxCanBeSigned] Error validating tx %s, " +
-                "failed to get current federator public key", release.getHashAsString());
+                "failed to get current federator public key", pegoutBtcTx.getHashAsString());
             logger.error(message, e);
         }
     }
