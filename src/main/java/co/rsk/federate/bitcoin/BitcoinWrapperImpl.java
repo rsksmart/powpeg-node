@@ -2,32 +2,17 @@ package co.rsk.federate.bitcoin;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.wallet.Wallet;
-import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
-import co.rsk.peg.BridgeBtcWallet;
-import co.rsk.peg.PegUtilsLegacy;
-import co.rsk.peg.federation.Federation;
-import co.rsk.peg.PeginInformation;
+import co.rsk.peg.*;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.federation.Federation;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import co.rsk.util.MaxSizeHashMap;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Context;
-import org.bitcoinj.core.PeerAddress;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.StoredBlock;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
+import java.util.*;
+import org.bitcoinj.core.*;
 import org.bitcoinj.core.listeners.BlocksDownloadedEventListener;
 import org.bitcoinj.core.listeners.NewBestBlockListener;
 import org.bitcoinj.script.Script;
@@ -44,22 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public class BitcoinWrapperImpl implements BitcoinWrapper {
 
-    private static class FederationListener {
-        private final Federation federation;
-        private final TransactionListener listener;
-
-        public FederationListener(Federation federation, TransactionListener listener) {
-            this.federation = federation;
-            this.listener = listener;
-        }
-
-        public Federation getFederation() {
-            return federation;
-        }
-
-        public TransactionListener getListener() {
-            return listener;
-        }
+    private record FederationListener(Federation federation, TransactionListener listener) {
 
         @Override
         public boolean equals(Object o) {
@@ -67,13 +37,8 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                 return false;
             }
 
-            return other.getFederation().equals(this.getFederation()) &&
-                    other.getListener() == this.getListener();
-        }
-
-        @Override
-        public int hashCode() {
-            return federation.hashCode() + listener.hashCode();
+            return other.federation().equals(this.federation()) &&
+                other.listener() == this.listener();
         }
     }
 
@@ -252,7 +217,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
 
             Address address = ThinConverter.toOriginalInstance(federation.getBtcParams(), federation.getAddress());
             // If first, add watched address
-            if (watchedFederations.stream().noneMatch(w -> w.getFederation().equals(federation))) {
+            if (watchedFederations.stream().noneMatch(w -> w.federation().equals(federation))) {
                 kit.wallet().addWatchedAddress(address, federation.getCreationTime().toEpochMilli());
                 logger.debug("[addFederationListener] Added address watch for federation {}", federation.getAddress().toString());
             }
@@ -283,7 +248,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             }
 
             // If none left, remove the watched script
-            if (watchedFederations.stream().noneMatch(w -> w.getFederation().equals(federation))) {
+            if (watchedFederations.stream().noneMatch(w -> w.federation().equals(federation))) {
                 Script federationScript = new Script(federation.getP2SHScript().getProgram());
                 kit.wallet().removeWatchedScripts(Collections.singletonList(federationScript));
                 logger.debug("[removeFederationListener] Removed address watch for federation {}", federation.getAddress().toString());
@@ -333,8 +298,8 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
 
         for (FederationListener watched : watchedFederations) {
-            Federation watchedFederation = watched.getFederation();
-            TransactionListener listener = watched.getListener();
+            Federation watchedFederation = watched.federation();
+            TransactionListener listener = watched.listener();
             Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
 
             if (PegUtilsLegacy.isValidPegInTx(btcTx, watchedFederation, watchedFederationWallet, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
