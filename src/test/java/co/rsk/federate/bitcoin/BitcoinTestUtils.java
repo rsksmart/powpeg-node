@@ -1,15 +1,10 @@
 package co.rsk.federate.bitcoin;
 
 import static co.rsk.bitcoinj.script.ScriptBuilder.createP2SHOutputScript;
-import static co.rsk.peg.bitcoin.BitcoinUtils.*;
+import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
+import static co.rsk.peg.bitcoin.BitcoinUtils.extractRedeemScriptFromInput;
 
-import co.rsk.bitcoinj.core.Address;
-import co.rsk.bitcoinj.core.BtcECKey;
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Coin;
-import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
@@ -17,21 +12,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.bouncycastle.util.encoders.Hex;
+
+import co.rsk.peg.federation.Federation;
 import org.ethereum.crypto.HashUtil;
 
 public final class BitcoinTestUtils {
-
-    public static final byte[]  WITNESS_COMMITMENT_HEADER = Hex.decode("aa21a9ed");
-    public static final Sha256Hash WITNESS_RESERVED_VALUE = Sha256Hash.ZERO_HASH;
-    public static final int WITNESS_COMMITMENT_LENGTH = WITNESS_COMMITMENT_HEADER.length + Sha256Hash.LENGTH;
-
     private BitcoinTestUtils() { }
 
     public static List<Coin> coinListOf(long... values) {
         return Arrays.stream(values)
             .mapToObj(Coin::valueOf)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     public static Sha256Hash createHash(int nHash) {
@@ -80,13 +71,12 @@ public final class BitcoinTestUtils {
     }
 
     private static void signLegacyTransactionInputFromP2shMultiSig(BtcTransaction transaction, int inputIndex, List<BtcECKey> keys) {
-        TransactionInput input = transaction.getInput(inputIndex);
-
-        Script inputRedeemScript = extractRedeemScriptFromInput(input)
+        Script inputRedeemScript = extractRedeemScriptFromInput(transaction, inputIndex)
             .orElseThrow(() -> new IllegalArgumentException("Cannot sign inputs that are not from a p2sh multisig"));
 
         Script outputScript = createP2SHOutputScript(inputRedeemScript);
         Sha256Hash sigHash = transaction.hashForSignature(inputIndex, inputRedeemScript, BtcTransaction.SigHash.ALL, false);
+        TransactionInput input = transaction.getInput(inputIndex);
         Script inputScriptSig = input.getScriptSig();
 
         for (BtcECKey key : keys) {
@@ -98,5 +88,36 @@ public final class BitcoinTestUtils {
             inputScriptSig = outputScript.getScriptSigWithSignature(inputScriptSig, txSigEncoded, keyIndex);
             input.setScriptSig(inputScriptSig);
         }
+    }
+
+    public static BtcTransaction createPegout(
+        NetworkParameters btcMainnetParams,
+        Federation fromFederation,
+        List<Coin> outpointValues,
+        List<Address> destinationAddresses
+    ) {
+        BtcTransaction tx = new BtcTransaction(btcMainnetParams);
+
+        Coin fee = Coin.MILLICOIN;
+        for (int inputIndex = 0; inputIndex < outpointValues.size(); inputIndex++) {
+            Coin outpointValue = outpointValues.get(inputIndex);
+            Coin amountToSend = outpointValue.minus(fee);
+            // Iterate over the addresses using inputIndex % addresses.size() to have outputs to different addresses
+            Address destinationAddress = destinationAddresses.get(inputIndex % destinationAddresses.size());
+            tx.addOutput(amountToSend, destinationAddress);
+
+            TransactionOutPoint transactionOutpoint = new TransactionOutPoint(
+                btcMainnetParams,
+                inputIndex,
+                BitcoinTestUtils.createHash(inputIndex)
+            );
+
+            TransactionInput txInput = new TransactionInput(btcMainnetParams, null, new byte[]{}, transactionOutpoint, outpointValue);
+            tx.addInput(txInput);
+
+            addSpendingFederationBaseScript(tx, inputIndex, fromFederation.getRedeemScript(), fromFederation.getFormatVersion());
+        }
+
+        return tx;
     }
 }

@@ -1,17 +1,8 @@
 package co.rsk.federate;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-import co.rsk.peg.constants.BridgeMainNetConstants;
-import co.rsk.peg.federation.FederationMember;
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
@@ -24,9 +15,11 @@ import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeMethods;
 import co.rsk.peg.StateForProposedFederator;
-import java.util.AbstractMap;
+import co.rsk.peg.constants.BridgeMainNetConstants;
+import co.rsk.peg.federation.FederationMember;
 import java.math.BigInteger;
 import java.time.Instant;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +40,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
 class FederatorSupportTest {
-
     private static final NetworkParameters NETWORK_PARAMETERS = BridgeMainNetConstants.getInstance().getBtcParams();
     private static final List<BtcECKey> KEYS = BitcoinTestUtils.getBtcEcKeysFromSeeds(new String[]{"k1", "k2", "k3"}, true);
     private static final Address DEFAULT_ADDRESS = BitcoinTestUtils.createP2SHMultisigAddress(NETWORK_PARAMETERS, KEYS);
@@ -60,14 +52,17 @@ class FederatorSupportTest {
     void setup() {
         bridgeTransactionSender = mock(BridgeTransactionSender.class);
         federatorSupport = new FederatorSupport(
-            mock(Blockchain.class), new TestSystemProperties(), bridgeTransactionSender);
+            mock(Blockchain.class),
+            new TestSystemProperties(),
+            bridgeTransactionSender
+        );
     }
 
     @Test
     void sendReceiveHeadersSendsBlockHeaders() {
-        org.bitcoinj.core.NetworkParameters networkParameters =
-            ThinConverter.toOriginalInstance(BridgeMainNetConstants.getInstance().getBtcParamsString());
-        BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
+        org.bitcoinj.core.NetworkParameters networkParameters = ThinConverter.toOriginalInstance(
+            BridgeMainNetConstants.getInstance().getBtcParamsString()
+        );
 
         FederatorSupport instance = new FederatorSupport(
             mock(Blockchain.class),
@@ -76,7 +71,16 @@ class FederatorSupportTest {
         );
         FederatorSupport fs = spy(instance);
 
-        Block block = new Block(networkParameters, 1, createHash(), createHash(), 1, 1, 1, new ArrayList<>());
+        Block block = new Block(
+            networkParameters,
+            1,
+            createHash(),
+            createHash(),
+            1,
+            1,
+            1,
+            new ArrayList<>()
+        );
         Block[] headersToSend = new Block[] { block };
         byte[] headerToExpect = block.cloneAsHeader().bitcoinSerialize();
 
@@ -95,9 +99,9 @@ class FederatorSupportTest {
 
     @Test
     void sendRegisterCoinbaseTransaction() throws Exception {
-        BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
-        org.bitcoinj.core.NetworkParameters networkParameters =
-            ThinConverter.toOriginalInstance(BridgeMainNetConstants.getInstance().getBtcParamsString());
+        org.bitcoinj.core.NetworkParameters networkParameters = ThinConverter.toOriginalInstance(
+            BridgeMainNetConstants.getInstance().getBtcParamsString()
+        );
 
         FederatorSupport fs = new FederatorSupport(
             mock(Blockchain.class),
@@ -111,8 +115,12 @@ class FederatorSupportTest {
         witness.setPush(0, Sha256Hash.ZERO_HASH.getBytes());
         input.setWitness(witness);
         coinbaseTx.addInput(input);
-        TransactionOutput output = new TransactionOutput(networkParameters, null, Coin.COIN,
-                org.bitcoinj.core.Address.fromString(networkParameters, DEFAULT_ADDRESS.toBase58()));
+        TransactionOutput output = new TransactionOutput(
+            networkParameters,
+            null,
+            Coin.COIN,
+            org.bitcoinj.core.Address.fromString(networkParameters, DEFAULT_ADDRESS.toBase58())
+        );
         coinbaseTx.addOutput(output);
 
         List<Sha256Hash> hashes = Collections.singletonList(Sha256Hash.ZERO_HASH);
@@ -137,12 +145,10 @@ class FederatorSupportTest {
 
     @Test
     void hasBlockCoinbaseInformed() {
-        BridgeTransactionSender bridgeTransactionSender = mock(BridgeTransactionSender.class);
-
         FederatorSupport fs = new FederatorSupport(
-                mock(Blockchain.class),
-                new TestSystemProperties(),
-                bridgeTransactionSender
+            mock(Blockchain.class),
+            new TestSystemProperties(),
+            bridgeTransactionSender
         );
 
         doAnswer((Answer<Boolean>) invocation -> {
@@ -157,8 +163,10 @@ class FederatorSupportTest {
     @Test
     void getStateForProposedFederator_whenCallTxReturnsNull_shouldReturnEmptyOptional() {
         // Arrange
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_STATE_FOR_SVP_CLIENT)))
-            .thenReturn(null);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_STATE_FOR_SVP_CLIENT))
+        ).thenReturn(null);
 
         // Act
         Optional<StateForProposedFederator> result = federatorSupport.getStateForProposedFederator();
@@ -174,8 +182,10 @@ class FederatorSupportTest {
         BtcTransaction btcTx = new BtcTransaction(NETWORK_PARAMETERS);
         Map.Entry<Keccak256, BtcTransaction> svpSpendTx = new AbstractMap.SimpleEntry<>(rskTxHash, btcTx);
         StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(svpSpendTx); 
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_STATE_FOR_SVP_CLIENT)))
-            .thenReturn(stateForProposedFederator.encodeToRlp());
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_STATE_FOR_SVP_CLIENT))
+        ).thenReturn(stateForProposedFederator.encodeToRlp());
 
         // Act
         Optional<StateForProposedFederator> result = federatorSupport.getStateForProposedFederator();
@@ -188,8 +198,10 @@ class FederatorSupportTest {
     @Test
     void getProposedFederationAddress_whenAddressStringIsEmpty_shouldReturnEmptyOptional() {
         // Arrange
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_ADDRESS)))
-            .thenReturn("");
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_PROPOSED_FEDERATION_ADDRESS))
+        ).thenReturn("");
 
         // Act
         Optional<Address> result = federatorSupport.getProposedFederationAddress();
@@ -201,8 +213,10 @@ class FederatorSupportTest {
     @Test
     void getProposedFederationAddress_whenAddressStringIsNull_shouldReturnEmptyOptional() {
         // Arrange
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_ADDRESS)))
-            .thenReturn(null);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_PROPOSED_FEDERATION_ADDRESS))
+        ).thenReturn(null);
 
         // Act
         Optional<Address> result = federatorSupport.getProposedFederationAddress();
@@ -214,8 +228,10 @@ class FederatorSupportTest {
     @Test
     void getProposedFederationAddress_whenAddressStringIsValid_shouldReturnAddress() {
         // Arrange
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_ADDRESS)))
-            .thenReturn(DEFAULT_ADDRESS.toBase58());
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_PROPOSED_FEDERATION_ADDRESS))
+        ).thenReturn(DEFAULT_ADDRESS.toBase58());
 
         // Act
         Optional<Address> result = federatorSupport.getProposedFederationAddress();
@@ -228,8 +244,10 @@ class FederatorSupportTest {
     @Test
     void getProposedFederationSize_whenSizeIsNull_shouldReturnEmptyOptional() {
         // Arrange
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_SIZE)))
-            .thenReturn(null);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_PROPOSED_FEDERATION_SIZE))
+        ).thenReturn(null);
 
         // Act
         Optional<Integer> result = federatorSupport.getProposedFederationSize();
@@ -242,8 +260,10 @@ class FederatorSupportTest {
     void getProposedFederationSize_whenSizeIsPresent_shouldReturnInteger() {
         // Arrange
         BigInteger expectedSize = BigInteger.valueOf(9);
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_SIZE)))
-            .thenReturn(expectedSize);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_PROPOSED_FEDERATION_SIZE))
+        ).thenReturn(expectedSize);
 
         // Act
         Optional<Integer> result = federatorSupport.getProposedFederationSize();
@@ -259,10 +279,10 @@ class FederatorSupportTest {
         int index = 0;
         FederationMember.KeyType keyType = FederationMember.KeyType.BTC;
         when(bridgeTransactionSender.callTx(
-               any(),
-               eq(Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE),
-               eq(new Object[]{ index, keyType.getValue() })))
-            .thenReturn(null);
+           any(),
+           eq(Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE),
+           eq(new Object[]{ index, keyType.getValue() }))
+        ).thenReturn(null);
 
         // Act
         Optional<ECKey> result = federatorSupport.getProposedFederatorPublicKeyOfType(index, keyType);
@@ -278,10 +298,10 @@ class FederatorSupportTest {
         FederationMember.KeyType keyType = FederationMember.KeyType.BTC;
         ECKey expectedKey = ECKey.fromPublicOnly(PUBLIC_KEY);
         when(bridgeTransactionSender.callTx(
-               any(),
-               eq(Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE),
-               eq(new Object[]{ index, keyType.getValue() })))
-            .thenReturn(PUBLIC_KEY);
+           any(),
+           eq(Bridge.GET_PROPOSED_FEDERATOR_PUBLIC_KEY_OF_TYPE),
+           eq(new Object[]{ index, keyType.getValue() }))
+        ).thenReturn(PUBLIC_KEY);
 
         // Act
         Optional<ECKey> result = federatorSupport.getProposedFederatorPublicKeyOfType(index, keyType);
@@ -297,16 +317,19 @@ class FederatorSupportTest {
         int index = 0;
         
         // Act & Assert
-        assertThrows(NullPointerException.class, () -> {
-            federatorSupport.getProposedFederatorPublicKeyOfType(index, null);
-        });
+        assertThrows(
+            NullPointerException.class,
+            () -> federatorSupport.getProposedFederatorPublicKeyOfType(index, null)
+        );
     }
 
     @Test
     void getProposedFederationCreationTime_whenCreationTimeIsNull_shouldReturnEmptyOptional() {
         // Arrange
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME)))
-            .thenReturn(null);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME))
+        ).thenReturn(null);
 
         // Act
         Optional<Instant> result = federatorSupport.getProposedFederationCreationTime();
@@ -319,8 +342,10 @@ class FederatorSupportTest {
     void getProposedFederationCreationTime_whenCreationTimeIsValid_shouldReturnInstant() {
         // Arrange
         BigInteger expectedCreationTime = BigInteger.valueOf(System.currentTimeMillis());
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME)))
-            .thenReturn(expectedCreationTime);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_TIME))
+        ).thenReturn(expectedCreationTime);
 
         // Act
         Optional<Instant> result = federatorSupport.getProposedFederationCreationTime();
@@ -333,8 +358,10 @@ class FederatorSupportTest {
     @Test
     void getProposedFederationCreationBlockNumber_whenBlockNumberIsNull_shouldReturnEmptyOptional() {
         // Arrange
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER)))
-            .thenReturn(null);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER))
+        ).thenReturn(null);
 
         // Act
         Optional<Long> result = federatorSupport.getProposedFederationCreationBlockNumber();
@@ -347,8 +374,10 @@ class FederatorSupportTest {
     void getProposedFederationCreationBlockNumber_whenBlockNumberIsValid_shouldReturnLong() {
         // Arrange
         BigInteger expectedBlockNumber = BigInteger.valueOf(123456);
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER)))
-            .thenReturn(expectedBlockNumber);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_PROPOSED_FEDERATION_CREATION_BLOCK_NUMBER))
+        ).thenReturn(expectedBlockNumber);
 
         // Act
         Optional<Long> result = federatorSupport.getProposedFederationCreationBlockNumber();
@@ -362,8 +391,10 @@ class FederatorSupportTest {
     void getActiveFederationCreationTime_whenCreationTimeIsValid_preRSKIP419_shouldReturnInstantFromMillis() {
         // Arrange
         BigInteger expectedCreationTime = BigInteger.valueOf(System.currentTimeMillis());
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_FEDERATION_CREATION_TIME)))
-            .thenReturn(expectedCreationTime);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_FEDERATION_CREATION_TIME))
+        ).thenReturn(expectedCreationTime);
 
         // all rskips are activated since block 0
         org.ethereum.core.Block mockBlock = mock(org.ethereum.core.Block.class);
@@ -384,8 +415,10 @@ class FederatorSupportTest {
     void getActiveFederationCreationTime_whenCreationTimeIsValid_postRSKIP419_shouldReturnInstantFromSeconds() {
         // Arrange
         BigInteger expectedCreationTime = BigInteger.valueOf(System.currentTimeMillis());
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_FEDERATION_CREATION_TIME)))
-            .thenReturn(expectedCreationTime);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_FEDERATION_CREATION_TIME))
+        ).thenReturn(expectedCreationTime);
 
         // all rskips are activated since block 0
         org.ethereum.core.Block mockBlock = mock(org.ethereum.core.Block.class);
@@ -393,7 +426,11 @@ class FederatorSupportTest {
         Blockchain blockchain = mock(Blockchain.class);
         when(blockchain.getBestBlock()).thenReturn(mockBlock);
 
-        federatorSupport = new FederatorSupport(blockchain, new TestSystemProperties(), bridgeTransactionSender);
+        federatorSupport = new FederatorSupport(
+            blockchain,
+            new TestSystemProperties(),
+            bridgeTransactionSender
+        );
 
         // Act
         Instant result = federatorSupport.getFederationCreationTime();
@@ -405,8 +442,10 @@ class FederatorSupportTest {
     @Test
     void getRetiringFederationCreationTime_whenCreationTimeIsNull_shouldReturnNull() {
         // Arrange
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_RETIRING_FEDERATION_CREATION_TIME)))
-            .thenReturn(null);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_RETIRING_FEDERATION_CREATION_TIME))
+        ).thenReturn(null);
 
         // Act
         Instant result = federatorSupport.getRetiringFederationCreationTime();
@@ -419,8 +458,10 @@ class FederatorSupportTest {
     void getRetiringFederationCreationTime_whenCreationTimeIsValid_preRSKIP419_shouldReturnInstantFromMillis() {
         // Arrange
         BigInteger expectedCreationTime = BigInteger.valueOf(System.currentTimeMillis());
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_RETIRING_FEDERATION_CREATION_TIME)))
-            .thenReturn(expectedCreationTime);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_RETIRING_FEDERATION_CREATION_TIME))
+        ).thenReturn(expectedCreationTime);
 
         // all rskips are activated since block 0
         org.ethereum.core.Block mockBlock = mock(org.ethereum.core.Block.class);
@@ -428,7 +469,11 @@ class FederatorSupportTest {
         Blockchain blockchain = mock(Blockchain.class);
         when(blockchain.getBestBlock()).thenReturn(mockBlock);
 
-        federatorSupport = new FederatorSupport(blockchain, new TestSystemProperties(), bridgeTransactionSender);
+        federatorSupport = new FederatorSupport(
+            blockchain,
+            new TestSystemProperties(),
+            bridgeTransactionSender
+        );
 
         // Act
         Instant result = federatorSupport.getRetiringFederationCreationTime();
@@ -441,8 +486,10 @@ class FederatorSupportTest {
     void getRetiringFederationCreationTime_whenCreationTimeIsValid_postRSKIP419_shouldReturnInstantFromSeconds() {
         // Arrange
         BigInteger expectedCreationTime = BigInteger.valueOf(System.currentTimeMillis());
-        when(bridgeTransactionSender.callTx(any(), eq(Bridge.GET_RETIRING_FEDERATION_CREATION_TIME)))
-            .thenReturn(expectedCreationTime);
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_RETIRING_FEDERATION_CREATION_TIME))
+        ).thenReturn(expectedCreationTime);
 
         // all rskips are activated since block 0
         org.ethereum.core.Block mockBlock = mock(org.ethereum.core.Block.class);
