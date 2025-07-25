@@ -203,16 +203,13 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     private Federation getExpectedFederation(FederationArgs federationArgs, Address expectedFederationAddress) {
         LOGGER.debug("[getExpectedFederation] Going to get expected federation with address {}", expectedFederationAddress);
 
-        try {
-            Federation standardMultiSigFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
-            if (standardMultiSigFederation.getAddress().equals(expectedFederationAddress)) {
-                LOGGER.debug("[getExpectedFederation] Expected federation is a standard multiSig one.");
-                return standardMultiSigFederation;
-            }
-        } catch (Exception e) {
-            LOGGER.debug("[getExpectedFederation] Expected federation is not a standard multiSig one.", e);
+        Federation standardMultiSigFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
+        if (standardMultiSigFederation.getAddress().equals(expectedFederationAddress)) {
+            LOGGER.debug("[getExpectedFederation] Expected federation is a standard multiSig one.");
+            return standardMultiSigFederation;
         }
 
+        LOGGER.debug("[getExpectedFederation] Expected federation is not a standard multiSig one.");
         List<BtcECKey> erpPubKeys = federationConstants.getErpFedPubKeysList();
         long activationDelay = federationConstants.getErpFedActivationDelay();
 
