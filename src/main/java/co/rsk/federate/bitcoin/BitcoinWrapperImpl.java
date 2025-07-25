@@ -44,9 +44,9 @@ import org.slf4j.LoggerFactory;
  */
 public class BitcoinWrapperImpl implements BitcoinWrapper {
 
-    private class FederationListener {
-        private Federation federation;
-        private TransactionListener listener;
+    private static class FederationListener {
+        private final Federation federation;
+        private final TransactionListener listener;
 
         public FederationListener(Federation federation, TransactionListener listener) {
             this.federation = federation;
@@ -63,14 +63,17 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
 
         @Override
         public boolean equals(Object o) {
-            if (!(o instanceof FederationListener)) {
+            if (!(o instanceof FederationListener other)) {
                 return false;
             }
 
-            FederationListener other = (FederationListener) o;
-
             return other.getFederation().equals(this.getFederation()) &&
                     other.getListener() == this.getListener();
+        }
+
+        @Override
+        public int hashCode() {
+            return federation.hashCode() + listener.hashCode();
         }
     }
 
