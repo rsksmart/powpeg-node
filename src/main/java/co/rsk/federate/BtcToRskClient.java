@@ -110,7 +110,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         this.federation = federation;
 
         FederationMember federator = federatorSupport.getFederationMember();
-        BtcECKey federatorBtcKey = federator.btcPublicKey();
+        BtcECKey federatorBtcKey = federator.getBtcPublicKey();
         boolean isMember = federation.isMember(federator);
         if (!isMember) {
             String message = String.format(
