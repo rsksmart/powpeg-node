@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.bitcoinj.script.Script;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.federation.*;
@@ -26,7 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.crypto.ECKey;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,21 +36,15 @@ import org.junit.jupiter.params.provider.MethodSource;
 class FederationProviderFromFederatorSupportTest {
 
     private static final int STANDARD_MULTISIG_FEDERATION_FORMAT_VERSION = FederationFormatVersion.STANDARD_MULTISIG_FEDERATION.getFormatVersion();
-    private static final int NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.NON_STANDARD_ERP_FEDERATION.getFormatVersion();
     private static final int P2SH_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.P2SH_ERP_FEDERATION.getFormatVersion();
     private static final int P2SH_P2WSH_ERP_FEDERATION_FORMAT_VERSION = FederationFormatVersion.P2SH_P2WSH_ERP_FEDERATION.getFormatVersion();
     private static final NetworkParameters NETWORK_PARAMETERS = BridgeMainNetConstants.getInstance().getBtcParams();
     private static final List<BtcECKey> KEYS = BitcoinTestUtils.getBtcEcKeysFromSeeds(new String[]{"k1", "k2", "k3"}, true);
     private static final Address DEFAULT_ADDRESS = BitcoinTestUtils.createP2SHMultisigAddress(NETWORK_PARAMETERS, KEYS);
-
-    private static final Address HARDCODED_TESTNET_FED_ADDRESS = Address.fromBase58(
-        NetworkParameters.fromID(NetworkParameters.ID_TESTNET),
-        "2Mw6KM642fbkypTzbgFi6DTgTFPRWZUD4BA"
-    );
-    private static final Script HARDCODED_TESTNET_FED_REDEEM_SCRIPT = new Script(
-        Hex.decode("6453210208f40073a9e43b3e9103acec79767a6de9b0409749884e989960fee578012fce210225e892391625854128c5c4ea4340de0c2a70570f33db53426fc9c746597a03f42102afc230c2d355b1a577682b07bc2646041b5d0177af0f98395a46018da699b6da210344a3c38cd59afcba3edcebe143e025574594b001700dec41e59409bdbd0f2a0921039a060badbeb24bee49eb2063f616c0f0f0765d4ca646b20a88ce828f259fcdb955670300cd50b27552210216c23b2ea8e4f11c3f9e22711addb1d16a93964796913830856b568cc3ea21d3210275562901dd8faae20de0a4166362a4f82188db77dbed4ca887422ea1ec185f1421034db69f2112f4fb1bb6141bf6e2bd6631f0484d0bd95b16767902c9fe219d4a6f5368ae")
-    );
     private static final List<FederationMember> federationMembersFromPks = getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000);
+    private static final List<FederationMember> segwitFederationMembersFromPks = getFederationMembersFromPks(1, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+        10000, 11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000
+    );
     private static final FederationConstants federationConstants = FederationTestNetConstants.getInstance();
     private static final NetworkParameters testnetParams = NetworkParameters.fromID(NetworkParameters.ID_TESTNET);
     private static final Instant creationTime = Instant.ofEpochSecond(5);
@@ -128,10 +120,11 @@ class FederationProviderFromFederatorSupportTest {
     @ParameterizedTest
     @MethodSource("federation_args")
     void getActiveFederation_withTheAddressCorrespondingToItsVersion_shouldReturnTheCorrectActiveFederation(ActivationConfig.ForBlock configMock, Federation expectedFederation, int expectedFormatVersion) {
+        // arrange
         Address expectedFederationAddress = expectedFederation.getAddress();
+        int expectedFederationSize = expectedFederation.getSize();
 
         when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
-        int expectedFederationSize = expectedFederation.getSize();
         when(federatorSupportMock.getFederationSize()).thenReturn(expectedFederationSize);
         when(federatorSupportMock.getFederationThreshold()).thenReturn(expectedFederation.getNumberOfSignaturesRequired());
         when(federatorSupportMock.getFederationCreationTime()).thenReturn(creationTime);
@@ -141,42 +134,49 @@ class FederationProviderFromFederatorSupportTest {
             mockFederationMemberKeys(i);
         }
 
+        // act
         Federation obtainedFederation = federationProvider.getActiveFederation();
 
+        // assert
         assertEquals(expectedFormatVersion, obtainedFederation.getFormatVersion());
         assertEquals(expectedFederation, obtainedFederation);
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
-    @Test
-    void getActiveFederation_erp_federation_testnet_hardcoded() {
-        when(activations.isActive(RSKIP123)).thenReturn(true);
-        when(activations.isActive(RSKIP284)).thenReturn(false);
-
-        Federation expectedFederation = createNonStandardErpFederation(
-            federationMembersFromPks,
-            activations
-        );
-        Address expectedFederationAddress = expectedFederation.getAddress();
-
-        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activations);
+    @ParameterizedTest
+    @MethodSource("unknown_federation_args")
+    void getActiveFederation_whenUnknownFederation_shouldThrowISE(ActivationConfig.ForBlock configMock, Federation expectedFederation) {
+        // arrange
+        Address expectedFederationAddress = Address.fromBase58(testnetParams, "2NCX214kQcDAdo43c6b6NxfgiYuCFnKFKPq");
         int expectedFederationSize = expectedFederation.getSize();
+
+        when(federatorSupportMock.getConfigForBestBlock()).thenReturn(configMock);
         when(federatorSupportMock.getFederationSize()).thenReturn(expectedFederationSize);
         when(federatorSupportMock.getFederationThreshold()).thenReturn(expectedFederation.getNumberOfSignaturesRequired());
         when(federatorSupportMock.getFederationCreationTime()).thenReturn(creationTime);
         when(federatorSupportMock.getFederationAddress()).thenReturn(expectedFederationAddress);
         when(federatorSupportMock.getBtcParams()).thenReturn(testnetParams);
-
         for (int i = 0; i < expectedFederationSize; i++) {
             mockFederationMemberKeys(i);
         }
 
-        Federation obtainedFederation = federationProvider.getActiveFederation();
+        // act & assert
+        assertThrows(IllegalStateException.class, () -> federationProvider.getActiveFederation());
+    }
 
-        assertEquals(NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION, obtainedFederation.getFormatVersion());
-        assertEquals(expectedFederation, obtainedFederation);
-        assertEquals(HARDCODED_TESTNET_FED_ADDRESS, obtainedFederation.getAddress());
-        assertEquals(HARDCODED_TESTNET_FED_REDEEM_SCRIPT, obtainedFederation.getRedeemScript());
+    private static Stream<Arguments> unknown_federation_args() {
+        activations = mock(ActivationConfig.ForBlock.class);
+        when(activations.isActive(RSKIP123)).thenReturn(true);
+        return Stream.of(
+            Arguments.of(
+                activations,
+                createP2shErpFederation(federationMembersFromPks)
+            ),
+            Arguments.of(
+                activations,
+                createP2shP2wshErpFederation(segwitFederationMembersFromPks)
+            )
+        );
     }
 
     private void mockFederationMemberKeys(int i) {
@@ -284,15 +284,9 @@ class FederationProviderFromFederatorSupportTest {
     }
 
     private static Stream<Arguments> federation_args() {
+        activations = mock(ActivationConfig.ForBlock.class);
         when(activations.isActive(RSKIP123)).thenReturn(true);
         return Stream.of(
-            Arguments.of(activations,
-                createNonStandardErpFederation(
-                    federationMembersFromPks,
-                    activations
-                ),
-                NON_STANDARD_ERP_FEDERATION_FORMAT_VERSION
-            ),
             Arguments.of(
                 activations,
                 createP2shErpFederation(federationMembersFromPks),
@@ -300,7 +294,7 @@ class FederationProviderFromFederatorSupportTest {
             ),
             Arguments.of(
                 activations,
-                createP2shP2wshErpFederation(federationMembersFromPks),
+                createP2shP2wshErpFederation(segwitFederationMembersFromPks),
                 P2SH_P2WSH_ERP_FEDERATION_FORMAT_VERSION
             )
         );
