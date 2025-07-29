@@ -368,6 +368,6 @@ class ConfirmedBlocksProviderTest {
             .build();
         // build block 4 with block 2 and block 3 as uncles
         List<BlockHeader> block4Uncles = Arrays.asList(block2Header, block3Header);
-        return new Block(block4Header, Collections.emptyList(), block4Uncles, true, true);
+        return new Block(block4Header, Collections.emptyList(), block4Uncles, null, true, true);
     }
 }

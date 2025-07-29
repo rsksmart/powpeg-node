@@ -48,7 +48,7 @@ public final class TestUtils {
             .setNumber(blockNumber)
             .setParentHashFromKeccak256(TestUtils.createHash(parentBlockNumber))
             .build();
-        return new Block(blockHeader, rskTxs, Collections.emptyList(), true, true);
+        return new Block(blockHeader, rskTxs, Collections.emptyList(), null, true, true);
     }
 
     public static Keccak256 createHash(int nHash) {
