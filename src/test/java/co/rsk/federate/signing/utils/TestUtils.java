@@ -3,38 +3,22 @@ package co.rsk.federate.signing.utils;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import co.rsk.bitcoinj.core.BtcECKey;
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Coin;
-import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
-import co.rsk.bitcoinj.core.TransactionOutPoint;
-import co.rsk.bitcoinj.core.TransactionOutput;
+import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
-import co.rsk.peg.federation.Federation;
-import co.rsk.peg.federation.FederationArgs;
-import co.rsk.peg.federation.FederationFactory;
-import co.rsk.peg.federation.FederationMember;
-
+import co.rsk.peg.federation.*;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
-import org.ethereum.core.BlockHeaderBuilder;
-import org.ethereum.core.Transaction;
+import org.ethereum.core.*;
 
 public final class TestUtils {
 
@@ -42,7 +26,6 @@ public final class TestUtils {
     }
 
     public static Block createBlock(int blockNumber, List<Transaction> rskTxs) {
-
         int parentBlockNumber = blockNumber > 0 ? blockNumber - 1 : 0;
         BlockHeader blockHeader = new BlockHeaderBuilder(mock(ActivationConfig.class))
             .setNumber(blockNumber)
@@ -102,11 +85,27 @@ public final class TestUtils {
 
     public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
         final long CREATION_BLOCK_NUMBER = 0;
-        List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
+        List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).toList();
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
         FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
 
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
+    }
+
+    public static Federation createSegwitFederation(NetworkParameters params, int amountOfMembers) {
+        final long CREATION_BLOCK_NUMBER = 0;
+        List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).toList();
+        List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
+        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
+        List<BtcECKey> erpFedPubKeysList = Stream.of(
+            "0257c293086c4d4fe8943deda5f890a37d11bebd140e220faa76258a41d077b4d4",
+            "03c2660a46aa73078ee6016dee953488566426cf55fc8011edd0085634d75395f9",
+            "03cd3e383ec6e12719a6c69515e5559bcbe037d0aa24c187e1e26ce932e22ad7b3",
+            "02370a9838e4d15708ad14a104ee5606b36caaaaf739d833e67770ce9fd9b3ec80"
+        ).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).toList();
+        long erpFedActivationDelay = 52_560; // 1 year in BTC blocks (considering 1 block every 10 minutes)
+
+        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpFedPubKeysList, erpFedActivationDelay);
     }
 
     public static Federation createFederation(NetworkParameters params, List<BtcECKey> federationPrivatekeys) {
@@ -119,7 +118,7 @@ public final class TestUtils {
     public static List<BtcECKey> getFederationPrivateKeys(long amountOfMembers) {
         final long START_SEED_PRIVATE_KEY= 100;
         List<BtcECKey> federationPrivateKeys = new ArrayList<>();
-        for (long i=1; i<=amountOfMembers;i++){
+        for (long i=1; i<=amountOfMembers; i++) {
             federationPrivateKeys.add(BtcECKey.fromPrivate(BigInteger.valueOf(i * START_SEED_PRIVATE_KEY)));
         }
         return federationPrivateKeys;

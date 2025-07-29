@@ -1,8 +1,6 @@
 package co.rsk.federate.adapter;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.peg.constants.BridgeConstants;
@@ -28,7 +26,7 @@ class ThinConverterTest {
     private static final BigInteger TOO_LARGE_WORK_V2 = new BigInteger(/* 33 bytes */
         "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16);
 
-    private static final int height = 200;
+    private static final int HEIGHT = 200;
     private static int nhash = 0;
 
     private static final BridgeConstants bridgeConstants = BridgeMainNetConstants.getInstance();
@@ -72,14 +70,15 @@ class ThinConverterTest {
     void toThinInstanceStoredBlock(BigInteger chainWork) {
         // arrange
         org.bitcoinj.core.Block originalBlock = new org.bitcoinj.core.Block(bitcoinCoreParams, 1, createOriginalHash(), createOriginalHash(), 1000, 2000, 3000, new ArrayList<>());
-        org.bitcoinj.core.StoredBlock originalStoredBlock = new org.bitcoinj.core.StoredBlock(originalBlock, chainWork, height);
+        org.bitcoinj.core.StoredBlock originalStoredBlock = new org.bitcoinj.core.StoredBlock(originalBlock, chainWork,
+            HEIGHT);
 
         // act
         co.rsk.bitcoinj.core.StoredBlock thinStoredBlock = ThinConverter.toThinInstance(originalStoredBlock, bridgeConstants);
 
         // assert
         assertEquals(chainWork, thinStoredBlock.getChainWork());
-        assertEquals(height, thinStoredBlock.getHeight());
+        assertEquals(HEIGHT, thinStoredBlock.getHeight());
         assertArrayEquals(originalBlock.bitcoinSerialize(), thinStoredBlock.getHeader().bitcoinSerialize());
     }
 
@@ -88,7 +87,8 @@ class ThinConverterTest {
     void toThinInstanceStored_whenInvalidChainWork_shouldFail(BigInteger chainWork) {
         // arrange
         org.bitcoinj.core.Block originalBlock = new org.bitcoinj.core.Block(bitcoinCoreParams, 1, createOriginalHash(), createOriginalHash(), 1000, 2000, 3000, new ArrayList<>());
-        org.bitcoinj.core.StoredBlock originalStoredBlock = new org.bitcoinj.core.StoredBlock(originalBlock, chainWork, height);
+        org.bitcoinj.core.StoredBlock originalStoredBlock = new org.bitcoinj.core.StoredBlock(originalBlock, chainWork,
+            HEIGHT);
 
         // act and assert
         Assertions.assertThrows(IllegalArgumentException.class, () -> ThinConverter.toThinInstance(originalStoredBlock, bridgeConstants));
@@ -104,14 +104,15 @@ class ThinConverterTest {
     void toOriginalInstanceStoredBlock(BigInteger chainWork) {
         // arrange
         co.rsk.bitcoinj.core.BtcBlock thinBlock = new co.rsk.bitcoinj.core.BtcBlock(bitcoinjThinParams, 1, createThinHash(), createThinHash(), 1000, 2000, 3000, new ArrayList<>());
-        co.rsk.bitcoinj.core.StoredBlock thinStoredBlock = new co.rsk.bitcoinj.core.StoredBlock(thinBlock, chainWork, height);
+        co.rsk.bitcoinj.core.StoredBlock thinStoredBlock = new co.rsk.bitcoinj.core.StoredBlock(thinBlock, chainWork,
+            HEIGHT);
 
         // act
         org.bitcoinj.core.StoredBlock originalStoredBlock = ThinConverter.toOriginalInstance(thinStoredBlock, bridgeConstants);
 
         // assert
         assertEquals(chainWork, originalStoredBlock.getChainWork());
-        assertEquals(height, originalStoredBlock.getHeight());
+        assertEquals(HEIGHT, originalStoredBlock.getHeight());
         assertArrayEquals(thinBlock.bitcoinSerialize(), originalStoredBlock.getHeader().bitcoinSerialize());
     }
 
@@ -120,7 +121,8 @@ class ThinConverterTest {
     void toOriginalInstanceStoredBlock_whenInvalidChainWork_shouldFail(BigInteger chainWork) {
         // arrange
         co.rsk.bitcoinj.core.BtcBlock thinBlock = new co.rsk.bitcoinj.core.BtcBlock(bitcoinjThinParams, 1, createThinHash(), createThinHash(), 1000, 2000, 3000, new ArrayList<>());
-        co.rsk.bitcoinj.core.StoredBlock thinStoredBlock = new co.rsk.bitcoinj.core.StoredBlock(thinBlock, chainWork, height);
+        co.rsk.bitcoinj.core.StoredBlock thinStoredBlock = new co.rsk.bitcoinj.core.StoredBlock(thinBlock, chainWork,
+            HEIGHT);
 
         // act and assert
         Assertions.assertThrows(IllegalArgumentException.class, () -> ThinConverter.toOriginalInstance(thinStoredBlock, bridgeConstants));

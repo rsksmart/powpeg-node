@@ -19,8 +19,7 @@ package co.rsk.federate;
 
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static co.rsk.peg.federation.FederationMember.KeyType;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP123;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.RSKIP419;
+import static org.ethereum.config.blockchain.upgrades.ConsensusRule.*;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -176,12 +175,22 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             federatorSupport.getBtcParams()
         );
 
-        Federation federation = FederationFactory.buildP2shErpFederation(
+        Federation proposedFederation = buildProposedFederation(federationArgs);
+        return Optional.of(proposedFederation);
+    }
+
+    private Federation buildProposedFederation(FederationArgs federationArgs) {
+        if (!federatorSupport.getConfigForBestBlock().isActive(RSKIP305)) {
+            return FederationFactory.buildP2shErpFederation(
+                federationArgs,
+                federationConstants.getErpFedPubKeysList(),
+                federationConstants.getErpFedActivationDelay());
+        }
+
+        return FederationFactory.buildP2shP2wshErpFederation(
             federationArgs,
             federationConstants.getErpFedPubKeysList(),
             federationConstants.getErpFedActivationDelay());
-
-        return Optional.of(federation);
     }
 
     @Override
@@ -215,8 +224,16 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             return nonStandardErpFederation;
         }
 
-        // Finally, try building a P2SH ERP federation
-        return FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
+        // If addresses match build a P2SH ERP federation
+        ErpFederation p2shErpFederation =
+            FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
+
+        if (p2shErpFederation.getAddress().equals(expectedFederationAddress)) {
+            return p2shErpFederation;
+        }
+
+        // Finally, try building a P2SH P2WSH ERP federation
+        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpPubKeys, activationDelay);
 
         // TODO: what if no federation built matches the expected address?
         //  It could mean that there is a different type of federation in the Bridge that we are not considering here
