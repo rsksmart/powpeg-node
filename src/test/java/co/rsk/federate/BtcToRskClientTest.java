@@ -75,9 +75,9 @@ class BtcToRskClientTest {
         bridgeRegTestConstants = new BridgeRegTestConstants();
         networkParameters = ThinConverter.toOriginalInstance(bridgeRegTestConstants.getBtcParamsString());
         federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
-        activeFederation = TestUtils.createFederation(bridgeRegTestConstants.getBtcParams(), federationPrivateKeys);
+        activeFederation = TestUtils.createStandarMultisigFederation(bridgeRegTestConstants.getBtcParams(), federationPrivateKeys);
         activeFederationMember = FederationMember.getFederationMemberFromKey(federationPrivateKeys.get(0));
-        btcToRskClientBuilder = new BtcToRskClientBuilder();
+        btcToRskClientBuilder = BtcToRskClientBuilder.builder();
     }
 
     @Test
