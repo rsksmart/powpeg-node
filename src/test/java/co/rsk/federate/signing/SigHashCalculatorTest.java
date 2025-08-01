@@ -30,7 +30,7 @@ class SigHashCalculatorTest {
     @Test
     void calculate_forLegacySigHashCalculator_forLegacyTxInput_shouldReturnExpectedLegacySigHash() {
         // arrange
-        Federation federation = TestUtils.createFederation(mainnet, 9);
+        Federation federation = TestUtils.createStandardMultisigFederation(mainnet, 9);
         setUp(federation);
 
         Script redeemScript = federation.getRedeemScript();
@@ -49,7 +49,7 @@ class SigHashCalculatorTest {
     @Test
     void calculate_forLegacySigHashCalculator_forSegwitTxInput_shouldNotReturnLegacySigHash() {
         // arrange
-        Federation federation = TestUtils.createSegwitFederation(mainnet, 20);
+        Federation federation = TestUtils.createP2shP2wshErpFederation(mainnet, 20);
         setUp(federation);
 
         Script redeemScript = federation.getRedeemScript();
@@ -68,7 +68,7 @@ class SigHashCalculatorTest {
     @Test
     void calculate_forLegacySigHashCalculator_whenNoRedeemScriptInInput_shouldThrowISE() {
         // arrange
-        Federation federation = TestUtils.createFederation(mainnet, 9);
+        Federation federation = TestUtils.createStandardMultisigFederation(mainnet, 9);
         setUp(federation);
 
         SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
@@ -80,7 +80,7 @@ class SigHashCalculatorTest {
     @Test
     void calculate_forSegwitSigHashCalculator_forSegwitTxInput_shouldReturnExpectedSegwitSigHash() {
         // arrange
-        Federation federation = TestUtils.createSegwitFederation(mainnet, 20);
+        Federation federation = TestUtils.createP2shP2wshErpFederation(mainnet, 20);
         setUp(federation);
 
         Script redeemScript = federation.getRedeemScript();
@@ -99,7 +99,7 @@ class SigHashCalculatorTest {
     @Test
     void calculate_forSegwitSigHashCalculator_forLegacyTxInput_shouldNotReturnLegacySigHash() {
         // arrange
-        Federation federation = TestUtils.createFederation(mainnet, 9);
+        Federation federation = TestUtils.createStandardMultisigFederation(mainnet, 9);
         setUp(federation);
 
         Script redeemScript = federation.getRedeemScript();
@@ -118,7 +118,7 @@ class SigHashCalculatorTest {
     @Test
     void calculate_forSegwitSigHashCalculator_whenNoRedeemScriptInInput_shouldThrowISE() {
         // arrange
-        Federation federation = TestUtils.createSegwitFederation(mainnet, 20);
+        Federation federation = TestUtils.createP2shP2wshErpFederation(mainnet, 20);
         setUp(federation);
 
         int firstInputIndex = 0;
