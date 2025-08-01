@@ -138,7 +138,6 @@ class BitcoinWrapperImplTest {
         assertWTxIdWasAddedToProofs(pegin);
     }
 
-
     private Transaction createLegacyPegIn(Federation federation) {
         BtcTransaction pegin = createPegIn(federation.getAddress());
         return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), pegin);
@@ -222,9 +221,18 @@ class BitcoinWrapperImplTest {
     }
 
     private static Stream<Federation> fedArgs() {
-        final Federation standarMultisigFederation = TestUtils.createStandardMultisigFederation(bridgeConstants.getBtcParams(),9);
-        final Federation p2shErpFederation = TestUtils.createP2shErpFederation(bridgeConstants.getBtcParams(),9);
-        final Federation p2shP2wshErpFederation = TestUtils.createP2shP2wshErpFederation(bridgeConstants.getBtcParams(),20);
+        final Federation standarMultisigFederation = TestUtils.createStandardMultisigFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation p2shErpFederation = TestUtils.createP2shErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation p2shP2wshErpFederation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            20
+        );
 
         return Stream.of(standarMultisigFederation, p2shErpFederation, p2shP2wshErpFederation);
     }
@@ -250,10 +258,22 @@ class BitcoinWrapperImplTest {
     }
 
     private static Stream<Arguments> retiringAndActiveFedsArgs() {
-        final Federation retiringP2shErpFed = TestUtils.createP2shErpFederation(bridgeConstants.getBtcParams(),9);
-        final Federation activeP2shErpFed = TestUtils.createP2shErpFederation(bridgeConstants.getBtcParams(),9);
-        final Federation retiringP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(bridgeConstants.getBtcParams(),9);
-        final Federation activeP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(bridgeConstants.getBtcParams(),9);
+        final Federation retiringP2shErpFed = TestUtils.createP2shErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation activeP2shErpFed = TestUtils.createP2shErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation retiringP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation activeP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            9
+        );
 
         return Stream.of(
             Arguments.of(retiringP2shErpFed, activeP2shErpFed),
