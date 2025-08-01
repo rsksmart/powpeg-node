@@ -118,13 +118,13 @@ class BitcoinWrapperImplTest {
     void coinsReceivedOrSent_validLegacyPegIn_shouldListenTx(Federation federation) throws Exception {
         // Arrange
         setUpListenerAndWrapperWithFederation(federation);
-        Transaction pegInTx = createLegacyPegIn(federation);
+        Transaction pegin = createLegacyPegIn(federation);
 
         // Act
-        bitcoinWrapper.coinsReceivedOrSent(pegInTx);
+        bitcoinWrapper.coinsReceivedOrSent(pegin);
 
         // assert
-        assertWTxIdWasAddedToProofs(pegInTx);
+        assertWTxIdWasAddedToProofs(pegin);
     }
 
     @ParameterizedTest
@@ -143,8 +143,8 @@ class BitcoinWrapperImplTest {
 
 
     private Transaction createLegacyPegIn(Federation federation) {
-        BtcTransaction peginTx = createPegIn(federation.getAddress());
-        return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), peginTx);
+        BtcTransaction pegin = createPegIn(federation.getAddress());
+        return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), pegin);
     }
 
     private Transaction createValidPegInV1(co.rsk.bitcoinj.core.Address federationAddress) {
@@ -180,14 +180,14 @@ class BitcoinWrapperImplTest {
     @MethodSource("fedArgs")
     void coinsReceivedOrSent_validPegOutTx_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        final Transaction pegOutTx = createPegOutTx(federation);
+        final Transaction pegout = createPegOutTx(federation);
         setUpListenerAndWrapperWithFederation(federation);
 
         // Act
-        bitcoinWrapper.coinsReceivedOrSent(pegOutTx);
+        bitcoinWrapper.coinsReceivedOrSent(pegout);
 
         // Assert
-        assertWTxIdWasAddedToProofs(pegOutTx);
+        assertWTxIdWasAddedToProofs(pegout);
     }
 
     private Transaction createPegOutTx(Federation federation) {
@@ -198,13 +198,13 @@ class BitcoinWrapperImplTest {
         prevTx.addOutput(value, federationAddress);
         prevTx.addOutput(value, federationAddress);
 
-        BtcTransaction pegOutTx = new BtcTransaction(thinNetworkParameters);
-        pegOutTx.addInput(prevTx.getOutput(0));
-        pegOutTx.addInput(prevTx.getOutput(1));
-        List<co.rsk.bitcoinj.core.TransactionInput> inputs = pegOutTx.getInputs();
+        BtcTransaction pegout = new BtcTransaction(thinNetworkParameters);
+        pegout.addInput(prevTx.getOutput(0));
+        pegout.addInput(prevTx.getOutput(1));
+        List<co.rsk.bitcoinj.core.TransactionInput> inputs = pegout.getInputs();
         for (int i = 0; i < inputs.size(); i++) {
             addSpendingFederationBaseScript(
-                pegOutTx,
+                pegout,
                 i,
                 federation.getRedeemScript(),
                 federation.getFormatVersion()
@@ -214,14 +214,14 @@ class BitcoinWrapperImplTest {
         // Create a tx from the fed to a random p2-pkh btc address
         final co.rsk.bitcoinj.core.Address randomAddress =
             co.rsk.bitcoinj.core.Address.fromBase58(thinNetworkParameters, "15PVor133tRfjmHPspovsHtRPkfn4UAEQq");
-        pegOutTx.addOutput(co.rsk.bitcoinj.core.Coin.COIN, randomAddress);
+        pegout.addOutput(co.rsk.bitcoinj.core.Coin.COIN, randomAddress);
         // also adding a change output to be more realistic
-        pegOutTx.addOutput(
+        pegout.addOutput(
             co.rsk.bitcoinj.core.Coin.valueOf(500_000L),
             federationAddress
         );
 
-        return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), pegOutTx);
+        return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), pegout);
     }
 
     private static Stream<Federation> fedArgs() {
