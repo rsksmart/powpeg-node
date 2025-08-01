@@ -30,7 +30,7 @@ class SigHashCalculatorTest {
     @Test
     void calculate_forLegacySigHashCalculator_forLegacyTxInput_shouldReturnExpectedLegacySigHash() {
         // arrange
-        Federation federation = TestUtils.createStandarMultisigFederation(mainnet, 9);
+        Federation federation = TestUtils.createStandardMultisigFederation(mainnet, 9);
         setUp(federation);
 
         Script redeemScript = federation.getRedeemScript();
@@ -68,7 +68,7 @@ class SigHashCalculatorTest {
     @Test
     void calculate_forLegacySigHashCalculator_whenNoRedeemScriptInInput_shouldThrowISE() {
         // arrange
-        Federation federation = TestUtils.createStandarMultisigFederation(mainnet, 9);
+        Federation federation = TestUtils.createStandardMultisigFederation(mainnet, 9);
         setUp(federation);
 
         SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
@@ -99,7 +99,7 @@ class SigHashCalculatorTest {
     @Test
     void calculate_forSegwitSigHashCalculator_forLegacyTxInput_shouldNotReturnLegacySigHash() {
         // arrange
-        Federation federation = TestUtils.createStandarMultisigFederation(mainnet, 9);
+        Federation federation = TestUtils.createStandardMultisigFederation(mainnet, 9);
         setUp(federation);
 
         Script redeemScript = federation.getRedeemScript();

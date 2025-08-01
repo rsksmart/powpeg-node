@@ -222,7 +222,7 @@ class BitcoinWrapperImplTest {
     }
 
     private static Stream<Federation> fedArgs() {
-        final Federation standarMultisigFederation = TestUtils.createStandarMultisigFederation(bridgeConstants.getBtcParams(),9);
+        final Federation standarMultisigFederation = TestUtils.createStandardMultisigFederation(bridgeConstants.getBtcParams(),9);
         final Federation p2shErpFederation = TestUtils.createP2shErpFederation(bridgeConstants.getBtcParams(),9);
         final Federation p2shP2wshErpFederation = TestUtils.createP2shP2wshErpFederation(bridgeConstants.getBtcParams(),20);
 
