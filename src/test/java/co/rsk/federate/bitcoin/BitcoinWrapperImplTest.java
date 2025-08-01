@@ -39,12 +39,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.spongycastle.util.encoders.Hex;
 
-/**
- * Created by pprete
- */
 class BitcoinWrapperImplTest {
     private static final BridgeConstants bridgeConstants = BridgeMainNetConstants.getInstance();
-    private static final co.rsk.bitcoinj.core.NetworkParameters thinNetworkParameters = bridgeConstants.getBtcParams();;
+    private static final co.rsk.bitcoinj.core.NetworkParameters thinNetworkParameters = bridgeConstants.getBtcParams();
     private static final NetworkParameters originalNetworkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
     private static final Context btcContext = new Context(originalNetworkParameters);
     private BtcToRskClientFileStorage btcToRskClientFileStorage;
@@ -328,10 +325,12 @@ class BitcoinWrapperImplTest {
 
         @Override
         protected void startUp() {
+            // Not needed for tests
         }
 
         @Override
         protected void shutDown() {
+            // Not needed for tests
         }
 
         @Override
