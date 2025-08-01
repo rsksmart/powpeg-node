@@ -99,8 +99,8 @@ class BtcReleaseClientTest {
     void start_whenFederationMemberNotPartOfDesiredFederation_shouldThrowException() {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
-        Federation otherFederation = TestUtils.createStandarMultisigFederation(params, 2);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
+        Federation otherFederation = TestUtils.createStandardMultisigFederation(params, 2);
         FederationMember federationMember = otherFederation.getMembers().get(1);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
@@ -142,12 +142,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        Federation fed1 = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation fed1 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember1 = fed1.getMembers().get(0);
         doReturn(federationMember1).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed1);
 
-        Federation fed2 = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation fed2 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember2 = fed2.getMembers().get(0);
         doReturn(federationMember2).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed2);
@@ -167,12 +167,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        Federation fed1 = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation fed1 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember1 = fed1.getMembers().get(0);
         doReturn(federationMember1).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed1);
 
-        Federation fed2 = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation fed2 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember2 = fed2.getMembers().get(0);
         doReturn(federationMember2).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed2);
@@ -195,12 +195,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        Federation fed1 = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation fed1 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember1 = fed1.getMembers().get(0);
         doReturn(federationMember1).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed1);
 
-        Federation fed2 = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation fed2 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember2 = fed2.getMembers().get(0);
         doReturn(federationMember2).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed2);
@@ -216,7 +216,7 @@ class BtcReleaseClientTest {
     void processReleases_ok() throws Exception {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         // Create a tx from the Fed to a random btc address
@@ -702,7 +702,7 @@ class BtcReleaseClientTest {
     void having_two_pegouts_signs_only_one() throws Exception {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
         BtcTransaction tx1 = TestUtils.createBtcTransaction(params, federation);
         BtcTransaction tx2 = TestUtils.createBtcTransaction(params, federation);
@@ -803,7 +803,7 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenPegoutTxIsCached_shouldNotSignSamePegoutTxAgain() throws Exception {
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 9);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = federation.getMembers().get(0);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
@@ -898,7 +898,7 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenPegoutTxIsCachedWithInvalidTimestamp_shouldSignSamePegoutTxAgain() throws Exception {
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 9);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = federation.getMembers().get(0);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
@@ -999,7 +999,7 @@ class BtcReleaseClientTest {
     void onBestBlock_whenOnlySvpSpendTxWaitingForSignaturesIsAvailable_shouldAddSignature() throws Exception {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation proposedFederation = TestUtils.createStandarMultisigFederation(params, 9);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = proposedFederation.getMembers().get(0);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(0);
@@ -1097,7 +1097,7 @@ class BtcReleaseClientTest {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         List<BtcECKey> federationKeys = TestUtils.getFederationPrivateKeys(9);
-        Federation proposedFederation = TestUtils.createStandarMultisigFederation(bridgeConstants.getBtcParams(), federationKeys);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(bridgeConstants.getBtcParams(), federationKeys);
         Script scriptSig = proposedFederation.getP2SHScript().createEmptyInputScript(null, proposedFederation.getRedeemScript());
 
         BtcTransaction svpSpendTx = new BtcTransaction(params);
@@ -1212,14 +1212,14 @@ class BtcReleaseClientTest {
     void onBestBlock_whenBothPegoutAndSvpSpendTxWaitingForSignaturesAreAvailableAndFederatorIsOnlyPartOfProposedFederation_shouldOnlyAddOneSignature() throws Exception {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 9);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 9);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
         SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
         rskTxsWaitingForSignatures.put(pegoutCreationRskTxHash, pegout);
         StateForFederator stateForFederator = new StateForFederator(rskTxsWaitingForSignatures);
 
-        Federation proposedFederation = TestUtils.createStandarMultisigFederation(params, 9);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = proposedFederation.getMembers().get(0);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(1);
@@ -1325,7 +1325,7 @@ class BtcReleaseClientTest {
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(9).toList();
         BtcECKey fedKey = keys.get(0);
         FederationMember federationMember = FederationMember.getFederationMembersFromKeys(keys).get(0);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, keys);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, keys);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
         SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
@@ -1334,7 +1334,7 @@ class BtcReleaseClientTest {
 
         List<BtcECKey> proposedKeys = Stream.generate(BtcECKey::new).limit(8).collect(Collectors.toList());
         proposedKeys.add(fedKey);
-        Federation proposedFederation = TestUtils.createStandarMultisigFederation(params, proposedKeys);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(params, proposedKeys);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(1);
         Map.Entry<Keccak256, BtcTransaction> svpSpendTxWFS = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
@@ -1436,7 +1436,7 @@ class BtcReleaseClientTest {
     void onBestBlock_whenSvpSpendTxIsNotReadyToBeSigned_shouldNotAddSignature() throws Exception {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation proposedFederation = TestUtils.createStandarMultisigFederation(params, 9);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = proposedFederation.getMembers().get(0);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(0);
@@ -1523,7 +1523,7 @@ class BtcReleaseClientTest {
     void onBestBlock_return_when_node_is_syncing() throws BtcReleaseClientException {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         Ethereum ethereum = mock(Ethereum.class);
@@ -1567,7 +1567,7 @@ class BtcReleaseClientTest {
     void onBestBlock_return_when_pegout_is_disabled() throws BtcReleaseClientException {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(false);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         Ethereum ethereum = mock(Ethereum.class);
@@ -1611,7 +1611,7 @@ class BtcReleaseClientTest {
     void onBlock_return_when_node_is_syncing() {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         Ethereum ethereum = mock(Ethereum.class);
@@ -1651,7 +1651,7 @@ class BtcReleaseClientTest {
     void onBlock_return_when_pegout_is_disabled() {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(false);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         Ethereum ethereum = mock(Ethereum.class);
@@ -1691,7 +1691,7 @@ class BtcReleaseClientTest {
     void validateTxCanBeSigned_ok() throws Exception {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
 
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx = new BtcTransaction(params);
@@ -1708,7 +1708,7 @@ class BtcReleaseClientTest {
     void validateTxCanBeSigned_fast_bridge_ok() throws Exception {
         // Create a StandardMultisigFederation
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
 
         // Create fast bridge redeem script
 
@@ -1731,7 +1731,7 @@ class BtcReleaseClientTest {
     @Test
     void validateTxCanBeSigned_erp_fed_ok() throws Exception {
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 3);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 3);
         FederationArgs federationArgs = federation.getArgs();
         ErpFederation nonStandardErpFederation =
             FederationFactory.buildNonStandardErpFederation(federationArgs, erpFedKeys, 5063, mock(ActivationConfig.ForBlock.class));
@@ -1819,7 +1819,7 @@ class BtcReleaseClientTest {
     void validateTxCanBeSigned_federationCantSign() throws Exception {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
 
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx = new BtcTransaction(params);
@@ -1862,7 +1862,7 @@ class BtcReleaseClientTest {
 
     @Test
     void extractStandardRedeemScript_fast_bridge_redeem_script() {
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
 
         Keccak256 flyoverDerivationHash = createHash(1);
         Script flyoverRedeemScript = FlyoverRedeemScriptBuilderImpl.builder().of(
@@ -1875,7 +1875,7 @@ class BtcReleaseClientTest {
 
     @Test
     void extractStandardRedeemScript_erp_redeem_script() {
-        Federation federation = TestUtils.createStandarMultisigFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationArgs federationArgs = federation.getArgs();
 
         ErpFederation nonStandardErpFederation =

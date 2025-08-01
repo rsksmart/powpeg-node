@@ -50,11 +50,11 @@ class PowHSMSigningClientBtcTest {
     private static final BridgeConstants bridgeMainnetConstants = BridgeMainNetConstants.getInstance();
     private static final NetworkParameters btcMainnetParams = bridgeMainnetConstants.getBtcParams();
 
-    private static final Federation newFederation = TestUtils.createStandarMultisigFederation(
+    private static final Federation newFederation = TestUtils.createStandardMultisigFederation(
         bridgeMainnetConstants.getBtcParams(),
         9
     );
-    private static final Federation oldFederation = TestUtils.createStandarMultisigFederation(
+    private static final Federation oldFederation = TestUtils.createStandardMultisigFederation(
         bridgeMainnetConstants.getBtcParams(),
         5
     );

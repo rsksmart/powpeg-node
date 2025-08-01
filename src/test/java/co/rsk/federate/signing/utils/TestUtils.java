@@ -100,18 +100,23 @@ public final class TestUtils {
         return block;
     }
 
-    public static Federation createStandarMultisigFederation(NetworkParameters params, int amountOfMembers) {
+    public static Federation createStandardMultisigFederation(NetworkParameters params, int amountOfMembers) {
         List<BtcECKey> keys = Stream
             .generate(BtcECKey::new)
             .limit(amountOfMembers)
             .toList();
-        return createStandarMultisigFederation(params, keys);
+        return createStandardMultisigFederation(params, keys);
     }
 
-    public static Federation createStandarMultisigFederation(NetworkParameters params, List<BtcECKey> federationPrivatekeys) {
+    public static Federation createStandardMultisigFederation(NetworkParameters params, List<BtcECKey> federationPrivatekeys) {
         final long CREATION_BLOCK_NUMBER = 0;
         List<FederationMember> federationMembers = FederationMember.getFederationMembersFromKeys(federationPrivatekeys);
-        FederationArgs federationArgs = new FederationArgs(federationMembers, Instant.now(), CREATION_BLOCK_NUMBER, params);
+        FederationArgs federationArgs = new FederationArgs(
+            federationMembers,
+            Instant.now(),
+            CREATION_BLOCK_NUMBER,
+            params
+        );
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
     }
 
@@ -208,9 +213,7 @@ public final class TestUtils {
         return btcTx;
     }
 
-    public static Script createBaseInputScriptThatSpendsFromTheFederation(
-        Federation federation
-    ) {
+    public static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
         return createBaseInputScriptThatSpendsFromTheFederation(federation, null);
     }
 
