@@ -2,32 +2,18 @@ package co.rsk.federate.bitcoin;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.wallet.Wallet;
-import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
-import co.rsk.peg.BridgeBtcWallet;
-import co.rsk.peg.PegUtilsLegacy;
-import co.rsk.peg.federation.Federation;
-import co.rsk.peg.PeginInformation;
+import co.rsk.peg.*;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.federation.Federation;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import co.rsk.util.MaxSizeHashMap;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Context;
-import org.bitcoinj.core.PeerAddress;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.StoredBlock;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
+import java.util.*;
+import org.bitcoinj.core.*;
+import org.bitcoinj.core.TransactionConfidence.ConfidenceType;
 import org.bitcoinj.core.listeners.BlocksDownloadedEventListener;
 import org.bitcoinj.core.listeners.NewBestBlockListener;
 import org.bitcoinj.script.Script;
@@ -35,6 +21,7 @@ import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener;
 import org.bitcoinj.wallet.listeners.WalletCoinsSentEventListener;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,51 +31,38 @@ import org.slf4j.LoggerFactory;
  */
 public class BitcoinWrapperImpl implements BitcoinWrapper {
 
-    private class FederationListener {
-        private Federation federation;
-        private TransactionListener listener;
-
-        public FederationListener(Federation federation, TransactionListener listener) {
-            this.federation = federation;
-            this.listener = listener;
-        }
-
-        public Federation getFederation() {
-            return federation;
-        }
-
-        public TransactionListener getListener() {
-            return listener;
-        }
+    private record FederationListener(Federation federation, TransactionListener listener) {
 
         @Override
         public boolean equals(Object o) {
-            if (!(o instanceof FederationListener)) {
+            if (!(o instanceof FederationListener other)) {
                 return false;
             }
 
-            FederationListener other = (FederationListener) o;
-
-            return other.getFederation().equals(this.getFederation()) &&
-                    other.getListener() == this.getListener();
+            return other.federation().equals(this.federation()) &&
+                other.listener() == this.listener();
         }
     }
 
     private static final int MAX_SIZE_MAP_STORED_BLOCKS = 10_000;
-    private static final Logger LOGGER = LoggerFactory.getLogger(BitcoinWrapperImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(BitcoinWrapperImpl.class);
 
-    private Context btcContext;
-    private BridgeConstants bridgeConstants;
-    private boolean running = false;
-    private List<FederationListener> watchedFederations;
-    private List<BlockListener> blockListeners;
-    private Collection<NewBestBlockListener> newBestBlockListeners;
+    private final Context btcContext;
+    private final BridgeConstants bridgeConstants;
+    private final List<FederationListener> watchedFederations;
+    private final List<BlockListener> blockListeners;
+    private final Collection<NewBestBlockListener> newBestBlockListeners;
 
-    private final Map<Sha256Hash, StoredBlock> knownBlocks = new MaxSizeHashMap<>(MAX_SIZE_MAP_STORED_BLOCKS, true);
+    private final Map<Sha256Hash, StoredBlock> knownBlocks = new MaxSizeHashMap<>(
+        MAX_SIZE_MAP_STORED_BLOCKS,
+        true
+    );
     private final BtcLockSenderProvider btcLockSenderProvider;
     private final PeginInstructionsProvider peginInstructionsProvider;
     private final FederatorSupport federatorSupport;
     private final Kit kit;
+
+    private boolean running = false;
 
     public BitcoinWrapperImpl(
         Context btcContext,
@@ -112,7 +86,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     @Override
     public void setup(List<PeerAddress> peerAddresses) {
         BlocksDownloadedEventListener blocksDownloadedEventListener = (peer, block, filteredBlock, blocksLeft) -> {
-            if (block != null && block.getTransactions() != null && block.getTransactions().size() > 0) {
+            if (block != null && block.getTransactions() != null && !block.getTransactions().isEmpty()) {
                 // block may be empty if we are downloading just headers before fastCatchupTimeSecs
                 Context.propagate(btcContext);
                 for (BlockListener listener : blockListeners) {
@@ -120,8 +94,18 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                 }
             }
         };
-        WalletCoinsReceivedEventListener coinsReceivedEventListener = (wallet, tx, prevBalance, newBalance) -> coinsReceivedOrSent(tx);
-        WalletCoinsSentEventListener coinsSentEventListener = (wallet, tx, prevBalance, newBalance) -> coinsReceivedOrSent(tx);
+        WalletCoinsReceivedEventListener coinsReceivedEventListener = (
+            wallet,
+            tx,
+            prevBalance,
+            newBalance
+        ) -> coinsReceivedOrSent(tx);
+        WalletCoinsSentEventListener coinsSentEventListener = (
+            wallet,
+            tx,
+            prevBalance,
+            newBalance
+        ) -> coinsReceivedOrSent(tx);
         NewBestBlockListener newBestBlockListener = storedBlock -> newBestBlockListeners.forEach(
             listener -> listener.notifyNewBestBlock(storedBlock)
         );
@@ -169,11 +153,14 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
 
     @Override
     public StoredBlock getBlockAtHeight(int height) throws BlockStoreException {
+        logger.debug("[getBlockAtHeight] Getting block at height {}", height);
         BlockStore blockStore = kit.store();
         StoredBlock chainHead = blockStore.getChainHead();
         Sha256Hash blockHash = chainHead.getHeader().getHash();
+        logger.debug("[getBlockAtHeight] Chain head is {} at height {}", blockHash, chainHead.getHeight());
 
         if (height > chainHead.getHeight()) {
+            logger.debug("[getBlockAtHeight] Requested height {} is greater than chain head height {}", height, chainHead.getHeight());
             return null;
         }
 
@@ -188,8 +175,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                     return null;
                 }
             }
-            Sha256Hash prevBlockHash = currentBlock.getHeader().getPrevBlockHash();
-            blockHash = prevBlockHash;
+            blockHash = currentBlock.getHeader().getPrevBlockHash();
         }
 
         if (blockHash == null) {
@@ -201,25 +187,50 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         }
 
         if (block != null && block.getHeight() != height) {
-            throw new IllegalStateException("Block height is " + block.getHeight() + " but should be " + height);
+            String message = String.format(
+                "Block height is %d but should be %d. Block hash: %s",
+                block.getHeight(),
+                height,
+                block.getHeader().getHash()
+            );
+            logger.error("[getBlockAtHeight] {}", message);
+            throw new IllegalStateException(message);
         }
+
+        logger.debug("[getBlockAtHeight] Found block {} at height {}", block.getHeader().getHash(), height);
         return block;
     }
 
     @Override
     public Set<Transaction> getTransactions(int minConfirmations) {
         Set<Transaction> txs = new HashSet<>();
+        Set<Transaction> walletTransactions = kit.wallet().getTransactions(false);
+        logger.debug("[getTransactions] Found {} transactions in wallet. Will search for transactions with at least {} confirmations",
+            walletTransactions.size(),
+            minConfirmations
+        );
 
-        for (Transaction tx : kit.wallet().getTransactions(false)) {
-            if (!tx.getConfidence().getConfidenceType().equals(TransactionConfidence.ConfidenceType.BUILDING)) {
-                continue;
-            }
-
-            if (tx.getConfidence().getDepthInBlocks() < minConfirmations) {
+        for (Transaction tx : walletTransactions) {
+            TransactionConfidence confidence = tx.getConfidence();
+            if (confidence.getConfidenceType() != ConfidenceType.BUILDING || confidence.getDepthInBlocks() < minConfirmations) {
+                logger.trace(
+                    "[getTransactions] Skipping transaction {} (wtxid: {}) with confidence type {} and depth {}",
+                    tx.getTxId(),
+                    tx.getWTxId(),
+                    confidence.getConfidenceType(),
+                    confidence.getDepthInBlocks()
+                );
                 continue;
             }
 
             txs.add(tx);
+            logger.trace(
+                "[getTransactions] Adding transaction {} (wtxid: {}) with confidence type {} and depth {}",
+                tx.getTxId(),
+                tx.getWTxId(),
+                confidence.getConfidenceType(),
+                confidence.getDepthInBlocks()
+            );
         }
 
         return txs;
@@ -229,8 +240,18 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     public Map<Sha256Hash, Transaction> getTransactionMap(int minConfirmations) {
         Map<Sha256Hash, Transaction> result = new HashMap<>();
         Set<Transaction> txs = getTransactions(minConfirmations);
+        logger.trace(
+            "[getTransactionMap] Found {} transactions with at least {} confirmations",
+            txs.size(),
+            minConfirmations
+        );
 
         for (Transaction tx : txs) {
+            logger.trace(
+                "[getTransactionMap] Adding transaction {} (wtxid: {}) to the map",
+                tx.getTxId(),
+                tx.getWTxId()
+            );
             result.put(tx.getWTxId(), tx);
         }
 
@@ -239,23 +260,28 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
 
     @Override
     public void addFederationListener(Federation federation, TransactionListener listener) {
+        logger.trace("[addFederationListener] Adding listener for federation {}", federation.getAddress());
         synchronized (this) {
             if (!running) {
+                logger.debug(
+                    "[addFederationListener] BitcoinWrapper is not running, cannot add listener for federation {}",
+                    federation.getAddress()
+                );
                 return;
             }
 
-            FederationListener fl = new FederationListener(federation, listener);
+            FederationListener federationListener = new FederationListener(federation, listener);
 
             Address address = ThinConverter.toOriginalInstance(federation.getBtcParams(), federation.getAddress());
             // If first, add watched address
-            if (watchedFederations.stream().noneMatch(w -> w.getFederation().equals(federation))) {
+            if (watchedFederations.stream().noneMatch(w -> w.federation().equals(federation))) {
                 kit.wallet().addWatchedAddress(address, federation.getCreationTime().toEpochMilli());
-                LOGGER.debug("[addFederationListener] Added address watch for federation {}", federation.getAddress().toString());
+                logger.debug("[addFederationListener] Added address watch for federation {}", federation.getAddress());
             }
 
-            if (!watchedFederations.contains(fl)) {
-                watchedFederations.add(fl);
-                LOGGER.debug("[addFederationListener] Added listener for federation {}", federation.getAddress().toString());
+            if (!watchedFederations.contains(federationListener)) {
+                watchedFederations.add(federationListener);
+                logger.debug("[addFederationListener] Added listener for federation {}", federation.getAddress());
             }
 
             traceWatchedFederations();
@@ -264,25 +290,29 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
 
     @Override
     public void removeFederationListener(Federation federation, TransactionListener listener) {
+        logger.trace("[removeFederationListener] Removing listener for federation {}", federation.getAddress());
         synchronized (this) {
             if (!running) {
+                logger.debug(
+                    "[removeFederationListener] BitcoinWrapper is not running, cannot remove listener for federation {}",
+                    federation.getAddress()
+                );
                 return;
             }
 
-            FederationListener fl = new FederationListener(federation, listener);
+            FederationListener federationListener = new FederationListener(federation, listener);
 
             // Remove from watchlist
-            if (watchedFederations.contains(fl)) {
-                Address address = ThinConverter.toOriginalInstance(federation.getBtcParams(), federation.getAddress());
-                watchedFederations.remove(fl);
-                LOGGER.debug("[removeFederationListener] Removed listener for federation {}", federation.getAddress().toString());
+            if (watchedFederations.contains(federationListener)) {
+                watchedFederations.remove(federationListener);
+                logger.debug("[removeFederationListener] Removed listener for federation {}", federation.getAddress());
             }
 
             // If none left, remove the watched script
-            if (watchedFederations.stream().noneMatch(w -> w.getFederation().equals(federation))) {
+            if (watchedFederations.stream().noneMatch(w -> w.federation().equals(federation))) {
                 Script federationScript = new Script(federation.getP2SHScript().getProgram());
                 kit.wallet().removeWatchedScripts(Collections.singletonList(federationScript));
-                LOGGER.debug("[removeFederationListener] Removed address watch for federation {}", federation.getAddress().toString());
+                logger.debug("[removeFederationListener] Removed address watch for federation {}", federation.getAddress());
             }
 
             traceWatchedFederations();
@@ -290,9 +320,9 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     }
 
     private void traceWatchedFederations() {
-        LOGGER.trace("[traceWatchedFederations] Now wallet is watching {} scripts", kit.wallet().getWatchedScripts().size());
+        logger.trace("[traceWatchedFederations] Now wallet is watching {} scripts", kit.wallet().getWatchedScripts().size());
         for (Script script : kit.wallet().getWatchedScripts()) {
-            LOGGER.trace("[traceWatchedFederations] Script {}", script.toString());
+            logger.trace("[traceWatchedFederations] Script {}", script);
         }
     }
 
@@ -318,46 +348,84 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
 
     protected void coinsReceivedOrSent(Transaction tx) {
         if (watchedFederations.isEmpty()) {
+            logger.trace(
+                "[coinsReceivedOrSent] No watched federations, skipping transaction {} (wtxid: {})",
+                tx.getTxId(),
+                tx.getWTxId()
+            );
             return;
         }
 
-        LOGGER.debug("[coinsReceivedOrSent] Received filtered transaction {}", tx.getWTxId().toString());
+        logger.debug(
+            "[coinsReceivedOrSent] Received filtered transaction {} (wtxid: {}). Currently watching {} federations",
+            tx.getTxId(),
+            tx.getWTxId(),
+            watchedFederations.size()
+        );
         Context.propagate(btcContext);
 
         // Wrap tx in a co.rsk.bitcoinj.core.BtcTransaction
         BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
         co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
 
-        for (FederationListener watched : watchedFederations) {
-            Federation watchedFederation = watched.getFederation();
-            TransactionListener listener = watched.getListener();
-            Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
+        ActivationConfig.ForBlock activations = federatorSupport.getConfigForBestBlock();
 
-            if (PegUtilsLegacy.isValidPegInTx(btcTx, watchedFederation, watchedFederationWallet, bridgeConstants, federatorSupport.getConfigForBestBlock())) {
+        for (FederationListener watched : watchedFederations) {
+            Federation watchedFederation = watched.federation();
+            TransactionListener listener = watched.listener();
+            Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
+            logger.debug(
+                "[coinsReceivedOrSent] Checking transaction {} (wtxid: {}) for watched federation {}",
+                tx.getTxId(),
+                tx.getWTxId(),
+                watchedFederation.getAddress()
+            );
+
+            if (PegUtilsLegacy.isValidPegInTx(
+                btcTx,
+                watchedFederation,
+                watchedFederationWallet,
+                bridgeConstants,
+                activations
+            )) {
                 PeginInformation peginInformation = new PeginInformation(
                     btcLockSenderProvider,
                     peginInstructionsProvider,
-                    federatorSupport.getConfigForBestBlock()
+                    activations
                 );
 
                 try {
                     peginInformation.parse(btcTx);
                 } catch (PeginInstructionsException e) {
+                    logger.debug(
+                        "[coinsReceivedOrSent] [btctx: {} (wtxid: {})] failed to parse peg-in information",
+                        tx.getTxId(),
+                        tx.getWTxId(),
+                        e
+                    );
                     // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
                     if (peginInformation.getSenderBtcAddress() != null) {
-                        LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx, funds will be refunded to sender", tx.getWTxId());
+                        logger.debug(
+                            "[coinsReceivedOrSent] [btctx: {} (wtxid: {})] is not a valid peg-in tx, funds will be refunded to sender",
+                            tx.getTxId(),
+                            tx.getWTxId()
+                        );
                     } else {
-                        LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is not a valid lock tx and won't be processed!", tx.getWTxId());
+                        logger.debug(
+                            "[coinsReceivedOrSent] [btctx: {} (wtxid: {})] is not a valid peg-in tx and won't be processed",
+                            tx.getTxId(),
+                            tx.getWTxId()
+                        );
                         continue;
                     }
                 }
 
-                LOGGER.debug("[coinsReceivedOrSent] [btctx:{}] is a lock", tx.getWTxId());
+                logger.debug("[coinsReceivedOrSent] [btctx: {} (wtxid: {})] is a peg-in", tx.getTxId(), tx.getWTxId());
                 listener.onTransaction(tx);
             }
 
-            if (PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), federatorSupport.getConfigForBestBlock())) {
-                LOGGER.debug("[coinsReceivedOrSent] [btctx with hash {} and witness hash {}] is a pegout", tx.getTxId(), tx.getWTxId());
+            if (PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), activations)) {
+                logger.debug("[coinsReceivedOrSent] [btctx: {} (wtxid: {})] is a peg-out", tx.getTxId(), tx.getWTxId());
                 listener.onTransaction(tx);
             }
         }

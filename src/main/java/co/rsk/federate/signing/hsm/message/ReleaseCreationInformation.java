@@ -76,8 +76,10 @@ public class ReleaseCreationInformation {
         Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
         final byte[] pegoutTransactionCreatedSignatureTopic = pegoutTransactionCreatedEvent.encodeSignatureLong();
 
-        return !log.getTopics().isEmpty() && Arrays.equals(log.getTopics().get(0).getData(),
-            pegoutTransactionCreatedSignatureTopic);
+        boolean logHasTopics = !log.getTopics().isEmpty();
+        return logHasTopics &&
+            // event signature topic is always the first one
+            Arrays.equals(log.getTopics().get(0).getData(), pegoutTransactionCreatedSignatureTopic);
     }
 
     private byte[] decodePegoutTransactionEventData(byte[] pegoutCreatedTransactionEventData) {

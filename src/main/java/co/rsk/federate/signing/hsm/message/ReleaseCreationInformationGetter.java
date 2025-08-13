@@ -100,9 +100,9 @@ public class ReleaseCreationInformationGetter {
             logger.trace("[getTxInfoToSign] Searching for rsk transaction {} in block {} ({})", pegoutCreationRskTxHash, block.getHash(), block.getNumber());
             List<Transaction> transactions = block.getTransactionsList().stream()
                 .filter(t -> t.getHash().equals(pegoutCreationRskTxHash))
-                .collect(Collectors.toList());
+                .toList();
             logger.trace("[getTxInfoToSign] Transactions found {}", transactions.size());
-            if(transactions.size() != 1) {
+            if (transactions.size() != 1) {
                 String message = String.format(
                     "Rsk transaction %s could not be found in block %s or more than 1 result obtained. Filter size: %d",
                     pegoutCreationRskTxHash,

@@ -47,15 +47,15 @@ class PowHSMSignerMessageBuilderTest {
         btcMainnetParams,
         "userAddress"
     );
-    private static final Federation newFederation = TestUtils.createFederation(
+    private static final Federation newFederation = TestUtils.createStandardMultisigFederation(
         bridgeMainnetConstants.getBtcParams(),
         9
     );
-    private static final Federation oldFederation = TestUtils.createFederation(
+    private static final Federation oldFederation = TestUtils.createStandardMultisigFederation(
         bridgeMainnetConstants.getBtcParams(),
         9
     );
-    private static final Federation oldSegwitFederation = TestUtils.createSegwitFederation(
+    private static final Federation oldSegwitFederation = TestUtils.createP2shP2wshErpFederation(
         bridgeMainnetConstants.getBtcParams(),
         9
     );
