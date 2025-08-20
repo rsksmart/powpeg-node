@@ -2399,6 +2399,27 @@ class BtcToRskClientTest {
     }
 
     @Test
+    void updateBridge_whenFederationIsNull_shouldDoNothing() throws IOException, BlockStoreException {
+        // Arrange
+        NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
+        when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
+
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        BtcToRskClient btcToRskClient = spy(buildWithFactory(federatorSupport, nodeBlockProcessor));
+
+        // Act
+        btcToRskClient.updateBridge();
+
+        // Assert
+        // No interactions with the federation or updates to the bridge
+        verify(nodeBlockProcessor, never()).hasBetterBlockToSync();
+        verify(btcToRskClient, never()).updateBridgeBtcBlockchain();
+        verify(btcToRskClient, never()).updateBridgeBtcCoinbaseTransactions();
+        verify(btcToRskClient, never()).updateBridgeBtcTransactions();
+        verify(federatorSupport, never()).sendUpdateCollections();
+    }
+
+    @Test
     void updateBridge_when_hasBetterBlockToSync_does_not_update_headers() throws IOException, BlockStoreException {
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(true);
