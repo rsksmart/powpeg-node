@@ -46,6 +46,7 @@ public class BtcToRskClientBuilder {
         when(btcLockSenderProvider.tryGetBtcLockSender(any())).thenReturn(Optional.empty());
         when(peginInstructionsProvider.buildPeginInstructions(any())).thenReturn(Optional.empty());
         when(config.getActivationConfig()).thenReturn(this.activationConfig);
+        when(config.shouldUpdateCollections()).thenReturn(true);
         when(config.shouldUpdateBridgeBtcBlockchain()).thenReturn(true);
         when(config.shouldUpdateBridgeBtcTransactions()).thenReturn(true);
         when(config.shouldUpdateBridgeBtcCoinbaseTransactions()).thenReturn(true);
