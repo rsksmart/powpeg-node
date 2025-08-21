@@ -178,6 +178,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public void updateBridge() {
         if (federation == null) {
             logger.warn("[updateBridge] updateBridge skipped because no Federation is associated to this BtcToRskClient");
+            return;
         }
 
         if (nodeBlockProcessor.hasBetterBlockToSync()) {

@@ -24,6 +24,7 @@ import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.btcLockSender.*;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
 import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.constants.BridgeRegTestConstants;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
@@ -2396,6 +2397,29 @@ class BtcToRskClientTest {
         verify(federatorSupport, times(2)).hasBlockCoinbaseInformed(any());
         verify(federatorSupport, times(2)).sendRegisterCoinbaseTransaction(any());
         verify(coinbases, never()).remove(blockHash);
+    }
+
+    @Test
+    void updateBridge_whenFederationIsNull_shouldDoNothing() throws Exception {
+        // Arrange
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+
+        BtcToRskClient btcToRskClient = BtcToRskClientBuilder.builder()
+            .withBridgeConstants(BridgeMainNetConstants.getInstance())
+            .withFederation(null)
+            .withFederatorSupport(federatorSupport)
+            .build();
+
+        // Act
+        btcToRskClient.updateBridge();
+
+        // Assert
+        // No interactions with the federation or updates to the bridge
+        verify(federatorSupport, never()).sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(
+            PartialMerkleTree.class));
+        verify(federatorSupport, never()).sendReceiveHeaders(any(Block[].class));
+        verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any(CoinbaseInformation.class));
+        verify(federatorSupport, never()).sendUpdateCollections();
     }
 
     @Test
