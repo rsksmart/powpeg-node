@@ -1,48 +1,48 @@
 package co.rsk.federate.signing.utils;
 
+import static co.rsk.peg.bitcoin.BitcoinUtils.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import co.rsk.bitcoinj.core.BtcECKey;
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Coin;
-import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
-import co.rsk.bitcoinj.core.TransactionOutPoint;
-import co.rsk.bitcoinj.core.TransactionOutput;
+import co.rsk.bitcoinj.core.*;
+import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.script.Script;
+import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
-import co.rsk.peg.federation.Federation;
-import co.rsk.peg.federation.FederationArgs;
-import co.rsk.peg.federation.FederationFactory;
-import co.rsk.peg.federation.FederationMember;
-
+import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
+import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
+import co.rsk.federate.signing.SigHashCalculator;
+import co.rsk.peg.federation.*;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
-import org.ethereum.core.BlockHeaderBuilder;
-import org.ethereum.core.Transaction;
+import org.ethereum.core.*;
+import org.ethereum.crypto.ECKey;
+import org.ethereum.crypto.HashUtil;
 
 public final class TestUtils {
+    private static final long CREATION_BLOCK_NUMBER = 0;
+    private static final List<BtcECKey> erpFedPubKeysList = Stream.of(
+        "0257c293086c4d4fe8943deda5f890a37d11bebd140e220faa76258a41d077b4d4",
+        "03c2660a46aa73078ee6016dee953488566426cf55fc8011edd0085634d75395f9",
+        "03cd3e383ec6e12719a6c69515e5559bcbe037d0aa24c187e1e26ce932e22ad7b3",
+        "02370a9838e4d15708ad14a104ee5606b36caaaaf739d833e67770ce9fd9b3ec80"
+    ).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).toList();
+    private static final long erpFedActivationDelay = 52_560; // 1 year in BTC blocks (considering 1 block every 10 minutes)
 
     private TestUtils() {
     }
 
     public static Block createBlock(int blockNumber, List<Transaction> rskTxs) {
-
         int parentBlockNumber = blockNumber > 0 ? blockNumber - 1 : 0;
         BlockHeader blockHeader = new BlockHeaderBuilder(mock(ActivationConfig.class))
             .setNumber(blockNumber)
@@ -100,29 +100,74 @@ public final class TestUtils {
         return block;
     }
 
-    public static Federation createFederation(NetworkParameters params, int amountOfMembers) {
-        final long CREATION_BLOCK_NUMBER = 0;
-        List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(amountOfMembers).collect(Collectors.toList());
-        List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
-        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
+    public static Federation createStandardMultisigFederation(NetworkParameters params, int amountOfMembers) {
+        List<BtcECKey> keys = Stream
+            .generate(BtcECKey::new)
+            .limit(amountOfMembers)
+            .toList();
+        return createStandardMultisigFederation(params, keys);
+    }
 
+    public static Federation createStandardMultisigFederation(NetworkParameters params, List<BtcECKey> federationPrivatekeys) {
+        final long CREATION_BLOCK_NUMBER = 0;
+        List<FederationMember> federationMembers = FederationMember.getFederationMembersFromKeys(federationPrivatekeys);
+        FederationArgs federationArgs = new FederationArgs(
+            federationMembers,
+            Instant.now(),
+            CREATION_BLOCK_NUMBER,
+            params
+        );
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
     }
 
-    public static Federation createFederation(NetworkParameters params, List<BtcECKey> federationPrivatekeys) {
+    public static Federation createP2shErpFederation(NetworkParameters params, int amountOfMembers) {
+        List<BtcECKey> keys = Stream
+            .generate(BtcECKey::new)
+            .limit(amountOfMembers)
+            .toList();
+        return createP2shErpFederation(params, keys);
+    }
+
+    public static Federation createP2shErpFederation(NetworkParameters params, List<BtcECKey> keys) {
         final long CREATION_BLOCK_NUMBER = 0;
-        List<FederationMember> federationMembers = FederationMember.getFederationMembersFromKeys(federationPrivatekeys);
-        FederationArgs federationArgs = new FederationArgs(federationMembers, Instant.now(), CREATION_BLOCK_NUMBER, params);
-        return FederationFactory.buildStandardMultiSigFederation(federationArgs);
+        List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
+        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
+        return FederationFactory.buildP2shErpFederation(federationArgs, erpFedPubKeysList, erpFedActivationDelay);
+    }
+
+    public static Federation createP2shP2wshErpFederation(NetworkParameters params, int amountOfMembers) {
+        List<BtcECKey> keys = Stream
+            .generate(BtcECKey::new)
+            .limit(amountOfMembers)
+            .toList();
+
+        return createP2shP2wshErpFederation(params, keys);
+    }
+
+    public static Federation createP2shP2wshErpFederation(NetworkParameters params, List<BtcECKey> keys) {
+        List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
+        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
+        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpFedPubKeysList, erpFedActivationDelay);
     }
 
     public static List<BtcECKey> getFederationPrivateKeys(long amountOfMembers) {
         final long START_SEED_PRIVATE_KEY= 100;
         List<BtcECKey> federationPrivateKeys = new ArrayList<>();
-        for (long i=1; i<=amountOfMembers;i++){
+        for (long i=1; i<=amountOfMembers; i++) {
             federationPrivateKeys.add(BtcECKey.fromPrivate(BigInteger.valueOf(i * START_SEED_PRIVATE_KEY)));
         }
         return federationPrivateKeys;
+    }
+
+
+    public static BtcECKey getBtcEcKeyFromSeed(String seed) {
+        byte[] serializedSeed = HashUtil.keccak256(seed.getBytes(StandardCharsets.UTF_8));
+        return BtcECKey.fromPrivate(serializedSeed);
+    }
+
+    public static ECKey getEcKeyFromSeed(String seed) {
+        byte[] seedHash = HashUtil.keccak256(seed.getBytes(StandardCharsets.UTF_8));
+        return ECKey.fromPrivate(seedHash);
     }
 
     public static TransactionInput createTransactionInput(
@@ -168,9 +213,7 @@ public final class TestUtils {
         return btcTx;
     }
 
-    public static Script createBaseInputScriptThatSpendsFromTheFederation(
-        Federation federation
-    ) {
+    public static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
         return createBaseInputScriptThatSpendsFromTheFederation(federation, null);
     }
 
@@ -191,6 +234,55 @@ public final class TestUtils {
 
         // customRedeemScript might not be actually custom, but just in case, use the provided redeemScript
         return scriptPubKey.createEmptyInputScript(redeemData.keys.get(0), customRedeemScript);
+    }
+
+    public static void addSignatures(BtcTransaction btcTx, BtcECKey signer) {
+        for (int i = 0; i < btcTx.getInputs().size(); i++) {
+            if (inputHasWitness(btcTx, i)) {
+                addSignaturesToSegwitInput(btcTx, i, signer);
+            } else {
+                addSignatureToLegacyInput(btcTx, i, signer);
+            }
+        }
+    }
+
+    private static void addSignatureToLegacyInput(BtcTransaction btcTx, int inputToSignIndex, BtcECKey signer){
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        Sha256Hash sigHash = sigHashCalculator.calculate(btcTx, inputToSignIndex);
+
+        int sigIndex = getSigInsertionIndex(btcTx, inputToSignIndex, sigHash, signer);
+
+        Optional<Script> redeemScript = extractRedeemScriptFromInput(btcTx, inputToSignIndex);
+        Script outputScript = buildOutputScript(btcTx, inputToSignIndex, redeemScript.get());
+
+        BtcECKey.ECDSASignature signature = signer.sign(sigHash);
+        TransactionSignature txSig = new TransactionSignature(signature, BtcTransaction.SigHash.ALL, false);
+        signInput(btcTx, inputToSignIndex, txSig, sigIndex, outputScript);
+    }
+
+    private static void addSignaturesToSegwitInput(BtcTransaction btcTx, int inputToSignIndex, BtcECKey signer) {
+        List<Coin> releaseOutpointsValues = new ArrayList<>();
+        for (int i = 0; i < btcTx.getInputs().size(); i++) {
+            releaseOutpointsValues.add(btcTx.getInput(i).getValue());
+        }
+        SigHashCalculator sigHashCalculator = new SegwitSigHashCalculatorImpl(releaseOutpointsValues);
+
+        Sha256Hash sigHash = sigHashCalculator.calculate(btcTx, inputToSignIndex);
+        int sigIndex = getSigInsertionIndex(btcTx, inputToSignIndex, sigHash, signer);
+
+        Optional<Script> redeemScript = extractRedeemScriptFromInput(btcTx, inputToSignIndex);
+        Script outputScript = buildOutputScript(btcTx, inputToSignIndex, redeemScript.get());
+
+        BtcECKey.ECDSASignature signature = signer.sign(sigHash);
+        TransactionSignature txSig = new TransactionSignature(signature, BtcTransaction.SigHash.ALL, false);
+        signInput(btcTx, inputToSignIndex, txSig, sigIndex, outputScript);
+    }
+
+    private static Script buildOutputScript(BtcTransaction btcTx, int inputIndex, Script redeemScript) {
+        if (!inputHasWitness(btcTx, inputIndex)) {
+            return ScriptBuilder.createP2SHOutputScript(redeemScript);
+        }
+        return ScriptBuilder.createP2SHP2WSHOutputScript(redeemScript);
     }
 
     public static <T, V> void setInternalState(T instance, String fieldName, V value) {

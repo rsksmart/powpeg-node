@@ -24,6 +24,7 @@ import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.btcLockSender.*;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
 import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.constants.BridgeRegTestConstants;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
@@ -31,7 +32,6 @@ import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.collect.Lists;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Stream;
 import org.bitcoinj.core.*;
@@ -40,7 +40,6 @@ import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig.ForBlock;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
-import org.ethereum.crypto.HashUtil;
 import org.ethereum.util.ByteUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,15 +70,15 @@ class BtcToRskClientTest {
 
         activationsForBlock = mock(ForBlock.class);
         when(activationConfig.forBlock(anyLong())).thenReturn(activationsForBlock);
-        when(activationsForBlock.isActive(eq(ConsensusRule.RSKIP89))).thenReturn(true);
-        when(activationsForBlock.isActive(eq(ConsensusRule.RSKIP460))).thenReturn(true);
+        when(activationsForBlock.isActive(ConsensusRule.RSKIP89)).thenReturn(true);
+        when(activationsForBlock.isActive(ConsensusRule.RSKIP460)).thenReturn(true);
 
         bridgeRegTestConstants = new BridgeRegTestConstants();
         networkParameters = ThinConverter.toOriginalInstance(bridgeRegTestConstants.getBtcParamsString());
         federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
-        activeFederation = TestUtils.createFederation(bridgeRegTestConstants.getBtcParams(), federationPrivateKeys);
+        activeFederation = TestUtils.createStandardMultisigFederation(bridgeRegTestConstants.getBtcParams(), federationPrivateKeys);
         activeFederationMember = FederationMember.getFederationMemberFromKey(federationPrivateKeys.get(0));
-        btcToRskClientBuilder = new BtcToRskClientBuilder();
+        btcToRskClientBuilder = BtcToRskClientBuilder.builder();
     }
 
     @Test
@@ -190,13 +189,11 @@ class BtcToRskClientTest {
     }
 
     private BtcToRskClient createClientWithMocksCustomStorageFiles(
-        BitcoinWrapper bw,
         FederatorSupport fs,
         BtcToRskClientFileStorage btcToRskClientFileStorage) throws Exception {
 
         return btcToRskClientBuilder
             .withActivationConfig(activationConfig)
-            .withBitcoinWrapper(bw)
             .withFederatorSupport(fs)
             .withBridgeConstants(bridgeRegTestConstants)
             .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
@@ -455,7 +452,7 @@ class BtcToRskClientTest {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null,  btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles( null,  btcToRskClientFileStorageMock);
 
         client.onBlock(block);
 
@@ -525,7 +522,7 @@ class BtcToRskClientTest {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
 
         client.onBlock(block);
 
@@ -550,7 +547,7 @@ class BtcToRskClientTest {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
 
         client.onBlock(block);
 
@@ -575,7 +572,7 @@ class BtcToRskClientTest {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
 
         client.onBlock(block);
 
@@ -600,7 +597,7 @@ class BtcToRskClientTest {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
 
         client.onBlock(block);
 
@@ -625,7 +622,7 @@ class BtcToRskClientTest {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
 
         client.onBlock(block);
 
@@ -638,7 +635,7 @@ class BtcToRskClientTest {
     void when_markCoinbasesAsReadyToBeInformed_coinbaseInformationMap_isEmpty_return() throws Exception {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, new BtcToRskClientFileData()));
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
 
         client.markCoinbasesAsReadyToBeInformed(new ArrayList<>());
 
@@ -653,7 +650,7 @@ class BtcToRskClientTest {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
 
         client.markCoinbasesAsReadyToBeInformed(new ArrayList<>());
 
@@ -669,7 +666,7 @@ class BtcToRskClientTest {
 
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
 
         Block block = mock(Block.class);
         when(block.getHash()).thenReturn(Sha256Hash.ZERO_HASH);
@@ -1000,9 +997,9 @@ class BtcToRskClientTest {
         // Search depth should go down to the maximum depth (height - inital height = 200 - 10 = 190)
         // That means depth should be called with: 0, 1, 2, 4, 8, 16, 32, 64, 128, 190.
         // At the end, blockchain should be updated with 225 - 10 = 215 blocks.
-        Stream.of(0, 1, 2, 4, 8, 16, 32, 64, 128, 190).forEach(depth -> {
-            verify(federatorSupport, times(1)).getBtcBlockchainBlockHashAtDepth(depth);
-        });
+        Stream.of(0, 1, 2, 4, 8, 16, 32, 64, 128, 190).forEach(depth ->
+            verify(federatorSupport, times(1)).getBtcBlockchainBlockHashAtDepth(depth)
+        );
         assertEquals(amountOfHeadersToSend, headers.length);
 
         // Only one receive headers invocation
@@ -1332,7 +1329,7 @@ class BtcToRskClientTest {
 
     @Test
     void updateTransactionCheckMaximumRegisterBtcLocksTxsPerTurn() throws Exception {
-        int AVAILABLE_TXS = 50;
+        final int AVAILABLE_TXS = 50;
         SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
         Set<Transaction> txs = new HashSet<>();
         for (int i = 0; i < AVAILABLE_TXS; i++) {
@@ -2152,7 +2149,7 @@ class BtcToRskClientTest {
     void restoreFileData_with_invalid_BtcToRskClient_file_data() throws Exception {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenThrow(new IOException());
-        assertThrows(Exception.class, () -> createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock));
+        assertThrows(Exception.class, () -> createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock));
     }
 
     @Test
@@ -2166,7 +2163,7 @@ class BtcToRskClientTest {
         BtcToRskClientFileReadResult result = spy(new BtcToRskClientFileReadResult(true, newData));
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(result);
 
-        createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock);
+        createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
 
         verify(result, times(1)).getData();
         assertTrue(newData.getTransactionProofs().containsKey(hash));
@@ -2178,7 +2175,7 @@ class BtcToRskClientTest {
         BtcToRskClientFileReadResult result = new BtcToRskClientFileReadResult(false, new BtcToRskClientFileData());
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(result);
 
-        assertThrows(Exception.class, () -> createClientWithMocksCustomStorageFiles(null, null, btcToRskClientFileStorageMock));
+        assertThrows(Exception.class, () -> createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock));
     }
 
     @Test
@@ -2193,20 +2190,20 @@ class BtcToRskClientTest {
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, federatorSupport, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(federatorSupport, btcToRskClientFileStorageMock);
 
         client.updateBridgeBtcCoinbaseTransactions();
 
         verify(federatorSupport, never()).hasBlockCoinbaseInformed(any());
         verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any());
-        verify(coinbases, never()).remove(any());
+        verify(coinbases, never()).remove(any(Sha256Hash.class));
     }
 
     @Test
     void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_does_not_have_readyToBeInformed_coinbases_does_nothing() throws Exception {
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
-        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
-                getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes()), null, null, null);
+        Transaction coinbaseTx = getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes());
+        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(coinbaseTx, null, null, null);
         coinbaseInformation.setReadyToInform(false);
 
         coinbases.put(Sha256Hash.ZERO_HASH, coinbaseInformation);
@@ -2219,13 +2216,13 @@ class BtcToRskClientTest {
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, federatorSupport, btcToRskClientFileStorageMock);
+        BtcToRskClient client = createClientWithMocksCustomStorageFiles(federatorSupport, btcToRskClientFileStorageMock);
 
         client.updateBridgeBtcCoinbaseTransactions();
 
         verify(federatorSupport, never()).hasBlockCoinbaseInformed(any());
         verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any());
-        verify(coinbases, never()).remove(any());
+        verify(coinbases, never()).remove(any(Sha256Hash.class));
     }
 
     @Test
@@ -2234,8 +2231,8 @@ class BtcToRskClientTest {
         when(activations.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(false);
 
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
-        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
-                getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes()), null, null, null);
+        Transaction coinbaseTx = getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes());
+        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(coinbaseTx, null, null, null);
         coinbaseInformation.setReadyToInform(true);
 
         coinbases.put(Sha256Hash.ZERO_HASH, coinbaseInformation);
@@ -2400,6 +2397,29 @@ class BtcToRskClientTest {
         verify(federatorSupport, times(2)).hasBlockCoinbaseInformed(any());
         verify(federatorSupport, times(2)).sendRegisterCoinbaseTransaction(any());
         verify(coinbases, never()).remove(blockHash);
+    }
+
+    @Test
+    void updateBridge_whenFederationIsNull_shouldDoNothing() throws Exception {
+        // Arrange
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+
+        BtcToRskClient btcToRskClient = BtcToRskClientBuilder.builder()
+            .withBridgeConstants(BridgeMainNetConstants.getInstance())
+            .withFederation(null)
+            .withFederatorSupport(federatorSupport)
+            .build();
+
+        // Act
+        btcToRskClient.updateBridge();
+
+        // Assert
+        // No interactions with the federation or updates to the bridge
+        verify(federatorSupport, never()).sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(
+            PartialMerkleTree.class));
+        verify(federatorSupport, never()).sendReceiveHeaders(any(Block[].class));
+        verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any(CoinbaseInformation.class));
+        verify(federatorSupport, never()).sendUpdateCollections();
     }
 
     @Test
@@ -2578,11 +2598,6 @@ class BtcToRskClientTest {
         co.rsk.bitcoinj.script.Script scriptPubKey = federation.getP2SHScript();
 
         return scriptPubKey.createEmptyInputScript(null, federation.getRedeemScript());
-    }
-
-    private static co.rsk.bitcoinj.script.Script createBaseRedeemScriptThatSpendsFromTheFederation(Federation federation) {
-        co.rsk.bitcoinj.script.Script redeemScript = ScriptBuilder.createRedeemScript(federation.getNumberOfSignaturesRequired(), federation.getBtcPublicKeys());
-        return redeemScript;
     }
 
     private BtcToRskClient buildWithFactory(FederatorSupport federatorSupport, NodeBlockProcessor nodeBlockProcessor) {

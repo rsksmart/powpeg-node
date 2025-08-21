@@ -30,7 +30,7 @@ public class BtcToRskClientBuilder {
     private Federation federation;
     private PowpegNodeSystemProperties config;
 
-    public BtcToRskClientBuilder() throws PeginInstructionsException, IOException {
+    private BtcToRskClientBuilder() throws PeginInstructionsException, IOException {
         this.activationConfig = mock(ActivationConfig.class);
         this.bitcoinWrapper = mock(BitcoinWrapper.class);
         this.federatorSupport = mock(FederatorSupport.class);
@@ -46,11 +46,16 @@ public class BtcToRskClientBuilder {
         when(btcLockSenderProvider.tryGetBtcLockSender(any())).thenReturn(Optional.empty());
         when(peginInstructionsProvider.buildPeginInstructions(any())).thenReturn(Optional.empty());
         when(config.getActivationConfig()).thenReturn(this.activationConfig);
+        when(config.shouldUpdateCollections()).thenReturn(true);
         when(config.shouldUpdateBridgeBtcBlockchain()).thenReturn(true);
         when(config.shouldUpdateBridgeBtcTransactions()).thenReturn(true);
         when(config.shouldUpdateBridgeBtcCoinbaseTransactions()).thenReturn(true);
         when(config.isUpdateBridgeTimerEnabled()).thenReturn(true);
         when(config.getAmountOfHeadersToSend()).thenReturn(100);
+    }
+
+    public static BtcToRskClientBuilder builder() throws PeginInstructionsException, IOException {
+        return new BtcToRskClientBuilder();
     }
 
     public BtcToRskClientBuilder withActivationConfig(ActivationConfig activationConfig) {
@@ -98,7 +103,7 @@ public class BtcToRskClientBuilder {
         return this;
     }
 
-    public BtcToRskClient build () throws Exception {
+    public BtcToRskClient build() throws Exception {
         when(config.getActivationConfig()).thenReturn(activationConfig);
         return new BtcToRskClient(
             bitcoinWrapper,

@@ -1,48 +1,32 @@
 package co.rsk.federate.signing.hsm.message;
 
-import static co.rsk.federate.EventsTestUtils.creatRejectedPeginLog;
-import static co.rsk.federate.EventsTestUtils.createBatchPegoutCreatedLog;
-import static co.rsk.federate.EventsTestUtils.createPegoutTransactionCreatedLog;
-import static co.rsk.federate.EventsTestUtils.createReleaseRequestedLog;
-import static co.rsk.federate.EventsTestUtils.createUpdateCollectionsLog;
+import static co.rsk.federate.EventsTestUtils.*;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
-import static co.rsk.federate.signing.utils.TestUtils.createBaseInputScriptThatSpendsFromTheFederation;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static co.rsk.federate.bitcoin.BitcoinTestUtils.createPegout;
+import static co.rsk.federate.signing.HSMField.TX;
+import static co.rsk.peg.bitcoin.BitcoinUtils.inputHasWitness;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import co.rsk.bitcoinj.core.Address;
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Coin;
-import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
-import co.rsk.bitcoinj.core.TransactionWitness;
-import co.rsk.bitcoinj.script.Script;
+import co.rsk.bitcoinj.core.*;
 import co.rsk.core.RskAddress;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
-import co.rsk.federate.bitcoin.BtcTransactionBuilder;
+import co.rsk.federate.signing.*;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.utils.TestUtils;
+import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.pegin.RejectedPeginReason;
 import co.rsk.trie.Trie;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.util.*;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.core.Block;
-import org.ethereum.core.BlockHeader;
-import org.ethereum.core.BlockHeaderBuilder;
-import org.ethereum.core.Transaction;
-import org.ethereum.core.TransactionReceipt;
+import org.ethereum.core.*;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.db.ReceiptStore;
 import org.ethereum.db.TransactionInfo;
@@ -56,16 +40,25 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.spongycastle.util.encoders.Hex;
 
 class PowHSMSignerMessageBuilderTest {
-
     private static final BridgeConstants bridgeMainnetConstants = BridgeMainNetConstants.getInstance();
     private static final NetworkParameters btcMainnetParams = bridgeMainnetConstants.getBtcParams();
 
-    private static final Address userAddress = BitcoinTestUtils.createP2PKHAddress(btcMainnetParams,
-        "userAddress");
-    private static final Federation newFederation = TestUtils.createFederation(
-        bridgeMainnetConstants.getBtcParams(), 9);
-    private static final Federation oldFederation = TestUtils.createFederation(
-        bridgeMainnetConstants.getBtcParams(), 9);
+    private static final Address userAddress = BitcoinTestUtils.createP2PKHAddress(
+        btcMainnetParams,
+        "userAddress"
+    );
+    private static final Federation newFederation = TestUtils.createStandardMultisigFederation(
+        bridgeMainnetConstants.getBtcParams(),
+        9
+    );
+    private static final Federation oldFederation = TestUtils.createStandardMultisigFederation(
+        bridgeMainnetConstants.getBtcParams(),
+        9
+    );
+    private static final Federation oldSegwitFederation = TestUtils.createP2shP2wshErpFederation(
+        bridgeMainnetConstants.getBtcParams(),
+        9
+    );
 
     private Transaction pegoutCreationRskTx;
     private Transaction pegoutConfirmationRskTx;
@@ -115,125 +108,177 @@ class PowHSMSignerMessageBuilderTest {
     void createHSMVersion2Message() throws SignerMessageBuilderException {
         //Arrange
         List<Coin> outpointValues = Collections.singletonList(Coin.COIN);
-        BtcTransaction pegoutBtcTx = createPegout(outpointValues,
-            Collections.singletonList(userAddress), false);
+        BtcTransaction pegoutBtcTx = createPegout(
+            btcMainnetParams,
+            oldFederation,
+            outpointValues,
+            Collections.singletonList(userAddress)
+        );
         int inputIndex = 0;
 
         //Act
-        PowHSMSignerMessageBuilder sigMessVersion2 = new PowHSMSignerMessageBuilder(receiptStore,
-            new ReleaseCreationInformation(pegoutCreationBlock, pegoutCreationRskTxReceipt,
-                pegoutCreationRskTx.getHash(), pegoutBtcTx, pegoutConfirmationRskTx.getHash()));
-        PowHSMSignerMessage actualPowHSMSignerMessage = (PowHSMSignerMessage) sigMessVersion2.buildMessageForIndex(
-            inputIndex);
-        PowHSMSignerMessage actualPowHSMSignerMessage2 = (PowHSMSignerMessage) sigMessVersion2.buildMessageForIndex(
-            inputIndex);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            pegoutCreationBlock,
+            pegoutCreationRskTxReceipt,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            pegoutConfirmationRskTx.getHash()
+        );
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        PowHSMSignerMessageBuilder sigMessVersion2 = new PowHSMSignerMessageBuilder(
+            receiptStore,
+            releaseCreationInformation,
+            sigHashCalculator
+        );
+        PowHSMSignerMessage actualPowHSMSignerMessage = (PowHSMSignerMessage) sigMessVersion2.buildMessageForIndex(inputIndex);
+        PowHSMSignerMessage actualPowHSMSignerMessage2 = (PowHSMSignerMessage) sigMessVersion2.buildMessageForIndex(inputIndex);
 
         //Assert
         int actualInputIndex = actualPowHSMSignerMessage.getInputIndex();
         assertEquals(inputIndex, actualInputIndex);
 
-        Sha256Hash expectedSigHash = pegoutBtcTx.hashForSignature(inputIndex,
-            oldFederation.getRedeemScript(), BtcTransaction.SigHash.ALL, false);
+        Sha256Hash expectedSigHash = pegoutBtcTx.hashForSignature(
+            inputIndex,
+            oldFederation.getRedeemScript(),
+            BtcTransaction.SigHash.ALL,
+            false
+        );
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+
+        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5.getNumber());
+        String actualBtcTxSerialized = messageToSign.get(TX.getFieldName()).asText();
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
-        assertArrayEquals(expectedReceiptMerkleProof,
-            actualPowHSMSignerMessage.getReceiptMerkleProof());
+        assertArrayEquals(
+            expectedReceiptMerkleProof,
+            actualPowHSMSignerMessage.getReceiptMerkleProof()
+        );
 
-        assertEquals(Hex.toHexString(pegoutCreationRskTxReceipt.getEncoded()),
-            actualPowHSMSignerMessage.getTransactionReceipt());
+        assertEquals(
+            Hex.toHexString(pegoutCreationRskTxReceipt.getEncoded()),
+            actualPowHSMSignerMessage.getTransactionReceipt()
+        );
         // Building actualPowHSMSignerMessage twice returns same actualPowHSMSignerMessage
         assertEquals(actualPowHSMSignerMessage, actualPowHSMSignerMessage2);
     }
 
     @Test
     void buildMessageForIndex_fails() {
-        BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(
-            mock(ActivationConfig.class));
-        Block block = new Block(blockHeaderBuilder.setNumber(1).build(), Collections.singletonList(pegoutCreationRskTx), Collections.emptyList(), true, true);
+        BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
+        Block block = new Block(
+            blockHeaderBuilder.setNumber(1).build(),
+            Collections.singletonList(pegoutCreationRskTx),
+            Collections.emptyList(),
+            true,
+            true
+        );
 
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
-            block, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(), mock(BtcTransaction.class),
-            pegoutConfirmationRskTx.getHash());
+            block,
+            pegoutCreationRskTxReceipt,
+            pegoutCreationRskTx.getHash(),
+            mock(BtcTransaction.class),
+            pegoutConfirmationRskTx.getHash()
+        );
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        PowHSMSignerMessageBuilder signerMessageBuilder = new PowHSMSignerMessageBuilder(
+            receiptStore,
+            releaseCreationInformation,
+            sigHashCalculator
+        );
 
-        PowHSMSignerMessageBuilder signerMessageBuilder = new PowHSMSignerMessageBuilder(receiptStore,
-            releaseCreationInformation);
-
-        assertThrows(SignerMessageBuilderException.class,
-            () -> signerMessageBuilder.buildMessageForIndex(0));
+        assertThrows(
+            SignerMessageBuilderException.class,
+            () -> signerMessageBuilder.buildMessageForIndex(0)
+        );
     }
 
     @Test
-    void buildMessageForIndex_whenLegacyBatchPegoutHasTransactionCreatedEvent_ok()
-        throws SignerMessageBuilderException {
+    void buildMessageForIndex_whenLegacyBatchPegoutHasTransactionCreatedEvent_ok() throws SignerMessageBuilderException {
         // arrange
-        Address userAddress2 = BitcoinTestUtils.createP2PKHAddress(btcMainnetParams,
-            "userAddress2");
+        Address userAddress2 = BitcoinTestUtils.createP2PKHAddress(btcMainnetParams, "userAddress2");
         Coin minimumPegoutTxValue = bridgeMainnetConstants.getMinimumPegoutTxValue();
-        List<Coin> outpointValues = Arrays.asList(Coin.COIN, minimumPegoutTxValue,
-            minimumPegoutTxValue);
-        BtcTransaction pegoutBtcTx = createPegout(outpointValues,
-            Arrays.asList(userAddress, userAddress2), false);
+        List<Coin> outpointValues = Arrays.asList(
+            Coin.COIN,
+            minimumPegoutTxValue,
+            minimumPegoutTxValue
+        );
+        BtcTransaction pegoutBtcTx = createPegout(
+            btcMainnetParams,
+            oldFederation,
+            outpointValues,
+            Arrays.asList(userAddress, userAddress2)
+        );
 
         List<LogInfo> logs = new ArrayList<>();
-
         addCommonPegoutLogs(logs, pegoutBtcTx);
 
-        List<Keccak256> pegoutRequestRskTxHashes = Collections.singletonList(
-            TestUtils.createHash(10));
-        LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(pegoutBtcTx.getHash(),
-            pegoutRequestRskTxHashes);
+        List<Keccak256> pegoutRequestRskTxHashes = Collections.singletonList(TestUtils.createHash(10));
+        LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(pegoutBtcTx.getHash(), pegoutRequestRskTxHashes);
         logs.add(batchPegoutCreatedLog);
 
-        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
-            pegoutBtcTx.getHash(), new byte[]{});
+        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(pegoutBtcTx.getHash(), new byte[]{});
         logs.add(pegoutTransactionCreatedLog);
 
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
 
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
-            pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutConfirmationRskTx.getHash());
+            pegoutCreationBlock,
+            pegoutCreationRskTxReceipt,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            pegoutConfirmationRskTx.getHash()
+        );
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
-            receiptStore, releaseCreationInformation);
+            receiptStore,
+            releaseCreationInformation,
+            sigHashCalculator
+        );
 
         // act
         int inputIndex = 0;
-        SignerMessage actualSignerMessage = powHSMSignerMessageBuilder.buildMessageForIndex(
-            inputIndex);
+        SignerMessage actualSignerMessage = powHSMSignerMessageBuilder.buildMessageForIndex(inputIndex);
 
         // assertions
         List<Coin> expectedOutpointValues = Collections.emptyList();
         List<Coin> actualOutpointValues = releaseCreationInformation.getUtxoOutpointValues();
         assertArrayEquals(actualOutpointValues.toArray(), expectedOutpointValues.toArray());
 
-        assertEquals(actualSignerMessage.getClass(), PowHSMSignerMessage.class);
+        assertEquals(PowHSMSignerMessage.class, actualSignerMessage.getClass());
 
         PowHSMSignerMessage actualPowHSMSignerMessage = (PowHSMSignerMessage) actualSignerMessage;
 
         int actualInputIndex = actualPowHSMSignerMessage.getInputIndex();
         assertEquals(inputIndex, actualInputIndex);
 
-        Sha256Hash expectedSigHash = pegoutBtcTx.hashForSignature(inputIndex,
-            oldFederation.getRedeemScript(), BtcTransaction.SigHash.ALL, false);
+        Sha256Hash expectedSigHash = pegoutBtcTx.hashForSignature(
+            inputIndex,
+            oldFederation.getRedeemScript(),
+            BtcTransaction.SigHash.ALL,
+            false
+        );
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5.getNumber());
+        String actualBtcTxSerialized = messageToSign.get(TX.getFieldName()).asText();
+
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
-        assertArrayEquals(expectedReceiptMerkleProof,
-            actualPowHSMSignerMessage.getReceiptMerkleProof());
+        assertArrayEquals(expectedReceiptMerkleProof, actualPowHSMSignerMessage.getReceiptMerkleProof());
     }
 
     private String[] getEncodedReceiptMerkleProof(ReceiptStore receiptStore) {
         List<Trie> receiptMerkleProof = BlockHashesHelper.calculateReceiptsTrieRootFor(
-            pegoutCreationBlock, receiptStore, pegoutCreationRskTx.getHash());
+            pegoutCreationBlock,
+            receiptStore,
+            pegoutCreationRskTx.getHash()
+        );
         String[] encodedReceiptMerkleProof = new String[receiptMerkleProof.size()];
         for (int i = 0; i < encodedReceiptMerkleProof.length; i++) {
             encodedReceiptMerkleProof[i] = Hex.toHexString(receiptMerkleProof.get(i).toMessage());
@@ -244,17 +289,24 @@ class PowHSMSignerMessageBuilderTest {
     @ParameterizedTest
     @MethodSource("serializedAndDeserializedOutpointValuesArgProvider")
     void buildMessageForIndex_whenSegwitBatchPegoutHasTransactionCreatedEvent_ok(
-        byte[] serializedOutpointValues, List<Coin> expectedOutpointValues)
-        throws SignerMessageBuilderException {
+        byte[] serializedOutpointValues,
+        List<Coin> expectedOutpointValues
+    ) throws SignerMessageBuilderException {
         // arrange
-        Address userAddress2 = BitcoinTestUtils.createP2PKHAddress(btcMainnetParams,
-            "userAddress2");
+        Address userAddress2 = BitcoinTestUtils.createP2PKHAddress(
+            btcMainnetParams,
+            "userAddress2"
+        );
         List<Address> destinationAddresses = Arrays.asList(userAddress, userAddress2);
-        BtcTransaction pegoutBtcTx = createPegout(expectedOutpointValues, destinationAddresses,
-            true);
+
+        BtcTransaction pegoutBtcTx = createPegout(
+            btcMainnetParams,
+            oldSegwitFederation,
+            expectedOutpointValues,
+            destinationAddresses
+        );
 
         List<LogInfo> logs = new ArrayList<>();
-
         addCommonPegoutLogs(logs, pegoutBtcTx);
 
         List<Keccak256> pegoutRequestRskTxHashes = Collections.singletonList(
@@ -278,11 +330,14 @@ class PowHSMSignerMessageBuilderTest {
         byte[] serializedOutpointValues, List<Coin> expectedOutpointValues)
         throws SignerMessageBuilderException {
         // arrange
-        BtcTransaction segwitPegoutBtcTx = createPegout(expectedOutpointValues,
-            Collections.singletonList(newFederation.getAddress()), true);
+        BtcTransaction segwitPegoutBtcTx = createPegout(
+            btcMainnetParams,
+            oldSegwitFederation,
+            expectedOutpointValues,
+            Collections.singletonList(newFederation.getAddress())
+        );
 
         List<LogInfo> logs = new ArrayList<>();
-
         addCommonPegoutLogs(logs, segwitPegoutBtcTx);
 
         LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
@@ -300,8 +355,12 @@ class PowHSMSignerMessageBuilderTest {
         byte[] serializedOutpointValues, List<Coin> expectedOutpointValues)
         throws SignerMessageBuilderException {
         // arrange
-        BtcTransaction segwitPegoutBtcTx = createPegout(expectedOutpointValues,
-            Collections.singletonList(userAddress), true);
+        BtcTransaction segwitPegoutBtcTx = createPegout(
+            btcMainnetParams,
+            oldSegwitFederation,
+            expectedOutpointValues,
+            Collections.singletonList(userAddress)
+        );
 
         List<LogInfo> logs = new ArrayList<>();
 
@@ -334,91 +393,74 @@ class PowHSMSignerMessageBuilderTest {
         return arguments;
     }
 
-    private void buildMessageForIndexAndExecuteAssertions(List<Coin> expectedOutpointValues,
-        BtcTransaction pegoutBtcTx)
-        throws SignerMessageBuilderException {
+    private void buildMessageForIndexAndExecuteAssertions(
+        List<Coin> expectedOutpointValues,
+        BtcTransaction pegoutBtcTx
+    ) throws SignerMessageBuilderException {
         ReleaseCreationInformation releaseInformation = new ReleaseCreationInformation(
-            pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutConfirmationRskTx.getHash());
+            pegoutCreationBlock,
+            pegoutCreationRskTxReceipt,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            pegoutConfirmationRskTx.getHash()
+        );
 
         List<Coin> actualOutpointValues = releaseInformation.getUtxoOutpointValues();
         assertArrayEquals(actualOutpointValues.toArray(), expectedOutpointValues.toArray());
 
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        if (pegoutBtcTx.hasWitness()) {
+            sigHashCalculator = new SegwitSigHashCalculatorImpl(actualOutpointValues);
+        }
         PowHSMSignerMessageBuilder signerMessageBuilder = new PowHSMSignerMessageBuilder(
-            receiptStore, releaseInformation);
+            receiptStore,
+            releaseInformation,
+            sigHashCalculator
+        );
 
         int numOfInputsToSign = expectedOutpointValues.size();
 
         for (int inputIndex = 0; inputIndex < numOfInputsToSign; inputIndex++) {
             // Act
-            SignerMessage actualSignerMessage = signerMessageBuilder.buildMessageForIndex(
-                inputIndex);
+            SignerMessage actualSignerMessage = signerMessageBuilder.buildMessageForIndex(inputIndex);
 
             // Assertions
-            assertSignerMessage(actualSignerMessage, pegoutBtcTx, inputIndex);
+            assertSignerMessage(actualSignerMessage, pegoutBtcTx, inputIndex, expectedOutpointValues);
         }
     }
 
-    private void assertSignerMessage(SignerMessage actualSignerMessage, BtcTransaction pegoutBtcTx,
-        int inputIndex) {
-        assertEquals(actualSignerMessage.getClass(), PowHSMSignerMessage.class);
+    private void assertSignerMessage(
+        SignerMessage actualSignerMessage,
+        BtcTransaction pegoutBtcTx,
+        int inputIndex,
+        List<Coin> expectedOutpointValues
+    ) {
+        assertEquals(PowHSMSignerMessage.class, actualSignerMessage.getClass());
 
         PowHSMSignerMessage actualPowHSMSignerMessage = (PowHSMSignerMessage) actualSignerMessage;
         assertEquals(inputIndex, actualPowHSMSignerMessage.getInputIndex());
 
-        Sha256Hash expectedSigHash = pegoutBtcTx.hashForSignature(inputIndex,
-            oldFederation.getRedeemScript(), BtcTransaction.SigHash.ALL, false);
+        Sha256Hash expectedSigHash;
+        if (inputHasWitness(pegoutBtcTx, inputIndex)) {
+            Coin prevValue = expectedOutpointValues.get(inputIndex);
+            expectedSigHash = pegoutBtcTx.hashForWitnessSignature(inputIndex, oldSegwitFederation.getRedeemScript(), prevValue, BtcTransaction.SigHash.ALL, false);
+        } else {
+            expectedSigHash = pegoutBtcTx.hashForSignature(inputIndex, oldFederation.getRedeemScript(), BtcTransaction.SigHash.ALL, false);
+        }
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
-        String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        String actualBtcTxSerialized = actualPowHSMSignerMessage.getBtcTransactionSerialized();
+        BtcTransaction txWithoutWitness = BitcoinUtils.getTransactionWithoutWitness(pegoutBtcTx);
+        String expectedBtcTxSerialized = Hex.toHexString(txWithoutWitness.bitcoinSerialize());
+        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5.getNumber());
+        String actualBtcTxSerialized = messageToSign.get(TX.getFieldName()).asText();
+
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
         String[] expectedReceiptMerkleProof = getEncodedReceiptMerkleProof(receiptStore);
-        assertArrayEquals(expectedReceiptMerkleProof,
-            actualPowHSMSignerMessage.getReceiptMerkleProof());
-    }
-
-    private BtcTransaction createPegout(List<Coin> outpointValues,
-        List<Address> destinationAddresses, boolean segwit) {
-
-        BtcTransactionBuilder btcTransactionBuilder = new BtcTransactionBuilder();
-
-        // TODO: improve this test to create a more realistic btc segwit transaction
-        //  once {@link SignerMessageBuilder#getSigHashByInputIndex(int)} is refactored to support segwit
-        Script inputScriptThatSpendsFromTheFederation = createBaseInputScriptThatSpendsFromTheFederation(
-            oldFederation);
-
-        Coin fee = Coin.MILLICOIN;
-        for (int inputIndex = 0; inputIndex < outpointValues.size(); inputIndex++) {
-            Coin outpointValue = outpointValues.get(inputIndex);
-            Coin amountToSend = outpointValue.minus(fee);
-            // Iterate over the addresses using inputIndex % addresses.size() to have outputs to different addresses
-            Address destinationAddress = destinationAddresses.get(
-                inputIndex % destinationAddresses.size());
-
-            TransactionInput txInput = btcTransactionBuilder.createInputBuilder()
-                .withAmount(outpointValue).withOutpointIndex(inputIndex)
-                .withScriptSig(inputScriptThatSpendsFromTheFederation)
-                .build();
-
-            btcTransactionBuilder
-                .withInput(
-                    txInput
-                )
-                .withOutput(amountToSend, destinationAddress);
-
-            if (segwit) {
-                // TODO: change this dummy witness for a real witness once segwit is fully implemented in bitcoinj-thin
-                // make it a segwit tx by adding a single witness
-                TransactionWitness witness = new TransactionWitness(1);
-                witness.setPush(0, new byte[]{1});
-
-                btcTransactionBuilder.withWitness(inputIndex, witness);
-            }
-        }
-
-        return btcTransactionBuilder.build();
+        assertArrayEquals(
+            expectedReceiptMerkleProof,
+            actualPowHSMSignerMessage.getReceiptMerkleProof()
+        );
     }
 
     private void addCommonPegoutLogs(List<LogInfo> logs, BtcTransaction pegoutBtcTx) {

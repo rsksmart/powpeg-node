@@ -1,142 +1,106 @@
 package co.rsk.federate.btcreleaseclient;
 
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
-import static co.rsk.federate.signing.utils.TestUtils.createHash;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.spy;
+import static co.rsk.federate.signing.utils.TestUtils.*;
+import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-import co.rsk.bitcoinj.core.BtcECKey;
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Coin;
-import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.MainNetParams;
-import co.rsk.bitcoinj.script.Script;
-import co.rsk.bitcoinj.script.ScriptBuilder;
-import co.rsk.bitcoinj.script.ScriptChunk;
-import co.rsk.federate.bitcoin.BitcoinTestUtils;
-import co.rsk.peg.bitcoin.BitcoinUtils;
-import co.rsk.peg.bitcoin.FlyoverRedeemScriptBuilderImpl;
-import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.bitcoinj.script.*;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
+import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCache;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCacheImpl;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.mock.SimpleEthereumImpl;
-import co.rsk.federate.signing.ECDSASigner;
-import co.rsk.federate.signing.ECPublicKey;
-import co.rsk.federate.signing.FederationCantSignException;
-import co.rsk.federate.signing.FederatorAlreadySignedException;
-import co.rsk.federate.signing.KeyId;
+import co.rsk.federate.signing.*;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.SignerException;
-import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
-import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
-import co.rsk.federate.signing.hsm.message.SignerMessage;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilder;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderException;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
-import co.rsk.federate.signing.hsm.message.SignerMessageBuilderV1;
+import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.peg.federation.*;
+import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.StateForFederator;
 import co.rsk.peg.StateForProposedFederator;
+import co.rsk.peg.bitcoin.BitcoinUtils;
+import co.rsk.peg.bitcoin.FlyoverRedeemScriptBuilderImpl;
+import co.rsk.peg.bitcoin.UtxoUtils;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.federation.*;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.time.*;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.ethereum.config.blockchain.upgrades.ConsensusRule;
+
+import co.rsk.peg.federation.constants.FederationConstants;
+import co.rsk.peg.federation.constants.FederationMainNetConstants;
 import org.ethereum.config.Constants;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.core.Block;
-import org.ethereum.core.TransactionReceipt;
+import org.ethereum.config.blockchain.upgrades.ConsensusRule;
+import org.ethereum.core.*;
 import org.ethereum.crypto.ECKey;
-import org.ethereum.db.BlockStore;
-import org.ethereum.db.ReceiptStore;
-import org.ethereum.db.TransactionInfo;
+import org.ethereum.db.*;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListener;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.ethereum.vm.DataWord;
+import org.ethereum.vm.LogInfo;
+import org.ethereum.vm.PrecompiledContracts;
+import org.junit.jupiter.api.*;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.spongycastle.util.encoders.Hex;
 
 class BtcReleaseClientTest {
-
     private static final Duration PEGOUT_SIGNED_CACHE_TTL = Duration.ofMinutes(30);
-
-    private final BlockStore blockStore = mock(BlockStore.class);
-    private final ReceiptStore receiptStore = mock(ReceiptStore.class);
-    private final Block bestBlock = mock(Block.class);
-    private final NetworkParameters params = MainNetParams.get();
-    private final BridgeConstants bridgeConstants = Constants.mainnet().bridgeConstants;
-
     private static final List<BtcECKey> erpFedKeys = Arrays.stream(new String[]{
         "03b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b24",
         "029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e43301",
         "03284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd",
-    }).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).collect(Collectors.toList());
+    }).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).toList();
+
+    private static PowpegNodeSystemProperties powpegNodeSystemProperties;
+    private final Block bestBlock = mock(Block.class);
+    private final Keccak256 rskBlockHash = createHash(123);
+    private final NetworkParameters params = MainNetParams.get();
+    private final BridgeConstants bridgeConstants = Constants.mainnet().bridgeConstants;
+
+    private ReceiptStore receiptStore;
+    private BlockStore blockStore;
+    private BtcReleaseClient client;
+    private FederatorSupport federatorSupport;
+    private ECDSASigner signer;
 
     @BeforeEach
     void setup() {
-        Keccak256 blockHash = createHash(123);
-        when(bestBlock.getHash()).thenReturn(blockHash); 
-        when(bestBlock.getNumber()).thenReturn(5_000L); 
-        when(blockStore.getBlockByHash(blockHash.getBytes()))
-            .thenReturn(bestBlock);
+        receiptStore = mock(ReceiptStore.class);
+        blockStore = mock(BlockStore.class);
+        federatorSupport = mock(FederatorSupport.class);
+        signer = mock(ECDSASigner.class);
+
+        long blockNumber = 5_000L;
+        when(bestBlock.getNumber()).thenReturn(blockNumber);
+        when(bestBlock.getHash()).thenReturn(rskBlockHash);
+        when(blockStore.getBlockByHash(rskBlockHash.getBytes())).thenReturn(bestBlock);
+        when(blockStore.getChainBlockByNumber(blockNumber)).thenReturn(bestBlock);
     }
 
     @Test
     void start_whenFederationMemberNotPartOfDesiredFederation_shouldThrowException() {
         // Arrange
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
-
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        Federation federation = TestUtils.createFederation(params, 1);
-        Federation otherFederation = TestUtils.createFederation(params, 2);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
+        Federation otherFederation = TestUtils.createStandardMultisigFederation(params, 2);
         FederationMember federationMember = otherFederation.getMembers().get(1);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
@@ -153,11 +117,8 @@ class BtcReleaseClientTest {
 
     @Test
     void if_start_not_called_rsk_blockchain_not_listened() {
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         Ethereum ethereum = mock(Ethereum.class);
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        Mockito.doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         new BtcReleaseClient(
             ethereum,
@@ -171,12 +132,8 @@ class BtcReleaseClientTest {
 
     @Test
     void when_start_called_rsk_blockchain_is_listened() {
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         Ethereum ethereum = mock(Ethereum.class);
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        Mockito.doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
@@ -185,12 +142,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        Federation fed1 = TestUtils.createFederation(params, 1);
+        Federation fed1 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember1 = fed1.getMembers().get(0);
         doReturn(federationMember1).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed1);
 
-        Federation fed2 = TestUtils.createFederation(params, 1);
+        Federation fed2 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember2 = fed2.getMembers().get(0);
         doReturn(federationMember2).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed2);
@@ -200,13 +157,9 @@ class BtcReleaseClientTest {
 
     @Test
     void if_stop_called_with_just_one_federation_rsk_blockchain_is_still_listened() {
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         Ethereum ethereum = mock(Ethereum.class);
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        Mockito.doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
-      
+
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
@@ -214,12 +167,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        Federation fed1 = TestUtils.createFederation(params, 1);
+        Federation fed1 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember1 = fed1.getMembers().get(0);
         doReturn(federationMember1).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed1);
 
-        Federation fed2 = TestUtils.createFederation(params, 1);
+        Federation fed2 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember2 = fed2.getMembers().get(0);
         doReturn(federationMember2).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed2);
@@ -232,12 +185,8 @@ class BtcReleaseClientTest {
 
     @Test
     void if_stop_called_with_federations_rsk_blockchain_is_not_listened() {
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         Ethereum ethereum = mock(Ethereum.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        Mockito.doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
@@ -246,12 +195,12 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        Federation fed1 = TestUtils.createFederation(params, 1);
+        Federation fed1 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember1 = fed1.getMembers().get(0);
         doReturn(federationMember1).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed1);
 
-        Federation fed2 = TestUtils.createFederation(params, 1);
+        Federation fed2 = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember2 = fed2.getMembers().get(0);
         doReturn(federationMember2).when(federatorSupport).getFederationMember();
         btcReleaseClient.start(fed2);
@@ -266,7 +215,8 @@ class BtcReleaseClientTest {
     @Test
     void processReleases_ok() throws Exception {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 1);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         // Create a tx from the Fed to a random btc address
@@ -282,23 +232,17 @@ class BtcReleaseClientTest {
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
         ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         when(signer.getPublicKey(BTC.getKeyId())).thenReturn(signerPublicKey);
         when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(1);
         when(signer.sign(eq(BTC.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
 
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
-
-        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx);
+        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx, sigHashCalculator);
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
         when(signerMessageBuilderFactory.buildFromConfig(ArgumentMatchers.anyInt(), ArgumentMatchers
-            .any(ReleaseCreationInformation.class)))
+            .any(ReleaseCreationInformation.class), ArgumentMatchers.anyInt()))
             .thenReturn(messageBuilder);
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
         BtcReleaseClient client = new BtcReleaseClient(
@@ -348,10 +292,417 @@ class BtcReleaseClientTest {
             .sign(eq(BTC.getKeyId()), any(SignerMessage.class));
     }
 
+    @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    @Tag("process releases")
+    class ProcessReleasesTests {
+        // when recreating already signed pegouts
+        // we need to manually add the sigs,
+        // since the real signing is done by the bridge
+        
+        private final byte[] bridgeContractAddressSerialized = PrecompiledContracts.BRIDGE_ADDR.getBytes();
+        private final CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
+        private final CallTransaction.Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
+        
+        // feds setup
+        private final BtcECKey keyFile1BtcPubKey = getBtcEcKeyFromSeed("keyFile1BtcPubKey");
+        private final ECKey keyFile1RskPubKey = ECKey.fromPublicOnly(keyFile1BtcPubKey.getPubKey());
+        private final BtcECKey keyFile2BtcPubKey = getBtcEcKeyFromSeed("keyFile2BtcPubKey");
+        private final ECKey keyFile2RskPubKey = ECKey.fromPublicOnly(keyFile2BtcPubKey.getPubKey());
+        private final BtcECKey hsm1BtcPubKey = getBtcEcKeyFromSeed("hsm1BtcPubKey");
+        private final ECKey hsm1RskPubKey = getEcKeyFromSeed("hsm1RskPubKey");
+        private final BtcECKey hsm2BtcPubKey = getBtcEcKeyFromSeed("hsm2BtcPubKey");
+        private final ECKey hsm2RskPubKey = getEcKeyFromSeed("hsm2RskPubKey");
+        private final FederationMember keyFile1Member = new FederationMember(keyFile1BtcPubKey, keyFile1RskPubKey, keyFile1RskPubKey);
+        private final FederationMember keyFile2Member = new FederationMember(keyFile2BtcPubKey, keyFile2RskPubKey, keyFile2RskPubKey);
+        private final FederationMember hsm1Member = new FederationMember(hsm1BtcPubKey, hsm1RskPubKey, hsm1RskPubKey);
+        private final FederationMember hsm2Member = new FederationMember(hsm2BtcPubKey, hsm2RskPubKey, hsm2RskPubKey);
+        private final List<FederationMember> members = List.of(keyFile1Member, keyFile2Member, hsm1Member, hsm2Member);
+        private final FederationConstants federationMainnetConstants = FederationMainNetConstants.getInstance();
+        private final long erpActivationDelay = federationMainnetConstants.getErpFedActivationDelay();
+        private final Instant creationTime = Instant.ofEpochSecond(100_000_000L);
+        private final long creationBlockNumber = 1L;
+        
+        private final FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, params);
+        private final Federation legacyFederation =
+            FederationFactory.buildP2shErpFederation(federationArgs, erpFedKeys, erpActivationDelay);
+        private final Federation segwitFederation =
+            FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpFedKeys, erpActivationDelay);
+
+        private final Keccak256 rskTxHash = new Keccak256("0102030405060708090000000000000000000000000000000000000000000000");
+        private final byte[] rskTxHashSerialized = rskTxHash.getBytes();
+        private final byte[] notNullBytes = new byte[]{0x01};
+        private final byte[] rskBlockHashSerialized = rskBlockHash.getBytes();
+
+        private BtcTransaction releaseTx;
+        private SortedMap<Keccak256, BtcTransaction> releases;
+        private SignerMessageBuilderFactory signerMessageBuilderFactory;
+        private ReleaseCreationInformationGetter releaseCreationInformationGetter;
+        private BtcReleaseClientStorageAccessor storageAccessor;
+        private List<LogInfo> logInfoList;
+
+        @BeforeEach
+        void setUp() {
+            powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+            logInfoList = new ArrayList<>();
+            releases = new TreeMap<>();
+
+            Transaction rskTx = mock(Transaction.class);
+            when(rskTx.getHash()).thenReturn(rskTxHash);
+            when(bestBlock.getTransactionsList()).thenReturn(List.of(rskTx));
+        }
+
+        void setUpWithFederation(Federation federation) throws InvalidStorageFileException {
+            // set up for release tx
+            BtcTransaction prevTx = new BtcTransaction(params);
+            Coin prevTxValue = Coin.COIN;
+            prevTx.addOutput(prevTxValue, federation.getAddress());
+            releaseTx = new BtcTransaction(params);
+            releaseTx.addInput(prevTx.getOutput(0));
+            addSpendingFederationBaseScript(
+                releaseTx,
+                0,
+                federation.getRedeemScript(),
+                federation.getFormatVersion()
+            );
+            releases.put(rskTxHash, releaseTx);
+
+            Sha256Hash originalReleaseTxHash = releaseTx.getHash();
+
+            // set up blockchain
+            // set up release requested event
+            byte[][] releaseRequestedEncodedTopics = releaseRequestedEvent.encodeEventTopics(rskTxHashSerialized, originalReleaseTxHash.getBytes());
+            List<DataWord> releaseRequestedTopics = LogInfo.byteArrayToList(releaseRequestedEncodedTopics);
+            byte[] releaseRequestedEncodedData = releaseRequestedEvent.encodeEventData(prevTxValue.getValue());
+            LogInfo releaseRequestedLogInfo = new LogInfo(bridgeContractAddressSerialized, releaseRequestedTopics, releaseRequestedEncodedData);
+            logInfoList.add(releaseRequestedLogInfo);
+
+            // set up pegout transaction created event
+            byte[][] pegoutTransactionCreatedEncodedTopicsSerialized = pegoutTransactionCreatedEvent.encodeEventTopics(originalReleaseTxHash.getBytes());
+            List<DataWord> pegoutTransactionCreatedEncodedTopics = LogInfo.byteArrayToList(pegoutTransactionCreatedEncodedTopicsSerialized);
+            byte[] serializedOutpointValues = UtxoUtils.encodeOutpointValues(List.of(prevTxValue));
+            byte[] pegoutTransactionCreatedEncodedData = pegoutTransactionCreatedEvent.encodeEventData(serializedOutpointValues);
+            LogInfo pegoutTransactionCreatedLogInfo = new LogInfo(bridgeContractAddressSerialized, pegoutTransactionCreatedEncodedTopics, pegoutTransactionCreatedEncodedData);
+            logInfoList.add(pegoutTransactionCreatedLogInfo);
+
+            TransactionReceipt txReceipt = new TransactionReceipt(
+                rskTxHashSerialized,
+                notNullBytes,
+                notNullBytes,
+                mock(Bloom.class),
+                logInfoList,
+                notNullBytes
+            );
+
+            TransactionInfo txInfo = new TransactionInfo(txReceipt, rskBlockHashSerialized, 0);
+            when(receiptStore.getInMainChain(rskTxHashSerialized, blockStore)).thenReturn(Optional.of(txInfo));
+            when(receiptStore.get(rskTxHashSerialized, rskBlockHashSerialized)).thenReturn(Optional.of(txInfo));
+
+            // final setup
+            releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
+            storageAccessor = new BtcReleaseClientStorageAccessor(powpegNodeSystemProperties);
+            storageAccessor.putBtcTxHashRskTxHash(originalReleaseTxHash, rskTxHash);
+            signerMessageBuilderFactory = new SignerMessageBuilderFactory(receiptStore);
+        }
+
+        @Test
+        void processReleases_signWithKeyFile_legacyFed_ok() throws Exception {
+            // Arrange
+            setUpWithFederation(legacyFederation);
+
+            int signerVersion = 1;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
+            setUpFederator(legacyFederation, keyFile1Member, signerVersion, ethSig);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithHSM_legacyFed_ok() throws Exception {
+            // Arrange
+            setUpWithFederation(legacyFederation);
+
+            int signerVersion = 5;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
+            setUpFederator(legacyFederation, hsm1Member, signerVersion, ethSig);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithKeyFile_legacyFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
+            // Arrange
+            setUpWithFederation(legacyFederation);
+            
+            int signerVersion = 1;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
+            setUpFederator(legacyFederation, keyFile1Member, signerVersion, ethSig);
+            TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport, times(0)).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithHSM_legacyFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
+            // Arrange
+            setUpWithFederation(legacyFederation);
+            
+            int signerVersion = 5;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
+            setUpFederator(legacyFederation, hsm1Member, signerVersion, ethSig);
+            TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport, times(0)).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithKeyFile_whenOtherFedAlreadySigned_legacyFed_ok() throws Exception {
+            // Arrange
+            setUpWithFederation(legacyFederation);
+            
+            int signerVersion = 1;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
+            setUpFederator(legacyFederation, keyFile1Member, signerVersion, ethSig);
+
+            TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
+
+            // act
+            client.processReleases(releases.entrySet());
+            
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithHSM_whenOtherFedAlreadySigned_legacyFed_ok() throws Exception {
+            // Arrange
+            setUpWithFederation(legacyFederation);
+            
+            int signerVersion = 5;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
+            setUpFederator(legacyFederation, hsm1Member, signerVersion, ethSig);
+
+            TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithKeyFile_segwitFed_ok() throws Exception {
+            // Arrange
+            setUpWithFederation(segwitFederation);
+
+            int signerVersion = 1;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
+            setUpFederator(segwitFederation, keyFile1Member, signerVersion, ethSig);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithHSM_segwitFed_ok() throws Exception {
+            // Arrange
+            setUpWithFederation(segwitFederation);
+            
+            int signerVersion = 5;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
+            setUpFederator(segwitFederation, hsm1Member, signerVersion, ethSig);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithKeyFile_segwitFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
+            // Arrange
+            setUpWithFederation(segwitFederation);
+            
+            int signerVersion = 1;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
+            setUpFederator(segwitFederation, keyFile1Member, signerVersion, ethSig);
+
+            TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport, times(0)).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithHSM_segwitFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
+            // Arrange
+            setUpWithFederation(segwitFederation);
+
+            int signerVersion = 5;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
+            setUpFederator(segwitFederation, hsm1Member, signerVersion, ethSig);
+            TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport, times(0)).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithKeyFile_whenOtherFedAlreadySigned_segwitFed_ok() throws Exception {
+            // arrange
+            setUpWithFederation(segwitFederation);
+            
+            int signerVersion = 1;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
+            setUpFederator(segwitFederation, keyFile1Member, signerVersion, ethSig);
+
+            TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+
+        @Test
+        void processReleases_signWithHSM_whenOtherFedAlreadySigned_segwitFed_ok() throws Exception {
+            // Arrange
+            setUpWithFederation(segwitFederation);
+
+            int signerVersion = 5;
+            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
+            setUpFederator(segwitFederation, hsm1Member, signerVersion, ethSig);
+
+            TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+            verify(federatorSupport).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
+            );
+        }
+        
+        private void setUpFederator(
+            Federation federation,
+            FederationMember member,
+            int signerVersion,
+            ECKey.ECDSASignature ethSig
+        ) throws SignerException, BtcReleaseClientException {
+            setUpSigner(member.getBtcPublicKey(), signerVersion, ethSig);
+            setUpNewClient(federation, member);
+        }
+
+        private void setUpSigner(BtcECKey btcPubKey, int signerVersion, ECKey.ECDSASignature ethSig) throws SignerException {
+            ECPublicKey signingKey = new ECPublicKey(btcPubKey.getPubKey());
+            when(signer.getPublicKey(BTC.getKeyId())).thenReturn(signingKey);
+            when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(signerVersion);
+            when(signer.sign(eq(BTC.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
+        }
+
+        private void setUpNewClient(Federation federation, FederationMember member) throws BtcReleaseClientException {
+            doReturn(member).when(federatorSupport).getFederationMember();
+
+            client = new BtcReleaseClient(
+                mock(Ethereum.class),
+                federatorSupport,
+                powpegNodeSystemProperties,
+                mock(NodeBlockProcessor.class)
+            );
+            client.setup(
+                signer,
+                mock(ActivationConfig.class),
+                signerMessageBuilderFactory,
+                releaseCreationInformationGetter,
+                mock(ReleaseRequirementsEnforcer.class),
+                storageAccessor,
+                mock(BtcReleaseClientStorageSynchronizer.class)
+            );
+
+            client.start(federation);
+        }
+    }
+
     @Test
     void having_two_pegouts_signs_only_one() throws Exception {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 1);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
         BtcTransaction tx1 = TestUtils.createBtcTransaction(params, federation);
         BtcTransaction tx2 = TestUtils.createBtcTransaction(params, federation);
@@ -373,7 +724,6 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doThrow(RuntimeException.class).when(federatorSupport).addSignature(
             anyList(),
             any(byte[].class)
@@ -386,22 +736,13 @@ class BtcReleaseClientTest {
         BtcECKey fedKey = new BtcECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ethSig).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
-
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
         );
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
 
         Keccak256 blockHash1 = createHash(2);
         Block block1 = mock(Block.class);
@@ -461,7 +802,8 @@ class BtcReleaseClientTest {
 
     @Test
     void onBestBlock_whenPegoutTxIsCached_shouldNotSignSamePegoutTxAgain() throws Exception {
-        Federation federation = TestUtils.createFederation(params, 9);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = federation.getMembers().get(0);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
@@ -476,7 +818,6 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
@@ -484,22 +825,13 @@ class BtcReleaseClientTest {
         BtcECKey fedKey = new BtcECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
 
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
-
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
         );
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
 
         Keccak256 blockHash = createHash(2);
         Block block = mock(Block.class);
@@ -565,7 +897,8 @@ class BtcReleaseClientTest {
 
     @Test
     void onBestBlock_whenPegoutTxIsCachedWithInvalidTimestamp_shouldSignSamePegoutTxAgain() throws Exception {
-        Federation federation = TestUtils.createFederation(params, 9);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = federation.getMembers().get(0);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
@@ -580,7 +913,6 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
@@ -588,22 +920,12 @@ class BtcReleaseClientTest {
         BtcECKey fedKey = new BtcECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
-
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
         );
-
-        ReceiptStore receiptStore = mock(ReceiptStore.class);
 
         Keccak256 blockHash = createHash(2);
         Block block = mock(Block.class);
@@ -676,7 +998,8 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenOnlySvpSpendTxWaitingForSignaturesIsAvailable_shouldAddSignature() throws Exception {
         // Arrange
-        Federation proposedFederation = TestUtils.createFederation(params, 9);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = proposedFederation.getMembers().get(0);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(0);
@@ -690,7 +1013,6 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
         // return svp spend tx waiting for signatures
         doReturn(Optional.of(stateForProposedFederator)).when(federatorSupport).getStateForProposedFederator();
@@ -700,16 +1022,9 @@ class BtcReleaseClientTest {
         ECKey ecKey = new ECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(federationMember.getBtcPublicKey().getPubKey());
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
@@ -768,11 +1083,21 @@ class BtcReleaseClientTest {
         );
     }
 
+    private static PowpegNodeSystemProperties getPowpegNodeSystemProperties(boolean isPegoutEnabled) {
+        powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
+        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
+        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
+            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
+        when(powpegNodeSystemProperties.isPegoutEnabled()).thenReturn(isPegoutEnabled); //enabled by default
+        return powpegNodeSystemProperties;
+    }
+
     @Test
     void onBestBlock_whenSvpSpendTxWaitingForSignaturesIsAvailableWithSignatureFromAnotherFederationMember_shouldSendAddSignature() throws Exception {
         // Arrange
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         List<BtcECKey> federationKeys = TestUtils.getFederationPrivateKeys(9);
-        Federation proposedFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), federationKeys);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(bridgeConstants.getBtcParams(), federationKeys);
         Script scriptSig = proposedFederation.getP2SHScript().createEmptyInputScript(null, proposedFederation.getRedeemScript());
 
         BtcTransaction svpSpendTx = new BtcTransaction(params);
@@ -802,7 +1127,6 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         FederationMember federationMember = proposedFederation.getMembers().get(0);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
         // return svp spend tx waiting for signatures
@@ -813,16 +1137,9 @@ class BtcReleaseClientTest {
         ECKey ecKey = new ECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(federationMember.getBtcPublicKey().getPubKey());
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
@@ -877,7 +1194,7 @@ class BtcReleaseClientTest {
         // Assert
         
         // We should have searched by the expected svp spend tx hash
-        BitcoinUtils.removeSignaturesFromTransactionWithP2shMultiSigInputs(svpSpendTx);
+        BitcoinUtils.removeSignaturesFromMultiSigTransaction(svpSpendTx);
         assertEquals(svpSpendTxHashBeforeSigning, svpSpendTx.getHash());
         verify(releaseCreationInformationGetter).getTxInfoToSign(
             anyInt(),
@@ -894,14 +1211,15 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenBothPegoutAndSvpSpendTxWaitingForSignaturesAreAvailableAndFederatorIsOnlyPartOfProposedFederation_shouldOnlyAddOneSignature() throws Exception {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 9);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 9);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
         SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
         rskTxsWaitingForSignatures.put(pegoutCreationRskTxHash, pegout);
         StateForFederator stateForFederator = new StateForFederator(rskTxsWaitingForSignatures);
 
-        Federation proposedFederation = TestUtils.createFederation(params, 9);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = proposedFederation.getMembers().get(0);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(1);
@@ -915,7 +1233,6 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
         // returns pegout waiting for signatures
         doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
@@ -925,16 +1242,9 @@ class BtcReleaseClientTest {
         ECKey ecKey = new ECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(federationMember.getBtcPublicKey().getPubKey());
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
@@ -1011,10 +1321,11 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenBothPegoutAndSvpSpendTxWaitingForSignaturesIsAvailable_shouldAddSignatureForBoth() throws Exception {
         // Arrange
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         List<BtcECKey> keys = Stream.generate(BtcECKey::new).limit(9).toList();
         BtcECKey fedKey = keys.get(0);
         FederationMember federationMember = FederationMember.getFederationMembersFromKeys(keys).get(0);
-        Federation federation = TestUtils.createFederation(params, keys);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, keys);
         BtcTransaction pegout = TestUtils.createBtcTransaction(params, federation);
         Keccak256 pegoutCreationRskTxHash = createHash(0);
         SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
@@ -1023,7 +1334,7 @@ class BtcReleaseClientTest {
 
         List<BtcECKey> proposedKeys = Stream.generate(BtcECKey::new).limit(8).collect(Collectors.toList());
         proposedKeys.add(fedKey);
-        Federation proposedFederation = TestUtils.createFederation(params, proposedKeys);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(params, proposedKeys);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(1);
         Map.Entry<Keccak256, BtcTransaction> svpSpendTxWFS = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
@@ -1036,7 +1347,6 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
         // returns pegout waiting for signatures
         doReturn(stateForFederator).when(federatorSupport).getStateForFederator();
@@ -1046,16 +1356,9 @@ class BtcReleaseClientTest {
         ECKey ecKey = new ECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
@@ -1132,7 +1435,8 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_whenSvpSpendTxIsNotReadyToBeSigned_shouldNotAddSignature() throws Exception {
         // Arrange
-        Federation proposedFederation = TestUtils.createFederation(params, 9);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation proposedFederation = TestUtils.createStandardMultisigFederation(params, 9);
         FederationMember federationMember = proposedFederation.getMembers().get(0);
         BtcTransaction svpSpendTx = TestUtils.createBtcTransaction(params, proposedFederation);
         Keccak256 svpSpendCreationRskTxHash = createHash(0);
@@ -1146,7 +1450,6 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
         // return svp spend tx waiting for signatures
         doReturn(Optional.of(stateForProposedFederator)).when(federatorSupport).getStateForProposedFederator();
@@ -1156,16 +1459,9 @@ class BtcReleaseClientTest {
         ECKey ecKey = new ECKey();
         ECPublicKey signerPublicKey = new ECPublicKey(federationMember.getBtcPublicKey().getPubKey());
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(BTC.getKeyId());
         doReturn(1).when(signer).getVersionForKeyId(ArgumentMatchers.any(KeyId.class));
         doReturn(ecKey.doSign(new byte[]{})).when(signer).sign(any(KeyId.class), any(SignerMessage.class));
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         SignerMessageBuilderFactory signerMessageBuilderFactory = new SignerMessageBuilderFactory(
             mock(ReceiptStore.class)
@@ -1226,7 +1522,8 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_return_when_node_is_syncing() throws BtcReleaseClientException {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 1);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         Ethereum ethereum = mock(Ethereum.class);
@@ -1237,14 +1534,7 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(ArgumentMatchers.any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(true);
@@ -1276,7 +1566,8 @@ class BtcReleaseClientTest {
     @Test
     void onBestBlock_return_when_pegout_is_disabled() throws BtcReleaseClientException {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 1);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(false);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         Ethereum ethereum = mock(Ethereum.class);
@@ -1287,14 +1578,7 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(false).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
@@ -1326,7 +1610,8 @@ class BtcReleaseClientTest {
     @Test
     void onBlock_return_when_node_is_syncing() {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 1);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         Ethereum ethereum = mock(Ethereum.class);
@@ -1337,14 +1622,7 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(true).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(true);
@@ -1372,7 +1650,8 @@ class BtcReleaseClientTest {
     @Test
     void onBlock_return_when_pegout_is_disabled() {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 1);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(false);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationMember federationMember = federation.getMembers().get(0);
 
         Ethereum ethereum = mock(Ethereum.class);
@@ -1383,14 +1662,7 @@ class BtcReleaseClientTest {
             return null;
         }).when(ethereum).addListener(any(EthereumListener.class));
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        doReturn(Constants.mainnet()).when(powpegNodeSystemProperties).getNetworkConstants();
-        doReturn(false).when(powpegNodeSystemProperties).isPegoutEnabled();
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
@@ -1418,7 +1690,8 @@ class BtcReleaseClientTest {
     @Test
     void validateTxCanBeSigned_ok() throws Exception {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 1);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
 
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx = new BtcTransaction(params);
@@ -1434,7 +1707,8 @@ class BtcReleaseClientTest {
     @Test
     void validateTxCanBeSigned_fast_bridge_ok() throws Exception {
         // Create a StandardMultisigFederation
-        Federation federation = TestUtils.createFederation(params, 1);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
 
         // Create fast bridge redeem script
 
@@ -1456,7 +1730,8 @@ class BtcReleaseClientTest {
 
     @Test
     void validateTxCanBeSigned_erp_fed_ok() throws Exception {
-        Federation federation = TestUtils.createFederation(params, 3);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 3);
         FederationArgs federationArgs = federation.getArgs();
         ErpFederation nonStandardErpFederation =
             FederationFactory.buildNonStandardErpFederation(federationArgs, erpFedKeys, 5063, mock(ActivationConfig.ForBlock.class));
@@ -1473,6 +1748,7 @@ class BtcReleaseClientTest {
     @Test
     void validateTxCanBeSigned_federatorAlreadySigned() throws Exception {
         // Arrange
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         BtcECKey federator1PrivKey = new BtcECKey();
         BtcECKey federator2PrivKey = new BtcECKey();
         List<FederationMember> fedMembers = FederationMember.getFederationMembersFromKeys(Arrays.asList(federator1PrivKey, federator2PrivKey));
@@ -1501,16 +1777,10 @@ class BtcReleaseClientTest {
         inputScript = ScriptBuilder.updateScriptWithSignature(inputScript, txSigEncoded, sigIndex, 1, 1);
         releaseInput.setScriptSig(inputScript);
 
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         ECPublicKey signerPublicKey = new ECPublicKey(federator1PrivKey.getPubKey());
-        ECDSASigner signer = mock(ECDSASigner.class);
         Mockito.doReturn(signerPublicKey).when(signer).getPublicKey(ArgumentMatchers.any(KeyId.class));
       
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
         BtcReleaseClient client = new BtcReleaseClient(
@@ -1532,28 +1802,33 @@ class BtcReleaseClientTest {
 
         client.start(federation);
 
+        Keccak256 rskTxHash = mock(Keccak256.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            mock(Block.class),
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
+        );
+
         // Act
-        assertThrows(FederatorAlreadySignedException.class, () -> client.validateTxCanBeSigned(releaseTx));
+        assertThrows(FederatorAlreadySignedException.class, () -> client.validateTxCanBeSigned(releaseCreationInformation, releaseTx));
     }
 
     @Test
     void validateTxCanBeSigned_federationCantSign() throws Exception {
         // Arrange
-        Federation federation = TestUtils.createFederation(params, 1);
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
 
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx = new BtcTransaction(params);
         TransactionInput releaseInput = TestUtils.createTransactionInput(params, releaseTx, federation);
         releaseTx.addInput(releaseInput);
 
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
         BtcECKey fed1Key = federation.getBtcPublicKeys().get(0);
         ECPublicKey signerPublicKey = new ECPublicKey(fed1Key.getPubKey());
-        ECDSASigner signer = mock(ECDSASigner.class);
         Mockito.doReturn(signerPublicKey).when(signer).getPublicKey(ArgumentMatchers.any(KeyId.class));
 
         BtcReleaseClient client = new BtcReleaseClient(
@@ -1572,80 +1847,22 @@ class BtcReleaseClientTest {
             mock(BtcReleaseClientStorageSynchronizer.class)
         );
 
-        // Act
-        assertThrows(FederationCantSignException.class, () -> client.validateTxCanBeSigned(releaseTx));
-    }
-
-    @Test
-    void removeSignaturesFromTransaction() {
-        // Arrange
-        BtcECKey federator1PrivKey = new BtcECKey();
-        BtcECKey federator2PrivKey = new BtcECKey();
-        List<FederationMember> fedMembers = FederationMember.getFederationMembersFromKeys(Arrays.asList(federator1PrivKey, federator2PrivKey));
-        FederationArgs federationArgs = new FederationArgs(fedMembers, Instant.now(), 0, params);
-
-        Federation federation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
-
-        // Create a tx from the Fed to a random btc address
-        BtcTransaction releaseTx = new BtcTransaction(params);
-        TransactionInput releaseInput = TestUtils.createTransactionInput(params, releaseTx, federation);
-        releaseTx.addInput(releaseInput);
-
-        Sha256Hash unsignedTxHash = releaseTx.getHash();
-
-        // Sign the transaction
-        Script inputScript = releaseInput.getScriptSig();
-        List<ScriptChunk> chunks = inputScript.getChunks();
-        byte[] program = chunks.get(chunks.size() - 1).data;
-        Script redeemScript = new Script(program);
-
-        Sha256Hash sighash = releaseTx.hashForSignature(0, redeemScript, BtcTransaction.SigHash.ALL, false);
-        BtcECKey.ECDSASignature sig = federator1PrivKey.sign(sighash);
-
-        TransactionSignature txSig = new TransactionSignature(sig, BtcTransaction.SigHash.ALL, false);
-        byte[] txSigEncoded = txSig.encodeToBitcoin();
-
-        int sigIndex = inputScript.getSigInsertionIndex(sighash, federator1PrivKey);
-        inputScript = ScriptBuilder.updateScriptWithSignature(inputScript, txSigEncoded, sigIndex, 1, 1);
-        releaseInput.setScriptSig(inputScript);
-
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
-
-        BtcReleaseClient client = new BtcReleaseClient(
-            mock(Ethereum.class),
-            mock(FederatorSupport.class),
-            powpegNodeSystemProperties,
-            mock(NodeBlockProcessor.class)
+        Keccak256 rskTxHash = mock(Keccak256.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            mock(Block.class),
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
         );
 
-        Sha256Hash signedTxHash = releaseTx.getHash();
-
         // Act
-        client.removeSignaturesFromTransaction(releaseTx, federation);
-        Sha256Hash removedSignaturesTxHash = releaseTx.getHash();
-
-        // Assert
-        assertNotEquals(unsignedTxHash, signedTxHash);
-        assertNotEquals(signedTxHash, removedSignaturesTxHash);
-        assertEquals(unsignedTxHash, removedSignaturesTxHash);
-    }
-
-    @Test
-    void getRedeemScriptFromInput_fast_bridge_redeem_script() {
-        test_getRedeemScriptFromInput(true);
-    }
-
-    @Test
-    void getRedeemScriptFromInput_standard_redeem_script() {
-        test_getRedeemScriptFromInput(false);
+        assertThrows(FederationCantSignException.class, () -> client.validateTxCanBeSigned(releaseCreationInformation, releaseTx));
     }
 
     @Test
     void extractStandardRedeemScript_fast_bridge_redeem_script() {
-        Federation federation = TestUtils.createFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
 
         Keccak256 flyoverDerivationHash = createHash(1);
         Script flyoverRedeemScript = FlyoverRedeemScriptBuilderImpl.builder().of(
@@ -1658,7 +1875,7 @@ class BtcReleaseClientTest {
 
     @Test
     void extractStandardRedeemScript_erp_redeem_script() {
-        Federation federation = TestUtils.createFederation(params, 1);
+        Federation federation = TestUtils.createStandardMultisigFederation(params, 1);
         FederationArgs federationArgs = federation.getArgs();
 
         ErpFederation nonStandardErpFederation =
@@ -1690,15 +1907,9 @@ class BtcReleaseClientTest {
     ) throws Exception {
         FederationMember federationMember = federation.getMembers().get(0);
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         doReturn(signerPublicKey).when(signer).getPublicKey(any(KeyId.class));
 
         BtcReleaseClient client = new BtcReleaseClient(
@@ -1720,19 +1931,24 @@ class BtcReleaseClientTest {
 
         client.start(federation);
 
+        Keccak256 rskTxHash = mock(Keccak256.class);
+        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
+            mock(Block.class),
+            mock(TransactionReceipt.class),
+            rskTxHash,
+            releaseTx,
+            rskTxHash
+        );
+
         // Act
-        client.validateTxCanBeSigned(releaseTx);
+        client.validateTxCanBeSigned(releaseCreationInformation, releaseTx);
     }
 
     private void test_extractStandardRedeemScript(
         Script expectedRedeemScript,
         Script redeemScriptToExtract)
     {
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
-
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         BtcReleaseClient client = new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
@@ -1743,40 +1959,6 @@ class BtcReleaseClientTest {
         assertEquals(
             expectedRedeemScript,
             client.extractStandardRedeemScript(redeemScriptToExtract)
-        );
-    }
-
-    private void test_getRedeemScriptFromInput(boolean isFlyoverRedeemScript) {
-        BtcReleaseClient client = createBtcClient();
-
-        BtcECKey ecKey1 = BtcECKey.fromPrivate(BigInteger.valueOf(100));
-        BtcECKey ecKey2 = BtcECKey.fromPrivate(BigInteger.valueOf(200));
-        BtcECKey ecKey3 = BtcECKey.fromPrivate(BigInteger.valueOf(300));
-
-        List<BtcECKey> btcECKeys = Arrays.asList(ecKey1, ecKey2, ecKey3);
-        Federation federation = createFederation(btcECKeys);
-        Script federationRedeemScript = federation.getRedeemScript();
-        Script inputScript;
-
-        if (isFlyoverRedeemScript) {
-            Keccak256 flyoverDerivationHash = createHash(1);
-            federationRedeemScript = FlyoverRedeemScriptBuilderImpl.builder().of(
-                flyoverDerivationHash,
-                federation.getRedeemScript()
-            );
-        }
-        inputScript = federation.getP2SHScript().createEmptyInputScript(
-            null,
-            federationRedeemScript
-        );
-
-        BtcTransaction spendTx = new BtcTransaction(params);
-        spendTx.addInput(Sha256Hash.ZERO_HASH, 0, inputScript);
-        spendTx.addOutput(Coin.valueOf(190_000_000), federation.getAddress());
-
-        assertEquals(
-            federationRedeemScript,
-            client.getRedeemScriptFromInput(spendTx.getInput(0))
         );
     }
 
@@ -1801,12 +1983,8 @@ class BtcReleaseClientTest {
         throws BtcReleaseClientException, SignerException,
         HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
-        when(powpegNodeSystemProperties.isPegoutEnabled()).thenReturn(true);
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
 
+        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
@@ -1834,13 +2012,11 @@ class BtcReleaseClientTest {
         SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
         rskTxsWaitingForSignatures.put(otherRskTxHash, releaseBtcTx);
 
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getStateForFederator()).thenReturn(
             new StateForFederator(rskTxsWaitingForSignatures) // Only return the confirmed release
         );
         when(federatorSupport.getFederationMember()).thenReturn(federationMember);
 
-        ECDSASigner signer = mock(ECDSASigner.class);
         when(signer.getVersionForKeyId(any())).thenReturn(2);
         when(signer.getPublicKey(any())).thenReturn(new ECPublicKey(key1.getPubKey()));
         ECKey.ECDSASignature signature = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
@@ -1864,7 +2040,7 @@ class BtcReleaseClientTest {
         SignerMessageBuilder signerMessageBuilder = mock(SignerMessageBuilder.class);
         when(signerMessageBuilder.buildMessageForIndex(anyInt())).thenReturn(mock(SignerMessage.class));
         SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
-        when(signerMessageBuilderFactory.buildFromConfig(anyInt(), any())).thenReturn(signerMessageBuilder);
+        when(signerMessageBuilderFactory.buildFromConfig(anyInt(), any(), anyInt())).thenReturn(signerMessageBuilder);
 
         SimpleEthereumImpl ethereumImpl = new SimpleEthereumImpl();
 
@@ -1907,21 +2083,6 @@ class BtcReleaseClientTest {
 
         // Verify the informing rsk tx hash is used
         verify(federatorSupport).addSignature(any(), eq(otherRskTxHash.getBytes()));
-    }
-
-    private BtcReleaseClient createBtcClient() {
-        PowpegNodeSystemProperties powpegNodeSystemProperties = mock(PowpegNodeSystemProperties.class);
-        when(powpegNodeSystemProperties.getNetworkConstants()).thenReturn(Constants.mainnet());
-        when(powpegNodeSystemProperties.isPegoutEnabled()).thenReturn(true); // Enabled by default
-        when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
-            .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
-
-        return new BtcReleaseClient(
-            mock(Ethereum.class),
-            mock(FederatorSupport.class),
-            powpegNodeSystemProperties,
-            mock(NodeBlockProcessor.class)
-        );
     }
 
     private Federation createFederation(List<BtcECKey> btcECKeyList) {

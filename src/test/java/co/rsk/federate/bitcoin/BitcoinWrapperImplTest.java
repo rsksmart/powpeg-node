@@ -1,335 +1,335 @@
 package co.rsk.federate.bitcoin;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
+import static org.bitcoinj.script.ScriptOpCodes.OP_RETURN;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.crypto.TransactionSignature;
+import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
+import co.rsk.federate.BtcToRskClientBuilder;
+import co.rsk.federate.Proof;
+import co.rsk.federate.io.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.peg.federation.Federation;
-import co.rsk.peg.btcLockSender.BtcLockSender;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
-import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import java.io.File;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Context;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.script.Script;
-import org.bitcoinj.script.Script.ScriptType;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.stream.Stream;
+
+import org.bitcoinj.core.*;
 import org.bitcoinj.wallet.Wallet;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.ethereum.config.blockchain.upgrades.ConsensusRule;
+import org.ethereum.crypto.HashUtil;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.spongycastle.util.encoders.Hex;
 
-/**
- * Created by pprete
- */
 class BitcoinWrapperImplTest {
-    private static BridgeConstants bridgeConstants;
-    private static NetworkParameters networkParameters;
-    private static Context btcContext;
+    private static final BridgeConstants bridgeConstants = BridgeMainNetConstants.getInstance();
+    private static final co.rsk.bitcoinj.core.NetworkParameters thinNetworkParameters = bridgeConstants.getBtcParams();
+    private static final NetworkParameters originalNetworkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
+    private static final Context btcContext = new Context(originalNetworkParameters);
+    private BtcToRskClientFileStorage btcToRskClientFileStorage;
+    private BtcToRskClientBuilder btcToRskClientBuilder;
+    private FederatorSupport federatorSupport;
+    private BitcoinWrapperImpl bitcoinWrapper;
+    private TransactionListener listener;
 
-    @BeforeAll
-    public static void setUpBeforeClass() {
-        bridgeConstants = BridgeMainNetConstants.getInstance();
-        networkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
-        btcContext = new Context(networkParameters);
-    }
+    @TempDir
+    private Path tempDir;
 
-    @Test
-    void coinsReceivedOrSent_validPegInTx() throws PeginInstructionsException {
-        // Arrange
-        final Federation activeFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(),9);
-        Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, activeFederation.getAddress());
-
-        Transaction pegInTx = createPegInTx(federationAddress);
-        BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), pegInTx);
-
-        BtcLockSender btcLockSender = mock(BtcLockSender.class);
-        BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
-        when(btcLockSenderProvider.tryGetBtcLockSender(btcTx)).thenReturn(Optional.of(btcLockSender));
-
-        PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
-        when(peginInstructionsProvider.buildPeginInstructions(any())).thenReturn(Optional.empty());
-
+    @BeforeEach
+    void setUp() throws Exception {
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        when(activations.isActive(ConsensusRule.RSKIP170)).thenReturn(true);
+        when(activations.isActive(ConsensusRule.RSKIP201)).thenReturn(true);
+        when(activations.isActive(ConsensusRule.RSKIP293)).thenReturn(true);
+        when(activations.isActive(ConsensusRule.RSKIP379)).thenReturn(true);
+        when(activations.isActive(ConsensusRule.RSKIP305)).thenReturn(true);
+
+        ActivationConfig activationConfig = mock(ActivationConfig.class);
+        when(activationConfig.forBlock(any(Long.class))).thenReturn(activations);
+        federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
 
-        BitcoinWrapperImpl bitcoinWrapper = new BitcoinWrapperImpl(
+        // using a temporary directory for testing
+        FileStorageInfo fileStorageInfo = mock(BtcToRskClientFileStorageInfo.class);
+        String pegDir = tempDir.toString();
+        String filePath = tempDir.resolve("btcToRskClient2.rlp").toString();
+        when(fileStorageInfo.getPegDirectoryPath()).thenReturn(pegDir);
+        when(fileStorageInfo.getFilePath()).thenReturn(filePath);
+        btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(fileStorageInfo);
+
+        BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
+        PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
+
+        Kit kit = new KitForTests(btcContext, mock(File.class), "", mock(Wallet.class));
+        bitcoinWrapper = new BitcoinWrapperImpl(
             btcContext,
             bridgeConstants,
             btcLockSenderProvider,
             peginInstructionsProvider,
             federatorSupport,
-            new KitForTests(btcContext, mock(File.class), "", mock(Wallet.class))
+            kit
         );
 
-        bitcoinWrapper.setup(Collections.emptyList());
+        List<PeerAddress> peerAddresses = Collections.emptyList();
+        bitcoinWrapper.setup(peerAddresses);
         bitcoinWrapper.start();
 
-        TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(activeFederation, listener);
-
-        // Act
-        bitcoinWrapper.coinsReceivedOrSent(pegInTx);
-
-        // Assert
-        verify(listener, times(1)).onTransaction(pegInTx);
+        btcToRskClientBuilder = BtcToRskClientBuilder.builder();
+        listener = btcToRskClientBuilder
+            .withBitcoinWrapper(bitcoinWrapper)
+            .withFederatorSupport(federatorSupport)
+            .withBridgeConstants(bridgeConstants)
+            .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
+            .withBtcLockSenderProvider(btcLockSenderProvider)
+            .withPeginInstructionsProvider(peginInstructionsProvider)
+            .build();
     }
 
-    @Test
-    void coinsReceivedOrSent_invalidPegInTx_withSenderAddress_txAddedToListener()
-        throws PeginInstructionsException {
+    private void setUpListenerAndWrapperWithFederation(Federation federationToListen) throws Exception {
+        listener = btcToRskClientBuilder
+            .withFederation(federationToListen)
+            .build();
+        bitcoinWrapper.addFederationListener(federationToListen, listener);
+    }
 
+    @ParameterizedTest
+    @MethodSource("fedArgs")
+    void coinsReceivedOrSent_validLegacyPegIn_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        final Federation activeFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), 9);
-        Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, activeFederation.getAddress());
-
-        Transaction pegInTx = createPegInTx(federationAddress);
-        BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), pegInTx);
-
-        BtcLockSender btcLockSender = mock(BtcLockSender.class);
-        when(btcLockSender.getBTCAddress()).thenReturn(mock(co.rsk.bitcoinj.core.Address.class));
-        BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
-        when(btcLockSenderProvider.tryGetBtcLockSender(btcTx)).thenReturn(Optional.of(btcLockSender));
-
-        PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
-        when(peginInstructionsProvider.buildPeginInstructions(any())).thenReturn(Optional.empty());
-
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
-
-        BitcoinWrapperImpl bitcoinWrapper = new BitcoinWrapperImpl(
-            btcContext,
-            bridgeConstants,
-            btcLockSenderProvider,
-            peginInstructionsProvider,
-            federatorSupport,
-            new KitForTests(btcContext, mock(File.class), "", mock(Wallet.class))
-        );
-
-        bitcoinWrapper.setup(Collections.emptyList());
-        bitcoinWrapper.start();
-
-        TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(activeFederation, listener);
+        setUpListenerAndWrapperWithFederation(federation);
+        Transaction pegin = createLegacyPegIn(federation);
 
         // Act
-        bitcoinWrapper.coinsReceivedOrSent(pegInTx);
+        bitcoinWrapper.coinsReceivedOrSent(pegin);
 
-        // Assert
-        verify(listener, times(1 )).onTransaction(pegInTx);
+        // assert
+        assertWTxIdWasAddedToProofs(pegin);
     }
 
-    @Test
-    void coinsReceivedOrSent_invalidPegInTx_withoutSenderAddress_txNotAddedToListener()
-        throws PeginInstructionsException {
-
+    @ParameterizedTest
+    @MethodSource("fedArgs")
+    void coinsReceivedOrSent_validPeginV1_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        final Federation activeFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), 9);
-        Address federationAddress = ThinConverter.toOriginalInstance(networkParameters, activeFederation.getAddress());
-
-        Transaction pegInTx = createPegInTx(federationAddress);
-        BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), pegInTx);
-
-        BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
-        when(btcLockSenderProvider.tryGetBtcLockSender(btcTx)).thenReturn(Optional.empty());
-
-        PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
-        when(peginInstructionsProvider.buildPeginInstructions(any())).thenReturn(Optional.empty());
-
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
-
-        BitcoinWrapperImpl bitcoinWrapper = new BitcoinWrapperImpl(
-            btcContext,
-            bridgeConstants,
-            btcLockSenderProvider,
-            peginInstructionsProvider,
-            federatorSupport,
-            new KitForTests(btcContext, mock(File.class), "", mock(Wallet.class))
-        );
-
-        bitcoinWrapper.setup(Collections.emptyList());
-        bitcoinWrapper.start();
-
-        TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(activeFederation, listener);
+        setUpListenerAndWrapperWithFederation(federation);
+        Transaction pegin = createValidPegInV1(federation.getAddress());
 
         // Act
-        bitcoinWrapper.coinsReceivedOrSent(pegInTx);
+        bitcoinWrapper.coinsReceivedOrSent(pegin);
 
-        // Assert
-        verify(listener, times(0 )).onTransaction(pegInTx);
+        // assert
+        assertWTxIdWasAddedToProofs(pegin);
     }
 
-    @Test
-    void coinsReceivedOrSent_validPegOutTx() {
+    private Transaction createLegacyPegIn(Federation federation) {
+        BtcTransaction pegin = createPegIn(federation.getAddress());
+        return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), pegin);
+    }
+
+    private Transaction createValidPegInV1(co.rsk.bitcoinj.core.Address federationAddress) {
+        BtcTransaction pegin = createPegIn(federationAddress);
+
+        // add OP_RETURN output
+        byte[] data = Hex.decode("52534b54010000000000000000000000000000000001000006");
+        ScriptBuilder builder = new ScriptBuilder();
+        Script script = builder.op(OP_RETURN)
+            .data(data)
+            .build();
+        pegin.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, script);
+        pegin.addOutput(co.rsk.bitcoinj.core.Coin.COIN, federationAddress);
+
+        return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), pegin);
+    }
+
+    private BtcTransaction createPegIn(co.rsk.bitcoinj.core.Address federationAddress) {
+        byte[] serializedSeed = HashUtil.keccak256("seed".getBytes(StandardCharsets.UTF_8));
+        BtcECKey p2PkhKey = BtcECKey.fromPrivate(serializedSeed);
+        BtcTransaction prevTx = new BtcTransaction(thinNetworkParameters);
+        prevTx.addOutput(co.rsk.bitcoinj.core.Coin.COIN, p2PkhKey);
+
+        BtcTransaction pegin = new BtcTransaction(thinNetworkParameters);
+        pegin.addInput(prevTx.getOutput(0));
+        pegin.getInput(0).setScriptSig(ScriptBuilder.createInputScript(null, p2PkhKey));
+        pegin.addOutput(co.rsk.bitcoinj.core.Coin.COIN, federationAddress);
+
+        return pegin;
+    }
+
+    @ParameterizedTest
+    @MethodSource("fedArgs")
+    void coinsReceivedOrSent_validPegOutTx_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        final List<BtcECKey> federationPrivateKeys = TestUtils.getFederationPrivateKeys(9);
-        final Federation activeFederation = TestUtils.createFederation(bridgeConstants.getBtcParams(), federationPrivateKeys);
-        final Transaction pegOutTx = createPegOutTx(activeFederation, federationPrivateKeys);
-
-        BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
-        PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
-
-        BitcoinWrapperImpl bitcoinWrapper = new BitcoinWrapperImpl(
-            btcContext,
-            bridgeConstants,
-            btcLockSenderProvider,
-            peginInstructionsProvider,
-            federatorSupport,
-            new KitForTests(btcContext, mock(File.class), "", mock(Wallet.class))
-        );
-
-        bitcoinWrapper.setup(Collections.emptyList());
-        bitcoinWrapper.start();
-
-        TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(activeFederation, listener);
+        final Transaction pegout = createPegOutTx(federation);
+        setUpListenerAndWrapperWithFederation(federation);
 
         // Act
-        bitcoinWrapper.coinsReceivedOrSent(pegOutTx);
+        bitcoinWrapper.coinsReceivedOrSent(pegout);
 
         // Assert
-        verify(listener, times(1)).onTransaction(pegOutTx);
+        assertWTxIdWasAddedToProofs(pegout);
     }
 
-    @Test
-    void coinsReceivedOrSent_txNotPegInNorPegOut() {
-        // Arrange
-        final Federation activefederation = TestUtils.createFederation(bridgeConstants.getBtcParams(),9);
-        Transaction tx = new Transaction(networkParameters);
+    private Transaction createPegOutTx(Federation federation) {
+        co.rsk.bitcoinj.core.Address federationAddress = federation.getAddress();
 
-        BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
-        PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
+        BtcTransaction prevTx = new BtcTransaction(thinNetworkParameters);
+        co.rsk.bitcoinj.core.Coin value = co.rsk.bitcoinj.core.Coin.COIN;
+        prevTx.addOutput(value, federationAddress);
+        prevTx.addOutput(value, federationAddress);
 
-        BitcoinWrapperImpl bitcoinWrapper = new BitcoinWrapperImpl(
-            btcContext,
-            bridgeConstants,
-            btcLockSenderProvider,
-            peginInstructionsProvider,
-            federatorSupport,
-            new KitForTests(btcContext, mock(File.class), "", mock(Wallet.class))
-        );
-
-        bitcoinWrapper.setup(Collections.emptyList());
-        bitcoinWrapper.start();
-
-        TransactionListener listener = mock(TransactionListener.class);
-        bitcoinWrapper.addFederationListener(activefederation, listener);
-
-        // Act
-        bitcoinWrapper.coinsReceivedOrSent(tx);
-
-        // Assert
-        verify(listener, times(0)).onTransaction(tx);
-    }
-
-    private Transaction createPegInTx(Address federationAddress) {
-        Transaction tx = new Transaction(networkParameters);
-
-        TransactionInput input = new TransactionInput(
-            networkParameters,
-            null,
-            new byte[]{},
-            new TransactionOutPoint(networkParameters, 0L, Sha256Hash.ZERO_HASH)
-        );
-        tx.addInput(input);
-
-        TransactionOutput output = new TransactionOutput(
-            networkParameters,
-            null,
-            Coin.COIN,
-            federationAddress
-        );
-        tx.addOutput(output);
-
-        return tx;
-    }
-
-    private Transaction createPegOutTx(Federation federation, List<BtcECKey> federationPrivateKeys) {
-        // Create a tx from the Fed to a random btc address
-        Address randomAddress = Address.fromKey(networkParameters, new org.bitcoinj.core.ECKey(), ScriptType.P2PKH);
-        Transaction pegOutTx = new Transaction(networkParameters);
-        pegOutTx.addOutput(Coin.COIN, randomAddress);
-
-        TransactionInput pegOutInput = new TransactionInput(
-            networkParameters,
-            pegOutTx,
-            new byte[]{},
-            new TransactionOutPoint(
-                    networkParameters,
-                    0,
-                    Sha256Hash.ZERO_HASH
-            )
-        );
-        pegOutTx.addInput(pegOutInput);
-
-        // Sign it using the Federation members
-        co.rsk.bitcoinj.script.Script redeemScript = federation.getRedeemScript();
-        co.rsk.bitcoinj.script.Script inputScript = createBaseInputScriptThatSpendsFromTheFederation(federation);
-
-        Sha256Hash sighash = pegOutTx.hashForSignature(
-            0,
-            new Script(redeemScript.getProgram()),
-            Transaction.SigHash.ALL,
-            false
-        );
-        co.rsk.bitcoinj.core.Sha256Hash sighashThin = co.rsk.bitcoinj.core.Sha256Hash.wrap(sighash.getBytes());
-
-        for (int i = 0; i < federation.getNumberOfSignaturesRequired(); i++) {
-            BtcECKey federatorPrivKey = federationPrivateKeys.get(i);
-            BtcECKey federatorPublicKey = federation.getBtcPublicKeys().get(i);
-
-            BtcECKey.ECDSASignature sig = federatorPrivKey.sign(sighashThin);
-            TransactionSignature txSig = new TransactionSignature(sig, BtcTransaction.SigHash.ALL, false);
-
-            int sigIndex = inputScript.getSigInsertionIndex(sighashThin, federatorPublicKey);
-            inputScript = ScriptBuilder.updateScriptWithSignature(
-                inputScript,
-                txSig.encodeToBitcoin(),
-                sigIndex,
-                1,
-                1
+        BtcTransaction pegout = new BtcTransaction(thinNetworkParameters);
+        pegout.addInput(prevTx.getOutput(0));
+        pegout.addInput(prevTx.getOutput(1));
+        List<co.rsk.bitcoinj.core.TransactionInput> inputs = pegout.getInputs();
+        for (int i = 0; i < inputs.size(); i++) {
+            addSpendingFederationBaseScript(
+                pegout,
+                i,
+                federation.getRedeemScript(),
+                federation.getFormatVersion()
             );
         }
-        pegOutInput.setScriptSig(new Script(inputScript.getProgram()));
 
-        return pegOutTx;
+        // Create a tx from the fed to a random p2-pkh btc address
+        final co.rsk.bitcoinj.core.Address randomAddress =
+            co.rsk.bitcoinj.core.Address.fromBase58(thinNetworkParameters, "15PVor133tRfjmHPspovsHtRPkfn4UAEQq");
+        pegout.addOutput(co.rsk.bitcoinj.core.Coin.COIN, randomAddress);
+        // also adding a change output to be more realistic
+        pegout.addOutput(
+            co.rsk.bitcoinj.core.Coin.valueOf(500_000L),
+            federationAddress
+        );
+
+        return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), pegout);
     }
 
-    private co.rsk.bitcoinj.script.Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
-        co.rsk.bitcoinj.script.Script scriptPubKey = federation.getP2SHScript();
-        return scriptPubKey.createEmptyInputScript(null, federation.getRedeemScript());
+    private static Stream<Federation> fedArgs() {
+        final Federation standarMultisigFederation = TestUtils.createStandardMultisigFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation p2shErpFederation = TestUtils.createP2shErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation p2shP2wshErpFederation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            20
+        );
+
+        return Stream.of(standarMultisigFederation, p2shErpFederation, p2shP2wshErpFederation);
+    }
+
+    @ParameterizedTest
+    @MethodSource("retiringAndActiveFedsArgs")
+    void coinsReceivedOrSent_migrationTx_shouldListenTx(
+        Federation retiringFederation,
+        Federation activeFederation
+    ) throws Exception {
+        // Arrange
+        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
+        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
+
+        setUpListenerAndWrapperWithFederation(activeFederation);
+        Transaction migrationTx = createMigrationTx(retiringFederation, activeFederation);
+
+        // act
+        bitcoinWrapper.coinsReceivedOrSent(migrationTx);
+
+        // assert
+        assertWTxIdWasAddedToProofs(migrationTx);
+    }
+
+    private static Stream<Arguments> retiringAndActiveFedsArgs() {
+        final Federation retiringP2shErpFed = TestUtils.createP2shErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation activeP2shErpFed = TestUtils.createP2shErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation retiringP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation activeP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            9
+        );
+
+        return Stream.of(
+            Arguments.of(retiringP2shErpFed, activeP2shErpFed),
+            Arguments.of(retiringP2shErpFed, activeP2shP2wshErpFed),
+            Arguments.of(retiringP2shP2wshErpFed, activeP2shP2wshErpFed)
+        );
+    }
+
+    private Transaction createMigrationTx(Federation retiringFederation, Federation activeFederation) {
+        co.rsk.bitcoinj.core.Address retiringFederationAddress = retiringFederation.getAddress();
+        co.rsk.bitcoinj.core.Address activeFederationAddress = activeFederation.getAddress();
+
+        List<BtcTransaction> txsToMigrate = new ArrayList<>();
+        co.rsk.bitcoinj.core.Coin baseCoin = co.rsk.bitcoinj.core.Coin.valueOf(1_000_000L);
+        for (int i = 1; i <= 10; i++) {
+            BtcTransaction txSentToRetiringFed = new BtcTransaction(thinNetworkParameters);
+            co.rsk.bitcoinj.core.Coin value = baseCoin.multiply(i);
+            txSentToRetiringFed.addOutput(value, retiringFederationAddress);
+
+            txsToMigrate.add(txSentToRetiringFed);
+        }
+
+        BtcTransaction thinMigrationTx = new BtcTransaction(thinNetworkParameters);
+        for (int i = 0; i < txsToMigrate.size(); i++) {
+            BtcTransaction txToMigrate = txsToMigrate.get(i);
+            co.rsk.bitcoinj.core.TransactionOutput output = txToMigrate.getOutput(0);
+            thinMigrationTx.addInput(output);
+
+            addSpendingFederationBaseScript(
+                thinMigrationTx,
+                i,
+                retiringFederation.getRedeemScript(),
+                retiringFederation.getFormatVersion()
+            );
+        }
+
+        co.rsk.bitcoinj.core.Coin totalValue = co.rsk.bitcoinj.core.Coin.ZERO;
+        for (BtcTransaction txToMigrate : txsToMigrate) {
+            co.rsk.bitcoinj.core.TransactionOutput output = txToMigrate.getOutput(0);
+            totalValue = totalValue.add(output.getValue());
+        }
+        thinMigrationTx.addOutput(totalValue, activeFederationAddress);
+
+        return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), thinMigrationTx);
+    }
+
+    private void assertWTxIdWasAddedToProofs(Transaction tx) throws IOException {
+        BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(originalNetworkParameters).getData();
+        Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
+
+        Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
+        assertEquals(1, txProofsKeySet.size());
+
+        Sha256Hash wTxId = tx.getWTxId();
+        Sha256Hash savedWTxId = txProofsKeySet.iterator().next();
+        assertEquals(wTxId, savedWTxId);
     }
 
     // Class that allows to override certain methods in Kit class
@@ -345,10 +345,12 @@ class BitcoinWrapperImplTest {
 
         @Override
         protected void startUp() {
+            // Not needed for tests
         }
 
         @Override
         protected void shutDown() {
+            // Not needed for tests
         }
 
         @Override
