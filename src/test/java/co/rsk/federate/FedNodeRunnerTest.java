@@ -86,12 +86,12 @@ class FedNodeRunnerTest {
 
         int hsmVersion = HSMVersion.V4.getNumber();
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersion()).thenReturn(hsmVersion);
+        when(protocol.getVersionNumber()).thenReturn(hsmVersion);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
         when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
         hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
-        when(hsmBookkeepingClient.getVersion()).thenReturn(hsmVersion);
+        when(hsmBookkeepingClient.getVersionNumber()).thenReturn(hsmVersion);
         HSMBookKeepingClientProvider hsmBookKeepingClientProvider = mock(HSMBookKeepingClientProvider.class);
         when(hsmBookKeepingClientProvider.getHSMBookKeepingClient(any())).thenReturn(hsmBookkeepingClient);
 
@@ -151,7 +151,7 @@ class FedNodeRunnerTest {
         when(fedNodeSystemProperties.signerConfig(MST.getId())).thenReturn(mstSignerConfig);
 
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersion()).thenReturn(1);
+        when(protocol.getVersionNumber()).thenReturn(1);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
         when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
@@ -199,7 +199,7 @@ class FedNodeRunnerTest {
 
         when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersion()).thenReturn(3);
+        when(protocol.getVersionNumber()).thenReturn(3);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
         when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
@@ -476,7 +476,7 @@ class FedNodeRunnerTest {
     @Test
     void run_whenHsmVersionIsLowerThanThreeAndDifficultyTargetConfigIsNotPresent_shouldThrowException() throws Exception {
         int version = 2;
-        when(hsmBookkeepingClient.getVersion()).thenReturn(version);
+        when(hsmBookkeepingClient.getVersionNumber()).thenReturn(version);
         when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
             new HSMUnsupportedTypeException("PowHSM version: " + version));
         SignerConfig btcSignerConfig = SignerConfigBuilder.builder()
@@ -507,7 +507,7 @@ class FedNodeRunnerTest {
     }
 
     private SignerConfig getHSMBTCSignerConfig(HSMVersion version) throws HSMClientException {
-        when(hsmBookkeepingClient.getVersion()).thenReturn(version.getNumber());
+        when(hsmBookkeepingClient.getVersionNumber()).thenReturn(version.getNumber());
         SignerConfigBuilder configBuilder = SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/0'/0'/0/0");
 

@@ -43,9 +43,9 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     @Override
-    public int getVersion() throws HSMClientException {
+    public int getVersionNumber() throws HSMClientException {
         if (this.hsmVersion == null) {
-            this.hsmVersion = this.hsmClientProtocol.getVersion();
+            this.hsmVersion = this.hsmClientProtocol.getVersionNumber();
         }
         return this.hsmVersion;
     }
@@ -142,7 +142,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
             String[] blockHeaderChunk = blockHeadersChunks.get(i);
             ObjectNode payload = this.hsmClientProtocol.buildCommand(
                 UPDATE_ANCESTOR_BLOCK.getCommand(),
-                getVersion()
+                getVersionNumber()
             );
             addBlocksToPayload(payload, blockHeaderChunk);
 
@@ -164,10 +164,10 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         logger.trace("[advanceBlockchain] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
         for (int i = 0; i < blockHeadersChunks.size(); i++) {
             String[] blockHeaderChunk = blockHeadersChunks.get(i);
-            ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), getVersion());
+            ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), getVersionNumber());
             addBlocksToPayload(payload, blockHeaderChunk);
 
-            if (getVersion() >= HSMVersion.V4.getNumber()) {
+            if (getVersionNumber() >= HSMVersion.V4.getNumber()) {
                 List<String[]> brothers = getBrothers(blockHeaderChunk, message);
                 addBrothersToPayload(payload, brothers);
             }
@@ -182,7 +182,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public PowHSMState getHSMPointer() throws HSMClientException {
-        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE.getCommand(), getVersion());
+        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE.getCommand(), getVersionNumber());
         JsonNode response = this.hsmClientProtocol.send(command);
 
         this.hsmClientProtocol.validatePresenceOf(response, STATE.getFieldName());
@@ -205,7 +205,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public void resetAdvanceBlockchain() throws HSMClientException {
-        ObjectNode command = hsmClientProtocol.buildCommand(RESET_ADVANCE_BLOCKCHAIN.getCommand(), getVersion());
+        ObjectNode command = hsmClientProtocol.buildCommand(RESET_ADVANCE_BLOCKCHAIN.getCommand(), getVersionNumber());
         this.hsmClientProtocol.send(command);
 
         logger.trace("[resetAdvanceBlockchain] Sent command to reset Advance Blockchain.");
@@ -223,7 +223,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public PowHSMBlockchainParameters getBlockchainParameters() throws HSMClientException {
-        int version = getVersion();
+        int version = getVersionNumber();
         if (version < 3) {
             throw new HSMUnsupportedTypeException("method call not allowed for version " + version);
         }

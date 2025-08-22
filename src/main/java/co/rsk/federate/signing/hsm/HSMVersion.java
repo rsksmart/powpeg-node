@@ -20,15 +20,32 @@ public enum HSMVersion {
         return number;
     }
 
-    public static List<HSMVersion> getPowHSMVersions() {
-        return Arrays.asList(V2, V4, V5);
+    public static HSMVersion fromVersionNumber(int number) throws HSMUnsupportedVersionException {
+        for (HSMVersion version : values()) {
+            if (version.getNumber() == number) {
+                return version;
+            }
+        }
+        throw new HSMUnsupportedVersionException("Unsupported HSM version " + number);
     }
 
-    public static boolean isPowHSM(int version) {
-        return getPowHSMVersions().stream().anyMatch(hsmVersion -> hsmVersion.number == version);
+    public boolean supportsBookkeeping() {
+        return isPowHSM();
     }
 
-    public static boolean isValidHSMVersion(int version) {
-        return Arrays.stream(values()).anyMatch(hsmVersion -> hsmVersion.number == version);
+    public boolean isPOWSigningClient() {
+        return isPowHSM();
+    }
+
+    public boolean considersUnclesDifficulty() {
+        return number != V1.getNumber() && number != V2.getNumber();
+    }
+
+    public boolean enforcesReleaseRequirements() {
+        return isPowHSM();
+    }
+
+    private boolean isPowHSM() {
+        return number != V1.getNumber();
     }
 }

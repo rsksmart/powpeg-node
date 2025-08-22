@@ -64,6 +64,7 @@ class PowHSMSigningClientBtcTest {
     );
 
     private static final HSMSignature expectedSignature = createMockSignature();
+    private static final List<HSMVersion> powHSMVersions = Arrays.asList(HSMVersion.V2, HSMVersion.V4, HSMVersion.V5);
     private final ECKey signerPk = ECKey.fromPrivate(Hex.decode("fa01"));
     private final KeyId signerBtcKeyId = new KeyId("BTC");
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -366,7 +367,6 @@ class PowHSMSigningClientBtcTest {
     private static List<Arguments> legacyPegoutArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
 
-        List<HSMVersion> powHSMVersions = HSMVersion.getPowHSMVersions();
         for (HSMVersion hsmVersion : powHSMVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(
@@ -383,7 +383,6 @@ class PowHSMSigningClientBtcTest {
     private static List<Arguments> signArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
 
-        List<HSMVersion> powHSMVersions = HSMVersion.getPowHSMVersions();
         for (HSMVersion hsmVersion : powHSMVersions) {
             // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
             arguments.add(

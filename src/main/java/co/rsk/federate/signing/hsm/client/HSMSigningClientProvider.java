@@ -21,7 +21,6 @@ package co.rsk.federate.signing.hsm.client;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
-import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,17 +44,16 @@ public class HSMSigningClientProvider {
     }
 
     public HSMSigningClient getSigningClient() throws HSMClientException {
-        int version = this.hsmClientProtocol.getVersion();
+        int versionNumber = this.hsmClientProtocol.getVersionNumber();
+        logger.debug("[getSigningClient] version: {}, keyId: {}", versionNumber, keyId);
+
+        HSMVersion hsmVersion = HSMVersion.fromVersionNumber(versionNumber);
+
         HSMSigningClient client;
-        logger.debug("[getSigningClient] version: {}, keyId: {}", version, keyId);
-        if (version == HSMVersion.V1.getNumber()) {
+        if (!hsmVersion.isPOWSigningClient()) {
             client = new HSMSigningClientV1(this.hsmClientProtocol);
-        } else if (HSMVersion.isPowHSM(version)) {
-            client = buildPowHSMClient(version);
         } else {
-            String message = String.format("Unsupported HSM version %d", version);
-            logger.debug("[getSigningClient] {}", message);
-            throw new HSMUnsupportedVersionException(message);
+            client = buildPowHSMClient(versionNumber);
         }
 
         logger.debug("[getSigningClient] HSM client: {}", client.getClass());
@@ -68,8 +66,7 @@ public class HSMSigningClientProvider {
             case "BTC":
                 client = new PowHSMSigningClientBtc(this.hsmClientProtocol, version);
                 break;
-            case "RSK":
-            case "MST":
+            case "RSK", "MST":
                 client = new PowHSMSigningClientRskMst(this.hsmClientProtocol, version);
                 break;
             default:

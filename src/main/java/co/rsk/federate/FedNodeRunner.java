@@ -22,7 +22,6 @@ import static co.rsk.federate.signing.PowPegNodeKeyId.*;
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.core.RskAddress;
-import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.adapter.ThinConverter;
@@ -163,22 +162,17 @@ public class FedNodeRunner implements NodeRunner {
         HSMClientProtocol protocol =
             hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
-        int version = protocol.getVersion();
-        if (!HSMVersion.isValidHSMVersion(version)) {
-            throw new HSMUnsupportedVersionException("Unsupported HSM version " + version);
-        }
-
+        int version = protocol.getVersionNumber();
         logger.debug("[run] Using HSM version {}", version);
 
+        HSMVersion hsmVersion = HSMVersion.fromVersionNumber(version);
         // Only start bookkeeping services for PoW HSMs. HSM version 1 doesn't support bookkeeping.
-        if (!HSMVersion.isPowHSM(version)) {
+        if (!hsmVersion.supportsBookkeeping()) {
             return;
         }
 
-        hsmBookkeepingClient = buildBookKeepingClient(
-            protocol, powHsmConfig);
-        hsmBookkeepingService = buildBookKeepingService(
-            hsmBookkeepingClient, powHsmConfig);
+        hsmBookkeepingClient = buildBookKeepingClient(protocol, powHsmConfig);
+        hsmBookkeepingService = buildBookKeepingService(hsmBookkeepingClient, powHsmConfig);
     }
 
     private void configureFederatorSupport() throws SignerException {
@@ -224,33 +218,37 @@ public class FedNodeRunner implements NodeRunner {
 
     private HSMBookkeepingClient buildBookKeepingClient(
         HSMClientProtocol protocol,
-        PowHSMConfig powHsmConfig) throws HSMClientException {
+        PowHSMConfig powHsmConfig
+    ) throws HSMClientException {
 
         HSMBookkeepingClient bookKeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(protocol);
         bookKeepingClient.setMaxChunkSizeToHsm(powHsmConfig.getMaxChunkSizeToHsm());
-        logger.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersion());
+        logger.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersionNumber());
         return bookKeepingClient;
     }
 
     private HSMBookkeepingService buildBookKeepingService(
         HSMBookkeepingClient bookKeepingClient,
-        PowHSMConfig powHsmConfig) throws HSMClientException {
+        PowHSMConfig powHsmConfig
+    ) throws HSMClientException {
+
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
+            powHsmConfig.getDifficultyTarget(bookKeepingClient),
+            powHsmConfig.getMaxAmountBlockHeaders(),
+            fedNodeContext.getBlockStore(),
+            powHsmConfig.getDifficultyCap(bridgeConstants.getBtcParamsString()),
+            hsmBookkeepingClient.getVersionNumber()
+        );
 
         HSMBookkeepingService service = new HSMBookkeepingService(
             fedNodeContext.getBlockStore(),
             bookKeepingClient,
-            new ConfirmedBlocksProvider(
-                powHsmConfig.getDifficultyTarget(bookKeepingClient),
-                powHsmConfig.getMaxAmountBlockHeaders(),
-                fedNodeContext.getBlockStore(),
-                powHsmConfig.getDifficultyCap(bridgeConstants.getBtcParamsString()),
-                hsmBookkeepingClient.getVersion()
-            ),
+            confirmedBlocksProvider,
             fedNodeContext.getNodeBlockProcessor(),
             powHsmConfig.getInformerInterval(),
             powHsmConfig.isStopBookkeepingScheduler()
         );
-        logger.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersion());
+        logger.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersionNumber());
         return service;
     }
 

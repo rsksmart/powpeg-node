@@ -71,7 +71,7 @@ public class HSMClientProtocol {
         this.responseHandler = handler;
     }
 
-    public int getVersion() throws HSMClientException {
+    public int getVersionNumber() throws HSMClientException {
         try {
             ObjectNode command = objectMapper.createObjectNode();
             command.put(COMMAND.getFieldName(), VERSION.getCommand());

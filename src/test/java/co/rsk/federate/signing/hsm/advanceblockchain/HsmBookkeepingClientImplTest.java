@@ -68,7 +68,7 @@ class HsmBookkeepingClientImplTest {
             buildResponse(HSMVersion.V2)
         );
 
-        assertEquals(HSMVersion.V2.getNumber(), hsmBookkeepingClient.getVersion());
+        assertEquals(HSMVersion.V2.getNumber(), hsmBookkeepingClient.getVersionNumber());
     }
 
     @Test
@@ -77,7 +77,7 @@ class HsmBookkeepingClientImplTest {
             buildResponse(HSMVersion.V4)
         );
 
-        assertEquals(HSMVersion.V4.getNumber(), hsmBookkeepingClient.getVersion());
+        assertEquals(HSMVersion.V4.getNumber(), hsmBookkeepingClient.getVersionNumber());
     }
 
     @Test
