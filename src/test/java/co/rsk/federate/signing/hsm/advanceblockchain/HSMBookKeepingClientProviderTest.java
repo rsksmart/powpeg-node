@@ -28,7 +28,7 @@ class HSMBookKeepingClientProviderTest {
 
     @Test
     void getHSMBookkeepingClient_v1() throws HSMClientException {
-        when(hsmClientProtocol.getVersion()).thenReturn(1);
+        when(hsmClientProtocol.getVersionNumber()).thenReturn(1);
 
         assertThrows(HSMUnsupportedVersionException.class, () ->
             hsmBookKeepingClientProvider.getHSMBookKeepingClient(hsmClientProtocol)
@@ -42,7 +42,7 @@ class HSMBookKeepingClientProviderTest {
     }
 
     void getHSMBookkeepingClient(int version) throws HSMClientException {
-        when(hsmClientProtocol.getVersion()).thenReturn(version);
+        when(hsmClientProtocol.getVersionNumber()).thenReturn(version);
         HSMBookkeepingClient bookkeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(hsmClientProtocol);
 
         assertTrue(bookkeepingClient instanceof HsmBookkeepingClientImpl);
@@ -50,7 +50,7 @@ class HSMBookKeepingClientProviderTest {
 
     @Test
     void getHSMBookkeepingClient_unknown_version() throws HSMClientException {
-        when(hsmClientProtocol.getVersion()).thenReturn(3);
+        when(hsmClientProtocol.getVersionNumber()).thenReturn(3);
 
         assertThrows(HSMUnsupportedVersionException.class, () ->
             hsmBookKeepingClientProvider.getHSMBookKeepingClient(hsmClientProtocol)

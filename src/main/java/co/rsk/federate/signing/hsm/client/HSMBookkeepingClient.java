@@ -9,7 +9,7 @@ import org.ethereum.core.Block;
 import java.util.List;
 
 public interface HSMBookkeepingClient {
-    int getVersion() throws HSMClientException;
+    int getVersionNumber() throws HSMClientException;
 
     void updateAncestorBlock(UpdateAncestorBlockMessage updateAncestorBlockMessage) throws HSMClientException;
 

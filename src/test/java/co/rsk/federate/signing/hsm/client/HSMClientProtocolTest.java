@@ -78,9 +78,9 @@ class HSMClientProtocolTest {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(1));
-        assertEquals(1, hsmClientProtocol.getVersion());
+        assertEquals(1, hsmClientProtocol.getVersionNumber());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(2));
-        assertEquals(2, hsmClientProtocol.getVersion());
+        assertEquals(2, hsmClientProtocol.getVersionNumber());
     }
 
     @Test
@@ -89,7 +89,7 @@ class HSMClientProtocolTest {
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildResponse(-2));
         try {
-            hsmClientProtocol.getVersion();
+            hsmClientProtocol.getVersionNumber();
             fail();
         } catch (HSMClientException e) {
             assertTrue(e instanceof HSMDeviceNotReadyException);

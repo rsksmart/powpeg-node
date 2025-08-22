@@ -29,16 +29,12 @@ public class SignerMessageBuilderFactory {
         ReleaseCreationInformation releaseCreationInformation,
         int inputIndex
     ) throws HSMUnsupportedVersionException {
-        if (signerVersion == HSMVersion.V1.getNumber()) {
+        HSMVersion hsmVersion = HSMVersion.fromVersionNumber(signerVersion);
+
+        if (!hsmVersion.isPOWSigningClient()) {
             return buildSignerMessageBuilderV1(releaseCreationInformation, inputIndex);
         }
-        if (HSMVersion.isPowHSM(signerVersion)) {
-            return buildPowHSMSignerMessageBuilder(releaseCreationInformation, inputIndex);
-        }
-
-        String message = String.format("Unsupported HSM signer version: %d", signerVersion);
-        logger.debug("[buildFromConfig] {}", message);
-        throw new HSMUnsupportedVersionException(message);
+        return buildPowHSMSignerMessageBuilder(releaseCreationInformation, inputIndex);
     }
 
     private SignerMessageBuilderV1 buildSignerMessageBuilderV1(ReleaseCreationInformation releaseCreationInformation, int inputIndex) {

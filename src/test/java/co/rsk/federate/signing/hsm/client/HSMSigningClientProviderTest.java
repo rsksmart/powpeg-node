@@ -41,7 +41,7 @@ class HSMSigningClientProviderTest {
     void getClientV1() throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "");
-        when(protocol.getVersion()).thenReturn(1);
+        when(protocol.getVersionNumber()).thenReturn(1);
 
         HSMSigningClient client = clientProvider.getSigningClient();
 
@@ -61,7 +61,7 @@ class HSMSigningClientProviderTest {
     void getClientV2(PowPegNodeKeyId keyId, Class<PowHSMSigningClient> expectedHsmClientType) throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, keyId.getId());
-        when(protocol.getVersion()).thenReturn(2);
+        when(protocol.getVersionNumber()).thenReturn(2);
         HSMSigningClient client = clientProvider.getSigningClient();
         assertTrue(expectedHsmClientType.isInstance(client));
     }
@@ -70,7 +70,7 @@ class HSMSigningClientProviderTest {
     @EnumSource(PowPegNodeKeyId.class)
     void getSigningClient_whenProtocolVersion3_shouldFail(PowPegNodeKeyId keyId) throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersion()).thenReturn(3);
+        when(protocol.getVersionNumber()).thenReturn(3);
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, keyId.getId());
         Assertions.assertThrows(HSMUnsupportedVersionException.class,
@@ -81,7 +81,7 @@ class HSMSigningClientProviderTest {
     @MethodSource("keyIdProvider")
     void getClientV4(PowPegNodeKeyId keyId, Class<?> expectedHsmClientType) throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersion()).thenReturn(4);
+        when(protocol.getVersionNumber()).thenReturn(4);
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, keyId.getId());
         HSMSigningClient client = clientProvider.getSigningClient();
@@ -93,7 +93,7 @@ class HSMSigningClientProviderTest {
     @MethodSource("keyIdProvider")
     void getClientV5(PowPegNodeKeyId keyId, Class<?> expectedHsmClientType) throws Exception {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersion()).thenReturn(5);
+        when(protocol.getVersionNumber()).thenReturn(5);
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, keyId.getId());
         HSMSigningClient client = clientProvider.getSigningClient();
@@ -105,7 +105,7 @@ class HSMSigningClientProviderTest {
     void getClientUnsupportedVersion() throws HSMClientException {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "BTC");
-        when(protocol.getVersion()).thenReturn(-5);
+        when(protocol.getVersionNumber()).thenReturn(-5);
 
         assertThrows(HSMUnsupportedVersionException.class, clientProvider::getSigningClient);
     }
@@ -114,7 +114,7 @@ class HSMSigningClientProviderTest {
     void getClientUnsupportedType() throws HSMClientException {
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(protocol, "XYZ");
-        when(protocol.getVersion()).thenReturn(2);
+        when(protocol.getVersionNumber()).thenReturn(2);
 
         assertThrows(HSMUnsupportedTypeException.class, clientProvider::getSigningClient);
     }
