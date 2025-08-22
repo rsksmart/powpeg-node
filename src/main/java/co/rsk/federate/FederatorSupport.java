@@ -16,7 +16,6 @@ import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Sha256Hash;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.Blockchain;
 import org.ethereum.crypto.ECKey;
 import org.slf4j.Logger;
@@ -72,7 +71,7 @@ public class FederatorSupport {
         return BitcoinPeerFactory.buildBitcoinPeerAddresses(ThinConverter.toOriginalInstance(config.getNetworkConstants().getBridgeConstants().getBtcParamsString()), this.config.getNetworkConstants().getBridgeConstants().getBtcParams().getPort(), this.config.bitcoinPeerAddresses());
     }
 
-    public int getBtcBestBlockChainHeight() {
+    public int getBtcBlockchainBestChainHeight() {
         BigInteger btcBlockchainBestChainHeight = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_BTC_BLOCKCHAIN_BEST_CHAIN_HEIGHT);
         return btcBlockchainBestChainHeight.intValue();
     }
@@ -300,11 +299,6 @@ public class FederatorSupport {
 
         return Optional.ofNullable(creationBlockNumber)
             .map(BigInteger::longValue);
-    }
-
-    public int getBtcBlockchainBestChainHeight() {
-        BigInteger btcBlockchainBestChainHeight = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_BTC_BLOCKCHAIN_BEST_CHAIN_HEIGHT);
-        return btcBlockchainBestChainHeight.intValue();
     }
 
     public NetworkParameters getBtcParams() {
