@@ -191,10 +191,6 @@ public class FederatorSupport {
 
     public Instant getFederationCreationTime() {
         BigInteger federationCreationTime = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_FEDERATION_CREATION_TIME);
-
-        if (!getConfigForBestBlock().isActive(ConsensusRule.RSKIP419)) {
-            return Instant.ofEpochMilli(federationCreationTime.longValue());
-        }
         return Instant.ofEpochSecond(federationCreationTime.longValue());
     }
 
@@ -256,10 +252,6 @@ public class FederatorSupport {
         BigInteger creationTime = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_RETIRING_FEDERATION_CREATION_TIME);
         if (creationTime == null) {
             return null;
-        }
-
-        if (!getConfigForBestBlock().isActive(ConsensusRule.RSKIP419)) {
-            return Instant.ofEpochMilli(creationTime.longValue());
         }
         return Instant.ofEpochSecond(creationTime.longValue());
     }
