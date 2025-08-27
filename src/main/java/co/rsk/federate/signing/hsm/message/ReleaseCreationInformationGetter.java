@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 // First the class tries to find the event associated with the transaction. If it cannot find it, it requests the following
 // events until it is found or until it reaches the last block.
@@ -53,12 +52,12 @@ public class ReleaseCreationInformationGetter {
     ) throws HSMReleaseCreationInformationException {
         HSMVersion hsmVersion;
         try {
-             hsmVersion = HSMVersion.fromVersionNumber(version);
+             hsmVersion = HSMVersion.fromNumber(version);
         } catch (HSMUnsupportedVersionException e) {
             throw new HSMReleaseCreationInformationException("Unsupported version " + version);
         }
 
-        if (!hsmVersion.isPOWSigningClient()) {
+        if (!hsmVersion.isPowHSM()) {
             return getBaseReleaseCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
         }
 

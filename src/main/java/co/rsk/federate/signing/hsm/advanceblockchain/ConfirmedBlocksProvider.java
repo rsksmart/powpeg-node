@@ -103,7 +103,7 @@ public class ConfirmedBlocksProvider {
 
         HSMVersion hsmVersion;
         try {
-            hsmVersion = HSMVersion.fromVersionNumber(hsmVersionNumber);
+            hsmVersion = HSMVersion.fromNumber(hsmVersionNumber);
         } catch (HSMUnsupportedVersionException e) {
             throw new IllegalStateException("[getBlockDifficultyToConsider] Tried to get block difficulty for unsupported HSM version.");
         }

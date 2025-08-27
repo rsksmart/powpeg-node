@@ -1,8 +1,5 @@
 package co.rsk.federate.signing.hsm;
 
-import java.util.Arrays;
-import java.util.List;
-
 public enum HSMVersion {
     V1(1),
     V2(2),
@@ -20,7 +17,7 @@ public enum HSMVersion {
         return number;
     }
 
-    public static HSMVersion fromVersionNumber(int number) throws HSMUnsupportedVersionException {
+    public static HSMVersion fromNumber(int number) throws HSMUnsupportedVersionException {
         for (HSMVersion version : values()) {
             if (version.getNumber() == number) {
                 return version;
@@ -29,23 +26,11 @@ public enum HSMVersion {
         throw new HSMUnsupportedVersionException("Unsupported HSM version " + number);
     }
 
-    public boolean supportsBookkeeping() {
-        return isPowHSM();
-    }
-
-    public boolean isPOWSigningClient() {
-        return isPowHSM();
+    public boolean isPowHSM() {
+        return number >= V2.getNumber();
     }
 
     public boolean considersUnclesDifficulty() {
-        return number != V1.getNumber() && number != V2.getNumber();
-    }
-
-    public boolean enforcesReleaseRequirements() {
-        return isPowHSM();
-    }
-
-    private boolean isPowHSM() {
-        return number != V1.getNumber();
+        return number >= V4.getNumber();
     }
 }

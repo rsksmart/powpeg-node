@@ -29,9 +29,9 @@ public class SignerMessageBuilderFactory {
         ReleaseCreationInformation releaseCreationInformation,
         int inputIndex
     ) throws HSMUnsupportedVersionException {
-        HSMVersion hsmVersion = HSMVersion.fromVersionNumber(signerVersion);
+        HSMVersion hsmVersion = HSMVersion.fromNumber(signerVersion);
 
-        if (!hsmVersion.isPOWSigningClient()) {
+        if (!hsmVersion.isPowHSM()) {
             return buildSignerMessageBuilderV1(releaseCreationInformation, inputIndex);
         }
         return buildPowHSMSignerMessageBuilder(releaseCreationInformation, inputIndex);

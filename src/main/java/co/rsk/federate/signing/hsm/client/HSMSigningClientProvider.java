@@ -47,13 +47,13 @@ public class HSMSigningClientProvider {
         int versionNumber = this.hsmClientProtocol.getVersionNumber();
         logger.debug("[getSigningClient] version: {}, keyId: {}", versionNumber, keyId);
 
-        HSMVersion hsmVersion = HSMVersion.fromVersionNumber(versionNumber);
+        HSMVersion hsmVersion = HSMVersion.fromNumber(versionNumber);
 
         HSMSigningClient client;
-        if (!hsmVersion.isPOWSigningClient()) {
-            client = new HSMSigningClientV1(this.hsmClientProtocol);
-        } else {
+        if (hsmVersion.isPowHSM()) {
             client = buildPowHSMClient(versionNumber);
+        } else {
+            client = new HSMSigningClientV1(this.hsmClientProtocol);
         }
 
         logger.debug("[getSigningClient] HSM client: {}", client.getClass());

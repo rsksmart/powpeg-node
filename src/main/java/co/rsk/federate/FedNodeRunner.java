@@ -165,9 +165,9 @@ public class FedNodeRunner implements NodeRunner {
         int version = protocol.getVersionNumber();
         logger.debug("[run] Using HSM version {}", version);
 
-        HSMVersion hsmVersion = HSMVersion.fromVersionNumber(version);
+        HSMVersion hsmVersion = HSMVersion.fromNumber(version);
         // Only start bookkeeping services for PoW HSMs. HSM version 1 doesn't support bookkeeping.
-        if (!hsmVersion.supportsBookkeeping()) {
+        if (!hsmVersion.isPowHSM()) {
             return;
         }
 

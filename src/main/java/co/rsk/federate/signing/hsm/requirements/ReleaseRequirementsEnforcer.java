@@ -18,12 +18,12 @@ public class ReleaseRequirementsEnforcer {
     public void enforce(int version, ReleaseCreationInformation releaseCreationInformation) throws ReleaseRequirementsEnforcerException {
         HSMVersion hsmVersion;
         try {
-            hsmVersion = HSMVersion.fromVersionNumber(version);
+            hsmVersion = HSMVersion.fromNumber(version);
         } catch (HSMUnsupportedVersionException e) {
             throw new ReleaseRequirementsEnforcerException("Unsupported version " + version);
         }
 
-        if (!hsmVersion.enforcesReleaseRequirements()) {
+        if (!hsmVersion.isPowHSM()) {
             logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
             return;
         }
