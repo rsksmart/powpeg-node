@@ -34,6 +34,10 @@ public enum HSMVersion {
         return number >= V4.getNumber();
     }
 
+    public boolean supportsBlockchainParameters() {
+        return number >= V4.getNumber();
+    }
+
     @Override
     public String toString() {
         return Integer.toString(number);

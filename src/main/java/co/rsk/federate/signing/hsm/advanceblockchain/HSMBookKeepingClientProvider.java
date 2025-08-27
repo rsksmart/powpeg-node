@@ -12,12 +12,11 @@ public class HSMBookKeepingClientProvider {
     private static final Logger logger = LoggerFactory.getLogger(HSMBookKeepingClientProvider.class);
 
     public HSMBookkeepingClient getHSMBookKeepingClient(HSMClientProtocol protocol) throws HSMClientException {
-        int versionNumber = protocol.getVersionNumber();
-        logger.debug("[getHSMBookKeepingClient] version: {}", versionNumber);
-        HSMVersion hsmVersion = HSMVersion.fromNumber(versionNumber);
+        HSMVersion hsmVersion = protocol.getVersion();
+        logger.debug("[getHSMBookKeepingClient] version: {}", hsmVersion);
 
         if (!hsmVersion.isPowHSM()) {
-            throw new HSMUnsupportedVersionException("HSMBookKeepingClient doesn't exist for version " + versionNumber);
+            throw new HSMUnsupportedVersionException("HSMBookKeepingClient doesn't exist for version " + hsmVersion);
         }
         return new HsmBookkeepingClientImpl(protocol);
     }

@@ -63,21 +63,21 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getVersion_2() throws HSMClientException, JsonRpcException {
+    void getVersion_2() throws JsonRpcException {
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
             buildResponse(HSMVersion.V2)
         );
 
-        assertEquals(HSMVersion.V2.getNumber(), hsmBookkeepingClient.getVersionNumber());
+        assertEquals(HSMVersion.V2, hsmBookkeepingClient.getVersion());
     }
 
     @Test
-    void getVersion_4() throws HSMClientException, JsonRpcException {
+    void getVersion_4() throws JsonRpcException {
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
             buildResponse(HSMVersion.V4)
         );
 
-        assertEquals(HSMVersion.V4.getNumber(), hsmBookkeepingClient.getVersionNumber());
+        assertEquals(HSMVersion.V4, hsmBookkeepingClient.getVersion());
     }
 
     @Test

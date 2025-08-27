@@ -1,52 +1,37 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
-import co.rsk.federate.signing.hsm.HSMVersion;
-import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
-import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
-import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
-import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
-import co.rsk.federate.signing.hsm.client.PowHSMResponseHandler;
-import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
-import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
-import co.rsk.federate.signing.hsm.message.PowHSMState;
-import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
+import static co.rsk.federate.signing.HSMCommand.*;
+import static co.rsk.federate.signing.HSMField.*;
+
+import co.rsk.federate.signing.hsm.*;
+import co.rsk.federate.signing.hsm.client.*;
+import co.rsk.federate.signing.hsm.message.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.math.BigInteger;
+import java.util.*;
 import org.ethereum.core.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static co.rsk.federate.signing.HSMCommand.*;
-import static co.rsk.federate.signing.HSMField.*;
-
-/**
- * Created by Kelvin Isievwore on 13/03/2023.
- */
 public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     private static final Logger logger = LoggerFactory.getLogger(HsmBookkeepingClientImpl.class);
+    private final HSMClientProtocol hsmClientProtocol;
+    private final HSMVersion hsmVersion;
     private int maxChunkSize = 10;  // DEFAULT VALUE
     private boolean isStopped = false;
-    private final HSMClientProtocol hsmClientProtocol;
-    private Integer hsmVersion;
 
-    public HsmBookkeepingClientImpl(HSMClientProtocol hsmClientProtocol) {
+    public HsmBookkeepingClientImpl(HSMClientProtocol hsmClientProtocol) throws HSMClientException {
         this.hsmClientProtocol = hsmClientProtocol;
         hsmClientProtocol.setResponseHandler(new PowHSMResponseHandler());
+
+        this.hsmVersion = this.hsmClientProtocol.getVersion();
     }
 
     @Override
-    public int getVersionNumber() throws HSMClientException {
-        if (this.hsmVersion == null) {
-            this.hsmVersion = this.hsmClientProtocol.getVersionNumber();
-        }
+    public HSMVersion getVersion() {
         return this.hsmVersion;
     }
 
@@ -142,7 +127,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
             String[] blockHeaderChunk = blockHeadersChunks.get(i);
             ObjectNode payload = this.hsmClientProtocol.buildCommand(
                 UPDATE_ANCESTOR_BLOCK.getCommand(),
-                getVersionNumber()
+                hsmVersion
             );
             addBlocksToPayload(payload, blockHeaderChunk);
 
@@ -164,10 +149,10 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         logger.trace("[advanceBlockchain] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
         for (int i = 0; i < blockHeadersChunks.size(); i++) {
             String[] blockHeaderChunk = blockHeadersChunks.get(i);
-            ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), getVersionNumber());
+            ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), hsmVersion);
             addBlocksToPayload(payload, blockHeaderChunk);
 
-            if (getVersionNumber() >= HSMVersion.V4.getNumber()) {
+            if (hsmVersion.considersUnclesDifficulty()) {
                 List<String[]> brothers = getBrothers(blockHeaderChunk, message);
                 addBrothersToPayload(payload, brothers);
             }
@@ -182,7 +167,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public PowHSMState getHSMPointer() throws HSMClientException {
-        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE.getCommand(), getVersionNumber());
+        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE.getCommand(), hsmVersion);
         JsonNode response = this.hsmClientProtocol.send(command);
 
         this.hsmClientProtocol.validatePresenceOf(response, STATE.getFieldName());
@@ -205,7 +190,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public void resetAdvanceBlockchain() throws HSMClientException {
-        ObjectNode command = hsmClientProtocol.buildCommand(RESET_ADVANCE_BLOCKCHAIN.getCommand(), getVersionNumber());
+        ObjectNode command = hsmClientProtocol.buildCommand(RESET_ADVANCE_BLOCKCHAIN.getCommand(), hsmVersion);
         this.hsmClientProtocol.send(command);
 
         logger.trace("[resetAdvanceBlockchain] Sent command to reset Advance Blockchain.");
@@ -223,12 +208,11 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public PowHSMBlockchainParameters getBlockchainParameters() throws HSMClientException {
-        int version = getVersionNumber();
-        if (version < 3) {
-            throw new HSMUnsupportedTypeException("method call not allowed for version " + version);
+        if (!hsmVersion.supportsBlockchainParameters()) {
+            throw new HSMUnsupportedTypeException("method call not allowed for version " + hsmVersion);
         }
 
-        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_PARAMETERS.getCommand(), version);
+        ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_PARAMETERS.getCommand(), hsmVersion);
         JsonNode response = this.hsmClientProtocol.send(command);
 
         this.hsmClientProtocol.validatePresenceOf(response, PARAMETERS.getFieldName());

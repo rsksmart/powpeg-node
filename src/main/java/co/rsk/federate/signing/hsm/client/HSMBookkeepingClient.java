@@ -1,6 +1,7 @@
 package co.rsk.federate.signing.hsm.client;
 
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
@@ -9,7 +10,7 @@ import org.ethereum.core.Block;
 import java.util.List;
 
 public interface HSMBookkeepingClient {
-    int getVersionNumber() throws HSMClientException;
+    HSMVersion getVersion();
 
     void updateAncestorBlock(UpdateAncestorBlockMessage updateAncestorBlockMessage) throws HSMClientException;
 
