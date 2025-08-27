@@ -33,4 +33,9 @@ public enum HSMVersion {
     public boolean considersUnclesDifficulty() {
         return number >= V4.getNumber();
     }
+
+    @Override
+    public String toString() {
+        return Integer.toString(number);
+    }
 }
