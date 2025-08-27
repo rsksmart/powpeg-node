@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.trie.Trie;
@@ -141,7 +142,7 @@ class PowHSMSignerMessageTest {
 
     @ParameterizedTest
     @MethodSource("getMessageToSignLegacyArgProvider")
-    void getMessageToSign_whenSighashLegacyMode_ok(int version, JsonNode expectedMessageToSend) {
+    void getMessageToSign_whenSighashLegacyMode_ok(HSMVersion version, JsonNode expectedMessageToSend) {
         // arrange
         Sha256Hash sigHash = BitcoinTestUtils.createHash(1);
 
@@ -191,7 +192,6 @@ class PowHSMSignerMessageTest {
         byte[] rawOriginalTx = Hex.decode("02000000000102ad63bb3d634405d7fc587e326ffded9a466c4f9a8994b3da04a238867c99ddee000000002322002064a977662a5a4bf9917f1ee212e3aef7419b3bb1618be1d57f5a33b99df87e78ffffffffad63bb3d634405d7fc587e326ffded9a466c4f9a8994b3da04a238867c99ddee0100000023220020cabce4c919445262a40e82c100cf4ef2386dc2cc07e7eafa145f72a576a2420bffffffff0158a80e000000000017a91453863f60cf78368efd11bd8cb89012a91027eb52870500000000fd1e01645221020b1d25b03d041028326ac5b27af941524c31bf09df5fece7476d3940f9cd23942102501878fb22fdf374921d168bb1ea02b324f00eb2c7610cb452167a9dcdab016421034ba6ec42eab139697c3614653e130e76fc15d1d7e5c91b3df63d3c06195d422653ae6702f401b2755321029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e433012103284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd2103776b1fd8f86da3c1db3d69699e8250a15877d286734ea9a6da8e9d8ad25d16c12103ab0e2cd7ed158687fc13b88019990860cdb72b1f5777b58513312550ea1584bc2103b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b2455ae680500000000fd400120000000000000000000000000000000000000000000000000000000000000000175645221020b1d25b03d041028326ac5b27af941524c31bf09df5fece7476d3940f9cd23942102501878fb22fdf374921d168bb1ea02b324f00eb2c7610cb452167a9dcdab016421034ba6ec42eab139697c3614653e130e76fc15d1d7e5c91b3df63d3c06195d422653ae6702f401b2755321029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e433012103284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd2103776b1fd8f86da3c1db3d69699e8250a15877d286734ea9a6da8e9d8ad25d16c12103ab0e2cd7ed158687fc13b88019990860cdb72b1f5777b58513312550ea1584bc2103b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b2455ae6800000000");
         BtcTransaction segwitPegoutBtcTx = new BtcTransaction(testnet, rawOriginalTx);
         Sha256Hash sigHash = BitcoinTestUtils.createHash(1);
-        int hsmVersion5 = 5;
 
         String expectedRawTxWithoutWitness = "0200000002ad63bb3d634405d7fc587e326ffded9a466c4f9a8994b3da04a238867c99ddee000000002322002064a977662a5a4bf9917f1ee212e3aef7419b3bb1618be1d57f5a33b99df87e78ffffffffad63bb3d634405d7fc587e326ffded9a466c4f9a8994b3da04a238867c99ddee0100000023220020cabce4c919445262a40e82c100cf4ef2386dc2cc07e7eafa145f72a576a2420bffffffff0158a80e000000000017a91453863f60cf78368efd11bd8cb89012a91027eb528700000000";
         Coin firstOutpointValue = Coin.valueOf(50_000_000L);
@@ -212,7 +212,7 @@ class PowHSMSignerMessageTest {
             outpointValues
         );
 
-        JsonNode firstMessageToSign = firstPowHSMSignerMessage.getMessageToSign(hsmVersion5);
+        JsonNode firstMessageToSign = firstPowHSMSignerMessage.getMessageToSign(HSMVersion.V5);
 
         // assert
         String rawOriginalWitnessScript = "645221020b1d25b03d041028326ac5b27af941524c31bf09df5fece7476d3940f9cd23942102501878fb22fdf374921d168bb1ea02b324f00eb2c7610cb452167a9dcdab016421034ba6ec42eab139697c3614653e130e76fc15d1d7e5c91b3df63d3c06195d422653ae6702f401b2755321029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e433012103284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd2103776b1fd8f86da3c1db3d69699e8250a15877d286734ea9a6da8e9d8ad25d16c12103ab0e2cd7ed158687fc13b88019990860cdb72b1f5777b58513312550ea1584bc2103b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b2455ae68";
@@ -236,7 +236,7 @@ class PowHSMSignerMessageTest {
             outpointValues
         );
 
-        JsonNode secondMessageToSign = secondPowHSMSignerMessage.getMessageToSign(hsmVersion5);
+        JsonNode secondMessageToSign = secondPowHSMSignerMessage.getMessageToSign(HSMVersion.V5);
 
         // assert
         String pushData = "20"; // 32 in hexa

@@ -18,11 +18,7 @@
 
 package co.rsk.federate.signing.hsm.message;
 
-import static co.rsk.federate.signing.HSMField.INPUT;
-import static co.rsk.federate.signing.HSMField.OUTPOINT_VALUE;
-import static co.rsk.federate.signing.HSMField.SIGHASH_COMPUTATION_MODE;
-import static co.rsk.federate.signing.HSMField.TX;
-import static co.rsk.federate.signing.HSMField.WITNESS_SCRIPT;
+import static co.rsk.federate.signing.HSMField.*;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
@@ -34,12 +30,7 @@ import co.rsk.trie.Trie;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-
+import java.util.*;
 import org.ethereum.core.TransactionReceipt;
 import org.spongycastle.util.encoders.Hex;
 
@@ -95,14 +86,14 @@ public class PowHSMSignerMessage extends SignerMessage {
         return sigHash;
     }
 
-    public JsonNode getMessageToSign(int version) {
+    public JsonNode getMessageToSign(HSMVersion version) {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
         // The hsm expects the transaction without any witness data
         BtcTransaction txWithoutWitness = BitcoinUtils.getTransactionWithoutWitness(btcTransaction);
         byte[] serializedTx = txWithoutWitness.bitcoinSerialize();
         messageToSend.put(TX.getFieldName(), Hex.toHexString(serializedTx));
         messageToSend.put(INPUT.getFieldName(), inputIndex);
-        if (version == HSMVersion.V5.getNumber()) {
+        if (version == HSMVersion.V5) {
             if (hasWitness()) {
                 populateWithSegwitValues(messageToSend);
             } else {

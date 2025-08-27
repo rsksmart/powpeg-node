@@ -19,6 +19,7 @@
 package co.rsk.federate.signing.hsm.client;
 
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 
 /**
@@ -30,7 +31,7 @@ import co.rsk.federate.signing.hsm.message.SignerMessage;
  * @author Ariel Mendelzon
  */
 public interface HSMSigningClient {
-    int getVersion() throws HSMClientException;
+    HSMVersion getVersion() throws HSMClientException;
 
     byte[] getPublicKey(String keyId) throws HSMClientException;
 

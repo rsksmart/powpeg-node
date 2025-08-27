@@ -7,6 +7,7 @@ import static co.rsk.federate.signing.HSMField.MESSAGE;
 import static co.rsk.federate.signing.HSMField.RECEIPT;
 import static co.rsk.federate.signing.HSMField.RECEIPT_MERKLE_PROOF;
 
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.PowHSMSignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +16,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class PowHSMSigningClientBtc extends PowHSMSigningClient {
 
-    public PowHSMSigningClientBtc(HSMClientProtocol protocol, int version) {
+    public PowHSMSigningClientBtc(HSMClientProtocol protocol, HSMVersion version) {
         super(protocol, version);
     }
 

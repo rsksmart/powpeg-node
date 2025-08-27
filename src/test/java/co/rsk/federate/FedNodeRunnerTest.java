@@ -4,43 +4,28 @@ import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
 import static co.rsk.federate.signing.PowPegNodeKeyId.MST;
 import static co.rsk.federate.signing.PowPegNodeKeyId.RSK;
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import co.rsk.NodeRunner;
 import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
-import co.rsk.federate.signing.hsm.HSMVersion;
-import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.config.SignerConfigBuilder;
-import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.log.FederateLogger;
 import co.rsk.federate.log.RskLogMonitor;
-import co.rsk.federate.signing.ECDSACompositeSigner;
-import co.rsk.federate.signing.ECDSAHSMSigner;
-import co.rsk.federate.signing.ECDSASigner;
-import co.rsk.federate.signing.ECDSASignerFromFileKey;
-import co.rsk.federate.signing.PowPegNodeKeyId;
-import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
+import co.rsk.federate.signing.*;
+import co.rsk.federate.signing.config.SignerConfig;
+import co.rsk.federate.signing.hsm.*;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookKeepingClientProvider;
 import co.rsk.federate.signing.hsm.advanceblockchain.HSMBookkeepingService;
-import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
-import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
-import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
+import co.rsk.federate.signing.hsm.client.*;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.federate.watcher.FederationWatcher;
+import co.rsk.peg.constants.BridgeConstants;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import java.io.IOException;
@@ -51,16 +36,13 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Collections;
 import java.util.List;
 import org.ethereum.config.Constants;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
 class FedNodeRunnerTest {
 
     private FedNodeRunner fedNodeRunner;
     private PowpegNodeSystemProperties fedNodeSystemProperties;
-    private Config keyFileConfig;
     private Path keyFilePath;
     private HSMBookkeepingClient hsmBookkeepingClient;
 
@@ -74,7 +56,7 @@ class FedNodeRunnerTest {
         Files.write(keyFilePath, Collections.singletonList("45c5b07fc1a6f58892615b7c31dca6c96db58c4bbc538a6b8a22999aaa860c32"));
         Files.setPosixFilePermissions(keyFilePath, PosixFilePermissions.fromString("r--------")); // Add only read permission
 
-        keyFileConfig = mock(Config.class);
+        Config keyFileConfig = mock(Config.class);
         when(keyFileConfig.getString("path")).thenReturn(keyFilePath.toString());
 
         BridgeConstants bridgeConstants = mock(BridgeConstants.class);
@@ -84,14 +66,14 @@ class FedNodeRunnerTest {
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
 
-        int hsmVersion = HSMVersion.V4.getNumber();
+        HSMVersion hsmVersion = HSMVersion.V4;
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersionNumber()).thenReturn(hsmVersion);
+        when(protocol.getVersion()).thenReturn(hsmVersion);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
         when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
         hsmBookkeepingClient = mock(HSMBookkeepingClient.class);
-        when(hsmBookkeepingClient.getVersionNumber()).thenReturn(hsmVersion);
+        when(hsmBookkeepingClient.getVersion()).thenReturn(hsmVersion);
         HSMBookKeepingClientProvider hsmBookKeepingClientProvider = mock(HSMBookKeepingClientProvider.class);
         when(hsmBookKeepingClientProvider.getHSMBookKeepingClient(any())).thenReturn(hsmBookkeepingClient);
 
@@ -151,7 +133,7 @@ class FedNodeRunnerTest {
         when(fedNodeSystemProperties.signerConfig(MST.getId())).thenReturn(mstSignerConfig);
 
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersionNumber()).thenReturn(1);
+        when(protocol.getVersion()).thenReturn(HSMVersion.V1);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
         when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
@@ -199,7 +181,7 @@ class FedNodeRunnerTest {
 
         when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersionNumber()).thenReturn(3);
+        when(protocol.getVersion()).thenReturn(3);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
         when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
@@ -475,8 +457,8 @@ class FedNodeRunnerTest {
 
     @Test
     void run_whenHsmVersionIsLowerThanThreeAndDifficultyTargetConfigIsNotPresent_shouldThrowException() throws Exception {
-        int version = 2;
-        when(hsmBookkeepingClient.getVersionNumber()).thenReturn(version);
+        HSMVersion version = HSMVersion.V2;
+        when(hsmBookkeepingClient.getVersion()).thenReturn(version);
         when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
             new HSMUnsupportedTypeException("PowHSM version: " + version));
         SignerConfig btcSignerConfig = SignerConfigBuilder.builder()
@@ -507,7 +489,7 @@ class FedNodeRunnerTest {
     }
 
     private SignerConfig getHSMBTCSignerConfig(HSMVersion version) throws HSMClientException {
-        when(hsmBookkeepingClient.getVersionNumber()).thenReturn(version.getNumber());
+        when(hsmBookkeepingClient.getVersion()).thenReturn(version);
         SignerConfigBuilder configBuilder = SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/0'/0'/0/0");
 
@@ -518,12 +500,14 @@ class FedNodeRunnerTest {
                 new BigInteger("4405500"), 500000L, 1000, 100, true);
         }
 
-        if (version.getNumber() >= 4) {
+        if (version.supportsBlockchainParameters()) {
             when(hsmBookkeepingClient.getBlockchainParameters()).thenReturn(
                 new PowHSMBlockchainParameters(
                     createHash(1).toHexString(),
                     new BigInteger("4405500"),
-                    NetworkParameters.ID_UNITTESTNET));
+                    NetworkParameters.ID_UNITTESTNET
+                )
+            );
         }
 
         return configBuilder.build(PowPegNodeKeyId.BTC);

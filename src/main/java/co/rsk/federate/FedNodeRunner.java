@@ -156,16 +156,13 @@ public class FedNodeRunner implements NodeRunner {
     }
 
     private void startBookkeepingServices() throws SignerException, HSMClientException {
-        PowHSMConfig powHsmConfig = new PowHSMConfig(
-            config.signerConfig(BTC.getId()));
+        SignerConfig btcSignerConfig = config.signerConfig(BTC.getId());
+        PowHSMConfig powHsmConfig = new PowHSMConfig(btcSignerConfig);
+        HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
-        HSMClientProtocol protocol =
-            hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
+        HSMVersion hsmVersion = protocol.getVersion();
+        logger.debug("[run] Using HSM version {}", hsmVersion);
 
-        int version = protocol.getVersionNumber();
-        logger.debug("[run] Using HSM version {}", version);
-
-        HSMVersion hsmVersion = HSMVersion.fromNumber(version);
         // Only start bookkeeping services for PoW HSMs. HSM version 1 doesn't support bookkeeping.
         if (!hsmVersion.isPowHSM()) {
             return;
@@ -223,7 +220,7 @@ public class FedNodeRunner implements NodeRunner {
 
         HSMBookkeepingClient bookKeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(protocol);
         bookKeepingClient.setMaxChunkSizeToHsm(powHsmConfig.getMaxChunkSizeToHsm());
-        logger.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersionNumber());
+        logger.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersion());
         return bookKeepingClient;
     }
 
@@ -237,7 +234,7 @@ public class FedNodeRunner implements NodeRunner {
             powHsmConfig.getMaxAmountBlockHeaders(),
             fedNodeContext.getBlockStore(),
             powHsmConfig.getDifficultyCap(bridgeConstants.getBtcParamsString()),
-            hsmBookkeepingClient.getVersionNumber()
+            hsmBookkeepingClient.getVersion()
         );
 
         HSMBookkeepingService service = new HSMBookkeepingService(
@@ -248,7 +245,7 @@ public class FedNodeRunner implements NodeRunner {
             powHsmConfig.getInformerInterval(),
             powHsmConfig.isStopBookkeepingScheduler()
         );
-        logger.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersionNumber());
+        logger.info("[buildBookKeepingService] HSMBookkeeping Service built for HSM version: {}", bookKeepingClient.getVersion());
         return service;
     }
 

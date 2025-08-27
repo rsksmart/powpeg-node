@@ -65,8 +65,8 @@ public class HSMSigningClientProvider {
         }
 
         return switch (PowPegNodeKeyId.fromString(keyId)) {
-            case BTC -> new PowHSMSigningClientBtc(hsmClientProtocol, version.getNumber());
-            case RSK, MST -> new PowHSMSigningClientRskMst(hsmClientProtocol, version.getNumber());
+            case BTC -> new PowHSMSigningClientBtc(hsmClientProtocol, version);
+            case RSK, MST -> new PowHSMSigningClientRskMst(hsmClientProtocol, version);
         };
     }
 }
