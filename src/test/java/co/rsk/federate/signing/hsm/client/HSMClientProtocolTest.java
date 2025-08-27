@@ -19,42 +19,21 @@
 package co.rsk.federate.signing.hsm.client;
 
 import static co.rsk.federate.signing.HSMCommand.VERSION;
-import static co.rsk.federate.signing.HSMField.COMMAND;
-import static co.rsk.federate.signing.HSMField.ERROR;
-import static co.rsk.federate.signing.HSMField.ERROR_CODE;
-import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static co.rsk.federate.signing.HSMField.*;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-import co.rsk.federate.rpc.JsonRpcClient;
-import co.rsk.federate.rpc.JsonRpcClientProvider;
-import co.rsk.federate.rpc.JsonRpcException;
+import co.rsk.federate.rpc.*;
 import co.rsk.federate.signing.HSMField;
-import co.rsk.federate.signing.hsm.HSMChangedVersionException;
-import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMDeviceException;
-import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
+import co.rsk.federate.signing.hsm.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import java.util.concurrent.*;
+import org.junit.jupiter.api.*;
 
 class HSMClientProtocolTest {
     private JsonRpcClientProvider jsonRpcClientProviderMock;
@@ -78,9 +57,13 @@ class HSMClientProtocolTest {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(1));
-        assertEquals(1, hsmClientProtocol.getVersionNumber());
+        assertEquals(HSMVersion.V1, hsmClientProtocol.getVersion());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(2));
-        assertEquals(2, hsmClientProtocol.getVersionNumber());
+        assertEquals(HSMVersion.V2, hsmClientProtocol.getVersion());
+        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(4));
+        assertEquals(HSMVersion.V4, hsmClientProtocol.getVersion());
+        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(5));
+        assertEquals(HSMVersion.V5, hsmClientProtocol.getVersion());
     }
 
     @Test
@@ -88,17 +71,13 @@ class HSMClientProtocolTest {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildResponse(-2));
-        try {
-            hsmClientProtocol.getVersionNumber();
-            fail();
-        } catch (HSMClientException e) {
-            assertTrue(e instanceof HSMDeviceNotReadyException);
-        }
+
+        assertThrows(HSMDeviceNotReadyException.class, () -> hsmClientProtocol.getVersion());
     }
 
     @Test
     void buildCommand() {
-        ObjectNode result = hsmClientProtocol.buildCommand("a-random-command-name", 1);
+        ObjectNode result = hsmClientProtocol.buildCommand("a-random-command-name", HSMVersion.V1);
         assertEquals("a-random-command-name", result.get(COMMAND.getFieldName()).asText());
         assertEquals(1, result.get(HSMField.VERSION.getFieldName()).asInt());
         assertEquals(2, result.size());
@@ -172,13 +151,8 @@ class HSMClientProtocolTest {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(sendResponse);
         hsmClientProtocol.setResponseHandler(new HSMResponseHandlerV1());
 
-        try {
-            hsmClientProtocol.send(expectedRequest);
-            fail();
-        } catch (HSMClientException e) {
-            verify(jsonRpcClientProviderMock, times(1)).acquire();
-            assertTrue(e instanceof HSMDeviceException);
-        }
+        assertThrows(HSMDeviceException.class, () -> hsmClientProtocol.send(expectedRequest));
+        verify(jsonRpcClientProviderMock, times(1)).acquire();
     }
 
     @Test
@@ -192,14 +166,8 @@ class HSMClientProtocolTest {
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(sendResponse);
         hsmClientProtocol.setResponseHandler(new HSMResponseHandlerV1());
 
-        try {
-            hsmClientProtocol.send(expectedRequest);
-            fail();
-        } catch (HSMClientException e) {
-            verify(jsonRpcClientProviderMock, times(1)).acquire();
-            assertTrue(e instanceof HSMChangedVersionException);
-            assertTrue(e.getMessage().contains(" but the gateway version is 1"));
-        }
+        assertThrows(HSMChangedVersionException.class, () -> hsmClientProtocol.send(expectedRequest));
+        verify(jsonRpcClientProviderMock, times(1)).acquire();
     }
 
     @Disabled("This test is ignored as it is expensive and erratical as it is written")
@@ -209,7 +177,7 @@ class HSMClientProtocolTest {
 
         long forcedDelay = 1000;
         JsonRpcClient jsonRpcClient = mock(JsonRpcClient.class);
-        doAnswer((a) -> {
+        doAnswer(a -> {
             JsonNode command = (JsonNode) a.getArguments()[0];
             System.out.println("thread " + command.get(COMMAND.getFieldName()).textValue() + " executing");
             Thread.sleep(forcedDelay); // forced time per thread
@@ -225,14 +193,12 @@ class HSMClientProtocolTest {
         ExecutorService executorService = Executors.newFixedThreadPool(threads);
         for (int i = 1; i <= threads; i++) {
             // Create a unique client per thread to verify the queue is singleton
-            HSMClientProtocol hsmClientProtocol =
-                new HSMClientProtocol(jsonRpcClientProvider, 1, 1);
+            HSMClientProtocol protocol = new HSMClientProtocol(jsonRpcClientProvider, 1, 1);
             int finalI = i;
-            futures.add(executorService.submit(() ->
-                    hsmClientProtocol.send(
-                        hsmClientProtocol.buildCommand(COMMAND.getFieldName() + finalI, 1))
-                )
-            );
+            futures.add(executorService.submit(() -> {
+                ObjectNode command = protocol.buildCommand(COMMAND.getFieldName() + finalI, HSMVersion.V1);
+                return protocol.send(command);
+            }));
             System.out.println("thread " + i + " created");
         }
 
