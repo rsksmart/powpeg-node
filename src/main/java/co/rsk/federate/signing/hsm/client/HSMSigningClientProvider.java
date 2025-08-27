@@ -18,9 +18,10 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import co.rsk.federate.signing.PowPegNodeKeyId;
+import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMUnsupportedTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,36 +45,28 @@ public class HSMSigningClientProvider {
     }
 
     public HSMSigningClient getSigningClient() throws HSMClientException {
-        int versionNumber = this.hsmClientProtocol.getVersionNumber();
-        logger.debug("[getSigningClient] version: {}, keyId: {}", versionNumber, keyId);
+        HSMVersion hsmVersion = this.hsmClientProtocol.getVersion();
+        logger.debug("[getSigningClient] version: {}, keyId: {}", hsmVersion, keyId);
 
-        HSMVersion hsmVersion = HSMVersion.fromNumber(versionNumber);
-
-        HSMSigningClient client;
-        if (hsmVersion.isPowHSM()) {
-            client = buildPowHSMClient(versionNumber);
-        } else {
-            client = new HSMSigningClientV1(this.hsmClientProtocol);
+        try {
+            HSMSigningClient client = buildSigningHSMClient(hsmVersion);
+            logger.debug("[getSigningClient] HSM client: {}", client.getClass());
+            return client;
+        } catch (IllegalArgumentException e) {
+            String message = String.format("Unsupported key id %s", keyId);
+            logger.warn("[getSigningClient] {}", message, e);
+            throw new HSMUnsupportedTypeException(message);
         }
-
-        logger.debug("[getSigningClient] HSM client: {}", client.getClass());
-        return client;
     }
 
-    private HSMSigningClient buildPowHSMClient(int version) throws HSMUnsupportedTypeException {
-        HSMSigningClient client;
-        switch (keyId) {
-            case "BTC":
-                client = new PowHSMSigningClientBtc(this.hsmClientProtocol, version);
-                break;
-            case "RSK", "MST":
-                client = new PowHSMSigningClientRskMst(this.hsmClientProtocol, version);
-                break;
-            default:
-                String message = String.format("Unsupported key id %s", keyId);
-                logger.debug("[buildPowHSMClient] {}", message);
-                throw new HSMUnsupportedTypeException(message);
+    private HSMSigningClient buildSigningHSMClient(HSMVersion version) {
+        if (!version.isPowHSM()) {
+            return new HSMSigningClientV1(this.hsmClientProtocol);
         }
-        return client;
+
+        return switch (PowPegNodeKeyId.fromString(keyId)) {
+            case BTC -> new PowHSMSigningClientBtc(hsmClientProtocol, version.getNumber());
+            case RSK, MST -> new PowHSMSigningClientRskMst(hsmClientProtocol, version.getNumber());
+        };
     }
 }
