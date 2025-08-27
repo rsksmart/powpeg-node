@@ -80,10 +80,10 @@ public class HSMClientProtocol {
         }
     }
 
-    public ObjectNode buildCommand(String commandName, int version) {
+    public ObjectNode buildCommand(String commandName, HSMVersion version) {
         ObjectNode command = objectMapper.createObjectNode();
         command.put(COMMAND.getFieldName(), commandName);
-        command.put(HSMField.VERSION.getFieldName(), version);
+        command.put(HSMField.VERSION.getFieldName(), version.getNumber());
         return command;
     }
 
