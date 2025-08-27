@@ -1,7 +1,6 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -17,7 +16,7 @@ public class ConfirmedBlocksProvider {
     private final BigInteger minimumAccumulatedDifficulty;
     private final int maximumElementsToSendHSM;
     private final BlockStore blockStore;
-    private final int hsmVersionNumber;
+    private final HSMVersion hsmVersion;
     private final BigInteger difficultyCap;
 
     public ConfirmedBlocksProvider(
@@ -25,13 +24,13 @@ public class ConfirmedBlocksProvider {
         int maximumElementsToSendHSM,
         BlockStore blockStore,
         BigInteger difficultyCap,
-        int hsmVersionNumber
+        HSMVersion hsmVersion
     ) {
         this.blockStore = blockStore;
         this.minimumAccumulatedDifficulty = minimumAccumulatedDifficulty;
         this.maximumElementsToSendHSM = maximumElementsToSendHSM;
         this.difficultyCap = difficultyCap;
-        this.hsmVersionNumber = hsmVersionNumber;
+        this.hsmVersion = hsmVersion;
     }
 
     public List<Block> getConfirmedBlocks(Keccak256 startingPoint) {
@@ -45,7 +44,7 @@ public class ConfirmedBlocksProvider {
             "[getConfirmedBlocks] Initial block height is {} and RSK best block height {}. Using HSM version {}, difficulty target {}, difficulty cap {}, sending max {} elements",
             initialBlock.getNumber(),
             bestBlock.getNumber(),
-            hsmVersionNumber,
+            hsmVersion,
             minimumAccumulatedDifficulty,
             difficultyCap,
             maximumElementsToSendHSM
@@ -96,17 +95,12 @@ public class ConfirmedBlocksProvider {
 
     protected BigInteger getBlockDifficultyToConsider(Block block) {
         logger.trace(
-            "[getBlockDifficultyToConsider] Get difficulty for block {} at height {}", block.getHash(), block.getNumber()
+            "[getBlockDifficultyToConsider] Get difficulty for block {} at height {}",
+            block.getHash(),
+            block.getNumber()
         );
 
         BigInteger blockTotalDifficulty = block.getDifficulty().asBigInteger();
-
-        HSMVersion hsmVersion;
-        try {
-            hsmVersion = HSMVersion.fromNumber(hsmVersionNumber);
-        } catch (HSMUnsupportedVersionException e) {
-            throw new IllegalStateException("[getBlockDifficultyToConsider] Tried to get block difficulty for unsupported HSM version.");
-        }
         if (!hsmVersion.considersUnclesDifficulty()) {
             logger.trace("[getBlockDifficultyToConsider] Considering block total difficulty {}", blockTotalDifficulty);
             return blockTotalDifficulty;
