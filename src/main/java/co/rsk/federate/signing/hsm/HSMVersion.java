@@ -38,6 +38,10 @@ public enum HSMVersion {
         return number >= V4.getNumber();
     }
 
+    public boolean supportsSegwit() {
+        return number >= V5.getNumber();
+    }
+
     @Override
     public String toString() {
         return Integer.toString(number);

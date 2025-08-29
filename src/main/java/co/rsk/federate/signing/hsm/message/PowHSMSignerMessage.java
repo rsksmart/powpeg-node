@@ -93,7 +93,7 @@ public class PowHSMSignerMessage extends SignerMessage {
         byte[] serializedTx = txWithoutWitness.bitcoinSerialize();
         messageToSend.put(TX.getFieldName(), Hex.toHexString(serializedTx));
         messageToSend.put(INPUT.getFieldName(), inputIndex);
-        if (version == HSMVersion.V5) {
+        if (version.supportsSegwit()) {
             if (hasWitness()) {
                 populateWithSegwitValues(messageToSend);
             } else {
