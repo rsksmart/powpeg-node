@@ -1,8 +1,6 @@
 package co.rsk.federate;
 
-import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
-import static co.rsk.federate.signing.PowPegNodeKeyId.MST;
-import static co.rsk.federate.signing.PowPegNodeKeyId.RSK;
+import static co.rsk.federate.signing.PowPegNodeKeyId.*;
 import static co.rsk.federate.signing.utils.TestUtils.createHash;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,11 +34,11 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Collections;
 import java.util.List;
 import org.ethereum.config.Constants;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class FedNodeRunnerTest {
-
     private FedNodeRunner fedNodeRunner;
     private PowpegNodeSystemProperties fedNodeSystemProperties;
     private Path keyFilePath;
@@ -181,7 +179,7 @@ class FedNodeRunnerTest {
 
         when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
-        when(protocol.getVersion()).thenReturn(3);
+        when(protocol.getVersion()).thenThrow(HSMUnsupportedVersionException.class);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
         when(hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(any())).thenReturn(protocol);
 
@@ -200,7 +198,7 @@ class FedNodeRunnerTest {
             mock(FedNodeContext.class)
         );
 
-        Assertions.assertThrows(HSMUnsupportedVersionException.class, fedNodeRunner::run, "Unsupported HSM version 3");
+        assertThrows(HSMUnsupportedVersionException.class, fedNodeRunner::run, "Unsupported HSM version 3");
     }
 
     @Test
