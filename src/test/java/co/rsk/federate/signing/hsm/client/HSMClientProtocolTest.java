@@ -20,7 +20,7 @@ package co.rsk.federate.signing.hsm.client;
 
 import static co.rsk.federate.signing.HSMCommand.VERSION;
 import static co.rsk.federate.signing.HSMField.*;
-import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildInvalidVersionResponse;
+import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildUnsupportedVersionResponse;
 import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildResponse;
 import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildVersionResponse;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
@@ -70,7 +70,7 @@ class HSMClientProtocolTest {
     void getVersionUnsupported() throws JsonRpcException {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), VERSION.getCommand());
-        when(jsonRpcClientMock.send(request)).thenReturn(buildInvalidVersionResponse(3));
+        when(jsonRpcClientMock.send(request)).thenReturn(buildUnsupportedVersionResponse(3));
 
         assertThrows(HSMUnsupportedVersionException.class, () -> hsmClientProtocol.getVersion());
     }

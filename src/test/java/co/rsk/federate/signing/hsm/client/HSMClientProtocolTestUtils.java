@@ -30,7 +30,7 @@ public class HSMClientProtocolTestUtils {
         return response;
     }
 
-    public static ObjectNode buildInvalidVersionResponse(int version) {
+    public static ObjectNode buildUnsupportedVersionResponse(int version) {
         ObjectNode response = buildResponse(HSMResponseCode.SUCCESS);
         response.put(HSMField.VERSION.getFieldName(), version);
         return response;

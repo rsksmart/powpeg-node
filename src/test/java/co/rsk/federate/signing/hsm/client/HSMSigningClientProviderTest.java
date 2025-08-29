@@ -20,7 +20,7 @@ package co.rsk.federate.signing.hsm.client;
 
 import static co.rsk.federate.signing.HSMCommand.VERSION;
 import static co.rsk.federate.signing.HSMField.COMMAND;
-import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildInvalidVersionResponse;
+import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildUnsupportedVersionResponse;
 import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildVersionResponse;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
@@ -96,7 +96,7 @@ class HSMSigningClientProviderTest {
     void getSigningClient_whenProtocolVersion3_shouldFail(PowPegNodeKeyId keyId) throws JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
-        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildInvalidVersionResponse(3));
+        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildUnsupportedVersionResponse(3));
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(hsmClientProtocol, keyId.getId());
         assertThrows(
@@ -110,7 +110,7 @@ class HSMSigningClientProviderTest {
     void getClientUnsupportedVersion() throws JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
-        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildInvalidVersionResponse(-5));
+        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildUnsupportedVersionResponse(-5));
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(hsmClientProtocol, PowPegNodeKeyId.BTC.getId());
 

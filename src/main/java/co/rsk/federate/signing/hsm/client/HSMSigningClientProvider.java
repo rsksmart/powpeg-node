@@ -49,7 +49,7 @@ public class HSMSigningClientProvider {
         logger.debug("[getSigningClient] version: {}, keyId: {}", hsmVersion, keyId);
 
         try {
-            HSMSigningClient client = buildSigningHSMClient(hsmVersion);
+            HSMSigningClient client = buildHSMSigningClient(hsmVersion);
             logger.debug("[getSigningClient] HSM client: {}", client.getClass());
             return client;
         } catch (IllegalArgumentException e) {
@@ -59,7 +59,7 @@ public class HSMSigningClientProvider {
         }
     }
 
-    private HSMSigningClient buildSigningHSMClient(HSMVersion version) {
+    private HSMSigningClient buildHSMSigningClient(HSMVersion version) {
         if (!version.isPowHSM()) {
             return new HSMSigningClientV1(this.hsmClientProtocol);
         }
