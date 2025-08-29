@@ -53,9 +53,8 @@ public class HSMSigningClientProvider {
             logger.debug("[getSigningClient] HSM client: {}", client.getClass());
             return client;
         } catch (IllegalArgumentException e) {
-            String message = String.format("Unsupported key id %s", keyId);
-            logger.warn("[getSigningClient] {}", message, e);
-            throw new HSMUnsupportedTypeException(message);
+            logger.warn("[getSigningClient] {}", e.getMessage(), e);
+            throw new HSMUnsupportedTypeException(e.getMessage());
         }
     }
 
