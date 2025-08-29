@@ -18,15 +18,16 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
+import static co.rsk.federate.signing.HSMCommand.SIGN;
+import static co.rsk.federate.signing.HSMField.*;
+
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
-
-import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
-import static co.rsk.federate.signing.HSMCommand.SIGN;
-import static co.rsk.federate.signing.HSMField.*;
 
 /**
  * Can interact with a specific
@@ -40,7 +41,7 @@ import static co.rsk.federate.signing.HSMField.*;
 public class HSMSigningClientV1 extends HSMSigningClientBase {
 
     public HSMSigningClientV1(HSMClientProtocol protocol) {
-        super(protocol, 1);
+        super(protocol, HSMVersion.V1);
         protocol.setResponseHandler(new HSMResponseHandlerV1());
     }
 

@@ -61,7 +61,7 @@ class PowHSMSigningClientTest {
             INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
         );
         //Since parent class is abstract, test all the common methods using PowHSMSigningClientBtc.
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSMVersion.V2.getNumber());
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSMVersion.V2);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
@@ -70,9 +70,9 @@ class PowHSMSigningClientTest {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), HSMCommand.VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersion5Response());
-        int version = client.getVersion();
+        HSMVersion version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 2.
-        assertEquals(HSMVersion.V2.getNumber(), version);
+        assertEquals(HSMVersion.V2, version);
     }
 
     @Test

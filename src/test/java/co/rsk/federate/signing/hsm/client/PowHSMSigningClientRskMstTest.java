@@ -2,25 +2,11 @@ package co.rsk.federate.signing.hsm.client;
 
 import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
 import static co.rsk.federate.signing.HSMCommand.SIGN;
-import static co.rsk.federate.signing.HSMField.COMMAND;
-import static co.rsk.federate.signing.HSMField.ERROR_CODE;
-import static co.rsk.federate.signing.HSMField.HASH;
-import static co.rsk.federate.signing.HSMField.KEY_ID;
-import static co.rsk.federate.signing.HSMField.MESSAGE;
-import static co.rsk.federate.signing.HSMField.PUB_KEY;
-import static co.rsk.federate.signing.HSMField.R;
-import static co.rsk.federate.signing.HSMField.S;
-import static co.rsk.federate.signing.HSMField.SIGNATURE;
-import static co.rsk.federate.signing.HSMField.VERSION;
-import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static co.rsk.federate.signing.HSMField.*;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import co.rsk.federate.rpc.JsonRpcClient;
 import co.rsk.federate.rpc.JsonRpcClientProvider;
@@ -47,7 +33,7 @@ class PowHSMSigningClientRskMstTest {
             MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
             INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
         );
-        client = new PowHSMSigningClientRskMst(hsmClientProtocol, HSMVersion.V2.getNumber());
+        client = new PowHSMSigningClientRskMst(hsmClientProtocol, HSMVersion.V2);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 

@@ -21,22 +21,13 @@ package co.rsk.federate.signing.hsm.client;
 import static co.rsk.federate.signing.HSMCommand.VERSION;
 import static co.rsk.federate.signing.HSMField.COMMAND;
 
-import co.rsk.federate.rpc.JsonRpcClient;
-import co.rsk.federate.rpc.JsonRpcClientProvider;
-import co.rsk.federate.rpc.JsonRpcException;
+import co.rsk.federate.rpc.*;
 import co.rsk.federate.signing.HSMField;
-import co.rsk.federate.signing.hsm.HSMClientException;
-import co.rsk.federate.signing.hsm.HSMDeviceNotReadyException;
-import co.rsk.federate.signing.hsm.HSMGatewayIrresponsiveException;
-import co.rsk.federate.signing.hsm.HSMUnknownErrorException;
+import co.rsk.federate.signing.hsm.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +62,7 @@ public class HSMClientProtocol {
         this.responseHandler = handler;
     }
 
-    public int getVersion() throws HSMClientException {
+    public HSMVersion getVersion() throws HSMClientException {
         try {
             ObjectNode command = objectMapper.createObjectNode();
             command.put(COMMAND.getFieldName(), VERSION.getCommand());
@@ -80,8 +71,8 @@ public class HSMClientProtocol {
             validatePresenceOf(response, HSMField.VERSION.getFieldName());
 
             int hsmVersion = response.get(HSMField.VERSION.getFieldName()).asInt();
-            logger.debug("[getVersion] HSM version: {}", hsmVersion);
-            return hsmVersion;
+            logger.debug("[getVersion] Got HSM version: {}", hsmVersion);
+            return HSMVersion.fromNumber(hsmVersion);
         } catch (RuntimeException e) {
             String message = String.format("Error trying to connect to HSM. Details: '%s. %s'", e.getClass(), e.getMessage());
             logger.error(message, e);
@@ -89,10 +80,10 @@ public class HSMClientProtocol {
         }
     }
 
-    public ObjectNode buildCommand(String commandName, int version) {
+    public ObjectNode buildCommand(String commandName, HSMVersion version) {
         ObjectNode command = objectMapper.createObjectNode();
         command.put(COMMAND.getFieldName(), commandName);
-        command.put(HSMField.VERSION.getFieldName(), version);
+        command.put(HSMField.VERSION.getFieldName(), version.getNumber());
         return command;
     }
 
@@ -181,15 +172,7 @@ public class HSMClientProtocol {
         return executorService;
     }
 
-    private static class HSMRequest implements Callable<JsonNode> {
-        private final JsonRpcClient client;
-        private final ObjectNode command;
-
-        public HSMRequest(JsonRpcClient client, ObjectNode command) {
-            this.client = client;
-            this.command = command;
-        }
-
+    private record HSMRequest(JsonRpcClient client, ObjectNode command) implements Callable<JsonNode> {
         @Override
         public JsonNode call() throws Exception {
             return client.send(command);

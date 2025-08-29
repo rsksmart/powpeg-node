@@ -1,17 +1,18 @@
 package co.rsk.federate.signing.hsm.client;
 
+import static co.rsk.federate.signing.HSMCommand.SIGN;
+import static co.rsk.federate.signing.HSMField.*;
+
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
 
-import static co.rsk.federate.signing.HSMCommand.SIGN;
-import static co.rsk.federate.signing.HSMField.*;
-
 public class PowHSMSigningClientRskMst extends PowHSMSigningClient {
 
-    public PowHSMSigningClientRskMst(HSMClientProtocol protocol, int version) {
+    public PowHSMSigningClientRskMst(HSMClientProtocol protocol, HSMVersion version) {
         super(protocol, version);
     }
 
