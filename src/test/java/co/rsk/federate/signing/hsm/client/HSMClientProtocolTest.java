@@ -20,6 +20,7 @@ package co.rsk.federate.signing.hsm.client;
 
 import static co.rsk.federate.signing.HSMCommand.VERSION;
 import static co.rsk.federate.signing.HSMField.*;
+import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildInvalidVersionResponse;
 import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildResponse;
 import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.buildVersionResponse;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
@@ -59,10 +60,19 @@ class HSMClientProtocolTest {
     @ParameterizedTest
     @EnumSource(HSMVersion.class)
     void getVersionOk(HSMVersion version) throws HSMClientException, JsonRpcException {
-        ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
-        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(version));
+        ObjectNode request = new ObjectMapper().createObjectNode();
+        request.put(COMMAND.getFieldName(), VERSION.getCommand());
+        when(jsonRpcClientMock.send(request)).thenReturn(buildVersionResponse(version));
         assertEquals(version, hsmClientProtocol.getVersion());
+    }
+
+    @Test
+    void getVersionUnsupported() throws JsonRpcException {
+        ObjectNode request = new ObjectMapper().createObjectNode();
+        request.put(COMMAND.getFieldName(), VERSION.getCommand());
+        when(jsonRpcClientMock.send(request)).thenReturn(buildInvalidVersionResponse(3));
+
+        assertThrows(HSMUnsupportedVersionException.class, () -> hsmClientProtocol.getVersion());
     }
 
     @Test
