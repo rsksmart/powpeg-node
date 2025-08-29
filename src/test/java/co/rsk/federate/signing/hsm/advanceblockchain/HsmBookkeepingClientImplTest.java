@@ -233,13 +233,7 @@ class HsmBookkeepingClientImplTest {
     void updateAncestorBlock_when_HSMProtocol_send_is_thrown() throws JsonRpcException, HSMClientException {
         setUp(HSMVersion.V5);
 
-        Keccak256 bestBlockHash = TestUtils.createHash(1);
-        Keccak256 ancestorBlockHash = TestUtils.createHash(2);
-        Keccak256 newestValidBlock = TestUtils.createHash(3);
-
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.UNKNOWN_ERROR));
-        when(jsonRpcClientMock.send(buildBlockchainStateRequest(HSMVersion.V5)))
-            .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
         assertThrows(HSMClientException.class, () ->
             hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders))
@@ -347,13 +341,7 @@ class HsmBookkeepingClientImplTest {
     void advanceBlockchain_when_HSMProtocol_send_is_thrown() throws JsonRpcException, HSMClientException {
         setUp(HSMVersion.V5);
 
-        Keccak256 bestBlockHash = TestUtils.createHash(1);
-        Keccak256 ancestorBlockHash = TestUtils.createHash(2);
-        Keccak256 newestValidBlock = TestUtils.createHash(3);
-
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.UNKNOWN_ERROR));
-        when(jsonRpcClientMock.send(buildBlockchainStateRequest(HSMVersion.V5)))
-            .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
         assertThrows(HSMClientException.class, () ->
             hsmBookkeepingClient.advanceBlockchain(blocks)
