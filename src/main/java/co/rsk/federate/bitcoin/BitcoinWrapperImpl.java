@@ -25,10 +25,6 @@ import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @author ajlopez
- * @author Oscar Guindzberg
- */
 public class BitcoinWrapperImpl implements BitcoinWrapper {
 
     private record FederationListener(Federation federation, TransactionListener listener) {
@@ -279,7 +275,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                 logger.debug("[addFederationListener] Added address watch for federation {}", federation.getAddress());
             }
 
-            if (!watchedFederations.contains(federationListener)) {
+            if (watchedFederations.stream().noneMatch(fl -> fl.equals(federationListener))) {
                 watchedFederations.add(federationListener);
                 logger.debug("[addFederationListener] Added listener for federation {}", federation.getAddress());
             }
@@ -303,7 +299,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             FederationListener federationListener = new FederationListener(federation, listener);
 
             // Remove from watchlist
-            if (watchedFederations.contains(federationListener)) {
+            if (watchedFederations.stream().anyMatch(fl -> fl.equals(federationListener))) {
                 watchedFederations.remove(federationListener);
                 logger.debug("[removeFederationListener] Removed listener for federation {}", federation.getAddress());
             }
