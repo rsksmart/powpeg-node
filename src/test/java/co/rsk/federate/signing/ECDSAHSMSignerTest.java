@@ -230,11 +230,11 @@ class ECDSAHSMSignerTest {
     @Test
     void getVersionForKeyIdOk() throws HSMClientException, SignerException {
         KeyId key = new KeyId("keyA");
-        int version = HSMVersion.V1.getNumber();
+        HSMVersion version = HSMVersion.V1;
         when(providerMock.getSigningClient()).thenReturn(clientMock);
         when(clientMock.getVersion()).thenReturn(version);
 
-        assertEquals(signer.getVersionForKeyId(key), version);
+        assertEquals(signer.getVersionForKeyId(key), version.getNumber());
     }
 
     @Test

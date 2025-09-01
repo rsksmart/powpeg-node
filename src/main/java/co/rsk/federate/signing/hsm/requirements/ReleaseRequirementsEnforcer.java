@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.requirements;
 
+import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
 import org.slf4j.Logger;
@@ -14,16 +15,21 @@ public class ReleaseRequirementsEnforcer {
         this.ancestorBlockUpdater = ancestorBlockUpdater;
     }
 
-    public void enforce(int version, ReleaseCreationInformation releaseCreationInformation)
-        throws ReleaseRequirementsEnforcerException {
-        if (version == HSMVersion.V1.getNumber()) {
-            logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
-        } else if (HSMVersion.isPowHSM(version)) {
-            logger.trace("[enforce] Version 2+ requires ancestor in position. ENFORCING");
-            enforceReleaseRequirements(releaseCreationInformation);
-        } else {
+    public void enforce(int version, ReleaseCreationInformation releaseCreationInformation) throws ReleaseRequirementsEnforcerException {
+        HSMVersion hsmVersion;
+        try {
+            hsmVersion = HSMVersion.fromNumber(version);
+        } catch (HSMUnsupportedVersionException e) {
             throw new ReleaseRequirementsEnforcerException("Unsupported version " + version);
         }
+
+        if (!hsmVersion.isPowHSM()) {
+            logger.trace("[enforce] Version 1 doesn't have release requirements to enforce");
+            return;
+        }
+
+        logger.trace("[enforce] Version 2+ requires ancestor in position. ENFORCING");
+        enforceReleaseRequirements(releaseCreationInformation);
     }
 
     private void enforceReleaseRequirements(ReleaseCreationInformation releaseCreationInformation) throws ReleaseRequirementsEnforcerException {
