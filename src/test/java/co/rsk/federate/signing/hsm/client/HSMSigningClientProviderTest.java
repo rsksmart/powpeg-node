@@ -49,11 +49,15 @@ class HSMSigningClientProviderTest {
         JsonRpcClientProvider jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         jsonRpcClientMock = mock(JsonRpcClient.class);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
-        hsmClientProtocol = new HSMClientProtocol(
-            jsonRpcClientProviderMock,
-            MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
-            INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
-        );
+        try {
+            hsmClientProtocol = new HSMClientProtocol(
+                jsonRpcClientProviderMock,
+                MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
+                INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
+            );
+        } catch (NumberFormatException e) {
+            fail("Invalid integer configuration value in test setup: " + e.getMessage());
+        }
     }
 
     @Test
