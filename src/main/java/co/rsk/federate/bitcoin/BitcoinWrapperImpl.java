@@ -25,10 +25,6 @@ import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @author ajlopez
- * @author Oscar Guindzberg
- */
 public class BitcoinWrapperImpl implements BitcoinWrapper {
 
     private record FederationListener(Federation federation, TransactionListener listener) {
@@ -274,12 +270,12 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
 
             Address address = ThinConverter.toOriginalInstance(federation.getBtcParams(), federation.getAddress());
             // If first, add watched address
-            if (watchedFederations.stream().noneMatch(w -> w.federation().equals(federation))) {
+            if (watchedFederations.stream().noneMatch(watchedFederation -> watchedFederation.federation().equals(federation))) {
                 kit.wallet().addWatchedAddress(address, federation.getCreationTime().toEpochMilli());
                 logger.debug("[addFederationListener] Added address watch for federation {}", federation.getAddress());
             }
 
-            if (!watchedFederations.contains(federationListener)) {
+            if (watchedFederations.stream().noneMatch(watchedFederation -> watchedFederation.equals(federationListener))) {
                 watchedFederations.add(federationListener);
                 logger.debug("[addFederationListener] Added listener for federation {}", federation.getAddress());
             }
@@ -303,13 +299,13 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             FederationListener federationListener = new FederationListener(federation, listener);
 
             // Remove from watchlist
-            if (watchedFederations.contains(federationListener)) {
+            if (watchedFederations.stream().anyMatch(watchedFederation -> watchedFederation.equals(federationListener))) {
                 watchedFederations.remove(federationListener);
                 logger.debug("[removeFederationListener] Removed listener for federation {}", federation.getAddress());
             }
 
             // If none left, remove the watched script
-            if (watchedFederations.stream().noneMatch(w -> w.federation().equals(federation))) {
+            if (watchedFederations.stream().noneMatch(watchedFederation -> watchedFederation.federation().equals(federation))) {
                 Script federationScript = new Script(federation.getP2SHScript().getProgram());
                 kit.wallet().removeWatchedScripts(Collections.singletonList(federationScript));
                 logger.debug("[removeFederationListener] Removed address watch for federation {}", federation.getAddress());

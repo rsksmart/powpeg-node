@@ -1,8 +1,5 @@
 package co.rsk.federate.signing;
 
-/**
- * Created by Kelvin Isievwore on 23/05/2023.
- */
 public enum PowPegNodeKeyId {
     BTC(new KeyId("BTC")),
     RSK(new KeyId("RSK")),
@@ -20,5 +17,14 @@ public enum PowPegNodeKeyId {
 
     public String getId() {
         return keyId.getId();
+    }
+
+    public static PowPegNodeKeyId fromString(String id) {
+        for (PowPegNodeKeyId keyId : values()) {
+            if (keyId.getId().equals(id)) {
+                return keyId;
+            }
+        }
+        throw new IllegalArgumentException("Unsupported key id: " + id);
     }
 }

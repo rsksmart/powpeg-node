@@ -2,6 +2,7 @@ package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import static co.rsk.federate.signing.HSMCommand.*;
 import static co.rsk.federate.signing.HSMField.*;
+import static co.rsk.federate.signing.hsm.client.HSMClientProtocolTestUtils.*;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
 import static org.junit.jupiter.api.Assertions.*;
@@ -11,9 +12,9 @@ import static org.mockito.Mockito.*;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.rpc.*;
 import co.rsk.federate.signing.HSMCommand;
-import co.rsk.federate.signing.HSMField;
 import co.rsk.federate.signing.hsm.*;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
+import co.rsk.federate.signing.hsm.client.HSMResponseCode;
 import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,25 +27,27 @@ import java.util.stream.Stream;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.*;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
 class HsmBookkeepingClientImplTest {
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
+    private final List<Block> blocks = buildBlocks();
+    private final List<BlockHeader> blockHeaders = blocks.stream().map(Block::getHeader).toList();
+    private final Map<Keccak256, List<BlockHeader>> blocksBrothers = getBlocksBrothers();
+
     private JsonRpcClient jsonRpcClientMock;
     private HsmBookkeepingClientImpl hsmBookkeepingClient;
-    private BlockHeaderBuilder blockHeaderBuilder;
-    private List<Block> blocks;
-    private List<BlockHeader> blockHeaders;
-    private Map<Keccak256, List<BlockHeader>> blocksBrothers;
 
-    @BeforeEach
-    void setUp() throws Exception {
+    void setUp(HSMVersion hsmVersion) throws JsonRpcException, HSMClientException {
         jsonRpcClientMock = mock(JsonRpcClient.class);
+        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildVersionResponse(hsmVersion));
+        when(jsonRpcClientMock.send(buildResetAdvanceBlockchainRequest(hsmVersion)))
+            .thenReturn(buildResponse(HSMResponseCode.SUCCESS));
 
         JsonRpcClientProvider jsonRpcClientProviderMock = mock(JsonRpcClientProvider.class);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
@@ -55,33 +58,24 @@ class HsmBookkeepingClientImplTest {
             INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
         );
         hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol);
+    }
 
-        blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
-        blocks = buildBlocks();
-        blockHeaders = blocks.stream().map(Block::getHeader).toList();
-        blocksBrothers = getBlocksBrothers();
+    @ParameterizedTest
+    @EnumSource(
+        value = HSMVersion.class,
+        mode = EnumSource.Mode.EXCLUDE,
+        names = "V1"
+    )
+    void getVersion_forPowHSM(HSMVersion version) throws JsonRpcException, HSMClientException {
+        setUp(version);
+
+        assertEquals(version, hsmBookkeepingClient.getVersion());
     }
 
     @Test
-    void getVersion_2() throws HSMClientException, JsonRpcException {
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V2)
-        );
+    void getChunks_fill_chunks() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
 
-        assertEquals(HSMVersion.V2.getNumber(), hsmBookkeepingClient.getVersion());
-    }
-
-    @Test
-    void getVersion_4() throws HSMClientException, JsonRpcException {
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V4)
-        );
-
-        assertEquals(HSMVersion.V4.getNumber(), hsmBookkeepingClient.getVersion());
-    }
-
-    @Test
-    void getChunks_fill_chunks() {
         Integer[] payload = new Integer[]{1, 2, 3, 4, 5, 6};
         int maxChunkSize = 2;
 
@@ -94,7 +88,9 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_last_chunk_remainder() {
+    void getChunks_last_chunk_remainder() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         Integer[] payload = {1, 2, 3, 4, 5, 6, 7};
 
         List<Integer[]> result = hsmBookkeepingClient.getChunks(payload, 2, false);
@@ -104,21 +100,27 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_equals_to_max_size() {
+    void getChunks_equals_to_max_size() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         Integer[] payload = {1, 2};
         List<Integer[]> result = hsmBookkeepingClient.getChunks(payload, 2, false);
         assertEquals(1, result.size());
     }
 
     @Test
-    void getChunks_below_chunk_max_size() {
+    void getChunks_below_chunk_max_size() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         Integer[] payload = {1};
         List<Integer[]> result = hsmBookkeepingClient.getChunks(payload, 2, false);
         assertEquals(1, result.size());
     }
 
     @Test
-    void getChunks_empty_payload() {
+    void getChunks_empty_payload() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         Integer[] payload = new Integer[]{};
         List<Integer[]> result = hsmBookkeepingClient.getChunks(payload, 2, false);
         assertEquals(0, result.size());
@@ -128,7 +130,9 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_chunks_size_zero() {
+    void getChunks_chunks_size_zero() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         assertThrows(IllegalArgumentException.class, () -> hsmBookkeepingClient.getChunks(
             null,
             0,
@@ -137,7 +141,9 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_chunks_size_below_zero() {
+    void getChunks_chunks_size_below_zero() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         assertThrows(IllegalArgumentException.class, () -> hsmBookkeepingClient.getChunks(
             null,
             -1,
@@ -146,7 +152,9 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_keepPreviousChunkLastItem_true() {
+    void getChunks_keepPreviousChunkLastItem_true() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         Integer[] payload = {1, 2, 3, 4, 5, 6, 7};
         int maxChunkSize = 3;
 
@@ -157,7 +165,9 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_keepPreviousChunkLastItem_false() {
+    void getChunks_keepPreviousChunkLastItem_false() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         Integer[] payload = {1, 2, 3, 4, 5, 6, 7};
         int maxChunkSize = 3;
 
@@ -169,13 +179,18 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void updateAncestorBlock_when_HSM_service_is_stopped() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V4);
+
+        Keccak256 bestBlockHash = TestUtils.createHash(1);
+        Keccak256 ancestorBlockHash = TestUtils.createHash(2);
+        Keccak256 newestValidBlock = TestUtils.createHash(3);
         hsmBookkeepingClient.setStopSending(); // stop client/service
 
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V4)
+            buildVersionResponse(HSMVersion.V4)
         );
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_STATE.getCommand(), HSMVersion.V4)))
-            .thenReturn(buildResponse(false));
+        when(jsonRpcClientMock.send(buildBlockchainStateRequest(HSMVersion.V4)))
+            .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
         hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders));
 
@@ -186,7 +201,9 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void updateAncestorBlock_when_blockHeaders_is_empty() {
+    void updateAncestorBlock_when_blockHeaders_is_empty() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         UpdateAncestorBlockMessage message = new UpdateAncestorBlockMessage(Collections.emptyList());
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () ->
             hsmBookkeepingClient.updateAncestorBlock(message)
@@ -194,12 +211,18 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void updateAncestorBlock_when_HSM_is_updating() throws JsonRpcException {
+    void updateAncestorBlock_when_HSM_is_updating() throws JsonRpcException, HSMClientException {
+        setUp(HSMVersion.V4);
+
+        Keccak256 bestBlockHash = TestUtils.createHash(1);
+        Keccak256 ancestorBlockHash = TestUtils.createHash(2);
+        Keccak256 newestValidBlock = TestUtils.createHash(3);
+
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V4)
+            buildVersionResponse(HSMVersion.V4)
         );
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_STATE.getCommand(), HSMVersion.V4)))
-            .thenReturn(buildResponse(true));
+        when(jsonRpcClientMock.send(buildBlockchainStateRequest(HSMVersion.V4)))
+            .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, true));
 
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () ->
             hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders))
@@ -207,13 +230,10 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void updateAncestorBlock_when_HSMProtocol_send_is_thrown() throws JsonRpcException {
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(-999));
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V4)
-        );
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_STATE.getCommand(), HSMVersion.V4)))
-            .thenReturn(buildResponse(false));
+    void updateAncestorBlock_when_HSMProtocol_send_is_thrown() throws JsonRpcException, HSMClientException {
+        setUp(HSMVersion.V5);
+
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.UNKNOWN_ERROR));
 
         assertThrows(HSMClientException.class, () ->
             hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders))
@@ -223,10 +243,15 @@ class HsmBookkeepingClientImplTest {
     @ParameterizedTest()
     @MethodSource("hsmParamsProvider")
     void updateAncestorBlock_ok(HSMVersion hsmVersion, int maxChunkSize) throws HSMClientException, JsonRpcException {
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(hsmVersion));
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_STATE.getCommand(), hsmVersion)))
-            .thenReturn(buildResponse(false));
+        setUp(hsmVersion);
+
+        Keccak256 bestBlockHash = TestUtils.createHash(1);
+        Keccak256 ancestorBlockHash = TestUtils.createHash(2);
+        Keccak256 newestValidBlock = TestUtils.createHash(3);
+
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.SUCCESS));
+        when(jsonRpcClientMock.send(buildBlockchainStateRequest(hsmVersion)))
+            .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
         int updateAncestorCalls = (int) Math.ceil((double) (blocks.size() - 1) / (maxChunkSize - 1)); // Thanks ChatGPT
         int expectedNumberOfRequests = 1 + 1 + updateAncestorCalls; // version + blockchainState + updateAncestorBlock calls
@@ -268,13 +293,16 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void advanceBlockchain_when_HSM_service_is_stopped() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
+        Keccak256 bestBlockHash = TestUtils.createHash(1);
+        Keccak256 ancestorBlockHash = TestUtils.createHash(2);
+        Keccak256 newestValidBlock = TestUtils.createHash(3);
+
         hsmBookkeepingClient.setStopSending(); // stop client/service
 
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V4)
-        );
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_STATE.getCommand(), HSMVersion.V4)))
-            .thenReturn(buildResponse(false));
+        when(jsonRpcClientMock.send(buildBlockchainStateRequest(HSMVersion.V5)))
+            .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
         hsmBookkeepingClient.advanceBlockchain(blocks);
 
@@ -285,19 +313,24 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void advanceBlockchain_when_blockHeaders_is_empty() {
+    void advanceBlockchain_when_blockHeaders_is_empty() throws HSMClientException, JsonRpcException {
+        setUp(HSMVersion.V5);
+
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () ->
             hsmBookkeepingClient.advanceBlockchain(Collections.emptyList())
         );
     }
 
     @Test
-    void advanceBlockchain_when_HSM_is_updating() throws JsonRpcException {
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V4)
-        );
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_STATE.getCommand(), HSMVersion.V4)))
-            .thenReturn(buildResponse(true));
+    void advanceBlockchain_when_HSM_is_updating() throws JsonRpcException, HSMClientException {
+        setUp(HSMVersion.V5);
+
+        Keccak256 bestBlockHash = TestUtils.createHash(1);
+        Keccak256 ancestorBlockHash = TestUtils.createHash(2);
+        Keccak256 newestValidBlock = TestUtils.createHash(3);
+
+        when(jsonRpcClientMock.send(buildBlockchainStateRequest(HSMVersion.V5)))
+            .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, true));
 
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () ->
             hsmBookkeepingClient.advanceBlockchain(blocks)
@@ -305,13 +338,10 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void advanceBlockchain_when_HSMProtocol_send_is_thrown() throws JsonRpcException {
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(-999));
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V4)
-        );
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_STATE.getCommand(), HSMVersion.V4)))
-            .thenReturn(buildResponse(false));
+    void advanceBlockchain_when_HSMProtocol_send_is_thrown() throws JsonRpcException, HSMClientException {
+        setUp(HSMVersion.V5);
+
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.UNKNOWN_ERROR));
 
         assertThrows(HSMClientException.class, () ->
             hsmBookkeepingClient.advanceBlockchain(blocks)
@@ -324,10 +354,15 @@ class HsmBookkeepingClientImplTest {
         HSMVersion hsmVersion,
         int maxChunkSize
     ) throws HSMClientException, JsonRpcException, JsonProcessingException {
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(0));
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(hsmVersion));
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_STATE.getCommand(), hsmVersion)))
-            .thenReturn(buildResponse(false));
+        setUp(hsmVersion);
+
+        Keccak256 bestBlockHash = TestUtils.createHash(1);
+        Keccak256 ancestorBlockHash = TestUtils.createHash(2);
+        Keccak256 newestValidBlock = TestUtils.createHash(3);
+
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.SUCCESS));
+        when(jsonRpcClientMock.send(buildBlockchainStateRequest(hsmVersion)))
+            .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(maxChunkSize);
         hsmBookkeepingClient.advanceBlockchain(blocks);
@@ -376,7 +411,7 @@ class HsmBookkeepingClientImplTest {
                 );
             }
 
-            if (hsmVersion == HSMVersion.V4) {
+            if (hsmVersion.supportsBlockchainParameters()) {
                 assertTrue(request.has(BROTHERS.getFieldName()));
                 JsonNode brothersInRequest = request.get(BROTHERS.getFieldName());
                 assertBrothers(brothersInRequest, allBrothers);
@@ -405,53 +440,48 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void getHSMPointer_ok() throws HSMClientException, JsonRpcException {
-        Keccak256 expectedBestBlockHash = Keccak256.ZERO_HASH;
-        Keccak256 expectedAncestorBlockHash = new Keccak256("0000000000000000000000000000000000000000000000000000000000000001");
-        ObjectNode state = objectMapper.createObjectNode();
-        state.put(BEST_BLOCK.getFieldName(), expectedBestBlockHash.toHexString());
-        state.put(ANCESTOR_BLOCK.getFieldName(), expectedAncestorBlockHash.toHexString());
-        ObjectNode updating = objectMapper.createObjectNode();
-        updating.put(IN_PROGRESS.getFieldName(), false);
-        state.set(UPDATING.getFieldName(), updating);
+        setUp(HSMVersion.V2);
 
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V2)
-        );
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_STATE.getCommand(), HSMVersion.V2)))
-            .thenReturn(buildResponse(state, STATE.getFieldName()));
+        Keccak256 bestBlockHash = TestUtils.createHash(1);
+        Keccak256 ancestorBlockHash = TestUtils.createHash(2);
+        Keccak256 newestValidBlock = TestUtils.createHash(3);
+
+        when(jsonRpcClientMock.send(buildBlockchainStateRequest(HSMVersion.V2)))
+            .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
         PowHSMState powHsmState = hsmBookkeepingClient.getHSMPointer();
-        assertEquals(expectedBestBlockHash, powHsmState.getBestBlockHash());
-        assertEquals(expectedAncestorBlockHash, powHsmState.getAncestorBlockHash());
+        assertEquals(bestBlockHash, powHsmState.getBestBlockHash());
+        assertEquals(ancestorBlockHash, powHsmState.getAncestorBlockHash());
         assertFalse(powHsmState.isInProgress());
     }
 
     @Test
-    void getHSMPointer_missing_data() throws JsonRpcException {
-        Keccak256 expectedBestBlockHash = Keccak256.ZERO_HASH;
-        ObjectNode state = objectMapper.createObjectNode();
-        state.put(BEST_BLOCK.getFieldName(), expectedBestBlockHash.toHexString());
+    void getHSMPointer_missing_data() throws JsonRpcException, HSMClientException {
+        setUp(HSMVersion.V5);
 
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(
-            buildResponse(state, STATE.getFieldName())
-        );
+        ObjectNode state = new ObjectMapper().createObjectNode();
+        Keccak256 bestBlockHash = Keccak256.ZERO_HASH;
+        state.put(BEST_BLOCK.getFieldName(), bestBlockHash.toHexString());
+
+        ObjectNode response = buildResponse(HSMResponseCode.SUCCESS);
+        response.set(STATE.getFieldName(), state);
+
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(response);
 
         assertThrows(HSMInvalidResponseException.class, () -> hsmBookkeepingClient.getHSMPointer());
     }
 
     @Test
-    void getHSMPointer_generic_error_response() throws JsonRpcException {
-        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(-905));
+    void getHSMPointer_generic_error_response() throws JsonRpcException, HSMClientException {
+        setUp(HSMVersion.V5);
+        when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.V2_DEVICE_ERROR));
 
         assertThrows(HSMDeviceNotReadyException.class, () -> hsmBookkeepingClient.getHSMPointer());
     }
 
     @Test
     void resetAdvanceBlockchain_Ok() throws Exception {
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(HSMVersion.V2));
-        when(jsonRpcClientMock.send(buildExpectedRequest(RESET_ADVANCE_BLOCKCHAIN.getCommand(), HSMVersion.V2)))
-            .thenReturn(buildResponse(0));
-
+        setUp(HSMVersion.V5);
         hsmBookkeepingClient.resetAdvanceBlockchain();
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
@@ -465,86 +495,35 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void resetAdvanceBlockchain_UnknownError() throws Exception {
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildResponse(HSMVersion.V2));
-        when(jsonRpcClientMock.send(buildExpectedRequest(RESET_ADVANCE_BLOCKCHAIN.getCommand(), HSMVersion.V2)))
-            .thenReturn(buildResponse(-906));
+        setUp(HSMVersion.V5);
+        when(jsonRpcClientMock.send(buildResetAdvanceBlockchainRequest(HSMVersion.V5)))
+            .thenReturn(buildResponse(HSMResponseCode.UNKNOWN_ERROR));
 
         assertThrows(HSMUnknownErrorException.class, () -> hsmBookkeepingClient.resetAdvanceBlockchain());
     }
 
     @Test
     void getBlockchainParameters_ok() throws JsonRpcException, HSMClientException {
-        Keccak256 expectedCheckpoint = new Keccak256("dcf840b0bb2a8f06bf933ec8afe305fd413f41683d665dc4f7e5dc3da285f70e");
-        BigInteger expectedMinimumDifficulty = new BigInteger("7000000000000000000000");
-        String expectedNetwork = "regtest";
+        setUp(HSMVersion.V5);
 
-        ObjectNode parameters = objectMapper.createObjectNode();
-        parameters.put(CHECKPOINT.getFieldName(), expectedCheckpoint.toHexString());
-        parameters.put(MINIMUM_DIFFICULTY.getFieldName(), expectedMinimumDifficulty);
-        parameters.put(NETWORK.getFieldName(), expectedNetwork);
+        Keccak256 checkpoint = new Keccak256("dcf840b0bb2a8f06bf933ec8afe305fd413f41683d665dc4f7e5dc3da285f70e");
+        BigInteger minimumDifficulty = new BigInteger("7000000000000000000000");
+        String network = "mainnet";
 
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V4)
-        );
-        when(jsonRpcClientMock.send(buildExpectedRequest(BLOCKCHAIN_PARAMETERS.getCommand(), HSMVersion.V4)))
-            .thenReturn(buildResponse(parameters, PARAMETERS.getFieldName()));
+        when(jsonRpcClientMock.send(buildBlockchainParametersRequest(HSMVersion.V5)))
+            .thenReturn(buildBlockchainParametersResponse(checkpoint, minimumDifficulty, network));
 
         PowHSMBlockchainParameters blockchainParameters = hsmBookkeepingClient.getBlockchainParameters();
-        assertEquals(expectedCheckpoint, blockchainParameters.getCheckpoint());
-        assertEquals(expectedMinimumDifficulty, blockchainParameters.getMinimumDifficulty());
-        assertEquals(expectedNetwork, blockchainParameters.getNetwork());
+        assertEquals(checkpoint, blockchainParameters.getCheckpoint());
+        assertEquals(minimumDifficulty, blockchainParameters.getMinimumDifficulty());
+        assertEquals(network, blockchainParameters.getNetwork());
     }
 
     @Test
-    void getBlockchainParameters_hsm_version_2() throws JsonRpcException {
-        when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(
-            buildResponse(HSMVersion.V2)
-        );
+    void getBlockchainParameters_hsm_version_2() throws JsonRpcException, HSMClientException {
+        setUp(HSMVersion.V2);
 
         assertThrows(HSMUnsupportedTypeException.class, () -> hsmBookkeepingClient.getBlockchainParameters());
-    }
-
-    private ObjectNode buildResponse(boolean inProgress) {
-        Keccak256 expectedBestBlockHash = Keccak256.ZERO_HASH;
-        Keccak256 expectedAncestorBlockHash = Keccak256.ZERO_HASH;
-        ObjectNode state = objectMapper.createObjectNode();
-        state.put(BEST_BLOCK.getFieldName(), expectedBestBlockHash.toHexString());
-        state.put(ANCESTOR_BLOCK.getFieldName(), expectedAncestorBlockHash.toHexString());
-        ObjectNode updating = objectMapper.createObjectNode();
-        updating.put(IN_PROGRESS.getFieldName(), inProgress);
-        state.set(UPDATING.getFieldName(), updating);
-        return buildResponse(state, STATE.getFieldName());
-    }
-
-    private ObjectNode buildResponse(ObjectNode fieldValue, String fieldName) {
-        ObjectNode response = buildResponse(0);
-        response.set(fieldName, fieldValue);
-        return response;
-    }
-
-    private ObjectNode buildResponse(int errorCode) {
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put(ERROR_CODE.getFieldName(), errorCode);
-        return response;
-    }
-
-    private ObjectNode buildResponse(HSMVersion version) {
-        ObjectNode response = buildResponse(0);
-        response.put(HSMField.VERSION.getFieldName(), version.getNumber());
-        return response;
-    }
-
-    private ObjectNode buildExpectedRequest(String command, HSMVersion version) {
-        ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
-        expectedRequest.put(COMMAND.getFieldName(), command);
-        expectedRequest.put(HSMField.VERSION.getFieldName(), version.getNumber());
-        return expectedRequest;
-    }
-
-    private ObjectNode buildVersionRequest() {
-        ObjectNode request = new ObjectMapper().createObjectNode();
-        request.put(COMMAND.getFieldName(), HSMCommand.VERSION.getCommand());
-        return request;
     }
 
     private List<Block> buildBlocks() {

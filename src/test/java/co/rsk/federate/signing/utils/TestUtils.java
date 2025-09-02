@@ -37,7 +37,7 @@ public final class TestUtils {
         "03cd3e383ec6e12719a6c69515e5559bcbe037d0aa24c187e1e26ce932e22ad7b3",
         "02370a9838e4d15708ad14a104ee5606b36caaaaf739d833e67770ce9fd9b3ec80"
     ).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).toList();
-    private static final long erpFedActivationDelay = 52_560; // 1 year in BTC blocks (considering 1 block every 10 minutes)
+    private static final long ERP_FED_ACTIVATION_DELAY = 52_560; // 1 year in BTC blocks (considering 1 block every 10 minutes)
 
     private TestUtils() {
     }
@@ -132,7 +132,8 @@ public final class TestUtils {
         final long CREATION_BLOCK_NUMBER = 0;
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
         FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
-        return FederationFactory.buildP2shErpFederation(federationArgs, erpFedPubKeysList, erpFedActivationDelay);
+        return FederationFactory.buildP2shErpFederation(federationArgs, erpFedPubKeysList,
+            ERP_FED_ACTIVATION_DELAY);
     }
 
     public static Federation createP2shP2wshErpFederation(NetworkParameters params, int amountOfMembers) {
@@ -147,7 +148,8 @@ public final class TestUtils {
     public static Federation createP2shP2wshErpFederation(NetworkParameters params, List<BtcECKey> keys) {
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
         FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
-        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpFedPubKeysList, erpFedActivationDelay);
+        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpFedPubKeysList,
+            ERP_FED_ACTIVATION_DELAY);
     }
 
     public static List<BtcECKey> getFederationPrivateKeys(long amountOfMembers) {

@@ -28,11 +28,11 @@ public class SimpleFederatorSupport extends FederatorSupport {
     }
 
     @Override
-    public int getBtcBestBlockChainHeight() {
+    public int getBtcBlockchainBestChainHeight() {
         return height;
     }
 
-    public void setBtcBestBlockChainHeight(int h) {
+    public void setBtcBlockchainBestChainHeight(int h) {
         height = h;
     }
 

@@ -78,9 +78,9 @@ class HSMSigningClientV1Test {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), HSMCommand.VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersion5Response());
-        int version = client.getVersion();
+        HSMVersion version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 1.
-        assertEquals(HSMVersion.V1.getNumber(), version);
+        assertEquals(HSMVersion.V1, version);
     }
 
     @Test

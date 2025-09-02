@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FederationProviderFromFederatorSupport.class);
+    private static final Logger logger = LoggerFactory.getLogger(FederationProviderFromFederatorSupport.class);
 
     private final FederatorSupport federatorSupport;
     private final FederationConstants federationConstants;
@@ -147,7 +147,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             return Optional.empty();
         }
 
-        Integer federationSize = federatorSupport.getProposedFederationSize()
+        int federationSize = federatorSupport.getProposedFederationSize()
             .orElse(FEDERATION_NON_EXISTENT.getCode());
         if (federationSize == FEDERATION_NON_EXISTENT.getCode()) {
             return Optional.empty();
@@ -201,15 +201,15 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     }
 
     private Federation getExpectedFederation(FederationArgs federationArgs, Address expectedFederationAddress) {
-        LOGGER.debug("[getExpectedFederation] Going to get expected federation with address {}", expectedFederationAddress);
+        logger.debug("[getExpectedFederation] Going to get expected federation with address {}", expectedFederationAddress);
 
         Federation standardMultiSigFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
         if (standardMultiSigFederation.getAddress().equals(expectedFederationAddress)) {
-            LOGGER.debug("[getExpectedFederation] Expected federation is a standard multiSig one.");
+            logger.debug("[getExpectedFederation] Expected federation is a standard multiSig one.");
             return standardMultiSigFederation;
         }
 
-        LOGGER.debug("[getExpectedFederation] Expected federation is not a standard multiSig one.");
+        logger.debug("[getExpectedFederation] Expected federation is not a standard multiSig one.");
         List<BtcECKey> erpPubKeys = federationConstants.getErpFedPubKeysList();
         long activationDelay = federationConstants.getErpFedActivationDelay();
 
@@ -218,11 +218,11 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
 
             if (p2shErpFederation.getAddress().equals(expectedFederationAddress)) {
-                LOGGER.debug("[getExpectedFederation] Expected federation is a p2sh erp one.");
+                logger.debug("[getExpectedFederation] Expected federation is a p2sh erp one.");
                 return p2shErpFederation;
             }
         } catch (ErpFederationCreationException | ScriptCreationException e) {
-            LOGGER.debug("[getExpectedFederation] Expected federation is not a p2sh erp one.", e);
+            logger.debug("[getExpectedFederation] Expected federation is not a p2sh erp one.", e);
         }
 
         try {
@@ -230,11 +230,11 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
                 FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpPubKeys, activationDelay);
 
             if (p2shP2wshErpFederation.getAddress().equals(expectedFederationAddress)) {
-                LOGGER.debug("[getExpectedFederation] Expected federation is a p2sh-p2wsh erp one.");
+                logger.debug("[getExpectedFederation] Expected federation is a p2sh-p2wsh erp one.");
                 return p2shP2wshErpFederation;
             }
         } catch (ErpFederationCreationException | ScriptCreationException e) {
-            LOGGER.error("[getExpectedFederation] Expected federation is not a p2sh-p2wsh erp one.", e);
+            logger.error("[getExpectedFederation] Expected federation is not a p2sh-p2wsh erp one.", e);
         }
 
         throw new IllegalStateException("[getExpectedFederation] Cannot get expected federation.");

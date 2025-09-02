@@ -112,14 +112,12 @@ public class ECDSAHSMSigner implements ECDSASigner {
             throw new SignerException(String.format("Can't find version for this key for the requested signing key: %s", keyId));
         }
 
-        int version;
         try {
             ensureHsmClient();
-            version = client.getVersion();
+            return client.getVersion().getNumber();
         } catch (HSMClientException e) {
             throw new SignerException(String.format("Error trying to retrieve version from HSM %s Signer", keyId), e);
         }
-        return version;
     }
 
     @Override

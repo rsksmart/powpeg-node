@@ -147,7 +147,7 @@ class PowHSMSignerMessageBuilderTest {
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
 
-        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5.getNumber());
+        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5);
         String actualBtcTxSerialized = messageToSign.get(TX.getFieldName()).asText();
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
 
@@ -264,7 +264,7 @@ class PowHSMSignerMessageBuilderTest {
         assertEquals(expectedSigHash, actualPowHSMSignerMessage.getSigHash());
 
         String expectedBtcTxSerialized = Hex.toHexString(pegoutBtcTx.bitcoinSerialize());
-        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5.getNumber());
+        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5);
         String actualBtcTxSerialized = messageToSign.get(TX.getFieldName()).asText();
 
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);
@@ -451,7 +451,7 @@ class PowHSMSignerMessageBuilderTest {
 
         BtcTransaction txWithoutWitness = BitcoinUtils.getTransactionWithoutWitness(pegoutBtcTx);
         String expectedBtcTxSerialized = Hex.toHexString(txWithoutWitness.bitcoinSerialize());
-        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5.getNumber());
+        JsonNode messageToSign = actualPowHSMSignerMessage.getMessageToSign(HSMVersion.V5);
         String actualBtcTxSerialized = messageToSign.get(TX.getFieldName()).asText();
 
         assertEquals(expectedBtcTxSerialized, actualBtcTxSerialized);

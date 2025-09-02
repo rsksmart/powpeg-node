@@ -18,23 +18,24 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import co.rsk.federate.signing.hsm.HSMVersion;
 import java.util.HashMap;
 import java.util.Map;
 
 public abstract class HSMSigningClientBase implements HSMSigningClient {
     protected final HSMClientProtocol hsmClientProtocol;
-    protected final int version;
+    protected final HSMVersion version;
     // Local caching of public keys
     protected Map<String, byte[]> publicKeys;
 
-    protected HSMSigningClientBase(HSMClientProtocol protocol, int version) {
+    protected HSMSigningClientBase(HSMClientProtocol protocol, HSMVersion version) {
         this.hsmClientProtocol = protocol;
         this.version = version;
         publicKeys = new HashMap<>();
     }
 
     @Override
-    public final int getVersion() {
+    public final HSMVersion getVersion() {
         return version;
     }
 }
