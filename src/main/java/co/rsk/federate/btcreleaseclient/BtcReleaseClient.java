@@ -340,12 +340,14 @@ public class BtcReleaseClient {
     }
 
     private boolean pegoutIsUnprocessable(Keccak256 pegoutCreationRskTxHash) {
+        boolean networkIsTestnet = bridgeConstants.getBtcParams().getId()
+            .equals(co.rsk.bitcoinj.core.NetworkParameters.ID_TESTNET);
         // there is a very old pegout that remains unprocessed.
         // since the federation changed from that time to now, it is unprocessable,
         // so we should not keep trying processing it
         Keccak256 unprocessablePegoutRskTxCreationHash =
             new Keccak256("86c6739feeb9279d8c7cd85bc6732cb818c3a9d54b55a070adfe1d31ba10f4e5");
-        return pegoutCreationRskTxHash.equals(unprocessablePegoutRskTxCreationHash);
+        return networkIsTestnet && pegoutCreationRskTxHash.equals(unprocessablePegoutRskTxCreationHash);
     }
 
     protected Optional<ReleaseCreationInformation> tryGetReleaseInformation(
