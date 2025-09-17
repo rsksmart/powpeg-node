@@ -318,7 +318,7 @@ public class BtcReleaseClient {
                 Keccak256 pegoutCreationRskTxHash = pegout.getKey();
                 BtcTransaction pegoutBtcTx = pegout.getValue();
 
-                if (pegoutIsUnprocessable(pegoutBtcTx)) {
+                if (pegoutIsUnprocessable(pegoutCreationRskTxHash)) {
                     continue;
                 }
 
@@ -339,13 +339,13 @@ public class BtcReleaseClient {
         logger.trace("[processReleases] Finished processing pegouts");
     }
 
-    private boolean pegoutIsUnprocessable(BtcTransaction pegoutBtcTx) {
+    private boolean pegoutIsUnprocessable(Keccak256 pegoutCreationRskTxHash) {
         // there is a very old pegout that remains unprocessed.
-        // since the federation changed from that time to now, is unprocessable,
+        // since the federation changed from that time to now, it is unprocessable,
         // so we should not keep trying processing it
-        co.rsk.bitcoinj.core.Sha256Hash unprocessablePegoutHash =
-            co.rsk.bitcoinj.core.Sha256Hash.wrap("838bfa2f7ed2b1b35e5292bf3479d003e42d85e30c5eee3737b0c5d1a8438dd8");
-        return pegoutBtcTx.getHash().equals(unprocessablePegoutHash);
+        Keccak256 unprocessablePegoutRskTxCreationHash =
+            new Keccak256("86c6739feeb9279d8c7cd85bc6732cb818c3a9d54b55a070adfe1d31ba10f4e5");
+        return pegoutCreationRskTxHash.equals(unprocessablePegoutRskTxCreationHash);
     }
 
     protected Optional<ReleaseCreationInformation> tryGetReleaseInformation(
