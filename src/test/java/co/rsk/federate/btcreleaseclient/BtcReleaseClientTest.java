@@ -596,7 +596,6 @@ class BtcReleaseClientTest {
             );
         }
 
-
         @Test
         void processReleases_signWithKeyFile_segwitFed_whenSetHasUnprocessablePegout_shouldSkipJustIt() throws Exception {
             // Arrange
