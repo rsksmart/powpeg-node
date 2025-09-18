@@ -343,17 +343,24 @@ public class BtcReleaseClient {
         try {
             // Discard pegout tx if processed in a previous round of execution
             logger.trace(
-                "[tryGetReleaseInformation] Checking if pegoutCreationTxHash {} has already been signed",
-                pegoutCreationRskTxHash);
+                "[tryGetReleaseInformation] Checking if pegout {} has already been processed",
+                pegoutCreationRskTxHash
+            );
             validateTxIsNotCached(pegoutCreationRskTxHash);
 
-            logger.trace("[tryGetReleaseInformation] Getting release information from pegout btcTxHash {}", pegoutToSign.getHash());
+            // Discard pegout if it cannot be signed by the observed federations
+            logger.trace(
+                "[tryGetReleaseInformation] Checking if pegout {} can be signed by observed federations",
+                pegoutCreationRskTxHash
+            );
+            validateTxCanBeSigned(pegoutToSign);
 
             // IMPORTANT: As per the current behaviour of the bridge, no pegout should have inputs to be signed
             // by different federations. Taking this into account, when removing the signatures from the tx new
             // scriptSigs are created that all spend from the same federation
 
             // We need to get the release information from the original pegout (i.e. without signatures)
+            logger.trace("[tryGetReleaseInformation] Getting release information from pegout btcTxHash {}", pegoutToSign.getHash());
             BtcTransaction originalPegout = BitcoinUtils.getMultiSigTransactionWithoutSignatures(pegoutToSign);
             co.rsk.bitcoinj.core.Sha256Hash originalPegoutHash = originalPegout.getHash();
             logger.trace("[tryGetReleaseInformation] Pegout btc tx hash without signatures {}", originalPegoutHash);
@@ -375,13 +382,15 @@ public class BtcReleaseClient {
                 return Optional.empty();
             }
 
-            // Discard pegout btc tx this fed already signed or cannot be signed by the observed federations
-            logger.trace("[tryGetReleaseInformation] Validating if pegoutBtcTxHash {} can be signed by observed federations and " +
-                             "that it is not already signed by current federator", pegoutToSign.getHash());
+            // Discard pegout if federator already signed it
+            logger.trace(
+                "[tryGetReleaseInformation] Validating if pegout {} is not already signed by current federator",
+                pegoutToSign.getHash()
+            );
             // we need to pass the pegout btc tx we want to sign
             // since the original one does not have any sigs,
             // so it cannot have been signed by the federator
-            validateTxCanBeSigned(releaseToSignCreationInformation, pegoutToSign);
+            validateTxIsNotAlreadySigned(releaseToSignCreationInformation, pegoutToSign);
 
             // [-- Ignore punished transactions] --> this won't be done for now but should be taken into consideration
             // -- Get Real Block where release_requested was emitted
@@ -408,20 +417,48 @@ public class BtcReleaseClient {
         }
     }
 
-    protected void validateTxCanBeSigned(ReleaseCreationInformation releaseCreationInformation, BtcTransaction pegoutBtcTx) throws FederatorAlreadySignedException, FederationCantSignException {
+    protected void validateTxCanBeSigned(BtcTransaction pegoutBtcTx) throws FederationCantSignException {
+        for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
+            final int index = inputIndex; // Required for lambda expression
+            Script redeemScript = BitcoinUtils.extractRedeemScriptFromInput(pegoutBtcTx, inputIndex).orElseThrow(
+                () -> new IllegalStateException(String.format("Redeem script not found for input %d in pegout btc tx %s", index, pegoutBtcTx.getHashAsString()))
+            );
+            Script standardRedeemScript = extractStandardRedeemScript(redeemScript);
+
+            // Check if any of the observed federations can sign the tx
+            logger.trace("[validateTxCanBeSigned] Checking if any of the observed federations can sign the tx input {}", inputIndex);
+
+            observedFederations.forEach(
+                f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript())
+            );
+            List<Federation> spendingFedFilter = observedFederations.stream()
+                .filter(f -> (extractDefaultRedeemScript(f)).equals(standardRedeemScript)).toList();
+
+            logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
+            if (spendingFedFilter.isEmpty()) {
+                String message = String.format(
+                    "Transaction %s can't be signed by any of the observed federations",
+                    pegoutBtcTx.getHash()
+                );
+                throw new FederationCantSignException(message);
+            }
+        }
+    }
+
+    protected void validateTxIsNotAlreadySigned(
+        ReleaseCreationInformation releaseCreationInformation,
+        BtcTransaction pegoutBtcTx
+    ) throws FederatorAlreadySignedException {
         try {
             BtcECKey federatorPublicKey = signer.getPublicKey(BTC.getKeyId()).toBtcKey();
             logger.trace("[validateTxCanBeSigned] Federator public key {}", federatorPublicKey);
 
             for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
-                final int index = inputIndex; // Required for lambda expression
-                Script redeemScript = BitcoinUtils.extractRedeemScriptFromInput(pegoutBtcTx, inputIndex).orElseThrow(
-                    () -> new IllegalStateException(String.format("Redeem script not found for input %d in pegout btc tx %s", index, pegoutBtcTx.getHashAsString()))
-                );
-                Script standardRedeemScript = extractStandardRedeemScript(redeemScript);
-
                 // Check if input is not already signed by the current federator
-                logger.trace("[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator", inputIndex);
+                logger.trace(
+                    "[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator",
+                    inputIndex
+                );
 
                 SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
                 if (inputHasWitness(pegoutBtcTx, inputIndex)) {
@@ -437,21 +474,6 @@ public class BtcReleaseClient {
                         federatorPublicKey
                     );
                     throw new FederatorAlreadySignedException(message);
-                }
-
-                // Check if any of the observed federations can sign the tx
-                logger.trace("[validateTxCanBeSigned] Checking if any of the observed federations can sign the tx input {}", inputIndex);
-                observedFederations.forEach(
-                    f -> logger.trace("[validateTxCanBeSigned] federation p2sh redeem script {}", f.getRedeemScript()));
-                List<Federation> spendingFedFilter = observedFederations.stream()
-                    .filter(f -> (extractDefaultRedeemScript(f)).equals(standardRedeemScript)).toList();
-                logger.debug("[validateTxCanBeSigned] spendingFedFilter size {}", spendingFedFilter.size());
-                if (spendingFedFilter.isEmpty()) {
-                    String message = String.format(
-                        "Transaction %s can't be signed by any of the observed federations",
-                        pegoutBtcTx.getHash()
-                    );
-                    throw new FederationCantSignException(message);
                 }
             }
         } catch (SignerException e) {

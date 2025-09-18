@@ -1812,7 +1812,7 @@ class BtcReleaseClientTest {
         );
 
         // Act
-        assertThrows(FederatorAlreadySignedException.class, () -> client.validateTxCanBeSigned(releaseCreationInformation, releaseTx));
+        assertThrows(FederatorAlreadySignedException.class, () -> client.validateTxIsNotAlreadySigned(releaseCreationInformation, releaseTx));
     }
 
     @Test
@@ -1857,7 +1857,7 @@ class BtcReleaseClientTest {
         );
 
         // Act
-        assertThrows(FederationCantSignException.class, () -> client.validateTxCanBeSigned(releaseCreationInformation, releaseTx));
+        assertThrows(FederationCantSignException.class, () -> client.validateTxCanBeSigned(releaseTx));
     }
 
     @Test
@@ -1941,7 +1941,7 @@ class BtcReleaseClientTest {
         );
 
         // Act
-        client.validateTxCanBeSigned(releaseCreationInformation, releaseTx);
+        client.validateTxCanBeSigned(releaseTx);
     }
 
     private void test_extractStandardRedeemScript(
