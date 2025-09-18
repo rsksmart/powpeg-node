@@ -389,7 +389,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         long bestBlockNumber = federatorSupport.getRskBestChainHeight();
         boolean useBlockDepth = activationConfig.isActive(ConsensusRule.RSKIP89, bestBlockNumber);
 
-        int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBestBlockChainHeight();
+        int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBlockchainBestChainHeight();
         int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
         if (federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight) {
             logger.debug(

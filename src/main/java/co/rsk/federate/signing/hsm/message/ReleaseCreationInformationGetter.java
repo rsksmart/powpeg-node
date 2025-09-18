@@ -2,6 +2,7 @@ package co.rsk.federate.signing.hsm.message;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.BridgeEvents;
 import org.ethereum.core.*;
@@ -13,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 // First the class tries to find the event associated with the transaction. If it cannot find it, it requests the following
 // events until it is found or until it reaches the last block.
@@ -50,13 +50,18 @@ public class ReleaseCreationInformationGetter {
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutConfirmationRskTxHash
     ) throws HSMReleaseCreationInformationException {
-        if (version == HSMVersion.V1.getNumber()) {
-            return getBaseReleaseCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
-        } else if (HSMVersion.isPowHSM(version)) {
-            return getTxInfoToSignVersion2(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
-        } else {
+        HSMVersion hsmVersion;
+        try {
+             hsmVersion = HSMVersion.fromNumber(version);
+        } catch (HSMUnsupportedVersionException e) {
             throw new HSMReleaseCreationInformationException("Unsupported version " + version);
         }
+
+        if (!hsmVersion.isPowHSM()) {
+            return getBaseReleaseCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
+        }
+
+        return getTxInfoToSignVersion2(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
     }
 
     protected ReleaseCreationInformation getBaseReleaseCreationInformation(

@@ -47,8 +47,8 @@ public interface ECDSASigner extends UnrecoverableErrorEventDispatcher {
     String getVersionString() throws SignerException;
 
     class ECDSASignerCheckResult {
-        private boolean success;
-        private List<String> messages;
+        private final boolean success;
+        private final List<String> messages;
 
         public ECDSASignerCheckResult(List<String> messages) {
             this.success = messages.isEmpty();

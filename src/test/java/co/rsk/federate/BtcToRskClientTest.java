@@ -697,7 +697,7 @@ class BtcToRskClientTest {
 
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBestBlockChainHeight(10);
+        fh.setBtcBlockchainBestChainHeight(10);
         BtcToRskClient client = createClientWithMocks(bw, fh);
 
         int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
@@ -716,7 +716,7 @@ class BtcToRskClientTest {
         StoredBlock[] blocks = createBlockchain(3);
         bw.setBlocks(blocks);
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBestBlockChainHeight(2);
+        fh.setBtcBlockchainBestChainHeight(2);
         fh.setBtcBlockchainBlockLocator(createLocator(blocks, 2, 0));
         BtcToRskClient client = createClientWithMocks(bw, fh);
 
@@ -740,7 +740,7 @@ class BtcToRskClientTest {
         StoredBlock[] blocks = createBlockchain(4);
         bw.setBlocks(blocks);
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBestBlockChainHeight(2);
+        fh.setBtcBlockchainBestChainHeight(2);
         fh.setBtcBlockchainBlockLocator(createLocator(blocks, 2, 0));
         BtcToRskClient client = createClientWithMocks(bw, fh);
 
@@ -765,7 +765,7 @@ class BtcToRskClientTest {
         StoredBlock[] blocks = createBlockchain(4);
         bw.setBlocks(blocks);
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBestBlockChainHeight(2);
+        fh.setBtcBlockchainBestChainHeight(2);
         fh.setBtcBlockchainBlockLocator(createLocator(blocks, 1, 1));
         BtcToRskClient client = createClientWithMocks(bw, fh);
 
@@ -792,7 +792,7 @@ class BtcToRskClientTest {
         bitcoinWrapper.setBlocks(blocks);
 
         SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
-        federatorSupport.setBtcBestBlockChainHeight(1);
+        federatorSupport.setBtcBlockchainBestChainHeight(1);
         federatorSupport.setBtcBlockchainBlockLocator(createLocator(blocks, 1, 0));
 
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
@@ -837,7 +837,7 @@ class BtcToRskClientTest {
     void updateBlockchainWithBetterBlockchainInContract() throws Exception {
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBestBlockChainHeight(10);
+        fh.setBtcBlockchainBestChainHeight(10);
         BtcToRskClient client = createClientWithMocks(bw, fh);
 
         int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
@@ -854,7 +854,7 @@ class BtcToRskClientTest {
         StoredBlock[] blocks = createBlockchain(3);
         bw.setBlocks(blocks);
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBestBlockChainHeight(2);
+        fh.setBtcBlockchainBestChainHeight(2);
         fh.setBlockHashes(createHashChain(blocks, 2));
         BtcToRskClient client = createClientWithMocks(bw, fh);
 
@@ -876,7 +876,7 @@ class BtcToRskClientTest {
         StoredBlock[] blocks = createBlockchain(4);
         bw.setBlocks(blocks);
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBestBlockChainHeight(2);
+        fh.setBtcBlockchainBestChainHeight(2);
         fh.setBlockHashes(createHashChain(blocks, 2));
         BtcToRskClient client = createClientWithMocks(bw, fh);
 
@@ -899,7 +899,7 @@ class BtcToRskClientTest {
         StoredBlock[] blocks = createBlockchain(4);
         bw.setBlocks(blocks);
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBestBlockChainHeight(1);
+        fh.setBtcBlockchainBestChainHeight(1);
         fh.setBlockHashes(createHashChain(blocks, 1));
         BtcToRskClient client = createClientWithMocks(bw, fh);
 
@@ -923,7 +923,7 @@ class BtcToRskClientTest {
         bitcoinWrapper.setBlocks(blocks);
 
         SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
-        federatorSupport.setBtcBestBlockChainHeight(1);
+        federatorSupport.setBtcBlockchainBestChainHeight(1);
         federatorSupport.setBlockHashes(createHashChain(blocks, 1));
 
         BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
@@ -963,7 +963,7 @@ class BtcToRskClientTest {
         final int BRIDGE_INITIAL_HEIGHT = 10;
         StoredBlock[] blocks = createBlockchain(BRIDGE_HEIGHT);
         federatorSupport.setBtcBlockchainInitialBlockHeight(BRIDGE_INITIAL_HEIGHT);
-        federatorSupport.setBtcBestBlockChainHeight(BRIDGE_HEIGHT);
+        federatorSupport.setBtcBlockchainBestChainHeight(BRIDGE_HEIGHT);
         federatorSupport.setBlockHashes(createHashChain(blocks, BRIDGE_HEIGHT));
 
         // Create a forked blockchain on the federate node's side
@@ -2440,7 +2440,7 @@ class BtcToRskClientTest {
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
+        when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(1);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
@@ -2472,7 +2472,7 @@ class BtcToRskClientTest {
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
+        when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(1);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
@@ -2506,7 +2506,7 @@ class BtcToRskClientTest {
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
+        when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(1);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
@@ -2548,7 +2548,7 @@ class BtcToRskClientTest {
         Transaction peginTx = createSegwitTransaction();
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getBtcBestBlockChainHeight()).thenReturn(1);
+        when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(1);
         when(federatorSupport.isBtcTxHashAlreadyProcessed(peginTx.getTxId())).thenReturn(true);
         when(federatorSupport.getBtcTxHashProcessedHeight(peginTx.getTxId())).thenReturn(1L);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);

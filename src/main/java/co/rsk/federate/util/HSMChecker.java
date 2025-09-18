@@ -63,7 +63,7 @@ public class HSMChecker {
                 port = Integer.parseInt(args[1]);
             }
 
-            System.out.printf("Connecting to HSM @ %s:%d...\n", host, port);
+            System.out.printf("Connecting to HSM @ %s:%d...%n", host, port);
             SocketBasedJsonRpcClientProvider jsonRpcClientProvider = SocketBasedJsonRpcClientProvider.fromHostPort(host, port);
             jsonRpcClientProvider.setSocketTimeout(PowHSMConfigParameter.SOCKET_TIMEOUT.getDefaultValue(Integer::parseInt));
             HSMClientProtocol hsmClientProtocol = new HSMClientProtocol(
@@ -72,32 +72,32 @@ public class HSMChecker {
                 PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt));
             HSMSigningClientProvider hsmSigningClientProvider = new HSMSigningClientProvider(hsmClientProtocol, "");
             HSMSigningClient client = hsmSigningClientProvider.getSigningClient();
-            System.out.printf("Connected. Testing.\n");
+            System.out.printf("Connected. Testing.%n");
 
             for (int k = 0; k < KEY_IDS.length; k++) {
                 String keyId = KEY_IDS[k];
 
-                System.out.printf("Using key id '%s'\n", keyId);
-                System.out.printf("Version: %d\n", client.getVersion());
+                System.out.printf("Using key id '%s'%n", keyId);
+                System.out.printf("Version: %s%n", client.getVersion());
 
                 ECKey hsmPublicKey = getPublicKey(client, keyId);
                 // Save for later verification
                 hsmPublicKeys[k] = hsmPublicKey;
 
-                System.out.printf("Public key: %s\n", Hex.toHexString(hsmPublicKey.getPubKey()));
+                System.out.printf("Public key: %s%n", Hex.toHexString(hsmPublicKey.getPubKey()));
 
                 HSMSignature hsmSignature = client.sign(keyId, messageObject);
                 ECKey.ECDSASignature signature = hsmSignature.toEthSignature();
 
                 boolean signatureValid = hsmPublicKey.verify(MESSAGE_HASH.getBytes(), signature);
 
-                System.out.printf("Signature valid for public key: %s\n", yesOrNo(signatureValid));
-                System.out.printf("Signature recovery byte valid: %s\n", yesOrNo(signature.validateComponents()));
+                System.out.printf("Signature valid for public key: %s%n", yesOrNo(signatureValid));
+                System.out.printf("Signature recovery byte valid: %s%n", yesOrNo(signature.validateComponents()));
 
                 for (int i = 0; i < 10; i++) {
                     byte[] randomMessage = new byte[randomInRange(10, 20)];
                     new Random().nextBytes(randomMessage);
-                    SignerMessage randomMessageHash = new SignerMessageV1(randomMessage);
+                    SignerMessageV1 randomMessageHash = new SignerMessageV1(randomMessage);
                     long startTime = System.currentTimeMillis();
                     ECKey hsmPublicKeyBis = getPublicKey(client, keyId);
 
@@ -105,7 +105,7 @@ public class HSMChecker {
 
                     // Check that public key is the same as the one previously requested
                     if (!Arrays.equals(hsmPublicKey.getPubKey(), hsmPublicKeyBis.getPubKey())) {
-                        System.out.printf("Public keys do not match: %s - %s\n", Hex.toHexString(hsmPublicKey.getPubKey()), Hex.toHexString(hsmPublicKeyBis.getPubKey()));
+                        System.out.printf("Public keys do not match: %s - %s%n", Hex.toHexString(hsmPublicKey.getPubKey()), Hex.toHexString(hsmPublicKeyBis.getPubKey()));
                         break;
                     }
 
@@ -113,37 +113,37 @@ public class HSMChecker {
                     hsmSignature = client.sign(keyId, randomMessageHash);
                     signature = hsmSignature.toEthSignature();
                     System.out.printf("elapsed time:%dms ... ",System.currentTimeMillis() - startTime);
-                    signatureValid = hsmPublicKey.verify(((SignerMessageV1)randomMessageHash).getBytes(), signature);
+                    signatureValid = hsmPublicKey.verify(randomMessageHash.getBytes(), signature);
 
                     if (!signatureValid) {
-                        System.out.printf("Signature of message %s invalid for public key %s\n", Hex.toHexString(randomMessage), Hex.toHexString(hsmPublicKeyBis.getPubKey()));
+                        System.out.printf("Signature of message %s invalid for public key %s%n", Hex.toHexString(randomMessage), Hex.toHexString(hsmPublicKeyBis.getPubKey()));
                         break;
                     }
 
                     if (!signature.validateComponents()) {
-                        System.out.printf("Signature of message %s has invalid recovery byte\n", Hex.toHexString(randomMessage));
+                        System.out.printf("Signature of message %s has invalid recovery byte%n", Hex.toHexString(randomMessage));
                         break;
                     }
 
-                    System.out.printf("OK\n");
+                    System.out.print("OK\n");
                 }
 
-                System.out.printf("Testing OK for key id \"%s\"\n", keyId);
-                System.out.printf("====================================================================\n", keyId);
+                System.out.printf("Testing OK for key id \"%s\"%n", keyId);
+                System.out.printf("====================================================================%n");
             }
 
             // Check all public keys are different
             if (hsmPublicKeys.length > Arrays.stream(hsmPublicKeys).distinct().count()) {
-                System.out.printf("There are duplicate public keys found for different key ids\n");
-                System.out.printf("Key ids and public keys are:\n");
+                System.out.printf("There are duplicate public keys found for different key ids%n");
+                System.out.printf("Key ids and public keys are:%n");
                 for (int i = 0; i < KEY_IDS.length; i++) {
-                    System.out.printf("%s - %s\n", KEY_IDS[i], Hex.toHexString(hsmPublicKeys[i].getPubKey(true)));
+                    System.out.printf("%s - %s%n", KEY_IDS[i], Hex.toHexString(hsmPublicKeys[i].getPubKey(true)));
                 }
             } else {
-                System.out.printf("All OK\n");
+                System.out.printf("All OK%n");
             }
         } catch (Exception e) {
-            System.out.printf("Oops\n");
+            System.out.printf("Oops%n");
             e.printStackTrace(); //NOSONAR
         }
     }

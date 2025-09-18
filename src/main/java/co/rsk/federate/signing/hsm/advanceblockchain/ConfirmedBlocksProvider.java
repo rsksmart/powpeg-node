@@ -16,7 +16,7 @@ public class ConfirmedBlocksProvider {
     private final BigInteger minimumAccumulatedDifficulty;
     private final int maximumElementsToSendHSM;
     private final BlockStore blockStore;
-    private final int hsmVersion;
+    private final HSMVersion hsmVersion;
     private final BigInteger difficultyCap;
 
     public ConfirmedBlocksProvider(
@@ -24,7 +24,8 @@ public class ConfirmedBlocksProvider {
         int maximumElementsToSendHSM,
         BlockStore blockStore,
         BigInteger difficultyCap,
-        int hsmVersion) {
+        HSMVersion hsmVersion
+    ) {
         this.blockStore = blockStore;
         this.minimumAccumulatedDifficulty = minimumAccumulatedDifficulty;
         this.maximumElementsToSendHSM = maximumElementsToSendHSM;
@@ -94,16 +95,17 @@ public class ConfirmedBlocksProvider {
 
     protected BigInteger getBlockDifficultyToConsider(Block block) {
         logger.trace(
-            "[getBlockDifficultyToConsider] Get difficulty for block {} at height {}", block.getHash(), block.getNumber()
+            "[getBlockDifficultyToConsider] Get difficulty for block {} at height {}",
+            block.getHash(),
+            block.getNumber()
         );
 
         BigInteger blockTotalDifficulty = block.getDifficulty().asBigInteger();
-        if (hsmVersion < HSMVersion.V4.getNumber()) {
+        if (!hsmVersion.considersUnclesDifficulty()) {
             logger.trace("[getBlockDifficultyToConsider] Considering block total difficulty {}", blockTotalDifficulty);
             return blockTotalDifficulty;
         }
 
-        // Considering uncles difficulty and cap
         BigInteger blockDifficultyToConsider = difficultyCap.min(blockTotalDifficulty);
         BigInteger unclesDifficultyToConsider = block.getUncleList().stream()
             .map(uncle -> difficultyCap.min(uncle.getDifficulty().asBigInteger()))
