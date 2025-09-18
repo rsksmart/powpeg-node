@@ -18,18 +18,19 @@
 
 package co.rsk.federate.signing.hsm.client;
 
+import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
+import static co.rsk.federate.signing.HSMField.*;
+
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.SignerMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
 
-import static co.rsk.federate.signing.HSMCommand.GET_PUB_KEY;
-import static co.rsk.federate.signing.HSMField.*;
-
 public abstract class PowHSMSigningClient extends HSMSigningClientBase {
 
-    protected PowHSMSigningClient(HSMClientProtocol protocol, int version) {
+    protected PowHSMSigningClient(HSMClientProtocol protocol, HSMVersion version) {
         super(protocol, version);
         protocol.setResponseHandler(new PowHSMResponseHandler());
     }
