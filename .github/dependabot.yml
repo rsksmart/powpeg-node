@@ -1,7 +1,19 @@
 version: 2
 updates:
-  # Maintain dependencies for GitHub Actions
   - package-ecosystem: github-actions
-    directory: /
+    directory: "/"
     schedule:
-      interval: daily
+      interval: "weekly"
+    # Wait at least 10 days after a new version is released before opening a PR
+    cooldown:
+      default-days: 10
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+    groups:
+      actions-minor:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
