@@ -17,14 +17,21 @@ import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
+import co.rsk.peg.constants.BridgeTestNetConstants;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
+import co.rsk.peg.federation.FederationArgs;
+import co.rsk.peg.federation.FederationFactory;
+import co.rsk.peg.federation.FederationMember;
+import co.rsk.peg.federation.constants.FederationConstants;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.*;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.bitcoinj.core.*;
@@ -32,7 +39,7 @@ import org.bitcoinj.wallet.Wallet;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.crypto.HashUtil;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -40,21 +47,19 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.spongycastle.util.encoders.Hex;
 
 class BitcoinWrapperImplTest {
-    private static final BridgeConstants bridgeConstants = BridgeMainNetConstants.getInstance();
-    private static final co.rsk.bitcoinj.core.NetworkParameters thinNetworkParameters = bridgeConstants.getBtcParams();
-    private static final NetworkParameters originalNetworkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
-    private static final Context btcContext = new Context(originalNetworkParameters);
+    private static BridgeConstants bridgeConstants = BridgeMainNetConstants.getInstance();
+    private static co.rsk.bitcoinj.core.NetworkParameters thinNetworkParameters = bridgeConstants.getBtcParams();
+    private static NetworkParameters originalNetworkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
+    private static Context btcContext = new Context(originalNetworkParameters);
     private BtcToRskClientFileStorage btcToRskClientFileStorage;
-    private BtcToRskClientBuilder btcToRskClientBuilder;
     private FederatorSupport federatorSupport;
     private BitcoinWrapperImpl bitcoinWrapper;
-    private TransactionListener listener;
 
     @TempDir
     private Path tempDir;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void generalSetUp() {
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         when(activations.isActive(ConsensusRule.RSKIP170)).thenReturn(true);
         when(activations.isActive(ConsensusRule.RSKIP201)).thenReturn(true);
@@ -74,7 +79,9 @@ class BitcoinWrapperImplTest {
         when(fileStorageInfo.getPegDirectoryPath()).thenReturn(pegDir);
         when(fileStorageInfo.getFilePath()).thenReturn(filePath);
         btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(fileStorageInfo);
+    }
 
+    private void setUpListenerAndWrapperWithFederation(Federation federationToListen) throws Exception {
         BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
         PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
 
@@ -92,22 +99,112 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.setup(peerAddresses);
         bitcoinWrapper.start();
 
-        btcToRskClientBuilder = BtcToRskClientBuilder.builder();
-        listener = btcToRskClientBuilder
+        BtcToRskClientBuilder btcToRskClientBuilder = BtcToRskClientBuilder.builder();
+        TransactionListener listener = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
             .withBridgeConstants(bridgeConstants)
             .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withPeginInstructionsProvider(peginInstructionsProvider)
-            .build();
-    }
-
-    private void setUpListenerAndWrapperWithFederation(Federation federationToListen) throws Exception {
-        listener = btcToRskClientBuilder
             .withFederation(federationToListen)
             .build();
+
         bitcoinWrapper.addFederationListener(federationToListen, listener);
+    }
+
+    @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    @Tag("Pegins in testnet below minimum that should not be added to tx proofs list")
+    class TestnetPeginsBelowMinimumTests {
+        // tests for https://mempool.space/testnet/tx/30adc33282d1737085033cc63f77ed484b10eef79e0a3cbed00fd4f8ad6fb134
+        // and https://mempool.space/testnet/tx/d1ad68905267970043fc282fb16c9aed018f14eca4a433099ccf71279e2666d1
+        Federation federation;
+
+        @BeforeEach
+        void testnetSetUp() {
+            bridgeConstants = BridgeTestNetConstants.getInstance();
+            FederationConstants federationConstants = bridgeConstants.getFederationConstants();
+            thinNetworkParameters = bridgeConstants.getBtcParams();
+            originalNetworkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
+
+            List<BtcECKey> btcPubKeys = Arrays.asList(
+                BtcECKey.fromPublicOnly(Hex.decode("02099fd69cf6a350679a05593c3ff814bfaa281eb6dde505c953cf2875979b1209")),
+                BtcECKey.fromPublicOnly(Hex.decode("0222caa9b1436ebf8cdf0c97233a8ca6713ed37b5105bcbbc674fd91353f43d9f7")),
+                BtcECKey.fromPublicOnly(Hex.decode("022a159227df514c7b7808ee182ae07d71770b67eda1e5ee668272761eefb2c24c")),
+                BtcECKey.fromPublicOnly(Hex.decode("02afc230c2d355b1a577682b07bc2646041b5d0177af0f98395a46018da699b6da")),
+                BtcECKey.fromPublicOnly(Hex.decode("02b1645d3f0cff938e3b3382b93d2d5c082880b86cbb70b6600f5276f235c28392")),
+                BtcECKey.fromPublicOnly(Hex.decode("039ee63f1e22ed0eb772fe0a03f6c34820ce8542f10e148bc3315078996cb81b25")),
+                BtcECKey.fromPublicOnly(Hex.decode("03d25ed2fcf9e05537f6e1daa7affcafdb3effc9f68cb2aecdcad66c901ae1b657")),
+                BtcECKey.fromPublicOnly(Hex.decode("03e2fbfd55959660c94169320ed0a778507f8e4c7a248a71c6599a4ce8a3d956ac")),
+                BtcECKey.fromPublicOnly(Hex.decode("03eae17ad1d0094a5bf33c037e722eaf3056d96851450fb7f514a9ed3af1dbb570"))
+            );
+
+            List<org.ethereum.crypto.ECKey> rskPubKeys = btcPubKeys.stream()
+                .map(BtcECKey::getPubKey)
+                .map(org.ethereum.crypto.ECKey::fromPublicOnly)
+                .toList();
+
+            List<FederationMember> members = IntStream.range(0, btcPubKeys.size())
+                .mapToObj(i -> new FederationMember(
+                    btcPubKeys.get(i),
+                    rskPubKeys.get(i),
+                    rskPubKeys.get(i)))
+                .toList();
+
+            FederationArgs federationArgs = new FederationArgs(
+                members,
+                Instant.ofEpochSecond(1L),
+                1L,
+                bridgeConstants.getBtcParams()
+            );
+            federation = FederationFactory.buildP2shErpFederation(
+                federationArgs,
+                federationConstants.getErpFedPubKeysList(),
+                federationConstants.getErpFedActivationDelay()
+            );
+        }
+
+        @Test
+        void coinsReceivedOrSent_legacyPegin_amountBelowMinimum_shouldNotListenTx() throws Exception {
+            // Arrange
+            btcContext = new Context(originalNetworkParameters);
+            setUpListenerAndWrapperWithFederation(federation);
+
+            byte[] rawTx = Hex.decode("020000000001010b93ce79620bd58a84855aa3a452e450e4896317267ae036a4db226f97ced0190000000000fdffffff02e80300000000000017a91423b8cdb52fd91d35d6ec5821ef91c9d6da67b78a871c0c0000000000001600149d15881009505f03faa87801db5a66dcd113b97b024730440220464615a947d95ba1306193c7de126390d256b770eae2f3995d480c96d25ba30402204f56d759826d742ad10f130096e35dce3caf9aef63cbc78099ab96052ce8486f01210357ca84c0361f7669df3e1654620f8d971288ac8915685b0bb49f153bef4f51499fdd4500");
+            BtcTransaction peginThinInstance = new BtcTransaction(thinNetworkParameters, rawTx);
+            Transaction pegin = ThinConverter.toOriginalInstance(thinNetworkParameters.getId(), peginThinInstance);
+
+            // Act
+            bitcoinWrapper.coinsReceivedOrSent(pegin);
+
+            // assert
+            assertTxWasNotAddedToProofs();
+        }
+
+        @Test
+        void coinsReceivedOrSent_peginV1_amountBelowMinimum_shouldNotListenTx() throws Exception {
+            // Arrange
+            setUpListenerAndWrapperWithFederation(federation);
+
+            byte[] rawTx = Hex.decode("020000000001012a770aebe30ce215a949b1a0e70a64993df73c7adb62f2e43b66054bdbd675080200000000ffffffff030000000000000000306a2e52534b54017509517a1880b14c9d734c55fac18c7737ec11c5011ae302de6607907116810e598b83897b00f764d5801a06000000000017a91423b8cdb52fd91d35d6ec5821ef91c9d6da67b78a87f8070100000000001600149b6d476d887db413ed0a59fbb1ea80ed41641e7002483045022100be6dbbf87227fd75f3b67e2f8a83c52965a42e89db16a91d8e4fd38d98afab4102207c1aff9e7777a923e67c9998acfbe6bf3f362adecddcdf823cdad3cd9d4462b601210296b60d2b92e4ba3f1948e00412d5fdc4ec0586830660c806ffe2214daa25fce900000000");
+            BtcTransaction peginThinInstance = new BtcTransaction(thinNetworkParameters, rawTx);
+            Transaction pegin = ThinConverter.toOriginalInstance(thinNetworkParameters.getId(), peginThinInstance);
+
+            // Act
+            bitcoinWrapper.coinsReceivedOrSent(pegin);
+
+            // assert
+            assertTxWasNotAddedToProofs();
+        }
+
+        private void assertTxWasNotAddedToProofs() throws IOException {
+            BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(originalNetworkParameters).getData();
+            Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
+
+            Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
+            assertEquals(0, txProofsKeySet.size());
+        }
     }
 
     @ParameterizedTest
@@ -221,7 +318,7 @@ class BitcoinWrapperImplTest {
     }
 
     private static Stream<Federation> fedArgs() {
-        final Federation standarMultisigFederation = TestUtils.createStandardMultisigFederation(
+        final Federation standardMultisigFederation = TestUtils.createStandardMultisigFederation(
             thinNetworkParameters,
             9
         );
@@ -234,7 +331,7 @@ class BitcoinWrapperImplTest {
             20
         );
 
-        return Stream.of(standarMultisigFederation, p2shErpFederation, p2shP2wshErpFederation);
+        return Stream.of(standardMultisigFederation, p2shErpFederation, p2shP2wshErpFederation);
     }
 
     @ParameterizedTest
