@@ -258,7 +258,7 @@ class BitcoinWrapperImplTest {
         }
 
         @Test
-        void coinsReceivedOrSent_peginV1ToActiveFed_amountBelowMinimum_listeningToRetiringAndActiveFeds_shouldNotListenTx() throws Exception {
+        void coinsReceivedOrSent_peginV1ToRetiringFed_amountBelowMinimum_listeningToRetiringAndActiveFeds_shouldNotListenTx() throws Exception {
             // Arrange
             setUpClientAndBitcoinWrapper();
             listenToFederation(p2shErpFederation);
