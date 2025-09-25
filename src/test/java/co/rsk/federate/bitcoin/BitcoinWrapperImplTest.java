@@ -9,6 +9,7 @@ import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
+import co.rsk.federate.BtcToRskClient;
 import co.rsk.federate.BtcToRskClientBuilder;
 import co.rsk.federate.Proof;
 import co.rsk.federate.io.*;
@@ -55,7 +56,7 @@ class BitcoinWrapperImplTest {
     private FederatorSupport federatorSupport;
     private BitcoinWrapperImpl bitcoinWrapper;
     private BtcToRskClientBuilder btcToRskClientBuilder;
-    private TransactionListener listener;
+    private BtcToRskClient btcToRskClient;
 
     @TempDir
     private Path tempDir;
@@ -83,7 +84,7 @@ class BitcoinWrapperImplTest {
         btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(fileStorageInfo);
     }
 
-    private void setUpListenerAndBitcoinWrapper() throws Exception {
+    private void setUpClientAndBitcoinWrapper() throws Exception {
         BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
         PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
 
@@ -102,7 +103,7 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.start();
 
         btcToRskClientBuilder = BtcToRskClientBuilder.builder();
-        listener = btcToRskClientBuilder
+        btcToRskClient = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
             .withBridgeConstants(bridgeConstants)
@@ -113,10 +114,10 @@ class BitcoinWrapperImplTest {
     }
 
     private void listenToFederation(Federation federationToListenTo) throws Exception {
-        listener = btcToRskClientBuilder
+        btcToRskClient = btcToRskClientBuilder
             .withFederation(federationToListenTo)
             .build();
-        bitcoinWrapper.addFederationListener(federationToListenTo, listener);
+        bitcoinWrapper.addFederationListener(federationToListenTo, btcToRskClient);
     }
 
     @Nested
@@ -217,7 +218,7 @@ class BitcoinWrapperImplTest {
         @Test
         void coinsReceivedOrSent_legacyPegin_amountBelowMinimum_shouldNotListenTx() throws Exception {
             // Arrange
-            setUpListenerAndBitcoinWrapper();
+            setUpClientAndBitcoinWrapper();
             listenToFederation(p2shErpFederation);
 
             byte[] rawTx = Hex.decode("020000000001010b93ce79620bd58a84855aa3a452e450e4896317267ae036a4db226f97ced0190000000000fdffffff02e80300000000000017a91423b8cdb52fd91d35d6ec5821ef91c9d6da67b78a871c0c0000000000001600149d15881009505f03faa87801db5a66dcd113b97b024730440220464615a947d95ba1306193c7de126390d256b770eae2f3995d480c96d25ba30402204f56d759826d742ad10f130096e35dce3caf9aef63cbc78099ab96052ce8486f01210357ca84c0361f7669df3e1654620f8d971288ac8915685b0bb49f153bef4f51499fdd4500");
@@ -234,7 +235,7 @@ class BitcoinWrapperImplTest {
         @Test
         void coinsReceivedOrSent_peginV1_amountBelowMinimum_shouldNotListenTx() throws Exception {
             // Arrange
-            setUpListenerAndBitcoinWrapper();
+            setUpClientAndBitcoinWrapper();
             listenToFederation(p2shErpFederation);
 
             byte[] rawTx = Hex.decode("020000000001012a770aebe30ce215a949b1a0e70a64993df73c7adb62f2e43b66054bdbd675080200000000ffffffff030000000000000000306a2e52534b54017509517a1880b14c9d734c55fac18c7737ec11c5011ae302de6607907116810e598b83897b00f764d5801a06000000000017a91423b8cdb52fd91d35d6ec5821ef91c9d6da67b78a87f8070100000000001600149b6d476d887db413ed0a59fbb1ea80ed41641e7002483045022100be6dbbf87227fd75f3b67e2f8a83c52965a42e89db16a91d8e4fd38d98afab4102207c1aff9e7777a923e67c9998acfbe6bf3f362adecddcdf823cdad3cd9d4462b601210296b60d2b92e4ba3f1948e00412d5fdc4ec0586830660c806ffe2214daa25fce900000000");
@@ -257,9 +258,9 @@ class BitcoinWrapperImplTest {
         }
 
         @Test
-        void coinsReceivedOrSent_peginV1_amountBelowMinimum_listeningToRetiringAndActiveFed_listensTx() throws Exception {
+        void coinsReceivedOrSent_peginV1ToActiveFed_amountBelowMinimum_listeningToRetiringAndActiveFeds_shouldNotListenTx() throws Exception {
             // Arrange
-            setUpListenerAndBitcoinWrapper();
+            setUpClientAndBitcoinWrapper();
             listenToFederation(p2shErpFederation);
             listenToFederation(p2shP2wshErpFederation);
 
@@ -271,7 +272,7 @@ class BitcoinWrapperImplTest {
             bitcoinWrapper.coinsReceivedOrSent(pegin);
 
             // assert
-            assertWTxIdWasAddedToProofs(pegin);
+            assertTxWasNotAddedToProofs();
         }
     }
 
@@ -279,7 +280,7 @@ class BitcoinWrapperImplTest {
     @MethodSource("fedArgs")
     void coinsReceivedOrSent_validLegacyPegIn_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        setUpListenerAndBitcoinWrapper();
+        setUpClientAndBitcoinWrapper();
         listenToFederation(federation);
         Transaction pegin = createLegacyPegIn(federation);
 
@@ -294,7 +295,7 @@ class BitcoinWrapperImplTest {
     @MethodSource("fedArgs")
     void coinsReceivedOrSent_validPeginV1_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        setUpListenerAndBitcoinWrapper();
+        setUpClientAndBitcoinWrapper();
         listenToFederation(federation);
         Transaction pegin = createValidPegInV1(federation.getAddress());
 
@@ -343,7 +344,7 @@ class BitcoinWrapperImplTest {
     @MethodSource("fedArgs")
     void coinsReceivedOrSent_validPegOutTx_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        setUpListenerAndBitcoinWrapper();
+        setUpClientAndBitcoinWrapper();
         listenToFederation(federation);
         final Transaction pegout = createPegOutTx(federation);
 
@@ -415,7 +416,7 @@ class BitcoinWrapperImplTest {
         when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
         when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
 
-        setUpListenerAndBitcoinWrapper();
+        setUpClientAndBitcoinWrapper();
         listenToFederation(activeFederation);
         Transaction migrationTx = createMigrationTx(retiringFederation, activeFederation);
 

@@ -384,6 +384,21 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
                 bridgeConstants,
                 activations
             )) {
+
+                boolean amountSentIsBelowMinimum = !PegUtils.allUTXOsToFedAreAboveMinimumPeginValue(
+                    btcTx,
+                    watchedFederationWallet,
+                    bridgeConstants.getMinimumPeginTxValue(activations),
+                    activations
+                );
+                if (amountSentIsBelowMinimum) {
+                    logger.debug(
+                        "[coinsReceivedOrSent] Pegin {} is invalid since amount sent is below minimum",
+                        btcTx.getHash()
+                    );
+                    continue;
+                }
+
                 PeginInformation peginInformation = new PeginInformation(
                     btcLockSenderProvider,
                     peginInstructionsProvider,
