@@ -135,9 +135,9 @@ jobs:
         if: success() && github.event.pull_request.head.repo.owner.login == 'rsksmart'
         uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # v2.1.1
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.GHA_SLACK_NOTIFICATION_TOKEN }}
           GITHUB_EVENT_PULL_REQUEST_HTML_URL: ${{ github.event.pull_request.html_url }}
         with:
+          token: ${{ secrets.GHA_SLACK_NOTIFICATION_TOKEN }}
           method: chat.postMessage
           payload: |
             {
@@ -155,9 +155,9 @@ jobs:
         if: failure() && github.event.pull_request.head.repo.owner.login == 'rsksmart'
         uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # v2.1.1
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.GHA_SLACK_NOTIFICATION_TOKEN }}
           GITHUB_EVENT_PULL_REQUEST_HTML_URL: ${{ github.event.pull_request.html_url }}
         with:
+          token: ${{ secrets.GHA_SLACK_NOTIFICATION_TOKEN }}
           method: chat.postMessage
           payload: |
             {
