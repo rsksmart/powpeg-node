@@ -138,12 +138,14 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.GHA_SLACK_NOTIFICATION_TOKEN }}
           GITHUB_EVENT_PULL_REQUEST_HTML_URL: ${{ github.event.pull_request.html_url }}
         with:
-          channel-id: ${{ vars.GHA_SLACK_NOTIFICATION_CHANNEL }}
+          method: chat.postMessage
           payload: |
             {
+              "channel": "${{ vars.GHA_SLACK_NOTIFICATION_CHANNEL }}",
               "attachments": [
                 {
                   "color": "good",
+                  "mrkdwn_in": ["text"],
                   "text": "*PASSED*: :white_check_mark: - *${{ env.SAFE_PULL_REQUEST_TITLE }}* \n*Pull request*: ${{ env.GITHUB_EVENT_PULL_REQUEST_HTML_URL }} \n*Pipeline*: ${{ env.BUILD_URL }} \n*Branches used*: [ rskj:`${{ env.RSKJ_BRANCH }}` ] [ fed:`${{ env.POWPEG_BRANCH }}` ] [ rit:`${{ env.RIT_BRANCH }}` ]"
                 }
               ]
@@ -156,12 +158,14 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.GHA_SLACK_NOTIFICATION_TOKEN }}
           GITHUB_EVENT_PULL_REQUEST_HTML_URL: ${{ github.event.pull_request.html_url }}
         with:
-          channel-id: ${{ vars.GHA_SLACK_NOTIFICATION_CHANNEL }}
+          method: chat.postMessage
           payload: |
             {
+              "channel": "${{ vars.GHA_SLACK_NOTIFICATION_CHANNEL }}",
               "attachments": [
                 {
                   "color": "danger",
+                  "mrkdwn_in": ["text"],
                   "text": "*FAILED*: :x: - *${{ env.SAFE_PULL_REQUEST_TITLE }}* \n*Pull request*: ${{ env.GITHUB_EVENT_PULL_REQUEST_HTML_URL }} \n*Pipeline*: ${{ env.BUILD_URL }} \n*Branches used*: [ rskj:`${{ env.RSKJ_BRANCH }}` ] [ fed:`${{ env.POWPEG_BRANCH }}` ] [ rit:`${{ env.RIT_BRANCH }}` ]"
                 }
               ]
