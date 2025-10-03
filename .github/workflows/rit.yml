@@ -21,7 +21,7 @@ permissions: read-all
 jobs:
   rootstock-integration-tests:
     name: Rootstock Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-autoscale
     timeout-minutes: 120
     steps:
       - name: Checkout Repository # Step needed to access the PR description using github CLI
