@@ -2,7 +2,10 @@ package co.rsk.federate.watcher;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.federate.FederationProvider;
+import co.rsk.federate.UnrecoverableErrorEventDispatcher;
+import co.rsk.federate.UnrecoverableErrorEventListener;
 import co.rsk.peg.federation.Federation;
+import java.util.ArrayList;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
@@ -17,7 +20,7 @@ import java.util.Optional;
  * This class listens for new blocks in the RSK blockchain and checks if the active or
  * retiring federations have changed, notifying listeners when such changes occur.
  */
-public class FederationWatcher {
+public class FederationWatcher implements UnrecoverableErrorEventDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(FederationWatcher.class);
 
@@ -30,6 +33,8 @@ public class FederationWatcher {
     private Federation retiringFederation;
     private Federation proposedFederation;
 
+    private final List<UnrecoverableErrorEventListener> listeners;
+
     /**
      * Constructs a new {@code FederationWatcher} with the specified RSK client.
      *
@@ -37,6 +42,7 @@ public class FederationWatcher {
      */
     public FederationWatcher(Ethereum rsk) {
         this.rsk = rsk;
+        listeners = new ArrayList<>();
     }
 
     /**
@@ -84,9 +90,14 @@ public class FederationWatcher {
      * the {@code FederationWatcherListener}.
      */
     private void updateState() {
-        updateProposedFederation();
-        updateActiveFederation();
-        updateRetiringFederation();
+        try {
+            updateProposedFederation();
+            updateActiveFederation();
+            updateRetiringFederation();
+        } catch (Throwable e) {
+            logger.error("[updateState] An error occurred while updating the state", e);
+            notifyUnrecoverableError(e);
+        }
     }
 
     private void updateProposedFederation() {
@@ -150,5 +161,15 @@ public class FederationWatcher {
                 currentlyRetiringFederationAddress.orElse(null)
             );
         }
-    }    
+    }
+
+
+    @Override
+    public void addListener(UnrecoverableErrorEventListener listener) {
+        listeners.add(listener);
+    }
+
+    private void notifyUnrecoverableError(Throwable e) {
+        listeners.forEach(l -> l.unrecoverableErrorOccured(e));
+    }
 }
