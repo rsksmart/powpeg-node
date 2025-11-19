@@ -150,6 +150,11 @@ public class FedNodeRunner implements NodeRunner {
             this.shutdown();
         });
 
+        federationWatcher.addListener(l -> {
+            logger.error("[run] FederationWatcher informed unrecoverable state, shutting down", l);
+            this.shutdown();
+        });
+
         RskAddress pegnatoryRskAddress = new RskAddress(this.member.getRskPublicKey().getAddress());
         logger.info("[run] Federated node started");
         logger.info("[run] RSK address: {}", pegnatoryRskAddress);
