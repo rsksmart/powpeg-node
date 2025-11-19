@@ -104,7 +104,7 @@ jobs:
           cache: 'gradle'
 
       - name: Download rskj
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 #v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 #v6.0.0
         with:
           name: rskj
           path: rskj
@@ -171,13 +171,13 @@ jobs:
           cache: 'gradle'
 
       - name: Download Build files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 #v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 #v6.0.0
         with:
           name: build_files
           path: ./
 
       - name: Download rskj
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 #v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 #v6.0.0
         with:
           name: rskj
           path: rskj
@@ -215,25 +215,25 @@ jobs:
     needs: federator-tests-java17
     steps:
       - name: Download Build files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 #v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 #v6.0.0
         with:
           name: build_files
 
       - name: Download rskj
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 #v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 #v6.0.0
         with:
           name: rskj
           path: rskj
 
       - name: Download test results
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 #v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 #v6.0.0
         with:
           name: test-results
           path: |
             build/test-results/
 
       - name: Download test reports
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 #v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 #v6.0.0
         with:
           name: test-reports
           path: |
