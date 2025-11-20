@@ -61,7 +61,7 @@ public class ReleaseCreationInformationGetter {
             return getBaseReleaseCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
         }
 
-        return getTxInfoToSignVersion2(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
+        return getTxInfoToSignPowHsm(pegoutCreationRskTxHash, pegoutBtcTx, pegoutConfirmationRskTxHash);
     }
 
     protected ReleaseCreationInformation getBaseReleaseCreationInformation(
@@ -90,7 +90,7 @@ public class ReleaseCreationInformationGetter {
         );
     }
 
-    protected ReleaseCreationInformation getTxInfoToSignVersion2(
+    protected ReleaseCreationInformation getTxInfoToSignPowHsm(
         Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutConfirmationRskTxHash

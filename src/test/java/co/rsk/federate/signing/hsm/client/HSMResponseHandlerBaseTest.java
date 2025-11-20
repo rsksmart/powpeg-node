@@ -54,7 +54,7 @@ class HSMResponseHandlerBaseTest {
     }
 
     @Test
-    void validateResponseDeviceNotReadyErrorForVersion2() {
+    void validateResponseDeviceNotReadyErrorForPowHsm() {
         ObjectNode response = new ObjectMapper().createObjectNode();
         response.put(ERROR_CODE.getFieldName(), -905);
 
@@ -77,7 +77,7 @@ class HSMResponseHandlerBaseTest {
     }
 
     @Test
-    void handleErrorResponseDeviceNotReadyForVersion2() throws HSMClientException {
+    void handleErrorResponseDeviceNotReadyForPowHsm() throws HSMClientException {
         int errorCode = -905;
         ObjectNode sendResponse = buildResponse(errorCode);
 

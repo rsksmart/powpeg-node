@@ -37,21 +37,20 @@ public abstract class PowHSMSigningClient extends HSMSigningClientBase {
 
     @Override
     public byte[] getPublicKey(String keyId) throws HSMClientException {
-        // Gather the public key at most once per key id
-        // Public keys should remain constant for the same key id
-        if (!publicKeys.containsKey(keyId)) {
-            ObjectNode command = this.hsmClientProtocol.buildCommand(GET_PUB_KEY.getCommand(), this.getVersion());
-            command.put(KEY_ID.getFieldName(), keyId);
-            JsonNode response = this.hsmClientProtocol.send(command);
-            hsmClientProtocol.validatePresenceOf(response, PUB_KEY.getFieldName());
-
-            String pubKeyHex = response.get(PUB_KEY.getFieldName()).asText();
-            byte[] pubKeyBytes = Hex.decode(pubKeyHex);
-
-            publicKeys.put(keyId, pubKeyBytes);
+        if (publicKeys.containsKey(keyId)) {
+            return publicKeys.get(keyId);
         }
 
-        return publicKeys.get(keyId);
+        ObjectNode command = this.hsmClientProtocol.buildCommand(GET_PUB_KEY.getCommand(), this.getVersion());
+        command.put(KEY_ID.getFieldName(), keyId);
+        JsonNode response = this.hsmClientProtocol.send(command);
+        hsmClientProtocol.validatePresenceOf(response, PUB_KEY.getFieldName());
+
+        String pubKeyHex = response.get(PUB_KEY.getFieldName()).asText();
+        byte[] pubKeyBytes = Hex.decode(pubKeyHex);
+
+        publicKeys.put(keyId, pubKeyBytes);
+        return pubKeyBytes;
     }
 
     @Override
@@ -68,12 +67,7 @@ public abstract class PowHSMSigningClient extends HSMSigningClientBase {
         byte[] sBytes = Hex.decode(signature.get(S.getFieldName()).asText());
         byte[] publicKey = getPublicKey(keyId);
 
-        HSMSignature signatureCreated = new HSMSignature(rBytes, sBytes, message.getBytes(), publicKey, null);
-// TODO: Verify if we can check validation in the signature.
-//        if (!verifySigHash(messageVersion2.getSigHash(), keyId, signatureCreated )){
-//            throw new HSMInvalidResponseException("Invalid signature received by the HSM2 device.");
-//        }
-        return signatureCreated;
+        return new HSMSignature(rBytes, sBytes, message.getBytes(), publicKey, null);
     }
 
     protected abstract ObjectNode createObjectToSend(String keyId, SignerMessage message);

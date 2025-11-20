@@ -64,7 +64,7 @@ class FedNodeRunnerTest {
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
 
-        HSMVersion hsmVersion = HSMVersion.V4;
+        HSMVersion hsmVersion = HSMVersion.V5;
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(hsmVersion);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
@@ -92,8 +92,8 @@ class FedNodeRunnerTest {
     }
 
     @Test
-    void test_with_hsm_v2_config_Ok() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V2);
+    void test_with_hsm_v5_config_Ok() throws Exception {
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V5);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
@@ -230,8 +230,8 @@ class FedNodeRunnerTest {
     }
 
     @Test
-    void test_with_hsm_v2_config_without_rsk() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V2);
+    void test_with_hsm_v5_config_without_rsk() throws Exception {
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V5);
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(MST.getId())).thenReturn(mstSignerConfig);
@@ -258,8 +258,8 @@ class FedNodeRunnerTest {
     }
 
     @Test
-    void test_with_hsm_v2_config_without_mst() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V2);
+    void test_with_hsm_v5_config_without_mst() throws Exception {
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V5);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(RSK.getId())).thenReturn(rskSignerConfig);
@@ -455,7 +455,7 @@ class FedNodeRunnerTest {
 
     @Test
     void run_whenHsmVersionIsLowerThanThreeAndDifficultyTargetConfigIsNotPresent_shouldThrowException() throws Exception {
-        HSMVersion version = HSMVersion.V2;
+        HSMVersion version = HSMVersion.V5;
         when(hsmBookkeepingClient.getVersion()).thenReturn(version);
         when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
             new HSMUnsupportedTypeException("PowHSM version: " + version));
@@ -491,22 +491,13 @@ class FedNodeRunnerTest {
         SignerConfigBuilder configBuilder = SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/0'/0'/0/0");
 
-        if (version.getNumber() >= 2) {
-            when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
-                new HSMUnsupportedTypeException("PowHSM version: " + version));
-            configBuilder = configBuilder.withHsmBookkeepingInfo(
-                new BigInteger("4405500"), 500000L, 1000, 100, true);
-        }
-
-        if (version.supportsBlockchainParameters()) {
-            when(hsmBookkeepingClient.getBlockchainParameters()).thenReturn(
-                new PowHSMBlockchainParameters(
-                    createHash(1).toHexString(),
-                    new BigInteger("4405500"),
-                    NetworkParameters.ID_UNITTESTNET
-                )
-            );
-        }
+        when(hsmBookkeepingClient.getBlockchainParameters()).thenReturn(
+            new PowHSMBlockchainParameters(
+                createHash(1).toHexString(),
+                new BigInteger("4405500"),
+                NetworkParameters.ID_UNITTESTNET
+            )
+        );
 
         return configBuilder.build(PowPegNodeKeyId.BTC);
     }
