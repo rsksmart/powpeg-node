@@ -47,7 +47,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class ReleaseCreationInformationGetterTest {
 
@@ -215,7 +214,7 @@ class ReleaseCreationInformationGetterTest {
             blockStore
         );
         ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(
-            HSMVersion.V2.getNumber(), rskTxHash, pegoutBtcTransaction);
+            HSMVersion.V5.getNumber(), rskTxHash, pegoutBtcTransaction);
 
         assertEquals(secondBlock, releaseCreationInformation.getPegoutCreationBlock());
         assertEquals(transactionReceiptInSecondBlock,
@@ -241,7 +240,7 @@ class ReleaseCreationInformationGetterTest {
 
         assertThrows(HSMReleaseCreationInformationException.class,
             () -> pegoutCreationInformation.getTxInfoToSign(
-                HSMVersion.V2.getNumber(),
+                HSMVersion.V5.getNumber(),
                 pegoutCreationRskTx.getHash(),
                 pegoutBtcTx
             ));
