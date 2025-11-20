@@ -2,8 +2,6 @@ package co.rsk.federate.signing.hsm;
 
 public enum HSMVersion {
     V1(1),
-    V2(2),
-    V4(4),
     V5(5),
     ;
 
@@ -27,18 +25,6 @@ public enum HSMVersion {
     }
 
     public boolean isPowHSM() {
-        return number >= V2.getNumber();
-    }
-
-    public boolean considersUnclesDifficulty() {
-        return number >= V4.getNumber();
-    }
-
-    public boolean supportsBlockchainParameters() {
-        return number >= V4.getNumber();
-    }
-
-    public boolean supportsSegwit() {
         return number >= V5.getNumber();
     }
 

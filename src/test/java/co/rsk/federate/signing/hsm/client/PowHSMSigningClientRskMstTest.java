@@ -33,7 +33,7 @@ class PowHSMSigningClientRskMstTest {
             MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
             INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
         );
-        client = new PowHSMSigningClientRskMst(hsmClientProtocol, HSMVersion.V2);
+        client = new PowHSMSigningClientRskMst(hsmClientProtocol, HSMVersion.V5);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
@@ -162,7 +162,7 @@ class PowHSMSigningClientRskMstTest {
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION.getFieldName(), HSMVersion.V2.getNumber());
+        request.put(VERSION.getFieldName(), HSMVersion.V5.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         return request;
@@ -171,7 +171,7 @@ class PowHSMSigningClientRskMstTest {
     private ObjectNode buildSignRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), SIGN.getCommand());
-        request.put(VERSION.getFieldName(), HSMVersion.V2.getNumber());
+        request.put(VERSION.getFieldName(), HSMVersion.V5.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         ObjectNode message = new ObjectMapper().createObjectNode();

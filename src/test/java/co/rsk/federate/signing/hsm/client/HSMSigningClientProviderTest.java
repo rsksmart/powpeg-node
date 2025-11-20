@@ -125,7 +125,7 @@ class HSMSigningClientProviderTest {
     void getClientUnsupportedKeyId() throws JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
-        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(HSMVersion.V2));
+        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersionResponse(HSMVersion.V5));
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(hsmClientProtocol, "XYZ");
 
