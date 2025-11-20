@@ -12,6 +12,7 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import java.util.Collections;
 
 import co.rsk.peg.constants.BridgeMainNetConstants;
@@ -61,16 +62,8 @@ class SignerMessageBuilderFactoryTest {
     }
 
     @Test
-    void buildFromConfig_hsm_2_ok() throws HSMClientException {
-        test_buildFromConfig_hsm(2);
-    }
-
-    @Test
-    void buildFromConfig_hsm_4_ok() throws HSMClientException {
-        test_buildFromConfig_hsm(4);
-    }
-
-    void test_buildFromConfig_hsm(int version) throws HSMUnsupportedVersionException {
+    void buildFromConfig_hsm_5_ok() throws HSMClientException {
+        int version = HSMVersion.V5.getNumber();
         BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
         Block block = new Block(
             blockHeaderBuilder.setNumber(1).build(),

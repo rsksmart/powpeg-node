@@ -53,7 +53,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V2
+            HSMVersion.V5
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -84,7 +84,7 @@ class ConfirmedBlocksProviderTest {
             12,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V2
+            HSMVersion.V5
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -113,7 +113,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V2
+            HSMVersion.V5
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -123,7 +123,7 @@ class ConfirmedBlocksProviderTest {
     }
 
     @Test
-    void getConfirmedBlocksHSMVersion4AboveDifficultyCap() {
+    void getConfirmedBlocksHSMVersion5AboveDifficultyCap() {
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
         Block startingBlock = TestUtils.mockBlock(10, startingPoint);
@@ -142,7 +142,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V4
+            HSMVersion.V5
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -152,7 +152,7 @@ class ConfirmedBlocksProviderTest {
     }
 
     @Test
-    void getConfirmedBlocksHSMVersion4BelowDifficultyCap() {
+    void getConfirmedBlocksHSMVersion5BelowDifficultyCap() {
         Keccak256 startingPoint = TestUtils.createHash(1);
         BlockStore mockBlockStore = mock(BlockStore.class);
         Block startingBlock = TestUtils.mockBlock(10, startingPoint);
@@ -171,7 +171,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V4
+            HSMVersion.V5
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -181,135 +181,7 @@ class ConfirmedBlocksProviderTest {
     }
 
     @Test
-    void getConfirmedBlocks_considerBrothersDifficulty_AboveDifficultyCap() {
-
-        Keccak256 startingPoint = TestUtils.createHash(1);
-        BlockStore mockBlockStore = mock(BlockStore.class);
-        Block startingBlock = TestUtils.mockBlock(10, startingPoint);
-        when(mockBlockStore.getBlockByHash(startingPoint.getBytes())).thenReturn(startingBlock);
-        Block mockBestBlock = TestUtils.mockBlock(16, TestUtils.createHash(16));
-        when(mockBlockStore.getBestBlock()).thenReturn(mockBestBlock);
-
-        List<BlockHeader> brothers = Arrays.asList(
-            blockHeaderBuilder.setNumber(1).setDifficulty(new BlockDifficulty(BigInteger.valueOf(5))).build(),
-            blockHeaderBuilder.setNumber(2).setDifficulty(new BlockDifficulty(BigInteger.valueOf(10))).build()
-        );
-
-        for (int i = 11; i < 17; i++) {
-            long difficultyValue = 25;
-            Block mockBlockToProcess = TestUtils.mockBlockWithUncles(i, TestUtils.createHash(i), difficultyValue, brothers);
-            when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
-        }
-
-        // Above Difficulty Cap For HSM 2
-        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
-            new BigInteger("160"),
-            100,
-            mockBlockStore,
-            difficultyCapRegTest,
-            HSMVersion.V2
-        );
-
-        List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
-
-        // HSM 2 Doesn't consider brothers difficulty
-        // Assert 0 element in confirmed list
-        assertEquals(0, confirmedBlocks.size());
-
-        // Below Difficulty Cap For HSM 3
-        confirmedBlocksProvider = new ConfirmedBlocksProvider(
-            new BigInteger("160"),
-            100,
-            mockBlockStore,
-            BigInteger.valueOf(50),
-            HSMVersion.V4
-        );
-
-        confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
-
-        // HSM 3 considers brothers difficulty
-        // Assert 1 element in confirmed and 5 in potential list
-        assertEquals(6, confirmedBlocks.size());
-    }
-
-    @Test
-    void getConfirmedBlocks_considerBrothersDifficulty_BelowDifficultyCap() {
-
-        Keccak256 startingPoint = TestUtils.createHash(1);
-        BlockStore mockBlockStore = mock(BlockStore.class);
-        Block startingBlock = TestUtils.mockBlock(10, startingPoint);
-        when(mockBlockStore.getBlockByHash(startingPoint.getBytes())).thenReturn(startingBlock);
-        Block mockBestBlock = TestUtils.mockBlock(18, TestUtils.createHash(18));
-        when(mockBlockStore.getBestBlock()).thenReturn(mockBestBlock);
-
-        List<BlockHeader> brothers = Arrays.asList(
-            blockHeaderBuilder.setNumber(1).setDifficulty(new BlockDifficulty(BigInteger.valueOf(5))).build(),
-            blockHeaderBuilder.setNumber(2).setDifficulty(new BlockDifficulty(BigInteger.valueOf(10))).build()
-        );
-
-        for (int i = 11; i < 19; i++) {
-            long difficultyValue = 15;
-            Block mockBlockToProcess = TestUtils.mockBlockWithUncles(i, TestUtils.createHash(i), difficultyValue, brothers);
-            when(mockBlockStore.getChainBlockByNumber(i)).thenReturn(mockBlockToProcess);
-        }
-
-        // Below Difficulty Cap For HSM 2
-        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
-            new BigInteger("160"),
-            100,
-            mockBlockStore,
-            difficultyCapRegTest,
-            HSMVersion.V2
-        );
-
-        List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
-
-        // HSM 2 Doesn't consider brothers difficulty
-        // Assert 0 element in confirmed list
-        assertEquals(0, confirmedBlocks.size());
-
-        // Above Difficulty Cap For HSM 3
-        confirmedBlocksProvider = new ConfirmedBlocksProvider(
-            new BigInteger("160"),
-            100,
-            mockBlockStore,
-            difficultyCapRegTest,
-            HSMVersion.V4
-        );
-
-        confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
-
-        // HSM 3 considers brothers difficulty
-        // Assert 1 element in confirmed and 7 in potential list
-        assertEquals(8, confirmedBlocks.size());
-    }
-
-    @Test
-    void getBlockDifficultyToConsider_forHSMVersionLessThan4_doesNotConsiderUnclesAndCapDifficulty() {
-        // arrange
-        Block block = buildBlockWithUncles();
-
-        // build blocks provider for hsm version 2
-        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
-            BigInteger.valueOf(160),
-            100,
-            mock(BlockStore.class),
-            MAINNET.getDifficultyCap(),
-            HSMVersion.V2
-        );
-
-        // act
-        BigInteger consideredDifficulty = confirmedBlocksProvider.getBlockDifficultyToConsider(block);
-
-        // assert
-        // HSM version less than 4 does not consider brothers nor cap difficulty
-        // = 7000000000000000000001 difficulty from block 4
-        BigInteger expectedConsideredDifficulty = new BigInteger("7000000000000000000001");
-        assertEquals(expectedConsideredDifficulty, consideredDifficulty);
-    }
-
-    @Test
-    void getBlockDifficultyToConsider_forHSMVersionMoreThan4_considersUnclesAndCapDifficulty() {
+    void getBlockDifficultyToConsider_forHSMVersionMoreThan5_considersUnclesAndCapDifficulty() {
         // arrange
         Block block = buildBlockWithUncles();
 
@@ -319,7 +191,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mock(BlockStore.class),
             MAINNET.getDifficultyCap(),
-            HSMVersion.V4
+            HSMVersion.V5
         );
 
         // act

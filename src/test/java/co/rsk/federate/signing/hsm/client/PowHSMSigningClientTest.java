@@ -60,8 +60,7 @@ class PowHSMSigningClientTest {
             MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
             INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
         );
-        //Since parent class is abstract, test all the common methods using PowHSMSigningClientBtc.
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSMVersion.V2);
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSMVersion.V5);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
@@ -71,8 +70,7 @@ class PowHSMSigningClientTest {
         expectedRequest.put(COMMAND.getFieldName(), HSMCommand.VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersion5Response());
         HSMVersion version = client.getVersion();
-        // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 2.
-        assertEquals(HSMVersion.V2, version);
+        assertEquals(HSMVersion.V5, version);
     }
 
     @Test
@@ -157,7 +155,7 @@ class PowHSMSigningClientTest {
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION.getFieldName(), HSMVersion.V2.getNumber());
+        request.put(VERSION.getFieldName(), HSMVersion.V5.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         return request;

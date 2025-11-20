@@ -152,10 +152,8 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
             ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), hsmVersion);
             addBlocksToPayload(payload, blockHeaderChunk);
 
-            if (hsmVersion.considersUnclesDifficulty()) {
-                List<String[]> brothers = getBrothers(blockHeaderChunk, message);
-                addBrothersToPayload(payload, brothers);
-            }
+            List<String[]> brothers = getBrothers(blockHeaderChunk, message);
+            addBrothersToPayload(payload, brothers);
 
             if (isStopped) {
                 return;
@@ -208,10 +206,6 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
 
     @Override
     public PowHSMBlockchainParameters getBlockchainParameters() throws HSMClientException {
-        if (!hsmVersion.supportsBlockchainParameters()) {
-            throw new HSMUnsupportedTypeException("method call not allowed for version " + hsmVersion);
-        }
-
         ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_PARAMETERS.getCommand(), hsmVersion);
         JsonNode response = this.hsmClientProtocol.send(command);
 
