@@ -276,9 +276,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(ReleaseRequirementsEnforcer.class)
         );
         client.start(federation);
 
@@ -339,7 +337,6 @@ class BtcReleaseClientTest {
         private SortedMap<Keccak256, BtcTransaction> releases;
         private SignerMessageBuilderFactory signerMessageBuilderFactory;
         private ReleaseCreationInformationGetter releaseCreationInformationGetter;
-        private BtcReleaseClientStorageAccessor storageAccessor;
         private List<LogInfo> logInfoList;
         List<Transaction> rskTxsList;
 
@@ -353,14 +350,12 @@ class BtcReleaseClientTest {
             when(bestBlock.getTransactionsList()).thenReturn(rskTxsList);
 
             releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
-            storageAccessor = new BtcReleaseClientStorageAccessor(powpegNodeSystemProperties);
             signerMessageBuilderFactory = new SignerMessageBuilderFactory(receiptStore);
         }
 
         void testnetPowpegNodeSetUp() throws InvalidStorageFileException {
             constants = Constants.testnet(mock(ActivationConfig.class));
             powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-            storageAccessor = new BtcReleaseClientStorageAccessor(powpegNodeSystemProperties);
         }
 
         private void addReleaseTxFromFedToSet(Federation federation) {
@@ -423,8 +418,6 @@ class BtcReleaseClientTest {
             when(receiptStore.getInMainChain(rskTxHashSerialized, blockStore)).thenReturn(Optional.of(txInfo));
             when(receiptStore.get(rskTxHashSerialized, rskBlockHashSerialized)).thenReturn(Optional.of(txInfo));
             when(blockStore.getBlockByHash(rskBlockHashSerialized)).thenReturn(bestBlock);
-
-            storageAccessor.putBtcTxHashRskTxHash(originalReleaseTxHash, releaseCreationRskTxHash);
         }
 
         @Test
@@ -960,9 +953,7 @@ class BtcReleaseClientTest {
                 mock(ActivationConfig.class),
                 signerMessageBuilderFactory,
                 releaseCreationInformationGetter,
-                mock(ReleaseRequirementsEnforcer.class),
-                storageAccessor,
-                mock(BtcReleaseClientStorageSynchronizer.class)
+                mock(ReleaseRequirementsEnforcer.class)
             );
 
             client.start(federation);
@@ -1040,9 +1031,6 @@ class BtcReleaseClientTest {
                 receiptStore, blockStore
             );
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer = mock(BtcReleaseClientStorageSynchronizer.class);
-        when(storageSynchronizer.isSynced()).thenReturn(true);
-
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
@@ -1055,9 +1043,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer
+            mock(ReleaseRequirementsEnforcer.class)
         );
         btcReleaseClient.start(federation);
 
@@ -1119,10 +1105,6 @@ class BtcReleaseClientTest {
                 receiptStore, blockStore
             );
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            mock(BtcReleaseClientStorageSynchronizer.class);
-        when(storageSynchronizer.isSynced()).thenReturn(true);
-
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
@@ -1135,9 +1117,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         btcReleaseClient.start(federation);
@@ -1213,10 +1193,6 @@ class BtcReleaseClientTest {
                 receiptStore, blockStore
             );
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            mock(BtcReleaseClientStorageSynchronizer.class);
-        when(storageSynchronizer.isSynced()).thenReturn(true);
-
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
@@ -1235,9 +1211,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         btcReleaseClient.start(federation);
@@ -1318,10 +1292,6 @@ class BtcReleaseClientTest {
                 receiptStore, blockStore
             );
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            mock(BtcReleaseClientStorageSynchronizer.class);
-        when(storageSynchronizer.isSynced()).thenReturn(true);
-
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
@@ -1337,9 +1307,7 @@ class BtcReleaseClientTest {
             activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         btcReleaseClient.start(proposedFederation);
@@ -1433,10 +1401,6 @@ class BtcReleaseClientTest {
                 receiptStore, blockStore
             ));
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            mock(BtcReleaseClientStorageSynchronizer.class);
-        when(storageSynchronizer.isSynced()).thenReturn(true);
-
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
@@ -1452,9 +1416,7 @@ class BtcReleaseClientTest {
             activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         btcReleaseClient.start(proposedFederation);
@@ -1552,10 +1514,6 @@ class BtcReleaseClientTest {
                 receiptStore, blockStore
             );
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            mock(BtcReleaseClientStorageSynchronizer.class);
-        when(storageSynchronizer.isSynced()).thenReturn(true);
-
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
@@ -1571,9 +1529,7 @@ class BtcReleaseClientTest {
             activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         btcReleaseClient.start(proposedFederation);
@@ -1666,10 +1622,6 @@ class BtcReleaseClientTest {
                 receiptStore, blockStore
             );
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            mock(BtcReleaseClientStorageSynchronizer.class);
-        when(storageSynchronizer.isSynced()).thenReturn(true);
-
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
@@ -1685,9 +1637,7 @@ class BtcReleaseClientTest {
             activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         btcReleaseClient.start(federation);
@@ -1756,10 +1706,6 @@ class BtcReleaseClientTest {
                 receiptStore, blockStore
             );
 
-        BtcReleaseClientStorageSynchronizer storageSynchronizer =
-            mock(BtcReleaseClientStorageSynchronizer.class);
-        when(storageSynchronizer.isSynced()).thenReturn(true);
-
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
             federatorSupport,
@@ -1772,9 +1718,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            storageSynchronizer
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         btcReleaseClient.start(proposedFederation);
@@ -1821,9 +1765,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(ReleaseRequirementsEnforcer.class)
         );
         btcReleaseClient.start(federation);
 
@@ -1865,9 +1807,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(ReleaseRequirementsEnforcer.class)
         );
         btcReleaseClient.start(federation);
 
@@ -2066,9 +2006,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         client.start(federation);
@@ -2113,9 +2051,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         Keccak256 rskTxHash = mock(Keccak256.class);
@@ -2156,14 +2092,6 @@ class BtcReleaseClientTest {
     }
 
     @Test
-    void sets_rsk_tx_hash_with_file_data()
-        throws BtcReleaseClientException, SignerException,
-        HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
-        HSMUnsupportedVersionException, SignerMessageBuilderException {
-        testUsageOfStorageWhenSigning(true);
-    }
-
-    @Test
     void sets_default_rsk_tx_hash_if_no_file_data()
         throws BtcReleaseClientException, SignerException,
         HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
@@ -2195,9 +2123,7 @@ class BtcReleaseClientTest {
             mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
-            mock(ReleaseRequirementsEnforcer.class),
-            mock(BtcReleaseClientStorageAccessor.class),
-            mock(BtcReleaseClientStorageSynchronizer.class)
+            mock(ReleaseRequirementsEnforcer.class)
         );
 
         client.start(federation);
@@ -2322,21 +2248,12 @@ class BtcReleaseClientTest {
             nodeBlockProcessor
         );
 
-        BtcReleaseClientStorageAccessor accessor = mock(BtcReleaseClientStorageAccessor.class);
-        when(accessor.hasBtcTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile);
-        when(accessor.getRskTxHash(releaseBtcTx.getHash())).thenReturn(shouldHaveDataInFile ? rskTxHash: null);
-
-        BtcReleaseClientStorageSynchronizer synchronizer = mock(BtcReleaseClientStorageSynchronizer.class);
-        when(synchronizer.isSynced()).thenReturn(true);
-
         btcReleaseClient.setup(
             signer,
             mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
-            releaseRequirementsEnforcer,
-            accessor,
-            synchronizer
+            releaseRequirementsEnforcer
         );
 
         btcReleaseClient.start(federation);

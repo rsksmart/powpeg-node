@@ -80,8 +80,6 @@ public class BtcReleaseClient {
     private SignerMessageBuilderFactory signerMessageBuilderFactory;
     private ReleaseCreationInformationGetter releaseCreationInformationGetter;
     private ReleaseRequirementsEnforcer releaseRequirementsEnforcer;
-    private BtcReleaseClientStorageAccessor storageAccessor;
-    private BtcReleaseClientStorageSynchronizer storageSynchronizer;
 
     public BtcReleaseClient(
         Ethereum ethereum,
@@ -105,9 +103,7 @@ public class BtcReleaseClient {
         ActivationConfig activationConfig,
         SignerMessageBuilderFactory signerMessageBuilderFactory,
         ReleaseCreationInformationGetter pegoutCreationInformationGetter,
-        ReleaseRequirementsEnforcer releaseRequirementsEnforcer,
-        BtcReleaseClientStorageAccessor storageAccessor,
-        BtcReleaseClientStorageSynchronizer storageSynchronizer
+        ReleaseRequirementsEnforcer releaseRequirementsEnforcer
     ) throws BtcReleaseClientException {
         this.signer = signer;
         this.activationConfig = activationConfig;
@@ -132,9 +128,6 @@ public class BtcReleaseClient {
         this.signerMessageBuilderFactory = signerMessageBuilderFactory;
         this.releaseCreationInformationGetter = pegoutCreationInformationGetter;
         this.releaseRequirementsEnforcer = releaseRequirementsEnforcer;
-
-        this.storageAccessor = storageAccessor;
-        this.storageSynchronizer = storageSynchronizer;
 
         logger.debug("[setup] Is pegout enabled? {}", isPegoutEnabled);
     }
@@ -193,16 +186,13 @@ public class BtcReleaseClient {
             }
 
             boolean hasBetterBlockToSync = nodeBlockProcessor.hasBetterBlockToSync();
-            boolean isStorageSynced = storageSynchronizer.isSynced();
-            if (hasBetterBlockToSync || !isStorageSynced) {
+            if (hasBetterBlockToSync) {
                 logger.trace(
-                    "[onBestBlock] Node is not ready to process pegouts. hasBetterBlockToSync: {} - isStorageSynced: {}",
-                    hasBetterBlockToSync,
-                    isStorageSynced
+                    "[onBestBlock] Node is not ready to process pegouts. hasBetterBlockToSync: {}",
+                    hasBetterBlockToSync
                 );
                 return;
             }
-            storageSynchronizer.processBlock(block, receipts);
           
             // Sign svp spend tx waiting for signatures, if it exists,
             // before attempting to sign any pegouts.
@@ -380,16 +370,10 @@ public class BtcReleaseClient {
             co.rsk.bitcoinj.core.Sha256Hash originalPegoutHash = originalPegout.getHash();
             logger.trace("[tryGetReleaseInformation] Pegout btc tx hash without signatures {}", originalPegoutHash);
 
-            boolean isPegoutInStorage = storageAccessor.hasBtcTxHash(originalPegoutHash);
-            logger.trace("[tryGetReleaseInformation] Is pegout btc in storage? {}", isPegoutInStorage);
-            // Try to get the rsk transaction from the map in memory where the pegout was created
-            Keccak256 pegoutCreationRskTxHashToUse = isPegoutInStorage ? storageAccessor.getRskTxHash(originalPegoutHash)
-                : pegoutCreationRskTxHash;
-
             logger.debug("[tryGetReleaseInformation] Going to lookup rsk transaction {} to get pegout to sign", pegoutCreationRskTxHash);
             ReleaseCreationInformation releaseToSignCreationInformation = releaseCreationInformationGetter.getTxInfoToSign(
                 signerVersion,
-                pegoutCreationRskTxHashToUse,
+                pegoutCreationRskTxHash,
                 originalPegout,
                 pegoutCreationRskTxHash
             );
