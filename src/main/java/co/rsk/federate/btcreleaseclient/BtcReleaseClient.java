@@ -188,8 +188,7 @@ public class BtcReleaseClient {
             boolean hasBetterBlockToSync = nodeBlockProcessor.hasBetterBlockToSync();
             if (hasBetterBlockToSync) {
                 logger.trace(
-                    "[onBestBlock] Node is not ready to process pegouts. hasBetterBlockToSync: {}",
-                    hasBetterBlockToSync
+                    "[onBestBlock] Node is not ready to process pegouts."
                 );
                 return;
             }
@@ -505,8 +504,8 @@ public class BtcReleaseClient {
                 signatures.add(sig.encodeToDER());
             }
 
-            logger.info("[signRelease] Signed pegout created in rsk transaction {}", pegoutCreationInformation.getPegoutConfirmationRskTxHash());
-            federatorSupport.addSignature(signatures, pegoutCreationInformation.getPegoutConfirmationRskTxHash().getBytes());
+            logger.info("[signRelease] Signed pegout created in rsk transaction {}", pegoutCreationInformation.getPegoutCreationRskTxHash());
+            federatorSupport.addSignature(signatures, pegoutCreationInformation.getPegoutCreationRskTxHash().getBytes());
 
             logger.trace("[signRelease] Put pegoutCreationRskTxHash {} in the pegouts signed cache",
                 pegoutCreationInformation.getPegoutCreationRskTxHash());
