@@ -37,8 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A provider that supplies the current active, retiring, and proposed federations by
- * using a {@link FederatorSupport} instance, which interacts with the Bridge contract.
+ * A provider that supplies the current active, retiring, and proposed federations by using a
+ * {@link FederatorSupport} instance, which interacts with the Bridge contract.
  *
  * <p>The {@code FederationProviderFromFederatorSupport} enables access to:
  * <ul>
@@ -48,7 +48,9 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
-    private static final Logger logger = LoggerFactory.getLogger(FederationProviderFromFederatorSupport.class);
+
+    private static final Logger logger = LoggerFactory.getLogger(
+        FederationProviderFromFederatorSupport.class);
 
     private final FederatorSupport federatorSupport;
     private final FederationConstants federationConstants;
@@ -88,7 +90,9 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         NetworkParameters btcParams = federatorSupport.getBtcParams();
         FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, btcParams);
 
-        return getExpectedFederation(federationArgs, getActiveFederationAddress());
+        Address activeFederationAddress = getActiveFederationAddress();
+        logger.debug("[getActiveFederation] Attempting to get active federation with address {}", activeFederationAddress);
+        return buildFederation(federationArgs, activeFederationAddress);
     }
 
     @Override
@@ -132,7 +136,8 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         NetworkParameters btcParams = federatorSupport.getBtcParams();
         FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, btcParams);
 
-        Federation retiringFederation = getExpectedFederation(federationArgs, retiringFederationAddress);
+        logger.debug("[getRetiringFederation] Attempting to get retiring federation with address {}", retiringFederationAddress);
+        Federation retiringFederation = buildFederation(federationArgs, retiringFederationAddress);
         return Optional.of(retiringFederation);
     }
 
@@ -175,22 +180,11 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             federatorSupport.getBtcParams()
         );
 
-        Federation proposedFederation = buildProposedFederation(federationArgs);
-        return Optional.of(proposedFederation);
-    }
-
-    private Federation buildProposedFederation(FederationArgs federationArgs) {
-        if (!federatorSupport.getConfigForBestBlock().isActive(RSKIP305)) {
-            return FederationFactory.buildP2shErpFederation(
-                federationArgs,
-                federationConstants.getErpFedPubKeysList(),
-                federationConstants.getErpFedActivationDelay());
-        }
-
-        return FederationFactory.buildP2shP2wshErpFederation(
+        Federation proposedFederation = FederationFactory.buildP2shP2wshErpFederation(
             federationArgs,
             federationConstants.getErpFedPubKeysList(),
             federationConstants.getErpFedActivationDelay());
+        return Optional.of(proposedFederation);
     }
 
     @Override
@@ -200,43 +194,53 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             .flatMap(FederatorSupport::getProposedFederationAddress);
     }
 
-    private Federation getExpectedFederation(FederationArgs federationArgs, Address expectedFederationAddress) {
-        logger.debug("[getExpectedFederation] Going to get expected federation with address {}", expectedFederationAddress);
+    private Federation buildFederation(FederationArgs federationArgs, Address expectedFederationAddress) {
+        return buildStandardMultiSigFederationIfMatches(federationArgs, expectedFederationAddress)
+            .or(() -> buildP2shP2wshErpFederationIfMatches(federationArgs,
+                expectedFederationAddress))
+            .orElseThrow(() ->
+                buildInvalidFederationException(expectedFederationAddress)
+            );
+    }
 
-        Federation standardMultiSigFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
+    private static IllegalStateException buildInvalidFederationException(
+        Address expectedFederationAddress) {
+        return new IllegalStateException(
+            String.format(
+                "Cannot determine federation type for federation with address %s. Tried: standard multiSig, and P2SH-P2WSH ERP federations.",
+                expectedFederationAddress
+            )
+        );
+    }
+
+    private Optional<Federation> buildStandardMultiSigFederationIfMatches(FederationArgs federationArgs,
+        Address expectedFederationAddress) {
+        Federation standardMultiSigFederation = FederationFactory.buildStandardMultiSigFederation(
+            federationArgs);
         if (standardMultiSigFederation.getAddress().equals(expectedFederationAddress)) {
-            logger.debug("[getExpectedFederation] Expected federation is a standard multiSig one.");
-            return standardMultiSigFederation;
+            logger.debug("[buildStandardMultiSigFederationIfMatches] Expected federation is a standard multiSig one.");
+            return Optional.of(standardMultiSigFederation);
         }
+        logger.debug("[buildStandardMultiSigFederationIfMatches] Expected federation is not a standard multiSig one.");
+        return Optional.empty();
+    }
 
-        logger.debug("[getExpectedFederation] Expected federation is not a standard multiSig one.");
-        List<BtcECKey> erpPubKeys = federationConstants.getErpFedPubKeysList();
-        long activationDelay = federationConstants.getErpFedActivationDelay();
-
+    private Optional<Federation> buildP2shP2wshErpFederationIfMatches(FederationArgs federationArgs,
+        Address expectedFederationAddress) {
         try {
-            ErpFederation p2shErpFederation =
-            FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
-
-            if (p2shErpFederation.getAddress().equals(expectedFederationAddress)) {
-                logger.debug("[getExpectedFederation] Expected federation is a p2sh erp one.");
-                return p2shErpFederation;
-            }
-        } catch (ErpFederationCreationException | ScriptCreationException e) {
-            logger.debug("[getExpectedFederation] Expected federation is not a p2sh erp one.", e);
-        }
-
-        try {
-            ErpFederation p2shP2wshErpFederation =
-                FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpPubKeys, activationDelay);
+            ErpFederation p2shP2wshErpFederation = FederationFactory.buildP2shP2wshErpFederation(
+                federationArgs, federationConstants.getErpFedPubKeysList(),
+                federationConstants.getErpFedActivationDelay());
 
             if (p2shP2wshErpFederation.getAddress().equals(expectedFederationAddress)) {
-                logger.debug("[getExpectedFederation] Expected federation is a p2sh-p2wsh erp one.");
-                return p2shP2wshErpFederation;
+                logger.debug(
+                    "[tryToBuildP2shP2wshErpFederation] Expected federation is a p2sh-p2wsh erp one.");
+                return Optional.of(p2shP2wshErpFederation);
             }
         } catch (ErpFederationCreationException | ScriptCreationException e) {
-            logger.error("[getExpectedFederation] Expected federation is not a p2sh-p2wsh erp one.", e);
+            logger.debug("[buildP2shP2wshErpFederationIfMatches] Expected federation is not a p2sh-p2wsh erp one.",
+                e);
         }
-
-        throw new IllegalStateException("[getExpectedFederation] Cannot get expected federation.");
+        return Optional.empty();
     }
 }
