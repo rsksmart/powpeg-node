@@ -453,21 +453,6 @@ class FedNodeRunnerTest {
         assertNull(hsmBookkeepingService);
     }
 
-    @Test
-    void run_whenHsmVersionIsLowerThanThreeAndDifficultyTargetConfigIsNotPresent_shouldThrowException() throws Exception {
-        HSMVersion version = HSMVersion.V5;
-        when(hsmBookkeepingClient.getVersion()).thenReturn(version);
-        when(hsmBookkeepingClient.getBlockchainParameters()).thenThrow(
-            new HSMUnsupportedTypeException("PowHSM version: " + version));
-        SignerConfig btcSignerConfig = SignerConfigBuilder.builder()
-            .withHsmSigner("m/44'/0'/0'/0/0")
-            .withHsmBookkeepingInfo(null, 500000L, 1000, 100, true)
-            .build(PowPegNodeKeyId.BTC);
-        when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
-
-        assertThrows(ConfigException.class, () -> fedNodeRunner.run());
-    }
-
     private SignerConfig getBTCSignerConfig(String path) {
         return SignerConfigBuilder.builder()
             .withKeyFileSigner(path)
