@@ -264,7 +264,7 @@ class PowHSMSigningClientBtcTest {
 
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
             pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutConfirmationRskTx.getHash());
+            pegoutBtcTx);
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
 
@@ -307,7 +307,7 @@ class PowHSMSigningClientBtcTest {
 
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
             pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutConfirmationRskTx.getHash());
+            pegoutBtcTx);
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
 
@@ -346,7 +346,7 @@ class PowHSMSigningClientBtcTest {
 
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
             pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutConfirmationRskTx.getHash());
+            pegoutBtcTx);
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
 

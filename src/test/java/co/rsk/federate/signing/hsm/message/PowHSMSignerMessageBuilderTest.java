@@ -120,8 +120,7 @@ class PowHSMSignerMessageBuilderTest {
             pegoutCreationBlock,
             pegoutCreationRskTxReceipt,
             pegoutCreationRskTx.getHash(),
-            pegoutBtcTx,
-            pegoutConfirmationRskTx.getHash()
+            pegoutBtcTx
         );
         SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
         PowHSMSignerMessageBuilder messageBuilder = new PowHSMSignerMessageBuilder(
@@ -179,8 +178,7 @@ class PowHSMSignerMessageBuilderTest {
             block,
             pegoutCreationRskTxReceipt,
             pegoutCreationRskTx.getHash(),
-            mock(BtcTransaction.class),
-            pegoutConfirmationRskTx.getHash()
+            mock(BtcTransaction.class)
         );
         SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
         PowHSMSignerMessageBuilder signerMessageBuilder = new PowHSMSignerMessageBuilder(
@@ -228,8 +226,7 @@ class PowHSMSignerMessageBuilderTest {
             pegoutCreationBlock,
             pegoutCreationRskTxReceipt,
             pegoutCreationRskTx.getHash(),
-            pegoutBtcTx,
-            pegoutConfirmationRskTx.getHash()
+            pegoutBtcTx
         );
         SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
         PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
@@ -400,8 +397,7 @@ class PowHSMSignerMessageBuilderTest {
             pegoutCreationBlock,
             pegoutCreationRskTxReceipt,
             pegoutCreationRskTx.getHash(),
-            pegoutBtcTx,
-            pegoutConfirmationRskTx.getHash()
+            pegoutBtcTx
         );
 
         List<Coin> actualOutpointValues = releaseInformation.getUtxoOutpointValues();

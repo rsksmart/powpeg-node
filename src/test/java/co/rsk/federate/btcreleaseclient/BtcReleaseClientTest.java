@@ -260,13 +260,11 @@ class BtcReleaseClientTest {
             block,
             mock(TransactionReceipt.class),
             rskTxHash,
-            releaseTx,
-            rskTxHash
+            releaseTx
         );
         ReleaseCreationInformationGetter releaseCreationInformationGetter = mock(ReleaseCreationInformationGetter.class);
         when(releaseCreationInformationGetter.getTxInfoToSign(
             anyInt(),
-            any(),
             any(),
             any()
         )).thenReturn(releaseCreationInformation);
@@ -1429,7 +1427,7 @@ class BtcReleaseClientTest {
         // We should have searched by the expected svp spend tx hash
         BitcoinUtils.removeSignaturesFromMultiSigTransaction(svpSpendTx);
         assertEquals(svpSpendTxHashBeforeSigning, svpSpendTx.getHash());
-        verify(releaseCreationInformationGetter).getTxInfoToSign(
+        verify(releaseCreationInformationGetter, times(2)).getTxInfoToSign(
             anyInt(),
             eq(svpSpendCreationRskTxHash),
             eq(svpSpendTx));
@@ -2016,8 +2014,7 @@ class BtcReleaseClientTest {
             mock(Block.class),
             mock(TransactionReceipt.class),
             rskTxHash,
-            releaseTx,
-            rskTxHash
+            releaseTx
         );
 
         // Act
@@ -2059,8 +2056,7 @@ class BtcReleaseClientTest {
             mock(Block.class),
             mock(TransactionReceipt.class),
             rskTxHash,
-            releaseTx,
-            rskTxHash
+            releaseTx
         );
 
         // Act
@@ -2096,7 +2092,7 @@ class BtcReleaseClientTest {
         throws BtcReleaseClientException, SignerException,
         HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
-        testUsageOfStorageWhenSigning(false);
+        testUsageOfStorageWhenSigning();
     }
 
     private void test_validateTxCanBeSigned(
@@ -2133,8 +2129,7 @@ class BtcReleaseClientTest {
             mock(Block.class),
             mock(TransactionReceipt.class),
             rskTxHash,
-            releaseTx,
-            rskTxHash
+            releaseTx
         );
 
         // Act
@@ -2176,7 +2171,7 @@ class BtcReleaseClientTest {
         return createReleaseTxAndAddInput(federation, null);
     }
 
-    private void testUsageOfStorageWhenSigning(boolean shouldHaveDataInFile)
+    private void testUsageOfStorageWhenSigning()
         throws BtcReleaseClientException, SignerException,
         HSMReleaseCreationInformationException, ReleaseRequirementsEnforcerException,
         HSMUnsupportedVersionException, SignerMessageBuilderException {
@@ -2205,9 +2200,8 @@ class BtcReleaseClientTest {
         releaseBtcTx.addOutput(value, new BtcECKey().toAddress(bridgeConstants.getBtcParams()));
 
         // Confirmed release info
-        Keccak256 otherRskTxHash = createHash(1);
         SortedMap<Keccak256, BtcTransaction> rskTxsWaitingForSignatures = new TreeMap<>();
-        rskTxsWaitingForSignatures.put(otherRskTxHash, releaseBtcTx);
+        rskTxsWaitingForSignatures.put(rskTxHash, releaseBtcTx);
 
         when(federatorSupport.getStateForFederator()).thenReturn(
             new StateForFederator(rskTxsWaitingForSignatures) // Only return the confirmed release
@@ -2227,9 +2221,8 @@ class BtcReleaseClientTest {
             block,
             mock(TransactionReceipt.class),
             rskTxHash,
-            new BtcTransaction(bridgeConstants.getBtcParams()),
-            otherRskTxHash
-        )).when(releaseCreationInformationGetter).getTxInfoToSign(anyInt(), any(), any(), any());
+            new BtcTransaction(bridgeConstants.getBtcParams())
+        )).when(releaseCreationInformationGetter).getTxInfoToSign(anyInt(), any(), any());
 
         ReleaseRequirementsEnforcer releaseRequirementsEnforcer = mock(ReleaseRequirementsEnforcer.class);
         doNothing().when(releaseRequirementsEnforcer).enforce(anyInt(), any());
@@ -2264,13 +2257,12 @@ class BtcReleaseClientTest {
         // Verify the rsk tx hash was updated
         verify(releaseCreationInformationGetter, times(1)).getTxInfoToSign(
             anyInt(),
-            eq(shouldHaveDataInFile ? rskTxHash: otherRskTxHash),
-            any(),
-            eq(otherRskTxHash)
+            eq(rskTxHash),
+            eq(releaseBtcTx)
         );
 
         // Verify the informing rsk tx hash is used
-        verify(federatorSupport).addSignature(any(), eq(otherRskTxHash.getBytes()));
+        verify(federatorSupport).addSignature(any(), eq(rskTxHash.getBytes()));
     }
 
     private Federation createFederation(List<BtcECKey> btcECKeyList) {

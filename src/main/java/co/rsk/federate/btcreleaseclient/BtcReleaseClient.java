@@ -300,10 +300,6 @@ public class BtcReleaseClient {
             // Get pegout information and store it in a new list
             List<ReleaseCreationInformation> pegoutsReadyToSign = new ArrayList<>();
             for (Map.Entry<Keccak256, BtcTransaction> pegout : pegouts) {
-                /*
-                     Before RSKIP375 this key represents the pegout confirmed rsk tx hash
-                     but since RSKIP375 this key of pegoutWaitingForSignature set represents the pegout creation rsk tx hash.
-                 */
                 Keccak256 pegoutCreationRskTxHash = pegout.getKey();
                 BtcTransaction pegoutBtcTx = pegout.getValue();
 
@@ -373,8 +369,7 @@ public class BtcReleaseClient {
             ReleaseCreationInformation releaseToSignCreationInformation = releaseCreationInformationGetter.getTxInfoToSign(
                 signerVersion,
                 pegoutCreationRskTxHash,
-                originalPegout,
-                pegoutCreationRskTxHash
+                originalPegout
             );
             if (isNull(releaseToSignCreationInformation)) {
                 return Optional.empty();
