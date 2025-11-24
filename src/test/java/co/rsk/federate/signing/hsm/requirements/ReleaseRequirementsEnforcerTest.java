@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,19 +26,19 @@ class ReleaseRequirementsEnforcerTest {
 
     @Test
     void enforce_does_nothing_if_version_one() throws Exception {
-        releaseRequirementsEnforcer.enforce(1, mock(ReleaseCreationInformation.class));
+        releaseRequirementsEnforcer.enforce(HSMVersion.V1.getNumber(), mock(ReleaseCreationInformation.class));
         verify(ancestorBlockUpdater, never()).ensureAncestorBlockInPosition(any());
     }
 
     @Test
-    void test_enforce_version() throws Exception {
+    void enforce_ok() throws Exception {
         releaseRequirementsEnforcer.enforce(HSMVersion.V5.getNumber(), mock(ReleaseCreationInformation.class));
 
         verify(ancestorBlockUpdater, times(1)).ensureAncestorBlockInPosition(any());
     }
 
     @Test
-    void enforce_version_five_updater_fails() throws Exception {
+    void enforce_whenUpdaterFail_shouldThrowReleaseRequirementsEnforcerException() throws Exception {
         doThrow(new Exception()).when(ancestorBlockUpdater).ensureAncestorBlockInPosition(any());
         ReleaseRequirementsEnforcer enforcer = new ReleaseRequirementsEnforcer(ancestorBlockUpdater);
 

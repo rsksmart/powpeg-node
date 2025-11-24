@@ -104,7 +104,7 @@ class PowHSMSignerMessageBuilderTest {
     }
 
     @Test
-    void createHSMVersion5Message() throws SignerMessageBuilderException {
+    void buildMessageForIndex_ok() throws SignerMessageBuilderException {
         //Arrange
         List<Coin> outpointValues = Collections.singletonList(Coin.COIN);
         BtcTransaction pegoutBtcTx = createPegout(
@@ -124,13 +124,12 @@ class PowHSMSignerMessageBuilderTest {
             pegoutConfirmationRskTx.getHash()
         );
         SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
-        PowHSMSignerMessageBuilder sigMessVersion2 = new PowHSMSignerMessageBuilder(
+        PowHSMSignerMessageBuilder messageBuilder = new PowHSMSignerMessageBuilder(
             receiptStore,
             releaseCreationInformation,
             sigHashCalculator
         );
-        PowHSMSignerMessage actualPowHSMSignerMessage = (PowHSMSignerMessage) sigMessVersion2.buildMessageForIndex(inputIndex);
-        PowHSMSignerMessage actualPowHSMSignerMessage2 = (PowHSMSignerMessage) sigMessVersion2.buildMessageForIndex(inputIndex);
+        PowHSMSignerMessage actualPowHSMSignerMessage = (PowHSMSignerMessage) messageBuilder.buildMessageForIndex(inputIndex);
 
         //Assert
         int actualInputIndex = actualPowHSMSignerMessage.getInputIndex();
@@ -161,7 +160,8 @@ class PowHSMSignerMessageBuilderTest {
             actualPowHSMSignerMessage.getTransactionReceipt()
         );
         // Building actualPowHSMSignerMessage twice returns same actualPowHSMSignerMessage
-        assertEquals(actualPowHSMSignerMessage, actualPowHSMSignerMessage2);
+        PowHSMSignerMessage anotherMessageFromSameBuilderAndIndex = (PowHSMSignerMessage) messageBuilder.buildMessageForIndex(inputIndex);
+        assertEquals(actualPowHSMSignerMessage, anotherMessageFromSameBuilderAndIndex);
     }
 
     @Test

@@ -75,10 +75,10 @@ class HSMSigningClientProviderTest {
     private static Stream<Arguments> keyIdProvider() {
         return Arrays.stream(HSMVersion.values())
             .filter(HSMVersion::isPowHSM)
-            .flatMap(v -> Stream.of(
-                Arguments.of(v, PowPegNodeKeyId.BTC, PowHSMSigningClientBtc.class),
-                Arguments.of(v, PowPegNodeKeyId.RSK, PowHSMSigningClientRskMst.class),
-                Arguments.of(v, PowPegNodeKeyId.MST, PowHSMSigningClientRskMst.class)
+            .flatMap(hsmVersion -> Stream.of(
+                Arguments.of(hsmVersion, PowPegNodeKeyId.BTC, PowHSMSigningClientBtc.class),
+                Arguments.of(hsmVersion, PowPegNodeKeyId.RSK, PowHSMSigningClientRskMst.class),
+                Arguments.of(hsmVersion, PowPegNodeKeyId.MST, PowHSMSigningClientRskMst.class)
             ));
     }
 
@@ -97,16 +97,17 @@ class HSMSigningClientProviderTest {
 
     @ParameterizedTest
     @EnumSource(PowPegNodeKeyId.class)
-    void getSigningClient_whenProtocolVersion3_shouldFail(PowPegNodeKeyId keyId) throws JsonRpcException {
+    void getSigningClient_whenUnsupportedProtocolVersion_shouldFail(PowPegNodeKeyId keyId) throws JsonRpcException {
+        int unsupportedVersion = 6;
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
-        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildUnsupportedVersionResponse(3));
+        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildUnsupportedVersionResponse(unsupportedVersion));
 
         HSMSigningClientProvider clientProvider = new HSMSigningClientProvider(hsmClientProtocol, keyId.getId());
         assertThrows(
             HSMUnsupportedVersionException.class,
             clientProvider::getSigningClient,
-            "Unsupported HSM version 3"
+            "Unsupported HSM version"
         );
     }
 
