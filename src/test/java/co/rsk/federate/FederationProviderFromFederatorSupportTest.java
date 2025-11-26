@@ -61,7 +61,7 @@ class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getFederationAddress()).thenReturn(expectedFederationAddress);
         when(federatorSupportMock.getBtcParams()).thenReturn(networkParameters);
         for (int i = 0; i < expectedFederationSize; i++) {
-            when(federatorSupportMock.getFederatorPublicKey(i)).thenReturn(buildBtcECKey((i+1)* 1000L));
+            when(federatorSupportMock.getFederatorPublicKey(i)).thenReturn(buildBtcECKey((i + 1) * 1000L));
         }
 
         Federation obtainedFederation = federationProvider.getActiveFederation();
@@ -160,11 +160,10 @@ class FederationProviderFromFederatorSupportTest {
         );
     }
 
-    private void mockFederationMemberKeys(int i) {
-        int baseMultiplier = 1000;
-        when(federatorSupportMock.getFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf(((long) (i + 1)) * baseMultiplier)));
-        when(federatorSupportMock.getFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf(((long) (i + 1)) * baseMultiplier + 1)));
-        when(federatorSupportMock.getFederatorPublicKeyOfType(i, FederationMember.KeyType.MST)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf(((long) (i + 1)) * baseMultiplier + 2)));
+    private void mockFederationMemberKeys(int index) {
+        when(federatorSupportMock.getFederatorPublicKeyOfType(index, FederationMember.KeyType.BTC)).thenReturn(buildECKey((index + 1) * 1000L));
+        when(federatorSupportMock.getFederatorPublicKeyOfType(index, FederationMember.KeyType.RSK)).thenReturn(buildECKey((index + 1) * 1000L + 1));
+        when(federatorSupportMock.getFederatorPublicKeyOfType(index, FederationMember.KeyType.MST)).thenReturn(buildECKey((index + 1) * 1000L + 1));
     }
 
     @Test
@@ -213,7 +212,7 @@ class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getRetiringFederationAddress()).thenReturn(Optional.of(expectedFederationAddress));
         when(federatorSupportMock.getBtcParams()).thenReturn(networkParameters);
         for (int i = 0; i < expectedFederationSize; i++) {
-            when(federatorSupportMock.getRetiringFederatorPublicKey(i)).thenReturn(BtcECKey.fromPrivate(BigInteger.valueOf((i+1)* 2000L)));
+            when(federatorSupportMock.getRetiringFederatorPublicKey(i)).thenReturn(buildBtcECKey((i + 1) * 2000L));
         }
 
         Optional<Federation> obtainedFederationOptional = federationProvider.getRetiringFederation();
@@ -257,10 +256,10 @@ class FederationProviderFromFederatorSupportTest {
         assertEquals(expectedFederationAddress, obtainedFederation.getAddress());
     }
 
-    private void mockRetiringFederationMemberKeys(int memberIndex, int baseMultiplier) {
-        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.BTC)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf(((long)(memberIndex+1))*baseMultiplier)));
-        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.RSK)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf(((long)(memberIndex+1))*baseMultiplier+1)));
-        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.MST)).thenReturn(ECKey.fromPrivate(BigInteger.valueOf(((long)(memberIndex+1))*baseMultiplier+2)));
+    private void mockRetiringFederationMemberKeys(int memberIndex, long baseMultiplier) {
+        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.BTC)).thenReturn(buildECKey((memberIndex + 1L) * baseMultiplier));
+        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.RSK)).thenReturn(buildECKey((memberIndex + 1L) * baseMultiplier + 1L));
+        when(federatorSupportMock.getRetiringFederatorPublicKeyOfType(memberIndex, FederationMember.KeyType.MST)).thenReturn(buildECKey((memberIndex + 1L) * baseMultiplier + 2L));
     }
 
     private static Stream<Arguments> federation_args() {
@@ -499,7 +498,7 @@ class FederationProviderFromFederatorSupportTest {
 
     private static List<FederationMember> getFederationMembersFromPks(int offset, Integer... pks) {
         return Arrays.stream(pks).map(n -> new FederationMember(
-            BtcECKey.fromPrivate(BigInteger.valueOf(n)),
+            buildBtcECKey(n),
             buildECKey(n + offset),
             buildECKey(n + offset * 2L)
         )).toList();
@@ -507,11 +506,11 @@ class FederationProviderFromFederatorSupportTest {
 
     private void mockProposedFederatorKeys(int i) {
         when(federatorSupportMock.getProposedFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC))
-            .thenReturn(Optional.of(buildECKey((i+1) * 1000L)));
+            .thenReturn(Optional.of(buildECKey((i + 1) * 1000L)));
         when(federatorSupportMock.getProposedFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK))
             .thenReturn(Optional.of(buildECKey((i + 1) * 1000L + 1)));
         when(federatorSupportMock.getProposedFederatorPublicKeyOfType(i, FederationMember.KeyType.MST))
-            .thenReturn(Optional.of(buildECKey((i+1) * 1000L + 2)));
+            .thenReturn(Optional.of(buildECKey((i + 1) * 1000L + 2)));
     }
 
     private static BtcECKey buildBtcECKey(long offset) {
