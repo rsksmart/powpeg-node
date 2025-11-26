@@ -37,8 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A provider that supplies the current active, retiring, and proposed federations by using a
- * {@link FederatorSupport} instance, which interacts with the Bridge contract.
+ * A provider that supplies the current active, retiring, and proposed federations by
+ * using a {@link FederatorSupport} instance, which interacts with the Bridge contract.
  *
  * <p>The {@code FederationProviderFromFederatorSupport} enables access to:
  * <ul>
@@ -48,9 +48,7 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public class FederationProviderFromFederatorSupport implements FederationProvider {
-
-    private static final Logger logger = LoggerFactory.getLogger(
-        FederationProviderFromFederatorSupport.class);
+    private static final Logger logger = LoggerFactory.getLogger(FederationProviderFromFederatorSupport.class);
 
     private final FederatorSupport federatorSupport;
     private final FederationConstants federationConstants;
@@ -234,7 +232,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
 
             if (p2shP2wshErpFederation.getAddress().equals(expectedFederationAddress)) {
                 logger.debug(
-                    "[tryToBuildP2shP2wshErpFederation] Expected federation is a p2sh-p2wsh erp one.");
+                    "[buildP2shP2wshErpFederationIfMatches] Expected federation is a p2sh-p2wsh erp one.");
                 return Optional.of(p2shP2wshErpFederation);
             }
         } catch (ErpFederationCreationException | ScriptCreationException e) {
