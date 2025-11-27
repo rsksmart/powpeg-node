@@ -1,7 +1,7 @@
 package co.rsk.federate.signing.hsm;
 
 /**
- * An exception produced when the HSM 2 fails to update its pointers
+ * An exception produced when the Pow HSM fails to update its pointers
  *
  * @author Jose Dahlquist
  */

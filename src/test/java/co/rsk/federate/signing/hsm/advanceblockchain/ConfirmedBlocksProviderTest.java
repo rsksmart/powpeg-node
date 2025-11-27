@@ -185,7 +185,7 @@ class ConfirmedBlocksProviderTest {
         // arrange
         Block block = buildBlockWithUncles();
 
-        // build blocks provider for hsm version 4
+        // build blocks provider for Pow HSM
         ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
             BigInteger.valueOf(160),
             100,
@@ -198,7 +198,7 @@ class ConfirmedBlocksProviderTest {
         BigInteger consideredDifficulty = confirmedBlocksProvider.getBlockDifficultyToConsider(block);
 
         // assert
-        // HSM 4 considers brothers difficulty
+        // Pow HSM considers brothers difficulty
         // 7000000000000000000001 difficulty round to 7000000000000000000000 from block 4
         // + 1000000000000000000000 difficulty from block 2 (uncle)
         // + 8000000000000000000000 difficulty round to 7000000000000000000000 from block 3 (uncle)
