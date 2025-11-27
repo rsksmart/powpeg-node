@@ -26,9 +26,9 @@ import java.util.*;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
@@ -41,7 +41,11 @@ class HsmBookkeepingClientImplTest {
     private JsonRpcClient jsonRpcClientMock;
     private HsmBookkeepingClientImpl hsmBookkeepingClient;
 
-    void setUp(HSMVersion hsmVersion) throws JsonRpcException, HSMClientException {
+    private HSMVersion hsmVersion;
+
+    @BeforeEach
+    void setup() throws JsonRpcException, HSMClientException {
+        hsmVersion = HSMVersionTestUtil.getLatest();
         jsonRpcClientMock = mock(JsonRpcClient.class);
         when(jsonRpcClientMock.send(buildVersionRequest())).thenReturn(buildVersionResponse(hsmVersion));
         when(jsonRpcClientMock.send(buildResetAdvanceBlockchainRequest(hsmVersion)))
@@ -58,22 +62,14 @@ class HsmBookkeepingClientImplTest {
         hsmBookkeepingClient = new HsmBookkeepingClientImpl(hsmClientProtocol);
     }
 
-    @ParameterizedTest
-    @EnumSource(
-        value = HSMVersion.class,
-        mode = EnumSource.Mode.EXCLUDE,
-        names = "V1"
-    )
-    void getVersion_forPowHSM(HSMVersion version) throws JsonRpcException, HSMClientException {
-        setUp(version);
-
-        assertEquals(version, hsmBookkeepingClient.getVersion());
+    @Test
+    void getVersion_forPowHSM() throws JsonRpcException, HSMClientException {
+        setup();
+        assertEquals(HSMVersion.V5, hsmBookkeepingClient.getVersion());
     }
 
     @Test
-    void getChunks_fill_chunks() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void getChunks_fill_chunks() {
         Integer[] payload = new Integer[]{1, 2, 3, 4, 5, 6};
         int maxChunkSize = 2;
 
@@ -86,9 +82,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_last_chunk_remainder() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void getChunks_last_chunk_remainder() {
         Integer[] payload = {1, 2, 3, 4, 5, 6, 7};
 
         List<Integer[]> result = hsmBookkeepingClient.getChunks(payload, 2, false);
@@ -98,27 +92,21 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_equals_to_max_size() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void getChunks_equals_to_max_size() {
         Integer[] payload = {1, 2};
         List<Integer[]> result = hsmBookkeepingClient.getChunks(payload, 2, false);
         assertEquals(1, result.size());
     }
 
     @Test
-    void getChunks_below_chunk_max_size() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void getChunks_below_chunk_max_size() {
         Integer[] payload = {1};
         List<Integer[]> result = hsmBookkeepingClient.getChunks(payload, 2, false);
         assertEquals(1, result.size());
     }
 
     @Test
-    void getChunks_empty_payload() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void getChunks_empty_payload() {
         Integer[] payload = new Integer[]{};
         List<Integer[]> result = hsmBookkeepingClient.getChunks(payload, 2, false);
         assertEquals(0, result.size());
@@ -128,9 +116,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_chunks_size_zero() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void getChunks_chunks_size_zero() {
         assertThrows(IllegalArgumentException.class, () -> hsmBookkeepingClient.getChunks(
             null,
             0,
@@ -139,9 +125,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_chunks_size_below_zero() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void getChunks_chunks_size_below_zero() {
         assertThrows(IllegalArgumentException.class, () -> hsmBookkeepingClient.getChunks(
             null,
             -1,
@@ -150,9 +134,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_keepPreviousChunkLastItem_true() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void getChunks_keepPreviousChunkLastItem_true() {
         Integer[] payload = {1, 2, 3, 4, 5, 6, 7};
         int maxChunkSize = 3;
 
@@ -163,9 +145,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getChunks_keepPreviousChunkLastItem_false() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void getChunks_keepPreviousChunkLastItem_false() {
         Integer[] payload = {1, 2, 3, 4, 5, 6, 7};
         int maxChunkSize = 3;
 
@@ -177,8 +157,6 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void updateAncestorBlock_when_HSM_service_is_stopped() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
         Keccak256 bestBlockHash = TestUtils.createHash(1);
         Keccak256 ancestorBlockHash = TestUtils.createHash(2);
         Keccak256 newestValidBlock = TestUtils.createHash(3);
@@ -199,9 +177,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void updateAncestorBlock_when_blockHeaders_is_empty() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void updateAncestorBlock_when_blockHeaders_is_empty() {
         UpdateAncestorBlockMessage message = new UpdateAncestorBlockMessage(Collections.emptyList());
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () ->
             hsmBookkeepingClient.updateAncestorBlock(message)
@@ -209,9 +185,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void updateAncestorBlock_when_HSM_is_updating() throws JsonRpcException, HSMClientException {
-        setUp(HSMVersion.V5);
-
+    void updateAncestorBlock_when_HSM_is_updating() throws JsonRpcException {
         Keccak256 bestBlockHash = TestUtils.createHash(1);
         Keccak256 ancestorBlockHash = TestUtils.createHash(2);
         Keccak256 newestValidBlock = TestUtils.createHash(3);
@@ -228,9 +202,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void updateAncestorBlock_when_HSMProtocol_send_is_thrown() throws JsonRpcException, HSMClientException {
-        setUp(HSMVersion.V5);
-
+    void updateAncestorBlock_when_HSMProtocol_send_is_thrown() throws JsonRpcException {
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.UNKNOWN_ERROR));
 
         assertThrows(HSMClientException.class, () ->
@@ -241,8 +213,6 @@ class HsmBookkeepingClientImplTest {
     @ParameterizedTest()
     @ValueSource(ints = {2, 3, 4, 5})
     void updateAncestorBlock_ok(int maxChunkSize) throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
         Keccak256 bestBlockHash = TestUtils.createHash(1);
         Keccak256 ancestorBlockHash = TestUtils.createHash(2);
         Keccak256 newestValidBlock = TestUtils.createHash(3);
@@ -291,8 +261,6 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void advanceBlockchain_when_HSM_service_is_stopped() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
         Keccak256 bestBlockHash = TestUtils.createHash(1);
         Keccak256 ancestorBlockHash = TestUtils.createHash(2);
         Keccak256 newestValidBlock = TestUtils.createHash(3);
@@ -311,18 +279,14 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void advanceBlockchain_when_blockHeaders_is_empty() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
+    void advanceBlockchain_when_blockHeaders_is_empty() {
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () ->
             hsmBookkeepingClient.advanceBlockchain(Collections.emptyList())
         );
     }
 
     @Test
-    void advanceBlockchain_when_HSM_is_updating() throws JsonRpcException, HSMClientException {
-        setUp(HSMVersion.V5);
-
+    void advanceBlockchain_when_HSM_is_updating() throws JsonRpcException {
         Keccak256 bestBlockHash = TestUtils.createHash(1);
         Keccak256 ancestorBlockHash = TestUtils.createHash(2);
         Keccak256 newestValidBlock = TestUtils.createHash(3);
@@ -336,9 +300,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void advanceBlockchain_when_HSMProtocol_send_is_thrown() throws JsonRpcException, HSMClientException {
-        setUp(HSMVersion.V5);
-
+    void advanceBlockchain_when_HSMProtocol_send_is_thrown() throws JsonRpcException {
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.UNKNOWN_ERROR));
 
         assertThrows(HSMClientException.class, () ->
@@ -351,8 +313,6 @@ class HsmBookkeepingClientImplTest {
     void advanceBlockchain_ok(
         int maxChunkSize
     ) throws HSMClientException, JsonRpcException, JsonProcessingException {
-        setUp(HSMVersion.V5);
-
         Keccak256 bestBlockHash = TestUtils.createHash(1);
         Keccak256 ancestorBlockHash = TestUtils.createHash(2);
         Keccak256 newestValidBlock = TestUtils.createHash(3);
@@ -433,8 +393,6 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void getHSMPointer_ok() throws HSMClientException, JsonRpcException {
-        setUp(HSMVersion.V5);
-
         Keccak256 bestBlockHash = TestUtils.createHash(1);
         Keccak256 ancestorBlockHash = TestUtils.createHash(2);
         Keccak256 newestValidBlock = TestUtils.createHash(3);
@@ -449,9 +407,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getHSMPointer_missing_data() throws JsonRpcException, HSMClientException {
-        setUp(HSMVersion.V5);
-
+    void getHSMPointer_missing_data() throws JsonRpcException {
         ObjectNode state = new ObjectMapper().createObjectNode();
         Keccak256 bestBlockHash = Keccak256.ZERO_HASH;
         state.put(BEST_BLOCK.getFieldName(), bestBlockHash.toHexString());
@@ -465,8 +421,8 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getHSMPointer_generic_error_response() throws JsonRpcException, HSMClientException {
-        setUp(HSMVersion.V5);
+    void getHSMPointer_generic_error_response() throws JsonRpcException {
+
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.V2_DEVICE_ERROR));
 
         assertThrows(HSMDeviceNotReadyException.class, () -> hsmBookkeepingClient.getHSMPointer());
@@ -474,7 +430,6 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void resetAdvanceBlockchain_Ok() throws Exception {
-        setUp(HSMVersion.V5);
         hsmBookkeepingClient.resetAdvanceBlockchain();
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
@@ -488,7 +443,6 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void resetAdvanceBlockchain_UnknownError() throws Exception {
-        setUp(HSMVersion.V5);
         when(jsonRpcClientMock.send(buildResetAdvanceBlockchainRequest(HSMVersion.V5)))
             .thenReturn(buildResponse(HSMResponseCode.UNKNOWN_ERROR));
 
@@ -497,8 +451,6 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void getBlockchainParameters_ok() throws JsonRpcException, HSMClientException {
-        setUp(HSMVersion.V5);
-
         Keccak256 checkpoint = new Keccak256("dcf840b0bb2a8f06bf933ec8afe305fd413f41683d665dc4f7e5dc3da285f70e");
         BigInteger minimumDifficulty = new BigInteger("7000000000000000000000");
         String network = "mainnet";

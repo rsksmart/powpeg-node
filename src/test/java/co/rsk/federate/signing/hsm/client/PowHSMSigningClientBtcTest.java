@@ -22,6 +22,7 @@ import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
 import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
+import co.rsk.federate.signing.hsm.HSMVersionTestUtil;
 import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
@@ -80,11 +81,10 @@ class PowHSMSigningClientBtcTest {
     private Transaction pegoutConfirmationRskTx;
     private ReceiptStore receiptStore;
 
-    private static HSMVersion hsmVersion;
+    private static final HSMVersion hsmVersion = HSMVersionTestUtil.getLatest();
 
     @BeforeEach
     void setup() throws JsonRpcException {
-        hsmVersion = HSMVersion.V5;
         Keccak256 pegoutCreationRskTxHash = TestUtils.createHash(2);
         pegoutCreationRskTx = mock(Transaction.class);
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
@@ -120,7 +120,7 @@ class PowHSMSigningClientBtcTest {
             MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
             INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
         );
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, HSMVersion.V5);
+        client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
     }
 
     @Test

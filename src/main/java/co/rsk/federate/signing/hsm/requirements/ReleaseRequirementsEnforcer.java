@@ -28,7 +28,7 @@ public class ReleaseRequirementsEnforcer {
             return;
         }
 
-        logger.trace("[enforce] Version 5+ requires ancestor in position. ENFORCING");
+        logger.trace("[enforce] Pow HSM requires ancestor in position. ENFORCING");
         enforceReleaseRequirements(releaseCreationInformation);
     }
 

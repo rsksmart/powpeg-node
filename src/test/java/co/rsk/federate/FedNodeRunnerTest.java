@@ -25,7 +25,6 @@ import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.federate.watcher.FederationWatcher;
 import co.rsk.peg.constants.BridgeConstants;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -47,6 +46,8 @@ class FedNodeRunnerTest {
     @TempDir
     public Path temporaryFolder;
 
+    private static final HSMVersion hsmVersion = HSMVersionTestUtil.getLatest();;
+
     @BeforeEach
     void setUp() throws IOException, HSMClientException {
         // Create temp key file
@@ -64,7 +65,6 @@ class FedNodeRunnerTest {
         when(constants.getBridgeConstants()).thenReturn(bridgeConstants);
         when(bridgeConstants.getBtcParamsString()).thenReturn(NetworkParameters.ID_REGTEST);
 
-        HSMVersion hsmVersion = HSMVersion.V5;
         HSMClientProtocol protocol = mock(HSMClientProtocol.class);
         when(protocol.getVersion()).thenReturn(hsmVersion);
         HSMClientProtocolFactory hsmClientProtocolFactory = mock(HSMClientProtocolFactory.class);
@@ -92,8 +92,8 @@ class FedNodeRunnerTest {
     }
 
     @Test
-    void test_with_hsm_v5_config_Ok() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V5);
+    void test_with_powHSM_config_Ok() throws Exception {
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(hsmVersion);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
@@ -230,8 +230,8 @@ class FedNodeRunnerTest {
     }
 
     @Test
-    void test_with_hsm_v5_config_without_rsk() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V5);
+    void test_with_powHSM_config_without_rsk() throws Exception {
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(hsmVersion);
         SignerConfig mstSignerConfig = getHSMMSTSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(MST.getId())).thenReturn(mstSignerConfig);
@@ -258,8 +258,8 @@ class FedNodeRunnerTest {
     }
 
     @Test
-    void test_with_hsm_v5_config_without_mst() throws Exception {
-        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(HSMVersion.V5);
+    void test_with_powHSM_config_without_mst() throws Exception {
+        SignerConfig btcSignerConfig = getHSMBTCSignerConfig(hsmVersion);
         SignerConfig rskSignerConfig = getHSMRSKSignerConfig();
         when(fedNodeSystemProperties.signerConfig(BTC.getId())).thenReturn(btcSignerConfig);
         when(fedNodeSystemProperties.signerConfig(RSK.getId())).thenReturn(rskSignerConfig);
