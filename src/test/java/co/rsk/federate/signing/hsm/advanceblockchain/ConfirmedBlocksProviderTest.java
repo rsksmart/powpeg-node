@@ -26,6 +26,7 @@ class ConfirmedBlocksProviderTest {
 
     private final BigInteger difficultyCapRegTest = REGTEST.getDifficultyCap();
     private final BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
+    private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
 
     @Test
     void test_getConfirmedBlocks_Ok() {
@@ -53,7 +54,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V5
+            hsmVersion
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -84,7 +85,7 @@ class ConfirmedBlocksProviderTest {
             12,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V5
+            hsmVersion
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -113,7 +114,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V5
+            hsmVersion
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -142,7 +143,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V5
+            hsmVersion
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -171,7 +172,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mockBlockStore,
             difficultyCapRegTest,
-            HSMVersion.V5
+            hsmVersion
         );
 
         List<Block> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
@@ -191,7 +192,7 @@ class ConfirmedBlocksProviderTest {
             100,
             mock(BlockStore.class),
             MAINNET.getDifficultyCap(),
-            HSMVersion.V5
+            hsmVersion
         );
 
         // act

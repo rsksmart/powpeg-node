@@ -13,6 +13,7 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
+import co.rsk.federate.signing.utils.TestUtils;
 import java.util.Collections;
 
 import co.rsk.peg.constants.BridgeMainNetConstants;
@@ -29,6 +30,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class SignerMessageBuilderFactoryTest {
 
     private SignerMessageBuilderFactory factory;
+    private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
 
     @BeforeEach
     void createFactory() {
@@ -62,8 +64,8 @@ class SignerMessageBuilderFactoryTest {
     }
 
     @Test
-    void buildFromConfig_hsm_5_ok() throws HSMClientException {
-        int version = HSMVersion.V5.getNumber();
+    void buildFromConfig_ok() throws HSMClientException {
+        int version = hsmVersion.getNumber();
         BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
         Block block = new Block(
             blockHeaderBuilder.setNumber(1).build(),
