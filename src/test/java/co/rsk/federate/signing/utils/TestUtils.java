@@ -42,8 +42,9 @@ public final class TestUtils {
     private TestUtils() {
     }
 
-    public static Block createBlock(int blockNumber, List<Transaction> rskTxs) {
-        int parentBlockNumber = blockNumber > 0 ? blockNumber - 1 : 0;
+    public static Block createBlock(List<Transaction> rskTxs) {
+        int blockNumber = 1;
+        int parentBlockNumber = 0;
         BlockHeader blockHeader = new BlockHeaderBuilder(mock(ActivationConfig.class))
             .setNumber(blockNumber)
             .setParentHashFromKeccak256(TestUtils.createHash(parentBlockNumber))
@@ -91,12 +92,6 @@ public final class TestUtils {
         when(block.getHeader()).thenReturn(blockHeader);
         when(block.getDifficulty()).thenReturn(new BlockDifficulty(BigInteger.valueOf(difficultyValue)));
 
-        return block;
-    }
-
-    public static Block mockBlockWithUncles(long number, Keccak256 hash, long difficultyValue, List<BlockHeader> uncles) {
-        Block block = mockBlock(number, hash, difficultyValue);
-        when(block.getUncleList()).thenReturn(uncles);
         return block;
     }
 

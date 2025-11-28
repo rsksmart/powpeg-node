@@ -69,7 +69,7 @@ class ReleaseCreationInformationGetterTest {
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
 
-        pegoutCreationBlock = createBlock(1, Collections.singletonList(pegoutCreationRskTx));
+        pegoutCreationBlock = createBlock(Collections.singletonList(pegoutCreationRskTx));
 
         pegoutCreationRskTxReceipt = new TransactionReceipt();
         pegoutCreationRskTxReceipt.setLogInfoList(Collections.emptyList());
