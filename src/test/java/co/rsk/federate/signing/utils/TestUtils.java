@@ -14,6 +14,7 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
 import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
 import co.rsk.federate.signing.SigHashCalculator;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.federation.*;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
@@ -336,5 +337,9 @@ public final class TestUtils {
         SecureRandom random = new SecureRandom();
         random.nextBytes(randomHash);
         return randomHash;
+    }
+
+    public static HSMVersion getLatestHsmVersion() {
+        return HSMVersion.V5;
     }
 }

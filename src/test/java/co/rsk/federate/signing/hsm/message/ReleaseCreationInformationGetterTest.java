@@ -57,6 +57,7 @@ class ReleaseCreationInformationGetterTest {
     private TransactionInfo pegoutCreationRskTxInfo;
     private ReceiptStore receiptStore;
     private BlockStore blockStore;
+    private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
 
     @BeforeEach
     void setUp() {
@@ -214,7 +215,7 @@ class ReleaseCreationInformationGetterTest {
             blockStore
         );
         ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(
-            HSMVersion.V5.getNumber(), rskTxHash, pegoutBtcTransaction);
+            hsmVersion.getNumber(), rskTxHash, pegoutBtcTransaction);
 
         assertEquals(secondBlock, releaseCreationInformation.getPegoutCreationBlock());
         assertEquals(transactionReceiptInSecondBlock,
@@ -240,7 +241,7 @@ class ReleaseCreationInformationGetterTest {
 
         assertThrows(HSMReleaseCreationInformationException.class,
             () -> pegoutCreationInformation.getTxInfoToSign(
-                HSMVersion.V5.getNumber(),
+                hsmVersion.getNumber(),
                 pegoutCreationRskTx.getHash(),
                 pegoutBtcTx
             ));

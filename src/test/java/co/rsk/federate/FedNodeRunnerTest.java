@@ -46,7 +46,7 @@ class FedNodeRunnerTest {
     @TempDir
     public Path temporaryFolder;
 
-    private static final HSMVersion hsmVersion = HSMVersionTestUtil.getLatest();;
+    private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
 
     @BeforeEach
     void setUp() throws IOException, HSMClientException {
@@ -172,7 +172,7 @@ class FedNodeRunnerTest {
     }
 
     @Test
-    void hsm_v3_config_shouldFail() throws Exception {
+    void hsm_unsupportedVersion_config_shouldFail() throws Exception {
         SignerConfigBuilder configBuilder = SignerConfigBuilder.builder()
             .withHsmSigner("m/44'/0'/0'/0/0");
         SignerConfig btcSignerConfig = configBuilder.build(BTC);

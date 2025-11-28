@@ -50,6 +50,7 @@ import co.rsk.federate.signing.HSMCommand;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
+import co.rsk.federate.signing.utils.TestUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
@@ -77,7 +78,7 @@ class HSMSigningClientV1Test {
     void getVersionOk() throws Exception {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), HSMCommand.VERSION.getCommand());
-        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildVersion5Response());
+        when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildLatestVersionResponse());
         HSMVersion version = client.getVersion();
         // Although the rpc client might return a version 5. getVersion for hsmClientVersion1 will ALWAYS return a 1.
         assertEquals(HSMVersion.V1, version);
@@ -291,9 +292,9 @@ class HSMSigningClientV1Test {
         }
     }
 
-    private ObjectNode buildVersion5Response() {
+    private ObjectNode buildLatestVersionResponse() {
         ObjectNode response = buildResponse(0);
-        response.put(VERSION.getFieldName(), HSMVersion.V5.getNumber());
+        response.put(VERSION.getFieldName(), TestUtils.getLatestHsmVersion().getNumber());
         return response;
     }
 

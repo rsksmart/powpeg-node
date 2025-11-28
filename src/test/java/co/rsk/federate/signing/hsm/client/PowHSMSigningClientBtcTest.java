@@ -22,7 +22,6 @@ import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
 import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
-import co.rsk.federate.signing.hsm.HSMVersionTestUtil;
 import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
@@ -81,7 +80,7 @@ class PowHSMSigningClientBtcTest {
     private Transaction pegoutConfirmationRskTx;
     private ReceiptStore receiptStore;
 
-    private static final HSMVersion hsmVersion = HSMVersionTestUtil.getLatest();
+    private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
 
     @BeforeEach
     void setup() throws JsonRpcException {
