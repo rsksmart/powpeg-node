@@ -182,7 +182,7 @@ class ConfirmedBlocksProviderTest {
     }
 
     @Test
-    void getBlockDifficultyToConsider_forHSMVersionMoreThan5_considersUnclesAndCapDifficulty() {
+    void getBlockDifficultyToConsider_considersUnclesAndCapDifficulty() {
         // arrange
         Block block = buildBlockWithUncles();
 

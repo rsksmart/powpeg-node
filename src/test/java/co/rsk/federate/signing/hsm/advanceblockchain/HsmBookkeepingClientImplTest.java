@@ -62,8 +62,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getVersion_forPowHSM() throws JsonRpcException, HSMClientException {
-        setup();
+    void getVersion_forPowHSM() {
         assertEquals(HSMVersion.V5, hsmBookkeepingClient.getVersion());
     }
 
