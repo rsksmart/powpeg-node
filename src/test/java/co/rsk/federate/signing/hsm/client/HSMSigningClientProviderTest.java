@@ -97,7 +97,7 @@ class HSMSigningClientProviderTest {
     }
 
     @ParameterizedTest
-    @MethodSource("keyIdAndInvalidVHSMVersionProvider")
+    @MethodSource("keyIdAndInvalidHSMVersionProvider")
     void getSigningClient_whenUnsupportedProtocolVersion_shouldFail(PowPegNodeKeyId keyId, int unsupportedVersion) throws JsonRpcException {
         ObjectNode expectedRequest = new ObjectMapper().createObjectNode();
         expectedRequest.put(COMMAND.getFieldName(), VERSION.getCommand());
@@ -111,7 +111,7 @@ class HSMSigningClientProviderTest {
         );
     }
 
-    public static Stream<Arguments> keyIdAndInvalidVHSMVersionProvider() {
+    public static Stream<Arguments> keyIdAndInvalidHSMVersionProvider() {
         return Stream.of(
             Arguments.of(PowPegNodeKeyId.BTC, 4),
             Arguments.of(PowPegNodeKeyId.BTC, 3),
