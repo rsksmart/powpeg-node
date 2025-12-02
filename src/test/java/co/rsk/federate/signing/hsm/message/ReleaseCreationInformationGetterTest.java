@@ -143,9 +143,8 @@ class ReleaseCreationInformationGetterTest {
     }
 
     @Test
-    void createGetTxInfoToSign_returnOK_SecondBlock()
-        throws HSMReleaseCreationInformationException {
-        // The event that is searched is not found in the first block but in the next block obtained.
+    void createGetTxInfoToSign_whenEventIsNotFoundInThePegoutCreationBlock_throwsAnException() {
+        // The event that is searched is not found in the first block but in the next block.
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
 
@@ -214,14 +213,10 @@ class ReleaseCreationInformationGetterTest {
             receiptStore,
             blockStore
         );
-        ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(
-            hsmVersion.getNumber(), rskTxHash, pegoutBtcTransaction);
 
-        assertEquals(secondBlock, releaseCreationInformation.getPegoutCreationBlock());
-        assertEquals(transactionReceiptInSecondBlock,
-            releaseCreationInformation.getTransactionReceipt());
-        assertEquals(rskTxHash, releaseCreationInformation.getPegoutCreationRskTxHash());
-        assertEquals(pegoutBtcTransaction, releaseCreationInformation.getPegoutBtcTx());
+        assertThrows(HSMReleaseCreationInformationException.class,
+            () -> pegoutCreationInformation.getTxInfoToSign(HSMVersion.V5.getNumber(), rskTxHash,
+                pegoutBtcTransaction));
     }
 
     @Test

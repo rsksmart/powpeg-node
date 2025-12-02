@@ -15,8 +15,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-// First the class tries to find the event associated with the transaction. If it cannot find it, it requests the following
-// events until it is found or until it reaches the last block.
+// Searches for release_requested and pegout_transaction_created events in the block where the pegout was created.
+// Per RSKIP375, these events are always emitted in the same block as the pegout creation transaction.
 public class ReleaseCreationInformationGetter {
     private static final Logger logger = LoggerFactory.getLogger(ReleaseCreationInformationGetter.class);
 
@@ -107,32 +107,18 @@ public class ReleaseCreationInformationGetter {
             Transaction transaction = transactions.get(0);
             transactionReceipt.setTransaction(transaction);
 
-            return searchEventInFollowingBlocks(block.getNumber(), pegoutBtcTx, pegoutCreationRskTxHash);
+            return searchEventInCreationBlock(block, pegoutBtcTx, pegoutCreationRskTxHash);
         } catch (Exception e) {
             throw new HSMReleaseCreationInformationException("Unhandled exception occurred", e);
         }
     }
 
-    private ReleaseCreationInformation searchEventInFollowingBlocks(
-        long blockNumber,
+    private ReleaseCreationInformation searchEventInCreationBlock(
+        Block pegoutCreationBlock,
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutCreationRskTxHash
     ) throws HSMReleaseCreationInformationException {
-        Block block = blockStore.getChainBlockByNumber(blockNumber);
-        // If the block cannot be found by its number, the event cannot be
-        // searched further.
-        if (block == null) {
-            throw new HSMReleaseCreationInformationException(
-                String.format("[searchEventInFollowingBlocks] Block not found. Rsk Transaction hash: [%s]", pegoutCreationRskTxHash)
-            );
-        }
-
-        logger.trace(
-            "[searchEventInFollowingBlocks] searching in block {}. Has {} transactions",
-            blockNumber,
-            block.getTransactionsList().size()
-        );
-        for (Transaction rskTx : block.getTransactionsList()) {
+        for (Transaction rskTx : pegoutCreationBlock.getTransactionsList()) {
             TransactionReceipt rskTxReceipt = receiptStore.getInMainChain(rskTx.getHash().getBytes(), blockStore)
                 .map(TransactionInfo::getReceipt)
                 .orElseThrow(() -> new HSMReleaseCreationInformationException(
@@ -141,7 +127,7 @@ public class ReleaseCreationInformationGetter {
             rskTxReceipt.setTransaction(rskTx);
 
             Optional<ReleaseCreationInformation> releaseCreationInformation = getInformationFromEvent(
-                block,
+                pegoutCreationBlock,
                 rskTxReceipt,
                 pegoutBtcTx,
                 pegoutCreationRskTxHash
@@ -151,16 +137,10 @@ public class ReleaseCreationInformationGetter {
             }
         }
 
-        // If the block being checked is the last block, and was not found,
-        // then the event does not exist.
-        if (block.getNumber() == blockStore.getBestBlock().getNumber()) {
-            throw new HSMReleaseCreationInformationException(
-                String.format("[searchEventInFollowingBlocks] Event not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
-            );
-        }
-        // If the event was not found in this block, the next block is
-        // requested and the same search is performed.
-        return searchEventInFollowingBlocks(blockNumber + 1, pegoutBtcTx, pegoutCreationRskTxHash);
+        // This case is not expected to be reached, but if it does throw exception
+        throw new HSMReleaseCreationInformationException(
+            String.format("[searchEventInFollowingBlocks] Event not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
+        );
     }
 
     private Optional<ReleaseCreationInformation> getInformationFromEvent(
