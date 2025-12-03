@@ -19,7 +19,6 @@ package co.rsk.federate;
 
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static co.rsk.peg.federation.FederationMember.KeyType;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.*;
 
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -64,23 +63,12 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     public Federation getActiveFederation() {
         List<FederationMember> members = new ArrayList<>();
         int federationSize = federatorSupport.getFederationSize();
-        boolean useTypedPublicKeyGetter = federatorSupport.getConfigForBestBlock().isActive(RSKIP123);
         for (int i = 0; i < federationSize; i++) {
-            // Select method depending on network configuration for best block
-            FederationMember member;
-            if (useTypedPublicKeyGetter) {
-                BtcECKey btcKey = BtcECKey.fromPublicOnly(federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC).getPubKey());
-                ECKey rskKey = federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK);
-                ECKey mstKey = federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.MST);
+            BtcECKey btcKey = BtcECKey.fromPublicOnly(federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC).getPubKey());
+            ECKey rskKey = federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK);
+            ECKey mstKey = federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.MST);
 
-                member = new FederationMember(btcKey, rskKey, mstKey);
-            } else {
-                // Before the fork, all of BTC, RSK and MST keys are the same
-                BtcECKey btcKey = federatorSupport.getFederatorPublicKey(i);
-                ECKey rskMstKey = ECKey.fromPublicOnly(btcKey.getPubKey());
-                member = new FederationMember(btcKey, rskMstKey, rskMstKey);
-            }
-
+            FederationMember member = new FederationMember(btcKey, rskKey, mstKey);
             members.add(member);
         }
         Instant creationTime = federatorSupport.getFederationCreationTime();
@@ -107,25 +95,13 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
         }
 
         Address retiringFederationAddress = getRetiringFederationAddress().orElseThrow(IllegalStateException::new);
-        boolean useTypedPublicKeyGetter = federatorSupport.getConfigForBestBlock().isActive(RSKIP123);
         List<FederationMember> members = new ArrayList<>();
         for (int i = 0; i < federationSize; i++) {
-            // Select method depending on network configuration for best block
-            FederationMember member;
-            if (useTypedPublicKeyGetter) {
-                BtcECKey btcKey = BtcECKey.fromPublicOnly(federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC).getPubKey());
-                ECKey rskKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK);
-                ECKey mstKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.MST);
+            BtcECKey btcKey = BtcECKey.fromPublicOnly(federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC).getPubKey());
+            ECKey rskKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK);
+            ECKey mstKey = federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.MST);
 
-                member = new FederationMember(btcKey, rskKey, mstKey);
-            } else {
-                // Before the fork, all of BTC, RSK and MST keys are the same
-                BtcECKey btcKey = federatorSupport.getRetiringFederatorPublicKey(i);
-                ECKey rskMstKey = ECKey.fromPublicOnly(btcKey.getPubKey());
-
-                member = new FederationMember(btcKey, rskMstKey, rskMstKey);
-            }
-
+            FederationMember member = new FederationMember(btcKey, rskKey, mstKey);
             members.add(member);
         }
 
@@ -146,10 +122,6 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
 
     @Override
     public Optional<Federation> getProposedFederation() {
-        if (!federatorSupport.getConfigForBestBlock().isActive(RSKIP419)) {
-            return Optional.empty();
-        }
-
         int federationSize = federatorSupport.getProposedFederationSize()
             .orElse(FEDERATION_NON_EXISTENT.getCode());
         if (federationSize == FEDERATION_NON_EXISTENT.getCode()) {
@@ -188,7 +160,6 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     @Override
     public Optional<Address> getProposedFederationAddress() {
         return Optional.of(federatorSupport)
-            .filter(fedSupport -> fedSupport.getConfigForBestBlock().isActive(RSKIP419))
             .flatMap(FederatorSupport::getProposedFederationAddress);
     }
 
@@ -197,18 +168,13 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
             .or(() -> tryBuildingP2shP2wshErpFederation(federationArgs,
                 expectedFederationAddress))
             .orElseThrow(() ->
-                buildInvalidFederationException(expectedFederationAddress)
+                new IllegalStateException(
+                    String.format(
+                        "Cannot determine federation type for federation with address %s. Tried: standard multiSig, and P2SH-P2WSH ERP federations.",
+                        expectedFederationAddress
+                    )
+                )
             );
-    }
-
-    private static IllegalStateException buildInvalidFederationException(
-        Address expectedFederationAddress) {
-        return new IllegalStateException(
-            String.format(
-                "Cannot determine federation type for federation with address %s. Tried: standard multiSig, and P2SH-P2WSH ERP federations.",
-                expectedFederationAddress
-            )
-        );
     }
 
     private Optional<Federation> tryBuildingStandardMultiSigFederation(FederationArgs federationArgs, Address expectedFederationAddress) {
