@@ -1,11 +1,11 @@
 package co.rsk.federate;
 
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
-import static org.ethereum.config.blockchain.upgrades.ConsensusRule.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import co.rsk.bitcoinj.core.*;
+import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.peg.federation.*;
 import co.rsk.peg.federation.constants.FederationConstants;
 import co.rsk.peg.federation.constants.FederationMainNetConstants;
@@ -15,7 +15,6 @@ import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.crypto.ECKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +46,7 @@ class FederationProviderFromFederatorSupportTest {
     void getActiveFederation_withTheAddressCorrespondingToItsVersion_shouldReturnTheCorrectActiveFederation(Federation expectedFederation, int expectedFormatVersion) {
         // arrange
         setupActiveFederation(expectedFederation);
+        when(federatorSupportMock.getFederationAddress()).thenReturn(expectedFederation.getAddress());
         int expectedFederationSize = expectedFederation.getSize();
         setupActiveFederationKeys(expectedFederationSize);
         // act
@@ -77,29 +77,24 @@ class FederationProviderFromFederatorSupportTest {
         when(federatorSupportMock.getFederationSize()).thenReturn(activeFederation.getSize());
         when(federatorSupportMock.getFederationThreshold()).thenReturn(activeFederation.getNumberOfSignaturesRequired());
         when(federatorSupportMock.getFederationCreationTime()).thenReturn(activeFederation.getCreationTime());
-        when(federatorSupportMock.getFederationAddress()).thenReturn(activeFederation.getAddress());
         when(federatorSupportMock.getBtcParams()).thenReturn(activeFederation.getBtcParams());
     }
 
     @ParameterizedTest
-    @MethodSource("unknown_federation_args")
-    void getActiveFederation_whenUnknownFederation_shouldThrowISE(Federation unknownFederation) {
+    @MethodSource("federation_args")
+    void getActiveFederation_whenFederationAddressNotMatch_shouldThrowISE(Federation federation) {
         // arrange
-        setupActiveFederation(unknownFederation);
-        setupActiveFederationKeys(unknownFederation.getSize());
+        setupActiveFederation(federation);
+        setupActiveFederationKeys(federation.getSize());
+        // Set up an unknown address from the bridge
+        List<BtcECKey> unknownFederationKeys = Arrays.asList(
+            buildBtcECKey(10000), buildBtcECKey(20000), buildBtcECKey(30000)
+        );
+        Address unknownFederationAddress = BitcoinTestUtils.createP2SHMultisigAddress(networkParameters, unknownFederationKeys);
+        when(federatorSupportMock.getFederationAddress()).thenReturn(unknownFederationAddress);
+
         // act & assert
         assertThrows(IllegalStateException.class, () -> federationProvider.getActiveFederation());
-    }
-
-    private static Stream<Arguments> unknown_federation_args() {
-        return Stream.of(
-            Arguments.of(
-                createNonStandardErpFederation()
-            ),
-            Arguments.of(
-                createP2shErpFederation()
-            )
-        );
     }
 
     @Test
@@ -247,44 +242,6 @@ class FederationProviderFromFederatorSupportTest {
         FederationArgs federationArgs = new FederationArgs(federationMembers, creationTime, 0L,
             networkParameters);
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
-    }
-
-    private static ErpFederation createNonStandardErpFederation() {
-        Integer[] privateKeys = IntStream.iterate(1000, n -> n <= 7000, n -> n + 1000)
-            .boxed()
-            .toArray(Integer[]::new);
-        List<FederationMember> federationMembers = getFederationMembersFromPks(privateKeys);
-        List<BtcECKey> erpPubKeys = federationConstants.getErpFedPubKeysList();
-        long activationDelay = federationConstants.getErpFedActivationDelay();
-        FederationArgs federationArgs = new FederationArgs(
-            federationMembers,
-            creationTime,
-            0L,
-            networkParameters
-        );
-
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        when(activations.isActive(RSKIP284)).thenReturn(true);
-        when(activations.isActive(RSKIP293)).thenReturn(true);
-
-        return FederationFactory.buildNonStandardErpFederation(federationArgs, erpPubKeys, activationDelay, activations);
-    }
-
-    private static ErpFederation createP2shErpFederation() {
-        Integer[] privateKeys = IntStream.iterate(1000, n -> n <= 9000, n -> n + 1000)
-            .boxed()
-            .toArray(Integer[]::new);
-        List<FederationMember> federationMembers = getFederationMembersFromPks(privateKeys);
-        List<BtcECKey> erpPubKeys = federationConstants.getErpFedPubKeysList();
-        long activationDelay = federationConstants.getErpFedActivationDelay();
-        FederationArgs federationArgs = new FederationArgs(
-            federationMembers,
-            creationTime,
-            0L,
-            networkParameters
-        );
-        
-        return FederationFactory.buildP2shErpFederation(federationArgs, erpPubKeys, activationDelay);
     }
 
     private static ErpFederation createP2shP2wshErpFederation() {
