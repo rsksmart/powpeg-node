@@ -107,28 +107,28 @@ public class ReleaseCreationInformationGetter {
             Transaction transaction = transactions.get(0);
             transactionReceipt.setTransaction(transaction);
 
-            return searchEventInCreationBlock(block, pegoutBtcTx, pegoutCreationRskTxHash);
+            return searchEventInPegoutCreationBlock(block, pegoutBtcTx, pegoutCreationRskTxHash);
         } catch (Exception e) {
             throw new HSMReleaseCreationInformationException("Unhandled exception occurred", e);
         }
     }
 
-    private ReleaseCreationInformation searchEventInCreationBlock(
+    private ReleaseCreationInformation searchEventInPegoutCreationBlock(
         Block pegoutCreationBlock,
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutCreationRskTxHash
     ) throws HSMReleaseCreationInformationException {
-        for (Transaction rskTx : pegoutCreationBlock.getTransactionsList()) {
-            TransactionReceipt rskTxReceipt = receiptStore.getInMainChain(rskTx.getHash().getBytes(), blockStore)
+        for (Transaction pegoutCreationRskTx : pegoutCreationBlock.getTransactionsList()) {
+            TransactionReceipt pegoutRskTxReceipt = receiptStore.getInMainChain(pegoutCreationRskTx.getHash().getBytes(), blockStore)
                 .map(TransactionInfo::getReceipt)
                 .orElseThrow(() -> new HSMReleaseCreationInformationException(
-                    String.format("[searchEventInFollowingBlocks] Rsk Transaction hash [%s] should exist", rskTx.getHash())));
+                    String.format("[searchEventInPegoutCreationBlock] Rsk Transaction hash [%s] should exist", pegoutCreationRskTx.getHash())));
 
-            rskTxReceipt.setTransaction(rskTx);
+            pegoutRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
             Optional<ReleaseCreationInformation> releaseCreationInformation = getInformationFromEvent(
                 pegoutCreationBlock,
-                rskTxReceipt,
+                pegoutRskTxReceipt,
                 pegoutBtcTx,
                 pegoutCreationRskTxHash
             );
@@ -137,9 +137,9 @@ public class ReleaseCreationInformationGetter {
             }
         }
 
-        // This case is not expected to be reached, but if it does throw exception
+        // This case is not expected to be reached, but if it does throw an exception
         throw new HSMReleaseCreationInformationException(
-            String.format("[searchEventInFollowingBlocks] Event not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
+            String.format("[searchEventInPegoutCreationBlock] Event not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
         );
     }
 
