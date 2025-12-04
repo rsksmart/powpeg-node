@@ -19,42 +19,49 @@ public final class EventsTestUtils {
     private EventsTestUtils() {
     }
 
-    public static LogInfo createPegoutTransactionCreatedLog(Sha256Hash pegoutBtcTxHash,
-        byte[] serializedOutpointValues) {
+    public static LogInfo createPegoutTransactionCreatedLog(
+        Sha256Hash pegoutBtcTxHash,
+        byte[] serializedOutpointValues
+    ) {
         CallTransaction.Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
         byte[] pegoutTransactionCreatedSignatureTopic = pegoutTransactionCreatedEvent.encodeSignatureLong();
         List<DataWord> topics = new ArrayList<>();
-        topics.add(
-            DataWord.valueOf(pegoutTransactionCreatedSignatureTopic));
+        topics.add(DataWord.valueOf(pegoutTransactionCreatedSignatureTopic));
         topics.add(DataWord.valueOf(pegoutBtcTxHash.getBytes()));
 
-        byte[] pegoutTransactionCreatedEncodedData = pegoutTransactionCreatedEvent.encodeEventData(
-            serializedOutpointValues);
+        byte[] pegoutTransactionCreatedEncodedData = pegoutTransactionCreatedEvent.encodeEventData(serializedOutpointValues);
 
         return new LogInfo(
             PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-            topics, pegoutTransactionCreatedEncodedData);
+            topics,
+            pegoutTransactionCreatedEncodedData
+        );
     }
 
-    public static LogInfo createBatchPegoutCreatedLog(Sha256Hash pegoutBtcTxHash,
-        List<Keccak256> pegoutRequestRskTxHashes) {
+    public static LogInfo createBatchPegoutCreatedLog(
+        Sha256Hash pegoutBtcTxHash,
+        List<Keccak256> pegoutRequestRskTxHashes
+    ) {
         CallTransaction.Function batchPegoutCreatedEvent = BridgeEvents.BATCH_PEGOUT_CREATED.getEvent();
         byte[] batchPegoutEventSignatureTopic = batchPegoutCreatedEvent.encodeSignatureLong();
         List<DataWord> topics = new ArrayList<>();
-        topics.add(
-            DataWord.valueOf(batchPegoutEventSignatureTopic));
+        topics.add(DataWord.valueOf(batchPegoutEventSignatureTopic));
         topics.add(DataWord.valueOf(pegoutBtcTxHash.getBytes()));
 
-        byte[] encodedData = batchPegoutCreatedEvent.encodeEventData(
-            serializeRskTxHashes(pegoutRequestRskTxHashes));
+        byte[] encodedData = batchPegoutCreatedEvent.encodeEventData(serializeRskTxHashes(pegoutRequestRskTxHashes));
 
-        return new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-            topics, encodedData);
+        return new LogInfo(
+            PrecompiledContracts.BRIDGE_ADDR.getBytes(),
+            topics,
+            encodedData
+        );
     }
 
-    public static LogInfo createReleaseRequestedLog(Keccak256 pegoutRskTxHash,
+    public static LogInfo createReleaseRequestedLog(
+        Keccak256 pegoutRskTxHash,
         Sha256Hash pegoutBtcTxHash,
-        Coin amount) {
+        Coin amount
+    ) {
         CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
 
         byte[] releaseRequestedSignatureTopic = releaseRequestedEvent.encodeSignatureLong();
@@ -65,8 +72,10 @@ public final class EventsTestUtils {
 
         byte[] encodedData = releaseRequestedEvent.encodeEventData(amount.getValue());
 
-        return new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-            topics, encodedData);
+        return new LogInfo(
+            PrecompiledContracts.BRIDGE_ADDR.getBytes(),
+            topics, encodedData
+        );
     }
 
     public static LogInfo createUpdateCollectionsLog(RskAddress senderAddress) {
@@ -78,8 +87,11 @@ public final class EventsTestUtils {
 
         byte[] encodedData = updateCollectionsEvent.encodeEventData(senderAddress.toString());
 
-        return new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-            topics, encodedData);
+        return new LogInfo(
+            PrecompiledContracts.BRIDGE_ADDR.getBytes(),
+            topics,
+            encodedData
+        );
     }
 
     public static LogInfo creatRejectedPeginLog(Sha256Hash pegoutBtcTxHash, RejectedPeginReason reason) {

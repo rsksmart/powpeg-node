@@ -102,7 +102,7 @@ class ReleaseCreationInformationGetterTest {
         throws HSMReleaseCreationInformationException {
         List<LogInfo> logs = new ArrayList<>();
 
-        ECKey senderKey = new ECKey();
+        ECKey senderKey = TestUtils.getEcKeyFromSeed("senderKey");
         RskAddress senderAddress = new RskAddress(senderKey.getAddress());
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
@@ -356,7 +356,7 @@ class ReleaseCreationInformationGetterTest {
             pegoutRequestRskTxHashes);
         logs.add(batchPegoutCreatedLog);
 
-        ECKey senderKey = new ECKey();
+        ECKey senderKey = TestUtils.getEcKeyFromSeed("senderKey");
         RskAddress senderAddress = new RskAddress(senderKey.getAddress());
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
@@ -399,7 +399,7 @@ class ReleaseCreationInformationGetterTest {
 
         List<LogInfo> logs = new ArrayList<>();
 
-        ECKey senderKey = new ECKey();
+        ECKey senderKey = TestUtils.getEcKeyFromSeed("senderKey");
         RskAddress senderAddress = new RskAddress(senderKey.getAddress());
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
