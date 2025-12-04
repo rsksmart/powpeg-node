@@ -41,7 +41,6 @@ import co.rsk.peg.federation.constants.FederationConstants;
 import co.rsk.peg.federation.constants.FederationMainNetConstants;
 import org.ethereum.config.Constants;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.*;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.db.*;
@@ -243,7 +242,7 @@ class BtcReleaseClientTest {
 
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
-        BtcReleaseClient client = new BtcReleaseClient(
+        client = new BtcReleaseClient(
             mock(Ethereum.class),
             federatorSupport,
             powpegNodeSystemProperties,
@@ -268,7 +267,6 @@ class BtcReleaseClientTest {
 
         client.setup(
             signer,
-            mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class)
@@ -333,7 +331,7 @@ class BtcReleaseClientTest {
         private SignerMessageBuilderFactory signerMessageBuilderFactory;
         private ReleaseCreationInformationGetter releaseCreationInformationGetter;
         private List<LogInfo> logInfoList;
-        List<Transaction> rskTxsList;
+        private List<Transaction> rskTxsList;
 
         @BeforeEach
         void setUp() {
@@ -382,8 +380,8 @@ class BtcReleaseClientTest {
             Coin prevTxValue = releaseTx.getInput(0).getValue();
 
             // set up release requested event
-            byte[] rskTxHashSerialized = releaseCreationRskTxHash.getBytes();
-            byte[][] releaseRequestedEncodedTopics = releaseRequestedEvent.encodeEventTopics(rskTxHashSerialized, originalReleaseTxHash.getBytes());
+            byte[] releaseCreationRskTxHashSerialized = releaseCreationRskTxHash.getBytes();
+            byte[][] releaseRequestedEncodedTopics = releaseRequestedEvent.encodeEventTopics(releaseCreationRskTxHashSerialized, originalReleaseTxHash.getBytes());
             List<DataWord> releaseRequestedTopics = LogInfo.byteArrayToList(releaseRequestedEncodedTopics);
             byte[] releaseRequestedEncodedData = releaseRequestedEvent.encodeEventData(prevTxValue.getValue());
             LogInfo releaseRequestedLogInfo = new LogInfo(bridgeContractAddressSerialized, releaseRequestedTopics, releaseRequestedEncodedData);
@@ -398,7 +396,7 @@ class BtcReleaseClientTest {
             logInfoList.add(pegoutTransactionCreatedLogInfo);
 
             TransactionReceipt txReceipt = new TransactionReceipt(
-                rskTxHashSerialized,
+                releaseCreationRskTxHashSerialized,
                 notNullBytes,
                 notNullBytes,
                 mock(Bloom.class),
@@ -410,8 +408,8 @@ class BtcReleaseClientTest {
             int txIndex = releases.size(); // to not override txs
             TransactionInfo txInfo = new TransactionInfo(txReceipt, rskBlockHashSerialized, txIndex);
 
-            when(receiptStore.getInMainChain(rskTxHashSerialized, blockStore)).thenReturn(Optional.of(txInfo));
-            when(receiptStore.get(rskTxHashSerialized, rskBlockHashSerialized)).thenReturn(Optional.of(txInfo));
+            when(receiptStore.getInMainChain(releaseCreationRskTxHashSerialized, blockStore)).thenReturn(Optional.of(txInfo));
+            when(receiptStore.get(releaseCreationRskTxHashSerialized, rskBlockHashSerialized)).thenReturn(Optional.of(txInfo));
             when(blockStore.getBlockByHash(rskBlockHashSerialized)).thenReturn(bestBlock);
         }
 
@@ -945,7 +943,6 @@ class BtcReleaseClientTest {
             );
             client.setup(
                 signer,
-                mock(ActivationConfig.class),
                 signerMessageBuilderFactory,
                 releaseCreationInformationGetter,
                 mock(ReleaseRequirementsEnforcer.class)
@@ -1035,7 +1032,6 @@ class BtcReleaseClientTest {
 
         btcReleaseClient.setup(
             signer,
-            mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class)
@@ -1109,7 +1105,6 @@ class BtcReleaseClientTest {
 
         btcReleaseClient.setup(
             signer,
-            mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class)
@@ -1203,7 +1198,6 @@ class BtcReleaseClientTest {
 
         btcReleaseClient.setup(
             signer,
-            mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class)
@@ -1294,12 +1288,8 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        ActivationConfig activationConfig = mock(ActivationConfig.class);
-        when(activationConfig.isActive(ConsensusRule.RSKIP419, bestBlock.getNumber())).thenReturn(true);
-
         btcReleaseClient.setup(
             signer,
-            activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class)
@@ -1403,12 +1393,8 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        ActivationConfig activationConfig = mock(ActivationConfig.class);
-        when(activationConfig.isActive(ConsensusRule.RSKIP419, bestBlock.getNumber())).thenReturn(true);
-
         btcReleaseClient.setup(
             signer,
-            activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class)
@@ -1516,12 +1502,8 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        ActivationConfig activationConfig = mock(ActivationConfig.class);
-        when(activationConfig.isActive(ConsensusRule.RSKIP419, bestBlock.getNumber())).thenReturn(true);
-
         btcReleaseClient.setup(
             signer,
-            activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class)
@@ -1624,12 +1606,8 @@ class BtcReleaseClientTest {
             mock(NodeBlockProcessor.class)
         );
 
-        ActivationConfig activationConfig = mock(ActivationConfig.class);
-        when(activationConfig.isActive(ConsensusRule.RSKIP419, bestBlock.getNumber())).thenReturn(true);
-
         btcReleaseClient.setup(
             signer,
-            activationConfig,
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class)
@@ -1710,7 +1688,6 @@ class BtcReleaseClientTest {
 
         btcReleaseClient.setup(
             signer,
-            mock(ActivationConfig.class),
             signerMessageBuilderFactory,
             releaseCreationInformationGetter,
             mock(ReleaseRequirementsEnforcer.class)
@@ -1757,7 +1734,6 @@ class BtcReleaseClientTest {
         );
         btcReleaseClient.setup(
             mock(ECDSASigner.class),
-            mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class)
@@ -1799,7 +1775,6 @@ class BtcReleaseClientTest {
         );
         btcReleaseClient.setup(
             mock(ECDSASigner.class),
-            mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class)
@@ -1889,7 +1864,6 @@ class BtcReleaseClientTest {
         ethereumListener.get().onBlock(null, receipts);
 
         // Assert
-        verify(nodeBlockProcessor, never()).hasBetterBlockToSync();
         verifyNoInteractions(transactionReceipt);
     }
 
@@ -1989,7 +1963,7 @@ class BtcReleaseClientTest {
       
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
-        BtcReleaseClient client = new BtcReleaseClient(
+        client = new BtcReleaseClient(
             mock(Ethereum.class),
             federatorSupport,
             powpegNodeSystemProperties,
@@ -1998,7 +1972,6 @@ class BtcReleaseClientTest {
 
         client.setup(
             signer,
-            mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class)
@@ -2029,12 +2002,11 @@ class BtcReleaseClientTest {
         TransactionInput releaseInput = TestUtils.createTransactionInput(params, releaseTx, federation);
         releaseTx.addInput(releaseInput);
 
-
         BtcECKey fed1Key = federation.getBtcPublicKeys().get(0);
         ECPublicKey signerPublicKey = new ECPublicKey(fed1Key.getPubKey());
         Mockito.doReturn(signerPublicKey).when(signer).getPublicKey(ArgumentMatchers.any(KeyId.class));
 
-        BtcReleaseClient client = new BtcReleaseClient(
+        client = new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,
@@ -2042,7 +2014,6 @@ class BtcReleaseClientTest {
         );
         client.setup(
             signer,
-            mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class)
@@ -2082,13 +2053,10 @@ class BtcReleaseClientTest {
         ECPublicKey signerPublicKey
     ) throws Exception {
         FederationMember federationMember = federation.getMembers().get(0);
-
         doReturn(federationMember).when(federatorSupport).getFederationMember();
-
-
         doReturn(signerPublicKey).when(signer).getPublicKey(any(KeyId.class));
 
-        BtcReleaseClient client = new BtcReleaseClient(
+        client = new BtcReleaseClient(
             mock(Ethereum.class),
             federatorSupport,
             powpegNodeSystemProperties,
@@ -2097,7 +2065,6 @@ class BtcReleaseClientTest {
 
         client.setup(
             signer,
-            mock(ActivationConfig.class),
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class)
@@ -2113,7 +2080,7 @@ class BtcReleaseClientTest {
         Script redeemScriptToExtract)
     {
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        BtcReleaseClient client = new BtcReleaseClient(
+        client = new BtcReleaseClient(
             mock(Ethereum.class),
             mock(FederatorSupport.class),
             powpegNodeSystemProperties,

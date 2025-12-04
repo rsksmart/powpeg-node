@@ -320,7 +320,6 @@ public class FedNodeRunner implements NodeRunner {
             federateLogger.log();
             btcReleaseClient.setup(
                 signer,
-                config.getActivationConfig(),
                 new SignerMessageBuilderFactory(
                     fedNodeContext.getReceiptStore()
                 ),
