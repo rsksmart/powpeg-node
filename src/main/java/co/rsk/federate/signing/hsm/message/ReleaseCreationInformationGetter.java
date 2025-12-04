@@ -44,7 +44,7 @@ public class ReleaseCreationInformationGetter {
         try {
              hsmVersion = HSMVersion.fromNumber(version);
         } catch (HSMUnsupportedVersionException e) {
-            throw new HSMReleaseCreationInformationException("Unsupported version " + version);
+            throw new HSMReleaseCreationInformationException(String.format("Unsupported version %d", version), e);
         }
 
         if (!hsmVersion.isPowHSM()) {
@@ -122,7 +122,7 @@ public class ReleaseCreationInformationGetter {
             TransactionReceipt pegoutRskTxReceipt = receiptStore.getInMainChain(pegoutCreationRskTx.getHash().getBytes(), blockStore)
                 .map(TransactionInfo::getReceipt)
                 .orElseThrow(() -> new HSMReleaseCreationInformationException(
-                    String.format("[searchEventInPegoutCreationBlock] Rsk Transaction hash [%s] should exist", pegoutCreationRskTx.getHash())));
+                    String.format("Rsk Transaction hash [%s] should exist", pegoutCreationRskTx.getHash())));
 
             pegoutRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
@@ -140,7 +140,7 @@ public class ReleaseCreationInformationGetter {
         // Per RSKIP375, events should always be present in the pegout creation block.
         // If not found, this indicates a blockchain inconsistency.
         throw new HSMReleaseCreationInformationException(
-            String.format("[searchEventInPegoutCreationBlock] Event not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
+            String.format("Event not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
         );
     }
 
