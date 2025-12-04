@@ -13,8 +13,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import co.rsk.bitcoinj.core.*;
-import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.EventsTestUtils;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.rpc.*;
 import co.rsk.federate.signing.KeyId;
@@ -237,8 +237,11 @@ class PowHSMSigningClientBtcTest {
             createDestinationAddresses(expectedOutpointValues.size())
         );
 
-        List<LogInfo> logs = new ArrayList<>();
-        addCommonPegoutLogs(logs, pegoutBtcTx, serializedOutpointValues);
+        List<LogInfo> logs = EventsTestUtils.getCommonPegoutLogs(
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            serializedOutpointValues
+        );
 
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
@@ -275,9 +278,11 @@ class PowHSMSigningClientBtcTest {
             Collections.singletonList(destinationAddress)
         );
 
-        List<LogInfo> logs = new ArrayList<>();
-        addCommonPegoutLogs(logs, pegoutBtcTx, serializedOutpointValues);
-
+        List<LogInfo> logs = getCommonPegoutLogs(
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            serializedOutpointValues
+        );
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
@@ -313,43 +318,6 @@ class PowHSMSigningClientBtcTest {
             coinListOf(50_000_000, 75_000_000, 100_000_000)
         ));
         return arguments;
-    }
-
-    private void addCommonPegoutLogs(
-        List<LogInfo> logs,
-        BtcTransaction pegoutBtcTx,
-        byte[] serializedOutpointValues
-    ) {
-        // update_collections
-        ECKey senderKey = TestUtils.getEcKeyFromSeed("senderKey");
-        RskAddress senderAddress = new RskAddress(senderKey.getAddress());
-        LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
-        logs.add(updateCollectionsLog);
-
-        // release_requested
-        Coin pegoutAmount = Coin.COIN;
-        LogInfo releaseRequestedLog = createReleaseRequestedLog(
-            pegoutCreationRskTx.getHash(),
-            pegoutBtcTx.getHash(),
-            pegoutAmount
-        );
-        logs.add(releaseRequestedLog);
-
-        // batch_pegout_created
-        Keccak256 pegoutRequestRskTxHash = TestUtils.createHash(10);
-        List<Keccak256> pegoutRequestRskTxHashes = Collections.singletonList(pegoutRequestRskTxHash);
-        LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(
-            pegoutBtcTx.getHash(),
-            pegoutRequestRskTxHashes
-        );
-        logs.add(batchPegoutCreatedLog);
-
-        // pegout_transaction_created
-        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
-            pegoutBtcTx.getHash(),
-            serializedOutpointValues
-        );
-        logs.add(pegoutTransactionCreatedLog);
     }
 
     private List<Address> createDestinationAddresses(int numberOfAddresses) {

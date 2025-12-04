@@ -1,15 +1,19 @@
 package co.rsk.federate;
 
+import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.pegin.RejectedPeginReason;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.ethereum.core.CallTransaction;
+import org.ethereum.crypto.ECKey;
 import org.ethereum.vm.DataWord;
 import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
@@ -106,6 +110,47 @@ public final class EventsTestUtils {
 
         return new LogInfo(PrecompiledContracts.BRIDGE_ADDR.getBytes(),
             topics, encodedData);
+    }
+
+    public static List<LogInfo> getCommonPegoutLogs(
+        Keccak256 pegoutCreationRskTxHash,
+        BtcTransaction pegoutBtcTx,
+        byte[] serializedOutpointValues
+    ) {
+        List<LogInfo> logs = new ArrayList<>();
+
+        // update_collections
+        ECKey senderKey = TestUtils.getEcKeyFromSeed("senderKey");
+        RskAddress senderAddress = new RskAddress(senderKey.getAddress());
+        LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
+        logs.add(updateCollectionsLog);
+
+        // release_requested
+        Coin pegoutAmount = Coin.COIN;
+        LogInfo releaseRequestedLog = createReleaseRequestedLog(
+            pegoutCreationRskTxHash,
+            pegoutBtcTx.getHash(),
+            pegoutAmount
+        );
+        logs.add(releaseRequestedLog);
+
+        // batch_pegout_created
+        Keccak256 pegoutRequestRskTxHash = TestUtils.createHash(10);
+        List<Keccak256> pegoutRequestRskTxHashes = Collections.singletonList(pegoutRequestRskTxHash);
+        LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(
+            pegoutBtcTx.getHash(),
+            pegoutRequestRskTxHashes
+        );
+        logs.add(batchPegoutCreatedLog);
+
+        // pegout_transaction_created
+        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
+            pegoutBtcTx.getHash(),
+            serializedOutpointValues
+        );
+        logs.add(pegoutTransactionCreatedLog);
+
+        return logs;
     }
 
     /*
