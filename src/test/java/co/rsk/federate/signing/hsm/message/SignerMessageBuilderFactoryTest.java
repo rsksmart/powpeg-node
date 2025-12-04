@@ -1,8 +1,7 @@
 package co.rsk.federate.signing.hsm.message;
 
-import static co.rsk.federate.signing.utils.TestUtils.createHash;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -60,7 +59,7 @@ class SignerMessageBuilderFactoryTest {
             releaseCreationInformation,
             0
         );
-        assertTrue(sigMessVersion1 instanceof SignerMessageBuilderV1);
+        assertInstanceOf(SignerMessageBuilderV1.class, sigMessVersion1);
     }
 
     @Test
@@ -88,6 +87,6 @@ class SignerMessageBuilderFactoryTest {
             ),
             0
         );
-        assertTrue(messageBuilder instanceof PowHSMSignerMessageBuilder);
+        assertInstanceOf(PowHSMSignerMessageBuilder.class, messageBuilder);
     }
 }

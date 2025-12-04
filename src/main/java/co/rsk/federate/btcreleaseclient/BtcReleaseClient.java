@@ -550,8 +550,8 @@ public class BtcReleaseClient {
     }
 
     private Script extractDefaultRedeemScript(Federation federation) {
-        if (federation instanceof ErpFederation) {
-            return ((ErpFederation) federation).getDefaultRedeemScript();
+        if (federation instanceof ErpFederation erpFederation) {
+            return erpFederation.getDefaultRedeemScript();
         }
         return federation.getRedeemScript();
     }

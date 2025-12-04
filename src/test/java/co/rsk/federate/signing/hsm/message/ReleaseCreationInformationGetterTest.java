@@ -144,7 +144,6 @@ class ReleaseCreationInformationGetterTest {
 
     @Test
     void createGetTxInfoToSign_whenEventIsNotFoundInThePegoutCreationBlock_throwsAnException() {
-        // The event that is searched is not found in the first block but in the next block.
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
 

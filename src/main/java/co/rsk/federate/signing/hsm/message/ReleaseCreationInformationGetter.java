@@ -137,7 +137,8 @@ public class ReleaseCreationInformationGetter {
             }
         }
 
-        // This case is not expected to be reached, but if it does throw an exception
+        // Per RSKIP375, events should always be present in the pegout creation block.
+        // If not found, this indicates a blockchain inconsistency.
         throw new HSMReleaseCreationInformationException(
             String.format("[searchEventInPegoutCreationBlock] Event not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
         );

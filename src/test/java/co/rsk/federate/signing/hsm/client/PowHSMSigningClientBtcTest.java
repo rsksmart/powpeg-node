@@ -77,7 +77,6 @@ class PowHSMSigningClientBtcTest {
     private Block pegoutCreationBlock;
     private TransactionReceipt pegoutCreationRskTxReceipt;
 
-    private Transaction pegoutConfirmationRskTx;
     private ReceiptStore receiptStore;
 
     private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
@@ -88,12 +87,6 @@ class PowHSMSigningClientBtcTest {
         pegoutCreationRskTx = mock(Transaction.class);
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
-
-        Keccak256 pegoutConfirmationRskTxHash = TestUtils.createHash(3);
-        pegoutConfirmationRskTx = mock(Transaction.class);
-        when(pegoutConfirmationRskTx.getHash()).thenReturn(pegoutConfirmationRskTxHash);
-        when(pegoutConfirmationRskTx.getReceiveAddress()).thenReturn(
-            PrecompiledContracts.BRIDGE_ADDR);
 
         pegoutCreationBlock = createBlock(Collections.singletonList(pegoutCreationRskTx));
 

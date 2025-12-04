@@ -60,7 +60,7 @@ class PowHSMSignerMessageBuilderTest {
     );
 
     private Transaction pegoutCreationRskTx;
-    private Transaction pegoutConfirmationRskTx;
+
     private Block pegoutCreationBlock;
     private TransactionReceipt pegoutCreationRskTxReceipt;
     private ReceiptStore receiptStore;
@@ -72,13 +72,7 @@ class PowHSMSignerMessageBuilderTest {
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
 
-        Keccak256 pegoutConfirmationRskTxHash = TestUtils.createHash(3);
-        pegoutConfirmationRskTx = mock(Transaction.class);
-        when(pegoutConfirmationRskTx.getHash()).thenReturn(pegoutConfirmationRskTxHash);
-        when(pegoutConfirmationRskTx.getReceiveAddress()).thenReturn(
-            PrecompiledContracts.BRIDGE_ADDR);
-
-        pegoutCreationBlock = createBlock(1, Collections.singletonList(pegoutCreationRskTx));
+        pegoutCreationBlock = createBlock(Collections.singletonList(pegoutCreationRskTx));
 
         pegoutCreationRskTxReceipt = new TransactionReceipt();
         pegoutCreationRskTxReceipt.setLogInfoList(Collections.emptyList());
@@ -95,8 +89,8 @@ class PowHSMSignerMessageBuilderTest {
             Optional.of(pegoutCreationRskTxInfo));
     }
 
-    private Block createBlock(int blockNumber, List<Transaction> rskTxs) {
-        int parentBlockNumber = blockNumber > 0 ? blockNumber - 1 : 0;
+    private Block createBlock(List<Transaction> rskTxs) {
+        int parentBlockNumber = 0;
         BlockHeader blockHeader = new BlockHeaderBuilder(mock(ActivationConfig.class)).setNumber(
                 1).setParentHashFromKeccak256(TestUtils.createHash(parentBlockNumber))
             .build();
