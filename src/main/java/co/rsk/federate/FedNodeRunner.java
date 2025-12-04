@@ -67,10 +67,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
-/**
- * Created by mario on 31/03/17.
- */
-
 public class FedNodeRunner implements NodeRunner {
     private static final Logger logger = LoggerFactory.getLogger(FedNodeRunner.class);
     private final BtcToRskClient btcToRskClientActive;
