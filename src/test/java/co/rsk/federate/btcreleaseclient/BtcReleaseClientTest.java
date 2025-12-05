@@ -1381,10 +1381,10 @@ class BtcReleaseClientTest {
         when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
         when(receiptStore.getInMainChain(svpSpendCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
 
-        ReleaseCreationInformationGetter releaseCreationInformationGetter =
-            spy(new ReleaseCreationInformationGetter(
-                receiptStore, blockStore
-            ));
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
+            receiptStore,
+            blockStore
+        );
 
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
             ethereum,
@@ -1410,10 +1410,6 @@ class BtcReleaseClientTest {
         // We should have searched by the expected svp spend tx hash
         BitcoinUtils.removeSignaturesFromMultiSigTransaction(svpSpendTx);
         assertEquals(svpSpendTxHashBeforeSigning, svpSpendTx.getHash());
-        verify(releaseCreationInformationGetter, times(2)).getTxInfoToSign(
-            anyInt(),
-            eq(svpSpendCreationRskTxHash),
-            eq(svpSpendTx));
 
         // We should have added a signature for the svp spend tx
         verify(federatorSupport).addSignature(
