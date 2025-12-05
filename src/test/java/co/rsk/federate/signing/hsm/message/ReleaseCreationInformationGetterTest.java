@@ -49,7 +49,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ReleaseCreationInformationGetterTest {
-
     private BtcTransaction pegoutBtcTx;
     private Transaction pegoutCreationRskTx;
     private Block pegoutCreationBlock;
@@ -213,9 +212,10 @@ class ReleaseCreationInformationGetterTest {
             blockStore
         );
 
-        assertThrows(HSMReleaseCreationInformationException.class,
-            () -> pegoutCreationInformation.getTxInfoToSign(HSMVersion.V5.getNumber(), rskTxHash,
-                pegoutBtcTransaction));
+        assertThrows(
+            HSMReleaseCreationInformationException.class,
+            () -> pegoutCreationInformation.getTxInfoToSign(hsmVersion.getNumber(), rskTxHash, pegoutBtcTransaction)
+        );
     }
 
     @Test
