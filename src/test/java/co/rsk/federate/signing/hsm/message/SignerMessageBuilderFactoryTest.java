@@ -54,12 +54,12 @@ class SignerMessageBuilderFactoryTest {
         ReleaseCreationInformation releaseCreationInformation = mock(ReleaseCreationInformation.class);
         when(releaseCreationInformation.getPegoutBtcTx()).thenReturn(tx);
 
-        SignerMessageBuilder sigMessVersion1 = factory.buildFromConfig(
+        SignerMessageBuilder signerMessageVersion1 = factory.buildFromConfig(
             1,
             releaseCreationInformation,
             0
         );
-        assertInstanceOf(SignerMessageBuilderV1.class, sigMessVersion1);
+        assertInstanceOf(SignerMessageBuilderV1.class, signerMessageVersion1);
     }
 
     @Test

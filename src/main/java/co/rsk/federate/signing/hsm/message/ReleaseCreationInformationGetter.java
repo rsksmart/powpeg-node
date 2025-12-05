@@ -105,13 +105,13 @@ public class ReleaseCreationInformationGetter {
             Transaction transaction = transactions.get(0);
             transactionReceipt.setTransaction(transaction);
 
-            return searchEventInPegoutCreationBlock(block, pegoutBtcTx, pegoutCreationRskTxHash);
+            return findReleaseRequestedEventInBlock(block, pegoutBtcTx, pegoutCreationRskTxHash);
         } catch (Exception e) {
             throw new HSMReleaseCreationInformationException("Unhandled exception occurred", e);
         }
     }
 
-    private ReleaseCreationInformation searchEventInPegoutCreationBlock(
+    private ReleaseCreationInformation findReleaseRequestedEventInBlock(
         Block pegoutCreationBlock,
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutCreationRskTxHash
