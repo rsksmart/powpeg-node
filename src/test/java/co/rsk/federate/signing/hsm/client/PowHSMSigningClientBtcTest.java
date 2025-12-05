@@ -241,7 +241,7 @@ class PowHSMSigningClientBtcTest {
             createDestinationAddresses(expectedOutpointValues.size())
         );
 
-        List<LogInfo> logs = EventsTestUtils.getCommonPegoutLogs(
+        List<LogInfo> logs = EventsTestUtils.createCommonPegoutLogs(
             pegoutCreationRskTx.getHash(),
             pegoutBtcTx,
             serializedOutpointValues
@@ -278,7 +278,7 @@ class PowHSMSigningClientBtcTest {
             Collections.singletonList(newFederation.getAddress())
         );
 
-        List<LogInfo> logs = getCommonPegoutLogs(
+        List<LogInfo> logs = createCommonPegoutLogs(
             pegoutCreationRskTx.getHash(),
             pegoutBtcTx,
             serializedOutpointValues

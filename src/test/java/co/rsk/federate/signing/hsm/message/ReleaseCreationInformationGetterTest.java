@@ -1,6 +1,6 @@
 package co.rsk.federate.signing.hsm.message;
 
-import static co.rsk.federate.EventsTestUtils.creatRejectedPeginLog;
+import static co.rsk.federate.EventsTestUtils.createRejectedPeginLog;
 import static co.rsk.federate.EventsTestUtils.createBatchPegoutCreatedLog;
 import static co.rsk.federate.EventsTestUtils.createPegoutTransactionCreatedLog;
 import static co.rsk.federate.EventsTestUtils.createReleaseRequestedLog;
@@ -446,7 +446,7 @@ class ReleaseCreationInformationGetterTest {
 
         addCommonPegoutLogs(logs, pegoutBtcTx, serializedOutpointValues);
 
-        LogInfo rejectedPeginLog = creatRejectedPeginLog(pegoutBtcTx.getHash(),
+        LogInfo rejectedPeginLog = createRejectedPeginLog(pegoutBtcTx.getHash(),
             RejectedPeginReason.LEGACY_PEGIN_MULTISIG_SENDER);
         logs.add(rejectedPeginLog);
 

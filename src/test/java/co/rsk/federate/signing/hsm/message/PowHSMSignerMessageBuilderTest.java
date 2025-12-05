@@ -104,7 +104,7 @@ class PowHSMSignerMessageBuilderTest {
         int inputIndex = 0;
 
         byte[] serializedOutpointValues = BridgeSerializationUtils.serializeOutpointsValues(outpointValues);
-        List<LogInfo> logs = getCommonPegoutLogs(
+        List<LogInfo> logs = createCommonPegoutLogs(
             pegoutCreationRskTx.getHash(),
             pegoutBtcTx,
             serializedOutpointValues
@@ -225,7 +225,7 @@ class PowHSMSignerMessageBuilderTest {
             destinationAddresses
         );
 
-        List<LogInfo> logs = getCommonPegoutLogs(
+        List<LogInfo> logs = createCommonPegoutLogs(
             pegoutCreationRskTx.getHash(),
             pegoutBtcTx,
             serializedOutpointValues
@@ -249,7 +249,7 @@ class PowHSMSignerMessageBuilderTest {
             Collections.singletonList(newFederation.getAddress())
         );
 
-        List<LogInfo> logs = getCommonPegoutLogs(
+        List<LogInfo> logs = createCommonPegoutLogs(
             pegoutCreationRskTx.getHash(),
             segwitPegoutBtcTx,
             serializedOutpointValues
@@ -275,7 +275,7 @@ class PowHSMSignerMessageBuilderTest {
 
         List<LogInfo> logs = new ArrayList<>();
 
-        LogInfo rejectedPeginLog = creatRejectedPeginLog(segwitPegoutBtcTx.getHash(),
+        LogInfo rejectedPeginLog = createRejectedPeginLog(segwitPegoutBtcTx.getHash(),
             RejectedPeginReason.LEGACY_PEGIN_MULTISIG_SENDER);
         logs.add(rejectedPeginLog);
 

@@ -98,7 +98,7 @@ public final class EventsTestUtils {
         );
     }
 
-    public static LogInfo creatRejectedPeginLog(Sha256Hash pegoutBtcTxHash, RejectedPeginReason reason) {
+    public static LogInfo createRejectedPeginLog(Sha256Hash pegoutBtcTxHash, RejectedPeginReason reason) {
         CallTransaction.Function rejectedPeginEvent = BridgeEvents.REJECTED_PEGIN.getEvent();
 
         byte[] rejectedPeginSignatureTopic = rejectedPeginEvent.encodeSignatureLong();
@@ -112,7 +112,7 @@ public final class EventsTestUtils {
             topics, encodedData);
     }
 
-    public static List<LogInfo> getCommonPegoutLogs(
+    public static List<LogInfo> createCommonPegoutLogs(
         Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx,
         byte[] serializedOutpointValues
@@ -159,7 +159,7 @@ public final class EventsTestUtils {
     private static byte[] serializeRskTxHashes(List<Keccak256> rskTxHashes) {
         List<byte[]> rskTxHashesList = rskTxHashes.stream()
             .map(Keccak256::getBytes)
-            .collect(Collectors.toList());
+            .toList();
         int rskTxHashesLength = rskTxHashesList.stream().mapToInt(key -> key.length).sum();
 
         byte[] serializedRskTxHashes = new byte[rskTxHashesLength];
