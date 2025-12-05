@@ -54,6 +54,10 @@ class PowHSMSigningClientBtcTest {
         bridgeMainnetConstants.getBtcParams(),
         20
     );
+    private static final Federation newFederation = TestUtils.createP2shP2wshErpFederation(
+        bridgeMainnetConstants.getBtcParams(),
+        19
+    );
 
     private static final HSMSignature expectedSignature = createMockSignature();
 
@@ -267,15 +271,11 @@ class PowHSMSigningClientBtcTest {
     void sign_whenSegwitMigrationPegoutHasPegoutTransactionCreatedEvent_returnsOk(byte[] serializedOutpointValues, List<Coin> expectedOutpointValues)
         throws JsonRpcException, SignerMessageBuilderException, HSMClientException {
         // arrange
-        Address destinationAddress = BitcoinTestUtils.createP2PKHAddress(
-            btcMainnetParams,
-            "userAddress"
-        );
         BtcTransaction pegoutBtcTx = createPegout(
             btcMainnetParams,
             activeFederation,
             expectedOutpointValues,
-            Collections.singletonList(destinationAddress)
+            Collections.singletonList(newFederation.getAddress())
         );
 
         List<LogInfo> logs = getCommonPegoutLogs(

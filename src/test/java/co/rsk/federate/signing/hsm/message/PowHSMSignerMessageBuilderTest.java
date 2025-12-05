@@ -49,6 +49,10 @@ class PowHSMSignerMessageBuilderTest {
         bridgeMainnetConstants.getBtcParams(),
         20
     );
+    private static final Federation newFederation = TestUtils.createP2shP2wshErpFederation(
+        bridgeMainnetConstants.getBtcParams(),
+        19
+    );
 
     private Transaction pegoutCreationRskTx;
     private Block pegoutCreationBlock;
@@ -242,7 +246,7 @@ class PowHSMSignerMessageBuilderTest {
             btcMainnetParams,
             activeFederation,
             expectedOutpointValues,
-            Collections.singletonList(userAddress)
+            Collections.singletonList(newFederation.getAddress())
         );
 
         List<LogInfo> logs = getCommonPegoutLogs(
