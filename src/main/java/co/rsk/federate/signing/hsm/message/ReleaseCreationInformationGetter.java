@@ -15,8 +15,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-// Searches for release_requested and pegout_transaction_created events in the block where the pegout was created.
-// Per RSKIP375, these events are always emitted in the same block as the pegout creation transaction.
 public class ReleaseCreationInformationGetter {
     private static final Logger logger = LoggerFactory.getLogger(ReleaseCreationInformationGetter.class);
 
@@ -137,8 +135,7 @@ public class ReleaseCreationInformationGetter {
             }
         }
 
-        // Per RSKIP375, events should always be present in the pegout creation block.
-        // If not found, this indicates a blockchain inconsistency.
+        // Since RSKIP375, release_requested and pegout_transaction_created events are always emitted in the same block where the pegout was created.
         throw new HSMReleaseCreationInformationException(
             String.format("Event not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
         );
