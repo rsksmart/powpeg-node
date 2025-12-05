@@ -20,7 +20,6 @@ import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcerException;
 import co.rsk.net.NodeBlockProcessor;
-import co.rsk.panic.PanicProcessor;
 import co.rsk.peg.*;
 import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.constants.BridgeConstants;
@@ -37,8 +36,6 @@ import org.ethereum.core.TransactionReceipt;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListenerAdapter;
-import org.ethereum.util.RLP;
-import org.ethereum.util.RLPList;
 import org.ethereum.vm.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,9 +54,7 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public class BtcReleaseClient {
-
     private static final Logger logger = LoggerFactory.getLogger(BtcReleaseClient.class);
-    private static final PanicProcessor panicProcessor = new PanicProcessor();
     private static final DataWord RELEASE_BTC_TOPIC = DataWord.valueOf(BridgeEvents.RELEASE_BTC.getEvent().encodeSignatureLong());
 
     private final Ethereum ethereum;
@@ -174,7 +169,7 @@ public class BtcReleaseClient {
     private class BtcReleaseEthereumListener extends EthereumListenerAdapter {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (!isPegoutProcessingEnabled()) {
+            if (!shouldProcessPegouts()) {
                 logger.warn("[onBestBlock] Node is not ready to process pegouts");
                 return;
             }
@@ -195,7 +190,7 @@ public class BtcReleaseClient {
 
         @Override
         public void onBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (!isPegoutProcessingEnabled()) {
+            if (!shouldProcessPegouts()) {
                 logger.warn("[onBlock] Node is not ready to process pegouts");
                 return;
             }
@@ -213,10 +208,10 @@ public class BtcReleaseClient {
             pegoutTxs.forEach(BtcReleaseClient.this::onBtcRelease);
         }
 
-        private boolean isPegoutProcessingEnabled() {
+        private boolean shouldProcessPegouts() {
             boolean hasBetterBlockToSync = nodeBlockProcessor.hasBetterBlockToSync();
             logger.trace(
-                "[isPegoutProcessingEnabled] isPegoutEnabled: {}, hasBetterBlockToSync: {}",
+                "[shouldProcessPegouts] isPegoutEnabled: {}, hasBetterBlockToSync: {}",
                 isPegoutEnabled,
                 hasBetterBlockToSync
             );
@@ -268,12 +263,6 @@ public class BtcReleaseClient {
                 logger.error("[isSvpSpendTxReadyToSign] Error ocurred while checking if SVP spend tx is ready to be signed", e);
                 return false;
             }
-        }
-
-        private BtcTransaction convertToBtcTxFromRLPData(byte[] dataFromBtcReleaseTopic) {
-            RLPList dataElements = (RLPList) RLP.decode2(dataFromBtcReleaseTopic).get(0);
-
-            return new BtcTransaction(bridgeConstants.getBtcParams(), dataElements.get(1).getRLPData());
         }
 
         private BtcTransaction convertToBtcTxFromSolidityData(byte[] dataFromBtcReleaseTopic) {
@@ -466,15 +455,21 @@ public class BtcReleaseClient {
     }
 
     protected void signRelease(int signerVersion, ReleaseCreationInformation pegoutCreationInformation) {
-        final String topic = "btcrelease";
+        Keccak256 pegoutCreationRskTxHash = pegoutCreationInformation.getPegoutCreationRskTxHash();
+        BtcTransaction pegoutBtcTx = pegoutCreationInformation.getPegoutBtcTx();
+        logger.debug(
+            "[signRelease] Going to sign pegout {} created in rsk transaction {}, with HSM version {}",
+            pegoutBtcTx.getHash(),
+            pegoutCreationRskTxHash,
+            signerVersion
+        );
         try {
-            logger.debug("[signRelease] HSM signer version {}", signerVersion);
-            logger.debug("[signRelease] Going to sign pegout created in rsk transaction: {}", pegoutCreationInformation.getPegoutCreationRskTxHash());
             logger.trace("[signRelease] Enforce signer requirements");
             releaseRequirementsEnforcer.enforce(signerVersion, pegoutCreationInformation);
             co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(bridgeConstants.getBtcParams()));
             List<byte[]> signatures = new ArrayList<>();
-            for (int inputIndex = 0; inputIndex < pegoutCreationInformation.getPegoutBtcTx().getInputs().size(); inputIndex++) {
+            int inputsSize = pegoutBtcTx.getInputs().size();
+            for (int inputIndex = 0; inputIndex < inputsSize; inputIndex++) {
                 SignerMessageBuilder messageBuilder = signerMessageBuilderFactory.buildFromConfig(
                     signerVersion,
                     pegoutCreationInformation,
@@ -488,28 +483,23 @@ public class BtcReleaseClient {
                 signatures.add(sig.encodeToDER());
             }
 
-            logger.info("[signRelease] Signed pegout created in rsk transaction {}", pegoutCreationInformation.getPegoutCreationRskTxHash());
-            federatorSupport.addSignature(signatures, pegoutCreationInformation.getPegoutCreationRskTxHash().getBytes());
+            federatorSupport.addSignature(signatures, pegoutCreationRskTxHash.getBytes());
+            logger.info("[signRelease] Signed pegout created in rsk transaction {}", pegoutCreationRskTxHash);
 
-            logger.trace("[signRelease] Put pegoutCreationRskTxHash {} in the pegouts signed cache",
-                pegoutCreationInformation.getPegoutCreationRskTxHash());
-            pegoutSignedCache.putIfAbsent(
-                pegoutCreationInformation.getPegoutCreationRskTxHash());
+            pegoutSignedCache.putIfAbsent(pegoutCreationRskTxHash);
+            logger.trace("[signRelease] Put pegoutCreationRskTxHash {} in the pegouts signed cache", pegoutCreationRskTxHash);
         } catch (SignerException e) {
-            String message = String.format("Error signing pegout created in rsk transaction %s", pegoutCreationInformation.getPegoutCreationRskTxHash());
+            String message = String.format("Error signing pegout created in rsk transaction %s", pegoutCreationRskTxHash);
             logger.error(message, e);
-            panicProcessor.panic(topic, message);
         } catch (HSMClientException | SignerMessageBuilderException | ReleaseRequirementsEnforcerException e) {
             logger.error("[signRelease] {}", e.getMessage());
-            panicProcessor.panic(topic, e.getMessage());
         } catch (Exception e) {
             String message = String.format(
                 "[signRelease] There was an error trying to sign pegout created in rsk tx: %s and btc transaction: %s",
-                pegoutCreationInformation.getPegoutCreationRskTxHash(),
-                pegoutCreationInformation.getPegoutBtcTx().getHash()
+                pegoutCreationRskTxHash,
+                pegoutBtcTx.getHash()
             );
             logger.error(message, e);
-            panicProcessor.panic(topic, e.getMessage());
         }
     }
 
