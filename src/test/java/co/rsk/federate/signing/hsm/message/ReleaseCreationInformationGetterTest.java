@@ -1,6 +1,6 @@
 package co.rsk.federate.signing.hsm.message;
 
-import static co.rsk.federate.EventsTestUtils.creatRejectedPeginLog;
+import static co.rsk.federate.EventsTestUtils.createRejectedPeginLog;
 import static co.rsk.federate.EventsTestUtils.createBatchPegoutCreatedLog;
 import static co.rsk.federate.EventsTestUtils.createPegoutTransactionCreatedLog;
 import static co.rsk.federate.EventsTestUtils.createReleaseRequestedLog;
@@ -49,7 +49,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ReleaseCreationInformationGetterTest {
-
     private BtcTransaction pegoutBtcTx;
     private Transaction pegoutCreationRskTx;
     private Block pegoutCreationBlock;
@@ -102,7 +101,7 @@ class ReleaseCreationInformationGetterTest {
         throws HSMReleaseCreationInformationException {
         List<LogInfo> logs = new ArrayList<>();
 
-        ECKey senderKey = new ECKey();
+        ECKey senderKey = TestUtils.getEcKeyFromSeed("senderKey");
         RskAddress senderAddress = new RskAddress(senderKey.getAddress());
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
@@ -143,9 +142,7 @@ class ReleaseCreationInformationGetterTest {
     }
 
     @Test
-    void createGetTxInfoToSign_returnOK_SecondBlock()
-        throws HSMReleaseCreationInformationException {
-        // The event that is searched is not found in the first block but in the next block obtained.
+    void createGetTxInfoToSign_whenEventIsNotFoundInThePegoutCreationBlock_throwsAnException() {
         Keccak256 blockHash = TestUtils.createHash(3);
         Keccak256 rskTxHash = TestUtils.createHash(1);
 
@@ -214,14 +211,11 @@ class ReleaseCreationInformationGetterTest {
             receiptStore,
             blockStore
         );
-        ReleaseCreationInformation releaseCreationInformation = pegoutCreationInformation.getTxInfoToSign(
-            hsmVersion.getNumber(), rskTxHash, pegoutBtcTransaction);
 
-        assertEquals(secondBlock, releaseCreationInformation.getPegoutCreationBlock());
-        assertEquals(transactionReceiptInSecondBlock,
-            releaseCreationInformation.getTransactionReceipt());
-        assertEquals(rskTxHash, releaseCreationInformation.getPegoutCreationRskTxHash());
-        assertEquals(pegoutBtcTransaction, releaseCreationInformation.getPegoutBtcTx());
+        assertThrows(
+            HSMReleaseCreationInformationException.class,
+            () -> pegoutCreationInformation.getTxInfoToSign(hsmVersion.getNumber(), rskTxHash, pegoutBtcTransaction)
+        );
     }
 
     @Test
@@ -362,7 +356,7 @@ class ReleaseCreationInformationGetterTest {
             pegoutRequestRskTxHashes);
         logs.add(batchPegoutCreatedLog);
 
-        ECKey senderKey = new ECKey();
+        ECKey senderKey = TestUtils.getEcKeyFromSeed("senderKey");
         RskAddress senderAddress = new RskAddress(senderKey.getAddress());
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
@@ -405,7 +399,7 @@ class ReleaseCreationInformationGetterTest {
 
         List<LogInfo> logs = new ArrayList<>();
 
-        ECKey senderKey = new ECKey();
+        ECKey senderKey = TestUtils.getEcKeyFromSeed("senderKey");
         RskAddress senderAddress = new RskAddress(senderKey.getAddress());
         LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
         logs.add(updateCollectionsLog);
@@ -452,7 +446,7 @@ class ReleaseCreationInformationGetterTest {
 
         addCommonPegoutLogs(logs, pegoutBtcTx, serializedOutpointValues);
 
-        LogInfo rejectedPeginLog = creatRejectedPeginLog(pegoutBtcTx.getHash(),
+        LogInfo rejectedPeginLog = createRejectedPeginLog(pegoutBtcTx.getHash(),
             RejectedPeginReason.LEGACY_PEGIN_MULTISIG_SENDER);
         logs.add(rejectedPeginLog);
 

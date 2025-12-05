@@ -13,12 +13,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import co.rsk.bitcoinj.core.*;
-import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.EventsTestUtils;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
 import co.rsk.federate.rpc.*;
 import co.rsk.federate.signing.KeyId;
 import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
+import co.rsk.federate.signing.PowPegNodeKeyId;
 import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
@@ -49,24 +50,19 @@ import org.junit.jupiter.params.provider.MethodSource;
 class PowHSMSigningClientBtcTest {
     private static final BridgeConstants bridgeMainnetConstants = BridgeMainNetConstants.getInstance();
     private static final NetworkParameters btcMainnetParams = bridgeMainnetConstants.getBtcParams();
-
-    private static final Federation newFederation = TestUtils.createStandardMultisigFederation(
+    private static final Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
         bridgeMainnetConstants.getBtcParams(),
-        9
+        20
     );
-    private static final Federation oldFederation = TestUtils.createStandardMultisigFederation(
+    private static final Federation newFederation = TestUtils.createP2shP2wshErpFederation(
         bridgeMainnetConstants.getBtcParams(),
-        5
-    );
-    private static final Federation oldSegwitFederation = TestUtils.createP2shP2wshErpFederation(
-        bridgeMainnetConstants.getBtcParams(),
-        5
+        19
     );
 
     private static final HSMSignature expectedSignature = createMockSignature();
 
     private final ECKey signerPk = ECKey.fromPrivate(Hex.decode("fa01"));
-    private final KeyId signerBtcKeyId = new KeyId("BTC");
+    private final KeyId signerBtcKeyId = PowPegNodeKeyId.BTC.getKeyId();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private JsonRpcClient jsonRpcClientMock;
@@ -77,7 +73,6 @@ class PowHSMSigningClientBtcTest {
     private Block pegoutCreationBlock;
     private TransactionReceipt pegoutCreationRskTxReceipt;
 
-    private Transaction pegoutConfirmationRskTx;
     private ReceiptStore receiptStore;
 
     private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
@@ -88,12 +83,6 @@ class PowHSMSigningClientBtcTest {
         pegoutCreationRskTx = mock(Transaction.class);
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
-
-        Keccak256 pegoutConfirmationRskTxHash = TestUtils.createHash(3);
-        pegoutConfirmationRskTx = mock(Transaction.class);
-        when(pegoutConfirmationRskTx.getHash()).thenReturn(pegoutConfirmationRskTxHash);
-        when(pegoutConfirmationRskTx.getReceiveAddress()).thenReturn(
-            PrecompiledContracts.BRIDGE_ADDR);
 
         pegoutCreationBlock = createBlock(Collections.singletonList(pegoutCreationRskTx));
 
@@ -239,43 +228,6 @@ class PowHSMSigningClientBtcTest {
     }
 
     @ParameterizedTest
-    @MethodSource("legacyPegoutArgProvider")
-    void sign_whenBatchPegoutHasNotPegoutTransactionCreatedEvent_returnsOk(List<Coin> expectedOutpointValues)
-        throws JsonRpcException, SignerMessageBuilderException, HSMClientException {
-        // arrange
-        BtcTransaction pegoutBtcTx = createPegout(
-            btcMainnetParams,
-            oldFederation,
-            expectedOutpointValues,
-            createDestinationAddresses(expectedOutpointValues.size())
-        );
-
-        List<LogInfo> logs = new ArrayList<>();
-        addCommonPegoutLogs(logs, pegoutBtcTx);
-
-        List<Keccak256> pegoutRequestRskTxHashes = Collections.singletonList(
-            TestUtils.createHash(10));
-        LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(pegoutBtcTx.getHash(),
-            pegoutRequestRskTxHashes);
-        logs.add(batchPegoutCreatedLog);
-
-        pegoutCreationRskTxReceipt.setLogInfoList(logs);
-        pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
-
-        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
-            pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutConfirmationRskTx.getHash());
-
-        client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
-
-        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
-        PowHSMSignerMessageBuilder powHSMSignerMessageBuilder = new PowHSMSignerMessageBuilder(
-            receiptStore, releaseCreationInformation, sigHashCalculator);
-
-        signAndExecuteAssertions(expectedOutpointValues, powHSMSignerMessageBuilder);
-    }
-
-    @ParameterizedTest
     @MethodSource("signArgProvider")
     void sign_whenSegwitBatchPegoutHasPegoutTransactionCreatedEvent_returnsOk(
         byte[] serializedOutpointValues,
@@ -284,30 +236,23 @@ class PowHSMSigningClientBtcTest {
         // arrange
         BtcTransaction pegoutBtcTx = createPegout(
             btcMainnetParams,
-            oldSegwitFederation,
+            activeFederation,
             expectedOutpointValues,
             createDestinationAddresses(expectedOutpointValues.size())
         );
 
-        List<LogInfo> logs = new ArrayList<>();
-        addCommonPegoutLogs(logs, pegoutBtcTx);
-
-        List<Keccak256> pegoutRequestRskTxHashes = Collections.singletonList(
-            TestUtils.createHash(10));
-        LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(pegoutBtcTx.getHash(),
-            pegoutRequestRskTxHashes);
-        logs.add(batchPegoutCreatedLog);
-
-        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
-            pegoutBtcTx.getHash(), serializedOutpointValues);
-        logs.add(pegoutTransactionCreatedLog);
+        List<LogInfo> logs = EventsTestUtils.createCommonPegoutLogs(
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            serializedOutpointValues
+        );
 
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
             pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutConfirmationRskTx.getHash());
+            pegoutBtcTx);
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
 
@@ -328,25 +273,22 @@ class PowHSMSigningClientBtcTest {
         // arrange
         BtcTransaction pegoutBtcTx = createPegout(
             btcMainnetParams,
-            oldSegwitFederation,
+            activeFederation,
             expectedOutpointValues,
             Collections.singletonList(newFederation.getAddress())
         );
 
-        List<LogInfo> logs = new ArrayList<>();
-
-        addCommonPegoutLogs(logs, pegoutBtcTx);
-
-        LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(
-            pegoutBtcTx.getHash(), serializedOutpointValues);
-        logs.add(pegoutTransactionCreatedLog);
-
+        List<LogInfo> logs = createCommonPegoutLogs(
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            serializedOutpointValues
+        );
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
             pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx, pegoutConfirmationRskTx.getHash());
+            pegoutBtcTx);
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
 
@@ -366,15 +308,6 @@ class PowHSMSigningClientBtcTest {
         return hsmSignature;
     }
 
-    private static List<Arguments> legacyPegoutArgProvider() {
-        List<Arguments> arguments = new ArrayList<>();
-        // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
-        arguments.add(Arguments.of(coinListOf(50_000_000)));
-        arguments.add(Arguments.of(coinListOf(75_000_000)));
-        arguments.add(Arguments.of(coinListOf(50_000_000, 75_000_000, 100_000_000)));
-        return arguments;
-    }
-
     private static List<Arguments> signArgProvider() {
         List<Arguments> arguments = new ArrayList<>();
         // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
@@ -385,18 +318,6 @@ class PowHSMSigningClientBtcTest {
             coinListOf(50_000_000, 75_000_000, 100_000_000)
         ));
         return arguments;
-    }
-
-    private void addCommonPegoutLogs(List<LogInfo> logs, BtcTransaction pegoutBtcTx) {
-        ECKey senderKey = new ECKey();
-        RskAddress senderAddress = new RskAddress(senderKey.getAddress());
-        LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
-        logs.add(updateCollectionsLog);
-
-        Coin pegoutAmount = mock(Coin.class);
-        LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTx.getHash(),
-            pegoutBtcTx.getHash(), pegoutAmount);
-        logs.add(releaseRequestedLog);
     }
 
     private List<Address> createDestinationAddresses(int numberOfAddresses) {

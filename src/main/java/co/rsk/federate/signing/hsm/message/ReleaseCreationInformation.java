@@ -19,14 +19,13 @@ public class ReleaseCreationInformation {
     private final TransactionReceipt transactionReceipt;
     private final Keccak256 pegoutCreationRskTxHash;
     private final BtcTransaction pegoutBtcTx;
-    private final Keccak256 pegoutConfirmationRskTxHash;
     private final List<Coin> utxoOutpointValues;
 
     /**
-     * @param pegoutCreationBlock     The rsk block where pegout was created
-     * @param transactionReceipt      The rsk transaction receipt where pegout was created
-     * @param pegoutCreationRskTxHash The rsk transaction hash where the pegout was created
-     * @param pegoutBtcTx             The BTC transaction to sign
+     * @param pegoutCreationBlock         The rsk block where the pegout was created
+     * @param transactionReceipt          The rsk transaction receipt where the pegout was created
+     * @param pegoutCreationRskTxHash     The rsk transaction hash where the pegout was created
+     * @param pegoutBtcTx                 The BTC transaction to sign
      **/
     public ReleaseCreationInformation(
         Block pegoutCreationBlock,
@@ -34,30 +33,10 @@ public class ReleaseCreationInformation {
         Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx
     ) {
-        this(pegoutCreationBlock, transactionReceipt, pegoutCreationRskTxHash, pegoutBtcTx,
-            pegoutCreationRskTxHash);
-    }
-
-    /**
-     * @param pegoutCreationBlock         The rsk block where the pegout was created
-     * @param transactionReceipt          The rsk transaction receipt where the pegout was created
-     * @param pegoutCreationRskTxHash     The rsk transaction hash where the pegout was created
-     * @param pegoutBtcTx                 The BTC transaction to sign
-     * @param pegoutConfirmationRskTxHash The rsk transaction hash where the pegout was confirmed to
-     *                                    be signed
-     **/
-    public ReleaseCreationInformation(
-        Block pegoutCreationBlock,
-        TransactionReceipt transactionReceipt,
-        Keccak256 pegoutCreationRskTxHash,
-        BtcTransaction pegoutBtcTx,
-        Keccak256 pegoutConfirmationRskTxHash
-    ) {
         this.pegoutCreationBlock = pegoutCreationBlock;
         this.transactionReceipt = transactionReceipt;
         this.pegoutCreationRskTxHash = pegoutCreationRskTxHash;
         this.pegoutBtcTx = pegoutBtcTx;
-        this.pegoutConfirmationRskTxHash = pegoutConfirmationRskTxHash;
 
         this.utxoOutpointValues = decodeUtxoOutpointValues();
     }
@@ -104,10 +83,6 @@ public class ReleaseCreationInformation {
      **/
     public Keccak256 getPegoutCreationRskTxHash() {
         return pegoutCreationRskTxHash;
-    }
-
-    public Keccak256 getPegoutConfirmationRskTxHash() {
-        return pegoutConfirmationRskTxHash;
     }
 
     public BtcTransaction getPegoutBtcTx() {
