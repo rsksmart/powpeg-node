@@ -29,8 +29,6 @@ import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
 import co.rsk.federate.bitcoin.Kit;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
-import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageAccessor;
-import co.rsk.federate.btcreleaseclient.BtcReleaseClientStorageSynchronizer;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.signing.config.SignerType;
@@ -68,10 +66,6 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
-
-/**
- * Created by mario on 31/03/17.
- */
 
 public class FedNodeRunner implements NodeRunner {
     private static final Logger logger = LoggerFactory.getLogger(FedNodeRunner.class);
@@ -320,10 +314,8 @@ public class FedNodeRunner implements NodeRunner {
                 hsmBookkeepingService.start();
             }
             federateLogger.log();
-            BtcReleaseClientStorageAccessor btcReleaseClientStorageAccessor = new BtcReleaseClientStorageAccessor(config);
             btcReleaseClient.setup(
                 signer,
-                config.getActivationConfig(),
                 new SignerMessageBuilderFactory(
                     fedNodeContext.getReceiptStore()
                 ),
@@ -336,14 +328,6 @@ public class FedNodeRunner implements NodeRunner {
                         fedNodeContext.getBlockStore(),
                         hsmBookkeepingClient
                     )
-                ),
-                btcReleaseClientStorageAccessor,
-                new BtcReleaseClientStorageSynchronizer(
-                    fedNodeContext.getBlockStore(),
-                    fedNodeContext.getReceiptStore(),
-                    fedNodeContext.getNodeBlockProcessor(),
-                    btcReleaseClientStorageAccessor,
-                    config.getBtcReleaseClientInitializationMaxDepth()
                 )
             );
             

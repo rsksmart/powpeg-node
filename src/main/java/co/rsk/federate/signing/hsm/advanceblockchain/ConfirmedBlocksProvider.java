@@ -101,10 +101,6 @@ public class ConfirmedBlocksProvider {
         );
 
         BigInteger blockTotalDifficulty = block.getDifficulty().asBigInteger();
-        if (!hsmVersion.considersUnclesDifficulty()) {
-            logger.trace("[getBlockDifficultyToConsider] Considering block total difficulty {}", blockTotalDifficulty);
-            return blockTotalDifficulty;
-        }
 
         BigInteger blockDifficultyToConsider = difficultyCap.min(blockTotalDifficulty);
         BigInteger unclesDifficultyToConsider = block.getUncleList().stream()

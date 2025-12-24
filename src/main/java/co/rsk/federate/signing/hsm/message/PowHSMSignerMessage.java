@@ -86,19 +86,17 @@ public class PowHSMSignerMessage extends SignerMessage {
         return sigHash;
     }
 
-    public JsonNode getMessageToSign(HSMVersion version) {
+    public JsonNode getMessageToSign() {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
         // The hsm expects the transaction without any witness data
         BtcTransaction txWithoutWitness = BitcoinUtils.getTransactionWithoutWitness(btcTransaction);
         byte[] serializedTx = txWithoutWitness.bitcoinSerialize();
         messageToSend.put(TX.getFieldName(), Hex.toHexString(serializedTx));
         messageToSend.put(INPUT.getFieldName(), inputIndex);
-        if (version.supportsSegwit()) {
-            if (hasWitness()) {
-                populateWithSegwitValues(messageToSend);
-            } else {
-                populateWithLegacyValues(messageToSend);
-            }
+        if (hasWitness()) {
+            populateWithSegwitValues(messageToSend);
+        } else {
+            populateWithLegacyValues(messageToSend);
         }
         return messageToSend;
     }

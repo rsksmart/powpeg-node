@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
-import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.trie.Trie;
@@ -35,9 +34,6 @@ import java.util.*;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.TransactionReceipt;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 class PowHSMSignerMessageTest {
     private static final String SIGHASH_LEGACY_MODE = "legacy";
@@ -140,44 +136,26 @@ class PowHSMSignerMessageTest {
         assertEquals(sigHash, message.getSigHash());
     }
 
-    @ParameterizedTest
-    @MethodSource("getMessageToSignLegacyArgProvider")
-    void getMessageToSign_whenSighashLegacyMode_ok(HSMVersion version, JsonNode expectedMessageToSend) {
+    @Test
+    void getMessageToSign_whenSighashLegacyMode_ok() {
         // arrange
-        Sha256Hash sigHash = BitcoinTestUtils.createHash(1);
+        ObjectNode expectedMessageToSend = new ObjectMapper().createObjectNode();
+        expectedMessageToSend.put(TX.getFieldName(), ENCODED_PEGOUT_BTC_TX);
+        expectedMessageToSend.put(INPUT.getFieldName(), FIRST_INPUT_INDEX);
+        expectedMessageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_LEGACY_MODE);
 
         BtcTransaction pegoutBtcTx = new BtcTransaction(btcMainnetParams,
             Hex.decode(ENCODED_PEGOUT_BTC_TX));
+        Sha256Hash sigHash = BitcoinTestUtils.createHash(1);
         PowHSMSignerMessage powHSMSignerMessage = new PowHSMSignerMessage(pegoutBtcTx,
             FIRST_INPUT_INDEX, txReceipt, receiptMerkleProof, sigHash,
             noOutpointValuesForLegacyPegouts);
 
         // act
-        JsonNode actualMessageToSign = powHSMSignerMessage.getMessageToSign(version);
+        JsonNode actualMessageToSign = powHSMSignerMessage.getMessageToSign();
 
         // assertions
         Assertions.assertEquals(expectedMessageToSend, actualMessageToSign);
-    }
-
-    private static List<Arguments> getMessageToSignLegacyArgProvider() {
-        String expectedEncodedPegoutBtcTx = ENCODED_PEGOUT_BTC_TX;
-
-        ObjectNode expectedMessageBeforeVersion5 = new ObjectMapper().createObjectNode();
-        expectedMessageBeforeVersion5.put(TX.getFieldName(), expectedEncodedPegoutBtcTx);
-        expectedMessageBeforeVersion5.put(INPUT.getFieldName(), FIRST_INPUT_INDEX);
-
-        List<Arguments> arguments = new ArrayList<>();
-
-        arguments.add(Arguments.of(HSMVersion.V2, expectedMessageBeforeVersion5));
-        arguments.add(Arguments.of(HSMVersion.V4, expectedMessageBeforeVersion5));
-
-        ObjectNode expectedMessageVersion5 = new ObjectMapper().createObjectNode();
-        expectedMessageVersion5.put(TX.getFieldName(), expectedEncodedPegoutBtcTx);
-        expectedMessageVersion5.put(INPUT.getFieldName(), FIRST_INPUT_INDEX);
-        expectedMessageVersion5.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_LEGACY_MODE);
-        arguments.add(Arguments.of(HSMVersion.V5, expectedMessageVersion5));
-
-        return arguments;
     }
 
     @Test
@@ -208,7 +186,7 @@ class PowHSMSignerMessageTest {
             outpointValues
         );
 
-        JsonNode firstMessageToSign = firstPowHSMSignerMessage.getMessageToSign(HSMVersion.V5);
+        JsonNode firstMessageToSign = firstPowHSMSignerMessage.getMessageToSign();
 
         // assert
         String rawOriginalWitnessScript = "645221020b1d25b03d041028326ac5b27af941524c31bf09df5fece7476d3940f9cd23942102501878fb22fdf374921d168bb1ea02b324f00eb2c7610cb452167a9dcdab016421034ba6ec42eab139697c3614653e130e76fc15d1d7e5c91b3df63d3c06195d422653ae6702f401b2755321029cecea902067992d52c38b28bf0bb2345bda9b21eca76b16a17c477a64e433012103284178e5fbcc63c54c3b38e3ef88adf2da6c526313650041b0ef955763634ebd2103776b1fd8f86da3c1db3d69699e8250a15877d286734ea9a6da8e9d8ad25d16c12103ab0e2cd7ed158687fc13b88019990860cdb72b1f5777b58513312550ea1584bc2103b9fc46657cf72a1afa007ecf431de1cd27ff5cc8829fa625b66ca47b967e6b2455ae68";
@@ -232,7 +210,7 @@ class PowHSMSignerMessageTest {
             outpointValues
         );
 
-        JsonNode secondMessageToSign = secondPowHSMSignerMessage.getMessageToSign(HSMVersion.V5);
+        JsonNode secondMessageToSign = secondPowHSMSignerMessage.getMessageToSign();
 
         // assert
         String pushData = "20"; // 32 in hexa

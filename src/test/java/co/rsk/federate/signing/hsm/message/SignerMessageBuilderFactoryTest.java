@@ -1,8 +1,7 @@
 package co.rsk.federate.signing.hsm.message;
 
-import static co.rsk.federate.signing.utils.TestUtils.createHash;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -12,6 +11,8 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
+import co.rsk.federate.signing.hsm.HSMVersion;
+import co.rsk.federate.signing.utils.TestUtils;
 import java.util.Collections;
 
 import co.rsk.peg.constants.BridgeMainNetConstants;
@@ -28,6 +29,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class SignerMessageBuilderFactoryTest {
 
     private SignerMessageBuilderFactory factory;
+    private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
 
     @BeforeEach
     void createFactory() {
@@ -52,25 +54,17 @@ class SignerMessageBuilderFactoryTest {
         ReleaseCreationInformation releaseCreationInformation = mock(ReleaseCreationInformation.class);
         when(releaseCreationInformation.getPegoutBtcTx()).thenReturn(tx);
 
-        SignerMessageBuilder sigMessVersion1 = factory.buildFromConfig(
+        SignerMessageBuilder signerMessageVersion1 = factory.buildFromConfig(
             1,
             releaseCreationInformation,
             0
         );
-        assertTrue(sigMessVersion1 instanceof SignerMessageBuilderV1);
+        assertInstanceOf(SignerMessageBuilderV1.class, signerMessageVersion1);
     }
 
     @Test
-    void buildFromConfig_hsm_2_ok() throws HSMClientException {
-        test_buildFromConfig_hsm(2);
-    }
-
-    @Test
-    void buildFromConfig_hsm_4_ok() throws HSMClientException {
-        test_buildFromConfig_hsm(4);
-    }
-
-    void test_buildFromConfig_hsm(int version) throws HSMUnsupportedVersionException {
+    void buildFromConfig_ok() throws HSMClientException {
+        int version = hsmVersion.getNumber();
         BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
         Block block = new Block(
             blockHeaderBuilder.setNumber(1).build(),
@@ -89,11 +83,10 @@ class SignerMessageBuilderFactoryTest {
                 block,
                 mock(TransactionReceipt.class),
                 Keccak256.ZERO_HASH,
-                tx,
-                createHash(1)
+                tx
             ),
             0
         );
-        assertTrue(messageBuilder instanceof PowHSMSignerMessageBuilder);
+        assertInstanceOf(PowHSMSignerMessageBuilder.class, messageBuilder);
     }
 }

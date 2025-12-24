@@ -14,6 +14,7 @@ import co.rsk.federate.rpc.JsonRpcException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
+import co.rsk.federate.signing.utils.TestUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bouncycastle.util.encoders.Hex;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 class PowHSMSigningClientRskMstTest {
     private JsonRpcClient jsonRpcClientMock;
     private PowHSMSigningClient client;
+    private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
 
     @BeforeEach
     void createClient() throws JsonRpcException {
@@ -33,7 +35,7 @@ class PowHSMSigningClientRskMstTest {
             MAX_ATTEMPTS.getDefaultValue(Integer::parseInt),
             INTERVAL_BETWEEN_ATTEMPTS.getDefaultValue(Integer::parseInt)
         );
-        client = new PowHSMSigningClientRskMst(hsmClientProtocol, HSMVersion.V2);
+        client = new PowHSMSigningClientRskMst(hsmClientProtocol, hsmVersion);
         when(jsonRpcClientProviderMock.acquire()).thenReturn(jsonRpcClientMock);
     }
 
@@ -162,7 +164,7 @@ class PowHSMSigningClientRskMstTest {
     private ObjectNode buildGetPublicKeyRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), GET_PUB_KEY.getCommand());
-        request.put(VERSION.getFieldName(), HSMVersion.V2.getNumber());
+        request.put(VERSION.getFieldName(), hsmVersion.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         return request;
@@ -171,7 +173,7 @@ class PowHSMSigningClientRskMstTest {
     private ObjectNode buildSignRequest() {
         ObjectNode request = new ObjectMapper().createObjectNode();
         request.put(COMMAND.getFieldName(), SIGN.getCommand());
-        request.put(VERSION.getFieldName(), HSMVersion.V2.getNumber());
+        request.put(VERSION.getFieldName(), hsmVersion.getNumber());
         request.put(KEY_ID.getFieldName(), "a-key-id");
 
         ObjectNode message = new ObjectMapper().createObjectNode();
