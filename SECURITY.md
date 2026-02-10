@@ -8,24 +8,12 @@ For all security related issues, RootstockLabs has two main points of contact. R
 
 **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/rsksmart/powpeg-node/issues).
 
-## Vulnerability Handling
+## Disclosure Policy
 
-### Response Time
+- Follow Immunefi's [disclosure guidelines](https://immunefi.com/responsible-publication/).
+- Public disclosure of a vulnerability makes it ineligible for a bounty. If the user reports the vulnerability to other security teams (e.g. Ethereum or ETC) but reports to RootstockLabs with considerable delay, then RootstockLabs may reduce or cancel the bounty.
 
-RootstockLabs will make a best effort to meet the following response times for reported vulnerabilities:
-
-* Time to first response (from report submit) - 5 business days
-* Time to triage (from report submit) - 7 business days
-* Time to bounty (from triage) - 15 business days
-
-We’ll try to keep you informed about our progress throughout the process.
-
-### Disclouse Policy
-
-* Follow HackerOne's [disclosure guidelines](https://www.hackerone.com/disclosure-guidelines).
-* Public disclosure of a vulnerability makes it ineligible for a bounty. If the user reports the vulnerability to other security teams (e.g. Ethereum or ETC) but reports to RootstockLabs with considerable delay, then RootstockLabs may reduce or cancel the bounty.
-
-For more information check RootstockLabs bounty program policy at [HackerOne](https://hackerone.com/rootstocklabs)
+For more information, check RootstockLabs bounty program policy at [Immunefi](https://immunefi.com/bug-bounty/rootstocklabs/information)
 
 ## Public Keys
 
