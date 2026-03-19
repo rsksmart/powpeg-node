@@ -1746,55 +1746,6 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void updateTransactionWithSenderUnknown_after_rskip170() throws Exception {
-        SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        Set<Transaction> txs = new HashSet<>();
-        txs.add(tx);
-
-        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
-        bitcoinWrapper.setTransactions(txs);
-
-        Block block = createBlock(tx);
-        Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(block.getHash(), 1);
-        tx.setAppearsInHashes(appears);
-
-        StoredBlock[] blocks = createBlockchain(4);
-        blocks[4] = new StoredBlock(block, null, 4); // Replace the last block with the one containing the transaction
-        bitcoinWrapper.setBlocks(blocks);
-
-        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
-        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.UNKNOWN);
-
-        ActivationConfig activationsConfig = mock(ActivationConfig.class);
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
-        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
-        doReturn(true).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
-
-        BtcToRskClient client = btcToRskClientBuilder
-            .withActivationConfig(activationsConfig)
-            .withBitcoinWrapper(bitcoinWrapper)
-            .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(bridgeRegTestConstants)
-            .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(activeFederation)
-            .build();
-
-        client.onTransaction(tx);
-        client.onBlock(block);
-
-        client.updateBridgeBtcTransactions();
-
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
-            federatorSupport.getTxsSentToRegisterBtcTransaction();
-
-        assertNotNull(txsSentToRegisterBtcTransaction);
-        assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
-    }
-
-    @Test
     void updateTransaction_peginInformationParsingFails_withoutSenderAddress() throws Exception {
         SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
         Set<Transaction> txs = new HashSet<>();
@@ -2129,6 +2080,20 @@ class BtcToRskClientTest {
             // assert
             assertTxNotSentToBridge();
         }
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2wpkh_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFed(peginBtcTx, federationAddress);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
 
         @Test
         void updateBridgeBtcTransactions_legacyPeginFromP2shP2wpkh_shouldBeInformed() throws Exception {
@@ -2210,6 +2175,21 @@ class BtcToRskClientTest {
             // arrange
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2wshMultiSig_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
