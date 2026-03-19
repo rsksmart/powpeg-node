@@ -1,5 +1,6 @@
 package co.rsk.federate;
 
+import static co.rsk.peg.bitcoin.BitcoinUtils.createBaseInputScriptThatSpendsFromRedeemScript;
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -12,9 +13,9 @@ import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.script.ScriptOpCodes;
 import co.rsk.cli.CliArgs;
 import co.rsk.config.*;
+import co.rsk.core.RskAddress;
 import co.rsk.federate.adapter.ThinConverter;
-import co.rsk.federate.bitcoin.BitcoinWrapper;
-import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
+import co.rsk.federate.bitcoin.*;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.io.*;
 import co.rsk.federate.mock.*;
@@ -31,18 +32,25 @@ import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.collect.Lists;
+
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
+import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
+import org.bitcoinj.wallet.Wallet;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig.ForBlock;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
+import org.ethereum.crypto.HashUtil;
 import org.ethereum.util.ByteUtil;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.internal.util.MockUtil;
 import org.spongycastle.util.encoders.Hex;
 
@@ -79,6 +87,8 @@ class BtcToRskClientTest {
         activeFederation = TestUtils.createStandardMultisigFederation(bridgeRegTestConstants.getBtcParams(), federationPrivateKeys);
         activeFederationMember = FederationMember.getFederationMemberFromKey(federationPrivateKeys.get(0));
         btcToRskClientBuilder = BtcToRskClientBuilder.builder();
+
+        co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(bridgeRegTestConstants.getBtcParams()));
     }
 
     @Test
@@ -1642,59 +1652,6 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void updateTransactionWithMultisig_before_rskip143() throws Exception {
-        SimpleBtcTransaction tx = (SimpleBtcTransaction)createTransaction();
-        Set<Transaction> txs = new HashSet<>();
-        txs.add(tx);
-
-        StoredBlock[] blocks = createBlockchain(4);
-        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
-
-        Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blockWithTx.getHash(), 1);
-        tx.setAppearsInHashes(appears);
-
-        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
-        bitcoinWrapper.setTransactions(txs);
-        bitcoinWrapper.setBlocks(blocks);
-
-        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
-
-        ActivationConfig activationsConfig = mock(ActivationConfig.class);
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
-        doReturn(false).when(activations).isActive(ConsensusRule.RSKIP143);
-
-        int amountOfHeadersToSend = 100;
-        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHMULTISIG);
-
-        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
-        when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
-
-        BtcToRskClient client = btcToRskClientBuilder
-            .withActivationConfig(activationsConfig)
-            .withBitcoinWrapper(bitcoinWrapper)
-            .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(bridgeRegTestConstants)
-            .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(activeFederation)
-            .withFedNodeSystemProperties(config)
-            .build();
-
-        client.onTransaction(tx);
-        client.onBlock(blockWithTx);
-
-        client.updateBridgeBtcTransactions();
-
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
-            federatorSupport.getTxsSentToRegisterBtcTransaction();
-
-        assertNotNull(txsSentToRegisterBtcTransaction);
-        assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
-    }
-
-    @Test
     void updateTransaction_with_release_before_rskip143() throws Exception {
         co.rsk.bitcoinj.core.NetworkParameters params = RegTestParams.get();
         co.rsk.bitcoinj.core.Address randomAddress =
@@ -1786,113 +1743,6 @@ class BtcToRskClientTest {
         assertNotNull(txsSentToRegisterBtcTransaction);
         assertFalse(txsSentToRegisterBtcTransaction.isEmpty());
         assertEquals(releaseTx.getTxId(), txsSentToRegisterBtcTransaction.get(0).tx.getTxId());
-    }
-
-    @Test
-    void updateTransactionWithSegwitCompatible_before_rskip143() throws Exception {
-        SimpleBtcTransaction tx = (SimpleBtcTransaction) createSegwitTransaction();
-        Set<Transaction> txs = new HashSet<>();
-        txs.add(tx);
-
-        StoredBlock[] blocks = createBlockchain(4);
-        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
-
-        Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blockWithTx.getHash(), 1);
-        tx.setAppearsInHashes(appears);
-
-        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
-        bitcoinWrapper.setTransactions(txs);
-        bitcoinWrapper.setBlocks(blocks);
-
-        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
-
-        ActivationConfig activationsConfig = mock(ActivationConfig.class);
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
-        doReturn(false).when(activations).isActive(ConsensusRule.RSKIP143);
-
-        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2SHP2WPKH);
-        int amountOfHeadersToSend = 100;
-
-        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
-        when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
-
-        BtcToRskClient client = btcToRskClientBuilder
-            .withActivationConfig(activationsConfig)
-            .withBitcoinWrapper(bitcoinWrapper)
-            .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(bridgeRegTestConstants)
-            .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(activeFederation)
-            .withFedNodeSystemProperties(config)
-            .build();
-
-        client.onTransaction(tx);
-        client.onBlock(blockWithTx);
-
-        client.updateBridgeBtcTransactions();
-
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
-            federatorSupport.getTxsSentToRegisterBtcTransaction();
-
-        assertNotNull(txsSentToRegisterBtcTransaction);
-        assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
-    }
-
-    @Test
-    void updateTransactionWithSenderUnknown_before_rskip170() throws Exception {
-        SimpleBtcTransaction tx = (SimpleBtcTransaction) createTransaction();
-        Set<Transaction> txs = new HashSet<>();
-        txs.add(tx);
-
-        StoredBlock[] blocks = createBlockchain(4);
-        Block blockWithTx = createBlock(blocks[3].getHeader().getHash(), tx);
-
-        Map<Sha256Hash, Integer> appears = new HashMap<>();
-        appears.put(blockWithTx.getHash(), 1);
-        tx.setAppearsInHashes(appears);
-
-        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
-        bitcoinWrapper.setTransactions(txs);
-        bitcoinWrapper.setBlocks(blocks);
-
-        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
-
-        ActivationConfig activationsConfig = mock(ActivationConfig.class);
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
-        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
-        doReturn(false).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
-
-        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.UNKNOWN);
-        int amountOfHeadersToSend = 100;
-
-        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
-        when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
-
-        BtcToRskClient client = btcToRskClientBuilder
-            .withActivationConfig(activationsConfig)
-            .withBitcoinWrapper(bitcoinWrapper)
-            .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(bridgeRegTestConstants)
-            .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(activeFederation)
-            .withFedNodeSystemProperties(config)
-            .build();
-
-        client.onTransaction(tx);
-        client.onBlock(blockWithTx);
-
-        client.updateBridgeBtcTransactions();
-
-        List<SimpleFederatorSupport.TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction =
-            federatorSupport.getTxsSentToRegisterBtcTransaction();
-
-        assertNotNull(txsSentToRegisterBtcTransaction);
-        assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
     @Test
@@ -2143,6 +1993,1567 @@ class BtcToRskClientTest {
 
         assertNotNull(txsSentToRegisterBtcTransaction);
         assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
+    }
+
+    @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    class NewTests {
+        private final BridgeConstants BRIDGE_MAINNET_CONSTANTS = BridgeMainNetConstants.getInstance();
+        private final co.rsk.bitcoinj.core.NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
+        private final String MAINNET_BTC_PARAMS_STRING = BRIDGE_MAINNET_CONSTANTS.getBtcParamsString();
+        private final NetworkParameters MAINNET_PARAMS = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING);
+        private final Context MAINNET_CONTEXT = new Context(MAINNET_PARAMS);
+
+        private final co.rsk.bitcoinj.core.Coin MINIMUM_PEGIN_TX_VALUE = co.rsk.bitcoinj.core.Coin.valueOf(500_000);
+
+        private final int PREV_BLOCK_HEIGHT = 3;
+
+        // peginV1-related fields
+        private final int V1_PROTOCOL_VERSION = 1;
+        private final int UNKNOWN_PROTOCOL_VERSION = 2;
+
+        private final int RSK_PREFIX_LENGTH = 4;
+        private final byte[] RSK_PREFIX = org.bouncycastle.util.encoders.Hex.decode("52534b54"); // 'RSKT' in hexa
+        private final int PROTOCOL_VERSION_LENGTH = 1;
+        private final int RSK_DESTINATION_ADDRESS_LENGTH = 20;
+
+        private final int PAYLOAD_WITH_REFUND_ADDRESS_LENGTH = 46;
+        private final int INVALID_PAYLOAD_LENGTH = PAYLOAD_WITH_REFUND_ADDRESS_LENGTH + 1;
+
+        private final BtcECKey SENDER_PUBLIC_KEY = BitcoinTestUtils.getBtcEcKeyFromSeed("sender");
+        private final RskAddress DESTINATION_ADDRESS = new RskAddress(org.ethereum.crypto.ECKey.fromPublicOnly(SENDER_PUBLIC_KEY.getPubKey()).getAddress());
+
+        private final List<BtcECKey> MULTISIG_KEYS = Arrays.asList(
+            BitcoinTestUtils.getBtcEcKeyFromSeed("key1"),
+            BitcoinTestUtils.getBtcEcKeyFromSeed("key2"),
+            BitcoinTestUtils.getBtcEcKeyFromSeed("key3")
+        );
+        private final co.rsk.bitcoinj.script.Script MULTISIG_REDEEM_SCRIPT = ScriptBuilder.createRedeemScript(2, MULTISIG_KEYS);
+
+        private final Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
+        private final co.rsk.bitcoinj.core.Address federationAddress = federation.getAddress();
+
+        @TempDir
+        private Path tempDir;
+        private BtcToRskClientFileStorage btcToRskClientFileStorage;
+
+        private BtcToRskClient client;
+        private FederatorSupport federatorSupport;
+        private BtcLockSenderProvider btcLockSenderProvider;
+        private PeginInstructionsProvider peginInstructionsProvider;
+
+        @BeforeEach
+        void setUp() {
+            co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(MAINNET_BTC_PARAMS));
+
+            ForBlock activations = mock(ForBlock.class);
+            when(activations.isActive(any(ConsensusRule.class))).thenReturn(true);
+            when(activationConfig.forBlock(anyLong())).thenReturn(activations);
+
+            when(activationConfig.isActive(any(ConsensusRule.class), anyLong())).thenReturn(true);
+
+            federatorSupport = mock(FederatorSupport.class);
+            when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
+
+            btcLockSenderProvider = new BtcLockSenderProvider();
+            peginInstructionsProvider = new PeginInstructionsProvider();
+
+            // using a temporary directory for testing
+            FileStorageInfo fileStorageInfo = mock(BtcToRskClientFileStorageInfo.class);
+            String pegDir = tempDir.toString();
+            String filePath = tempDir.resolve("btcToRskClient2.rlp").toString();
+            when(fileStorageInfo.getPegDirectoryPath()).thenReturn(pegDir);
+            when(fileStorageInfo.getFilePath()).thenReturn(filePath);
+            btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(fileStorageInfo);
+        }
+
+        private void setUpTx(BtcTransaction btcTx) throws Exception {
+            var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+
+            org.bitcoinj.core.TransactionConfidence confidence = tx.getConfidence();
+            confidence.setConfidenceType(org.bitcoinj.core.TransactionConfidence.ConfidenceType.BUILDING);
+            confidence.setDepthInBlocks(BRIDGE_MAINNET_CONSTANTS.getBtc2RskMinimumAcceptableConfirmations());
+
+            Set<Transaction> walletTxs = new HashSet<>();
+            walletTxs.add(tx);
+            Wallet wallet = mock(Wallet.class);
+            when(wallet.getTransactions(false)).thenReturn(walletTxs);
+
+            int CHAIN_HEIGHT = 4;
+            StoredBlock[] blocks = createBlockchain(CHAIN_HEIGHT);
+
+            Sha256Hash prevBlockHash = blocks[PREV_BLOCK_HEIGHT].getHeader().getHash();
+            Block blockWithTx = createBlockWithTx(prevBlockHash, tx);
+            tx.addBlockAppearance(blockWithTx.getHash(), 1);
+
+            KitForTests kit = new KitForTests(MAINNET_CONTEXT, mock(File.class), "", wallet);
+            kit.setStore(blocks);
+            BitcoinWrapperImpl bitcoinWrapper = new BitcoinWrapperImpl(
+                MAINNET_CONTEXT,
+                BRIDGE_MAINNET_CONSTANTS,
+                btcLockSenderProvider,
+                peginInstructionsProvider,
+                federatorSupport,
+                kit
+            );
+
+            List<PeerAddress> peerAddresses = Collections.emptyList();
+            bitcoinWrapper.setup(peerAddresses);
+            bitcoinWrapper.start();
+
+            btcToRskClientBuilder = BtcToRskClientBuilder.builder();
+            client = btcToRskClientBuilder
+                .withBitcoinWrapper(bitcoinWrapper)
+                .withFederatorSupport(federatorSupport)
+                .withFederation(federation)
+                .withBridgeConstants(BRIDGE_MAINNET_CONSTANTS)
+                .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
+                .withBtcLockSenderProvider(btcLockSenderProvider)
+                .withPeginInstructionsProvider(peginInstructionsProvider)
+                .withActivationConfig(activationConfig)
+                .build();
+            bitcoinWrapper.addFederationListener(federation, client);
+
+            client.onTransaction(tx);
+            client.onBlock(blockWithTx);
+        }
+
+        // the tests will be set in this order:
+        // legacy pay-to-pub-key: p2pkh
+        // bech32 pay-to-script-pub-key: p2shP2wpkh
+        // bech32 pay-to-pub-key: p2wpkh
+        // multisig: p2sh
+        // pay-to-bech32-multisig: p2shP2wsh
+        // bech32 multisig: p2wsh
+
+        // LEGACY PEGIN
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2pkh_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2pkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wpkh_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wpkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shMultiSig_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wshMultiSig_shouldBeInformed() throws Exception {
+            // arrange
+            var peginTx = createTxFromP2shP2wshMultiSig();
+            addOutputToFed(peginTx);
+
+            setUpTx(peginTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        // PEGIN V1
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2pkh_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2pkh_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2pkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2pkh_invalidPayload_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOpReturnOutputInvalidPayload(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_invalidPayload_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutputInvalidPayload(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_invalidPayload_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_invalidPayload_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutputInvalidPayload(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_invalidPayload_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_invalidPayload_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutputInvalidPayload(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_invalidPayload_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_invalidPayload_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutputInvalidPayload(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_invalidPayload_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutput(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutputWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_invalidPayload_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutputInvalidPayload(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_invalidPayload_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        // PEGIN WITH INSTRUCTIONS - UNKNOWN PROTOCOL VERSION
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2pkh();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wpkh();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wpkh();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shMultiSig();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFed(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
+            // arrange
+            var peginBtcTx = createTxFromP2wshMultiSig();
+            addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx);
+
+            setUpTx(peginBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        // UTILITY METHODS
+        private BtcTransaction createTxFromP2pkh() {
+            var peginBtcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
+            addInputFromP2pkh(peginBtcTx);
+            return peginBtcTx;
+        }
+
+        private void addInputFromP2pkh(BtcTransaction peginBtcTx) {
+            peginBtcTx.addInput(BitcoinTestUtils.createHash(1), 0, ScriptBuilder.createInputScript(null, SENDER_PUBLIC_KEY));
+        }
+
+        private BtcTransaction createTxFromP2wpkh() {
+            var peginBtcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
+            addInputFromP2wpkh(peginBtcTx);
+            return peginBtcTx;
+        }
+
+        private void addInputFromP2wpkh(BtcTransaction btcTx) {
+            co.rsk.bitcoinj.script.Script p2wpkhOutputScript = new ScriptBuilder()
+                .smallNum(0)
+                .data(SENDER_PUBLIC_KEY.getPubKeyHash())
+                .build();
+            addInputFromBech32(btcTx, p2wpkhOutputScript);
+
+            int numSigs = 1;
+            addWitness(btcTx, numSigs, SENDER_PUBLIC_KEY.getPubKey());
+        }
+
+        private BtcTransaction createTxFromP2wshMultiSig() {
+            var peginBtcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
+            addInputFromP2wshMultiSig(peginBtcTx);
+            return peginBtcTx;
+        }
+
+        private void addInputFromP2wshMultiSig(BtcTransaction btcTx) {
+            byte[] witnessScriptHash = co.rsk.bitcoinj.core.Sha256Hash.hash(MULTISIG_REDEEM_SCRIPT.getProgram());
+            co.rsk.bitcoinj.script.Script p2wshOutputScript = new ScriptBuilder()
+                .smallNum(0)
+                .data(witnessScriptHash)
+                .build();
+            addInputFromBech32(btcTx, p2wshOutputScript);
+
+            int numSigs = 2;
+            addWitness(btcTx, numSigs, MULTISIG_REDEEM_SCRIPT.getProgram());
+        }
+
+        private void addWitness(BtcTransaction btcTx, int numSigs, byte[] lastPush) {
+            var txWit = new co.rsk.bitcoinj.core.TransactionWitness(numSigs + 1);
+            for (int i = 0; i < numSigs; i++) {
+                txWit.setPush(i, new byte[72]);
+            }
+            txWit.setPush(numSigs, lastPush);
+            btcTx.setWitness(0, txWit);
+        }
+
+        private void addInputFromBech32(BtcTransaction btcTx, co.rsk.bitcoinj.script.Script outputScript) {
+            BtcTransaction prevTx = new BtcTransaction(MAINNET_BTC_PARAMS);
+            co.rsk.bitcoinj.core.Coin prevTxValue = co.rsk.bitcoinj.core.Coin.COIN;
+            prevTx.addOutput(prevTxValue, outputScript);
+
+            co.rsk.bitcoinj.script.Script emptyScriptSig = new co.rsk.bitcoinj.script.Script(new byte[]{});
+            btcTx.addInput(prevTx.getOutput(0)).setScriptSig(emptyScriptSig);
+        }
+
+        private BtcTransaction createTxFromP2shP2wpkh() {
+            var peginBtcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
+            addInputFromP2shP2wpkh(peginBtcTx);
+            return peginBtcTx;
+        }
+
+        private void addInputFromP2shP2wpkh(BtcTransaction peginBtcTx) {
+            var redeemScript = ByteUtil.merge(new byte[]{ 0x00, 0x14}, SENDER_PUBLIC_KEY.getPubKeyHash());
+            var witnessScript = new ScriptBuilder()
+                .data(redeemScript)
+                .build();
+            peginBtcTx.addInput(BitcoinTestUtils.createHash(1), 0, witnessScript);
+
+            int numSigs = 1;
+            addWitness(peginBtcTx, numSigs, SENDER_PUBLIC_KEY.getPubKey());
+        }
+
+        private BtcTransaction createTxFromP2shMultiSig() {
+            co.rsk.bitcoinj.script.Script multiSigOutputScript = ScriptBuilder.createP2SHOutputScript(MULTISIG_REDEEM_SCRIPT);
+            return createTxFromMultiSig(multiSigOutputScript);
+        }
+
+        private BtcTransaction createTxFromP2shP2wshMultiSig() {
+            co.rsk.bitcoinj.script.Script multiSigOutputScript = ScriptBuilder.createP2SHP2WSHOutputScript(MULTISIG_REDEEM_SCRIPT);
+            return createTxFromMultiSig(multiSigOutputScript);
+        }
+
+        private BtcTransaction createTxFromMultiSig(co.rsk.bitcoinj.script.Script multiSigOutputScript) {
+            var txFromMultiSig = new BtcTransaction(MAINNET_BTC_PARAMS);
+            addInputFromMultiSig(txFromMultiSig, multiSigOutputScript);
+
+            return txFromMultiSig;
+        }
+
+        private void addInputFromMultiSig(BtcTransaction btcTx, co.rsk.bitcoinj.script.Script multiSigOutputScript) {
+            BtcTransaction prevTx = new BtcTransaction(MAINNET_BTC_PARAMS);
+            co.rsk.bitcoinj.core.Coin prevTxValue = co.rsk.bitcoinj.core.Coin.COIN;
+            prevTx.addOutput(prevTxValue, multiSigOutputScript);
+
+            btcTx.addInput(prevTx.getOutput(0));
+            co.rsk.bitcoinj.script.Script inputScript = createBaseInputScriptThatSpendsFromRedeemScript(MULTISIG_REDEEM_SCRIPT);
+            btcTx.getInput(0).setScriptSig(inputScript);
+        }
+
+        private void addOutputToFed(BtcTransaction peginBtcTx) {
+            peginBtcTx.addOutput(MINIMUM_PEGIN_TX_VALUE, federationAddress);
+        }
+
+        private void addOutputToFedBelowMinimum(BtcTransaction peginBtcTx) {
+            peginBtcTx.addOutput(MINIMUM_PEGIN_TX_VALUE.subtract(co.rsk.bitcoinj.core.Coin.valueOf(1L)), federationAddress);
+        }
+
+        private void addOpReturnOutput(BtcTransaction peginBtcTx) {
+            var opReturnOutputScript = createOpReturnScriptForRsk(1);
+            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
+        }
+
+        private void addOpReturnOutputInvalidPayload(BtcTransaction peginBtcTx) {
+            var opReturnOutputScript = createOpReturnScriptForRskInvalidPayload();
+            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
+        }
+
+        private void addOpReturnOutputInvalidPayloadWithRefundAddress(BtcTransaction peginBtcTx) {
+            var opReturnOutputScript = createOpReturnScriptForRskInvalidPayloadWithRefundAddress();
+            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
+        }
+
+        private co.rsk.bitcoinj.script.Script createOpReturnScriptForRskInvalidPayload() {
+            byte[] payloadBytes = new byte[INVALID_PAYLOAD_LENGTH];
+
+            addRskPrefix(payloadBytes);
+            addProtocolVersion(payloadBytes, V1_PROTOCOL_VERSION);
+            addDestinationAddress(payloadBytes);
+
+            return ScriptBuilder.createOpReturnScript(payloadBytes);
+        }
+
+        private co.rsk.bitcoinj.script.Script createOpReturnScriptForRskInvalidPayloadWithRefundAddress() {
+            byte[] payloadBytes = new byte[INVALID_PAYLOAD_LENGTH];
+
+            addDefaultPayload(payloadBytes, V1_PROTOCOL_VERSION);
+            addRefundP2pkhAddress(payloadBytes);
+            return ScriptBuilder.createOpReturnScript(payloadBytes);
+        }
+
+        private void addOpReturnOutputWithRefundAddress(BtcTransaction peginBtcTx) {
+            var opReturnOutputScript = createOpReturnScriptForRskWithP2pkhRefundAddress(V1_PROTOCOL_VERSION);
+            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
+        }
+
+        private void addOpReturnOutputUnknownProtocolVersion(BtcTransaction peginBtcTx) {
+            var opReturnOutputScript = createOpReturnScriptForRsk(UNKNOWN_PROTOCOL_VERSION);
+            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
+
+            addOutputToFed(peginBtcTx);
+        }
+
+        private void addOpReturnOutputUnknownProtocolVersionWithRefundAddress(BtcTransaction peginBtcTx) {
+            var opReturnOutputScript = createOpReturnScriptForRskWithP2pkhRefundAddress(UNKNOWN_PROTOCOL_VERSION);
+            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
+
+            addOutputToFed(peginBtcTx);
+        }
+
+        private co.rsk.bitcoinj.script.Script createOpReturnScriptForRsk(
+            int protocolVersion
+        ) {
+            int DEFAULT_PAYLOAD_BYTES_LENGTH = RSK_PREFIX_LENGTH + PROTOCOL_VERSION_LENGTH + RSK_DESTINATION_ADDRESS_LENGTH;
+            byte[] payloadBytes = new byte[DEFAULT_PAYLOAD_BYTES_LENGTH];
+
+            addDefaultPayload(payloadBytes, protocolVersion);
+            return ScriptBuilder.createOpReturnScript(payloadBytes);
+        }
+
+        private co.rsk.bitcoinj.script.Script createOpReturnScriptForRskWithP2pkhRefundAddress(int protocolVersion) {
+            byte[] payloadBytes = new byte[PAYLOAD_WITH_REFUND_ADDRESS_LENGTH];
+
+            addDefaultPayload(payloadBytes, protocolVersion);
+            addRefundP2pkhAddress(payloadBytes);
+
+            return ScriptBuilder.createOpReturnScript(payloadBytes);
+        }
+
+        private void addRefundP2pkhAddress(byte[] payloadBytes) {
+            int REFUND_ADDRESS_TYPE_INDEX = 25;
+            payloadBytes[REFUND_ADDRESS_TYPE_INDEX] = 1; // P2PKH address type
+
+            int REFUND_ADDRESS_INDEX = REFUND_ADDRESS_TYPE_INDEX + 1;
+            System.arraycopy(
+                SENDER_PUBLIC_KEY.getPubKeyHash(),
+                0,
+                payloadBytes,
+                REFUND_ADDRESS_INDEX,
+                SENDER_PUBLIC_KEY.getPubKeyHash().length
+            );
+        }
+
+        private void addDefaultPayload(byte[] payloadBytes, int protocolVersion) {
+            addRskPrefix(payloadBytes);
+            addProtocolVersion(payloadBytes, protocolVersion);
+            addDestinationAddress(payloadBytes);
+        }
+
+        private void addRskPrefix(byte[] payloadBytes) {
+            var index = 0;
+            System.arraycopy(RSK_PREFIX, 0, payloadBytes, index, RSK_PREFIX_LENGTH);
+        }
+
+        private void addProtocolVersion(byte[] payloadBytes, int protocolVersion) {
+            var index = RSK_PREFIX.length;
+            payloadBytes[index] = (byte) protocolVersion;
+        }
+
+        private void addDestinationAddress(byte[] payloadBytes) {
+            int RSK_PREFIX_INDEX = 0;
+            int PROTOCOL_VERSION_INDEX = RSK_PREFIX_INDEX + RSK_PREFIX_LENGTH;
+            int RSK_DESTINATION_ADDRESS_INDEX = PROTOCOL_VERSION_INDEX + PROTOCOL_VERSION_LENGTH;
+            System.arraycopy(
+                DESTINATION_ADDRESS.getBytes(),
+                0,
+                payloadBytes,
+                RSK_DESTINATION_ADDRESS_INDEX,
+                RSK_DESTINATION_ADDRESS_LENGTH
+            );
+        }
+
+        private void assertTxSentToBridge(BtcTransaction btcTx) throws IOException {
+            var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+
+            PartialMerkleTree pmt = getPMT(tx);
+            verify(federatorSupport).sendRegisterBtcTransaction(tx, PREV_BLOCK_HEIGHT, pmt);
+        }
+
+        private PartialMerkleTree getPMT(Transaction peginTx) throws IOException {
+            BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData();
+            List<Proof> proofs = fileData.getTransactionProofs().get(getTxHash(peginTx));
+
+            Proof proof = proofs.get(0);
+            return proof.getPartialMerkleTree();
+        }
+
+        private Sha256Hash getTxHash(Transaction tx) {
+            if (tx.hasWitnesses()) {
+                return tx.getWTxId();
+            }
+            return tx.getTxId();
+        }
+
+        private void assertTxNotSentToBridge() {
+            verify(federatorSupport, never()).sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
+        }
+
+        // Class that allows to override certain methods in Kit class
+        // that are inherited from WalletAppKit class and can't be mocked
+        private static class KitForTests extends Kit {
+
+            private final Wallet wallet;
+            private BlockStore store;
+
+            public KitForTests(Context btcContext, File directory, String filePrefix, Wallet wallet) {
+                super(btcContext, directory, filePrefix);
+                this.wallet = wallet;
+            }
+
+            protected void setStore(StoredBlock[] storedBlocks) throws BlockStoreException {
+                BlockStore blockStore = mock(BlockStore.class);
+                for (int i = 0; i < storedBlocks.length; i++) {
+                    StoredBlock storedBlock = Arrays.stream(storedBlocks).toList().get(i);
+                    when(blockStore.get(storedBlock.getHeader().getHash())).thenReturn(storedBlock);
+                    when(blockStore.getChainHead()).thenReturn(storedBlock);
+                }
+
+                this.store = blockStore;
+            }
+
+            @Override
+            protected void startUp() {
+                // Not needed for tests
+            }
+
+            @Override
+            protected void shutDown() {
+                // Not needed for tests
+            }
+
+            @Override
+            protected Wallet createWallet() {
+                return wallet;
+            }
+
+            @Override
+            public Wallet wallet() {
+                return wallet;
+            }
+
+            @Override
+            public BlockStore store() {
+                return store;
+            }
+        }
+
+        private Block createBlockWithTx(Sha256Hash prevBlockHash, Transaction tx) {
+            if (tx.hasWitnesses()) {
+                return createSegwitBlockWithTx(prevBlockHash, tx);
+            }
+
+            return createBlock(prevBlockHash, tx);
+        }
+
+        private Block createSegwitBlockWithTx(Sha256Hash prevBlockHash, Transaction pegInTx) {
+            Sha256Hash witnessRoot = Sha256Hash.wrapReversed(
+                Sha256Hash.hashTwice(
+                    Sha256Hash.ZERO_HASH.getReversedBytes(),
+                    pegInTx.getWTxId().getReversedBytes()
+                )
+            );
+            byte[] witnessReservedValue = WITNESS_RESERVED_VALUE.getBytes();
+            co.rsk.bitcoinj.core.Sha256Hash witnessCommitment = co.rsk.bitcoinj.core.Sha256Hash.twiceOf(
+                witnessRoot.getReversedBytes(),
+                witnessReservedValue
+            );
+            Transaction coinbaseTx = createCoinbaseTransactionWithWitnessCommitment(MAINNET_BTC_PARAMS, witnessCommitment);
+
+            return createBlock(prevBlockHash, coinbaseTx, pegInTx);
+        }
+
+        private Transaction createCoinbaseTransactionWithWitnessCommitment(
+            co.rsk.bitcoinj.core.NetworkParameters networkParameters,
+            co.rsk.bitcoinj.core.Sha256Hash witnessCommitment
+        ) {
+            BtcTransaction coinbaseTx = createCoinbaseTxWithWitnessReservedValue(networkParameters);
+            byte[] WITNESS_COMMITMENT_HEADER = org.bouncycastle.util.encoders.Hex.decode("aa21a9ed");
+
+            byte[] witnessCommitmentWithHeader = ByteUtil.merge(
+                WITNESS_COMMITMENT_HEADER,
+                witnessCommitment.getBytes()
+            );
+            coinbaseTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, ScriptBuilder.createOpReturnScript(witnessCommitmentWithHeader));
+            coinbaseTx.verify();
+
+            return ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, coinbaseTx);
+        }
+
+        private BtcTransaction createCoinbaseTxWithWitnessReservedValue(co.rsk.bitcoinj.core.NetworkParameters networkParameters) {
+            BtcTransaction coinbaseTx = createCoinbaseTransaction(networkParameters);
+
+            co.rsk.bitcoinj.core.TransactionWitness txWitness = new co.rsk.bitcoinj.core.TransactionWitness(1);
+            txWitness.setPush(0, WITNESS_RESERVED_VALUE.getBytes());
+            coinbaseTx.setWitness(0, txWitness);
+
+            return coinbaseTx;
+        }
+
+        private BtcTransaction createCoinbaseTransaction(co.rsk.bitcoinj.core.NetworkParameters networkParameters) {
+            co.rsk.bitcoinj.core.Address rewardAddress = createP2PKHAddress(networkParameters, "miner");
+            co.rsk.bitcoinj.script.Script inputScript = new co.rsk.bitcoinj.script.Script(new byte[]{ 1, 0 }); // Free-form, as long as it's has at least 2 bytes
+
+            BtcTransaction coinbaseTx = new BtcTransaction(networkParameters);
+            coinbaseTx.addInput(
+                co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH,
+                -1L,
+                inputScript
+            );
+            coinbaseTx.addOutput(co.rsk.bitcoinj.core.Coin.COIN, rewardAddress);
+            coinbaseTx.verify();
+
+            return coinbaseTx;
+        }
+
+        private co.rsk.bitcoinj.core.Address createP2PKHAddress(co.rsk.bitcoinj.core.NetworkParameters networkParameters, String seed) {
+            BtcECKey key = BtcECKey.fromPrivate(
+                HashUtil.keccak256(seed.getBytes(StandardCharsets.UTF_8)));
+            return key.toAddress(networkParameters);
+        }
     }
 
     @Test
