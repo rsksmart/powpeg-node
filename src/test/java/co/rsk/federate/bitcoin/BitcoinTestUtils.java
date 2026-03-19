@@ -32,6 +32,7 @@ public final class BitcoinTestUtils {
     );
     private static final Script MULTISIG_REDEEM_SCRIPT = ScriptBuilder.createRedeemScript(2, MULTISIG_KEYS);
 
+    private static final Coin OP_RETURN_OUTPUT_AMOUNT = Coin.ZERO;
     private static final int V1_PROTOCOL_VERSION = 1;
     private static final int UNKNOWN_PROTOCOL_VERSION = 2;
     private static final int RSK_PREFIX_INDEX = 0;
@@ -249,24 +250,29 @@ public final class BitcoinTestUtils {
         btcTx.getInput(0).setScriptSig(inputScript);
     }
 
-    public static void addOutputToFed(BtcTransaction peginBtcTx, Address federationAddress) {
-        peginBtcTx.addOutput(MINIMUM_PEGIN_TX_VALUE, federationAddress);
+    public static void addOutputToFedWithMinimumPeginValue(BtcTransaction peginBtcTx, Address federationAddress) {
+        addOutputToFed(peginBtcTx, federationAddress, MINIMUM_PEGIN_TX_VALUE);
     }
 
-    public static void addOutputToFedBelowMinimum(BtcTransaction peginBtcTx, Address federationAddress) {
-        peginBtcTx.addOutput(MINIMUM_PEGIN_TX_VALUE.subtract(Coin.valueOf(1L)), federationAddress);
+    public static void addOutputToFedBelowMinimumPeginValue(BtcTransaction peginBtcTx, Address federationAddress) {
+        Coin amountBelowMinimum = MINIMUM_PEGIN_TX_VALUE.subtract(Coin.valueOf(1L));
+        addOutputToFed(peginBtcTx, federationAddress, amountBelowMinimum);
+    }
+
+    public static void addOutputToFed(BtcTransaction peginBtcTx, Address federationAddress, Coin amountToSend) {
+        peginBtcTx.addOutput(amountToSend, federationAddress);
     }
 
     public static void addOpReturnOutput(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(Coin.ZERO, createOpReturnScriptForRsk(V1_PROTOCOL_VERSION));
+        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRsk(V1_PROTOCOL_VERSION));
     }
 
     public static void addOpReturnOutputInvalidPayload(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(Coin.ZERO, createOpReturnScriptForRskInvalidPayload());
+        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskInvalidPayload());
     }
 
     public static void addOpReturnOutputInvalidPayloadWithRefundAddress(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(Coin.ZERO, createOpReturnScriptForRskInvalidPayloadWithRefundAddress());
+        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskInvalidPayloadWithRefundAddress());
     }
 
     private static Script createOpReturnScriptForRskInvalidPayload() {
@@ -285,15 +291,15 @@ public final class BitcoinTestUtils {
     }
 
     public static void addOpReturnOutputWithRefundAddress(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(Coin.ZERO, createOpReturnScriptForRskWithP2pkhRefundAddress(V1_PROTOCOL_VERSION));
+        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskWithP2pkhRefundAddress(V1_PROTOCOL_VERSION));
     }
 
     public static void addOpReturnOutputUnknownProtocolVersion(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(Coin.ZERO, createOpReturnScriptForRsk(UNKNOWN_PROTOCOL_VERSION));
+        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRsk(UNKNOWN_PROTOCOL_VERSION));
     }
 
     public static void addOpReturnOutputUnknownProtocolVersionWithRefundAddress(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(Coin.ZERO, createOpReturnScriptForRskWithP2pkhRefundAddress(UNKNOWN_PROTOCOL_VERSION));
+        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskWithP2pkhRefundAddress(UNKNOWN_PROTOCOL_VERSION));
     }
 
     private static Script createOpReturnScriptForRsk(int protocolVersion) {
