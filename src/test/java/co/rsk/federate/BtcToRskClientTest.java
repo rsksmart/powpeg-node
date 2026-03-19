@@ -1,6 +1,6 @@
 package co.rsk.federate;
 
-import static co.rsk.peg.bitcoin.BitcoinUtils.createBaseInputScriptThatSpendsFromRedeemScript;
+import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -13,7 +13,6 @@ import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.script.ScriptOpCodes;
 import co.rsk.cli.CliArgs;
 import co.rsk.config.*;
-import co.rsk.core.RskAddress;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.*;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
@@ -31,14 +30,14 @@ import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
-import com.google.common.collect.Lists;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
+
+import com.google.common.collect.Lists;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStore;
@@ -47,7 +46,6 @@ import org.bitcoinj.wallet.Wallet;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig.ForBlock;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
-import org.ethereum.crypto.HashUtil;
 import org.ethereum.util.ByteUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
@@ -58,8 +56,10 @@ import org.spongycastle.util.encoders.Hex;
  * Created by ajlopez on 6/1/2016.
  */
 class BtcToRskClientTest {
-    private static final Sha256Hash WITNESS_RESERVED_VALUE = Sha256Hash.ZERO_HASH;
-    private static final int WITNESS_COMMITMENT_LENGTH = 36; // 4 bytes for header, 32 for hash
+    private final BridgeConstants BRIDGE_MAINNET_CONSTANTS = BridgeMainNetConstants.getInstance();
+    private final String MAINNET_BTC_PARAMS_STRING = BRIDGE_MAINNET_CONSTANTS.getBtcParamsString();
+    private final co.rsk.bitcoinj.core.NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
+
     private int nhash = 0;
     private ActivationConfig activationConfig;
     private BridgeConstants bridgeRegTestConstants;
@@ -1997,38 +1997,11 @@ class BtcToRskClientTest {
 
     @Nested
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    class NewTests {
-        private final BridgeConstants BRIDGE_MAINNET_CONSTANTS = BridgeMainNetConstants.getInstance();
-        private final co.rsk.bitcoinj.core.NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
-        private final String MAINNET_BTC_PARAMS_STRING = BRIDGE_MAINNET_CONSTANTS.getBtcParamsString();
+    class UpdateBridgeBtcTransactionsTests {
         private final NetworkParameters MAINNET_PARAMS = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING);
         private final Context MAINNET_CONTEXT = new Context(MAINNET_PARAMS);
 
-        private final co.rsk.bitcoinj.core.Coin MINIMUM_PEGIN_TX_VALUE = co.rsk.bitcoinj.core.Coin.valueOf(500_000);
-
         private final int PREV_BLOCK_HEIGHT = 3;
-
-        // peginV1-related fields
-        private final int V1_PROTOCOL_VERSION = 1;
-        private final int UNKNOWN_PROTOCOL_VERSION = 2;
-
-        private final int RSK_PREFIX_LENGTH = 4;
-        private final byte[] RSK_PREFIX = org.bouncycastle.util.encoders.Hex.decode("52534b54"); // 'RSKT' in hexa
-        private final int PROTOCOL_VERSION_LENGTH = 1;
-        private final int RSK_DESTINATION_ADDRESS_LENGTH = 20;
-
-        private final int PAYLOAD_WITH_REFUND_ADDRESS_LENGTH = 46;
-        private final int INVALID_PAYLOAD_LENGTH = PAYLOAD_WITH_REFUND_ADDRESS_LENGTH + 1;
-
-        private final BtcECKey SENDER_PUBLIC_KEY = BitcoinTestUtils.getBtcEcKeyFromSeed("sender");
-        private final RskAddress DESTINATION_ADDRESS = new RskAddress(org.ethereum.crypto.ECKey.fromPublicOnly(SENDER_PUBLIC_KEY.getPubKey()).getAddress());
-
-        private final List<BtcECKey> MULTISIG_KEYS = Arrays.asList(
-            BitcoinTestUtils.getBtcEcKeyFromSeed("key1"),
-            BitcoinTestUtils.getBtcEcKeyFromSeed("key2"),
-            BitcoinTestUtils.getBtcEcKeyFromSeed("key3")
-        );
-        private final co.rsk.bitcoinj.script.Script MULTISIG_REDEEM_SCRIPT = ScriptBuilder.createRedeemScript(2, MULTISIG_KEYS);
 
         private final Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
         private final co.rsk.bitcoinj.core.Address federationAddress = federation.getAddress();
@@ -2130,8 +2103,8 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_legacyPeginFromP2pkh_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
-            addOutputToFed(peginBtcTx);
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2145,8 +2118,8 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_legacyPeginFromP2pkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
-            addOutputToFedBelowMinimum(peginBtcTx);
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2160,8 +2133,8 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_legacyPeginFromP2shP2wpkh_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
-            addOutputToFed(peginBtcTx);
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2175,8 +2148,8 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_legacyPeginFromP2shP2wpkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
-            addOutputToFedBelowMinimum(peginBtcTx);
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2190,8 +2163,8 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_legacyPeginFromP2shMultiSig_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
-            addOutputToFed(peginBtcTx);
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2205,8 +2178,8 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_legacyPeginFromP2shMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
-            addOutputToFedBelowMinimum(peginBtcTx);
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2220,23 +2193,23 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_legacyPeginFromP2shP2wshMultiSig_shouldBeInformed() throws Exception {
             // arrange
-            var peginTx = createTxFromP2shP2wshMultiSig();
-            addOutputToFed(peginTx);
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
+            addOutputToFed(peginBtcTx, federationAddress);
 
-            setUpTx(peginTx);
+            setUpTx(peginBtcTx);
 
             // act
             client.updateBridgeBtcTransactions();
 
             // assert
-            assertTxSentToBridge(peginTx);
+            assertTxSentToBridge(peginBtcTx);
         }
 
         @Test
         void updateBridgeBtcTransactions_legacyPeginFromP2shP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
-            addOutputToFedBelowMinimum(peginBtcTx);
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2251,9 +2224,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2pkh_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2267,9 +2240,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2pkh_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2283,9 +2256,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2pkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2299,9 +2272,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2pkh_invalidPayload_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2315,9 +2288,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2331,9 +2304,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2347,9 +2320,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2363,9 +2336,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2379,9 +2352,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_invalidPayload_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2395,9 +2368,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_invalidPayload_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2411,9 +2384,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wpkh_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2427,9 +2400,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wpkh_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2443,9 +2416,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wpkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2459,9 +2432,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wpkh_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2475,9 +2448,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wpkh_invalidPayload_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2491,9 +2464,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wpkh_invalidPayload_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2507,9 +2480,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2523,9 +2496,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2539,9 +2512,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2555,9 +2528,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2571,9 +2544,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_invalidPayload_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2587,9 +2560,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_invalidPayload_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2603,9 +2576,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2619,9 +2592,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2635,9 +2608,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2651,9 +2624,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2667,9 +2640,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_invalidPayload_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2683,9 +2656,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_invalidPayload_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2699,9 +2672,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2715,9 +2688,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2731,9 +2704,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2747,9 +2720,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2763,9 +2736,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_invalidPayload_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2779,9 +2752,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_invalidPayload_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2796,9 +2769,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2812,9 +2785,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2828,9 +2801,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2844,9 +2817,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2pkh();
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2860,9 +2833,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2876,9 +2849,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2892,9 +2865,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2908,9 +2881,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wpkh();
+            var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2924,9 +2897,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2940,9 +2913,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2956,9 +2929,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2972,9 +2945,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wpkh();
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -2988,9 +2961,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3004,9 +2977,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3020,9 +2993,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3036,9 +3009,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shMultiSig();
+            var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3052,9 +3025,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3068,9 +3041,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3084,9 +3057,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3100,9 +3073,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2shP2wshMultiSig();
+            var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3116,9 +3089,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3132,9 +3105,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFed(peginBtcTx);
+            addOutputToFed(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3147,9 +3120,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3163,9 +3136,9 @@ class BtcToRskClientTest {
         @Test
         void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
-            var peginBtcTx = createTxFromP2wshMultiSig();
+            var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
-            addOutputToFedBelowMinimum(peginBtcTx);
+            addOutputToFedBelowMinimum(peginBtcTx, federationAddress);
 
             setUpTx(peginBtcTx);
 
@@ -3176,256 +3149,19 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge();
         }
 
-        // UTILITY METHODS
-        private BtcTransaction createTxFromP2pkh() {
-            var peginBtcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
-            addInputFromP2pkh(peginBtcTx);
-            return peginBtcTx;
-        }
-
-        private void addInputFromP2pkh(BtcTransaction peginBtcTx) {
-            peginBtcTx.addInput(BitcoinTestUtils.createHash(1), 0, ScriptBuilder.createInputScript(null, SENDER_PUBLIC_KEY));
-        }
-
-        private BtcTransaction createTxFromP2wpkh() {
-            var peginBtcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
-            addInputFromP2wpkh(peginBtcTx);
-            return peginBtcTx;
-        }
-
-        private void addInputFromP2wpkh(BtcTransaction btcTx) {
-            co.rsk.bitcoinj.script.Script p2wpkhOutputScript = new ScriptBuilder()
-                .smallNum(0)
-                .data(SENDER_PUBLIC_KEY.getPubKeyHash())
-                .build();
-            addInputFromBech32(btcTx, p2wpkhOutputScript);
-
-            int numSigs = 1;
-            addWitness(btcTx, numSigs, SENDER_PUBLIC_KEY.getPubKey());
-        }
-
-        private BtcTransaction createTxFromP2wshMultiSig() {
-            var peginBtcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
-            addInputFromP2wshMultiSig(peginBtcTx);
-            return peginBtcTx;
-        }
-
-        private void addInputFromP2wshMultiSig(BtcTransaction btcTx) {
-            byte[] witnessScriptHash = co.rsk.bitcoinj.core.Sha256Hash.hash(MULTISIG_REDEEM_SCRIPT.getProgram());
-            co.rsk.bitcoinj.script.Script p2wshOutputScript = new ScriptBuilder()
-                .smallNum(0)
-                .data(witnessScriptHash)
-                .build();
-            addInputFromBech32(btcTx, p2wshOutputScript);
-
-            int numSigs = 2;
-            addWitness(btcTx, numSigs, MULTISIG_REDEEM_SCRIPT.getProgram());
-        }
-
-        private void addWitness(BtcTransaction btcTx, int numSigs, byte[] lastPush) {
-            var txWit = new co.rsk.bitcoinj.core.TransactionWitness(numSigs + 1);
-            for (int i = 0; i < numSigs; i++) {
-                txWit.setPush(i, new byte[72]);
-            }
-            txWit.setPush(numSigs, lastPush);
-            btcTx.setWitness(0, txWit);
-        }
-
-        private void addInputFromBech32(BtcTransaction btcTx, co.rsk.bitcoinj.script.Script outputScript) {
-            BtcTransaction prevTx = new BtcTransaction(MAINNET_BTC_PARAMS);
-            co.rsk.bitcoinj.core.Coin prevTxValue = co.rsk.bitcoinj.core.Coin.COIN;
-            prevTx.addOutput(prevTxValue, outputScript);
-
-            co.rsk.bitcoinj.script.Script emptyScriptSig = new co.rsk.bitcoinj.script.Script(new byte[]{});
-            btcTx.addInput(prevTx.getOutput(0)).setScriptSig(emptyScriptSig);
-        }
-
-        private BtcTransaction createTxFromP2shP2wpkh() {
-            var peginBtcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
-            addInputFromP2shP2wpkh(peginBtcTx);
-            return peginBtcTx;
-        }
-
-        private void addInputFromP2shP2wpkh(BtcTransaction peginBtcTx) {
-            var redeemScript = ByteUtil.merge(new byte[]{ 0x00, 0x14}, SENDER_PUBLIC_KEY.getPubKeyHash());
-            var witnessScript = new ScriptBuilder()
-                .data(redeemScript)
-                .build();
-            peginBtcTx.addInput(BitcoinTestUtils.createHash(1), 0, witnessScript);
-
-            int numSigs = 1;
-            addWitness(peginBtcTx, numSigs, SENDER_PUBLIC_KEY.getPubKey());
-        }
-
-        private BtcTransaction createTxFromP2shMultiSig() {
-            co.rsk.bitcoinj.script.Script multiSigOutputScript = ScriptBuilder.createP2SHOutputScript(MULTISIG_REDEEM_SCRIPT);
-            return createTxFromMultiSig(multiSigOutputScript);
-        }
-
-        private BtcTransaction createTxFromP2shP2wshMultiSig() {
-            co.rsk.bitcoinj.script.Script multiSigOutputScript = ScriptBuilder.createP2SHP2WSHOutputScript(MULTISIG_REDEEM_SCRIPT);
-            return createTxFromMultiSig(multiSigOutputScript);
-        }
-
-        private BtcTransaction createTxFromMultiSig(co.rsk.bitcoinj.script.Script multiSigOutputScript) {
-            var txFromMultiSig = new BtcTransaction(MAINNET_BTC_PARAMS);
-            addInputFromMultiSig(txFromMultiSig, multiSigOutputScript);
-
-            return txFromMultiSig;
-        }
-
-        private void addInputFromMultiSig(BtcTransaction btcTx, co.rsk.bitcoinj.script.Script multiSigOutputScript) {
-            BtcTransaction prevTx = new BtcTransaction(MAINNET_BTC_PARAMS);
-            co.rsk.bitcoinj.core.Coin prevTxValue = co.rsk.bitcoinj.core.Coin.COIN;
-            prevTx.addOutput(prevTxValue, multiSigOutputScript);
-
-            btcTx.addInput(prevTx.getOutput(0));
-            co.rsk.bitcoinj.script.Script inputScript = createBaseInputScriptThatSpendsFromRedeemScript(MULTISIG_REDEEM_SCRIPT);
-            btcTx.getInput(0).setScriptSig(inputScript);
-        }
-
-        private void addOutputToFed(BtcTransaction peginBtcTx) {
-            peginBtcTx.addOutput(MINIMUM_PEGIN_TX_VALUE, federationAddress);
-        }
-
-        private void addOutputToFedBelowMinimum(BtcTransaction peginBtcTx) {
-            peginBtcTx.addOutput(MINIMUM_PEGIN_TX_VALUE.subtract(co.rsk.bitcoinj.core.Coin.valueOf(1L)), federationAddress);
-        }
-
-        private void addOpReturnOutput(BtcTransaction peginBtcTx) {
-            var opReturnOutputScript = createOpReturnScriptForRsk(1);
-            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
-        }
-
-        private void addOpReturnOutputInvalidPayload(BtcTransaction peginBtcTx) {
-            var opReturnOutputScript = createOpReturnScriptForRskInvalidPayload();
-            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
-        }
-
-        private void addOpReturnOutputInvalidPayloadWithRefundAddress(BtcTransaction peginBtcTx) {
-            var opReturnOutputScript = createOpReturnScriptForRskInvalidPayloadWithRefundAddress();
-            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
-        }
-
-        private co.rsk.bitcoinj.script.Script createOpReturnScriptForRskInvalidPayload() {
-            byte[] payloadBytes = new byte[INVALID_PAYLOAD_LENGTH];
-
-            addRskPrefix(payloadBytes);
-            addProtocolVersion(payloadBytes, V1_PROTOCOL_VERSION);
-            addDestinationAddress(payloadBytes);
-
-            return ScriptBuilder.createOpReturnScript(payloadBytes);
-        }
-
-        private co.rsk.bitcoinj.script.Script createOpReturnScriptForRskInvalidPayloadWithRefundAddress() {
-            byte[] payloadBytes = new byte[INVALID_PAYLOAD_LENGTH];
-
-            addDefaultPayload(payloadBytes, V1_PROTOCOL_VERSION);
-            addRefundP2pkhAddress(payloadBytes);
-            return ScriptBuilder.createOpReturnScript(payloadBytes);
-        }
-
-        private void addOpReturnOutputWithRefundAddress(BtcTransaction peginBtcTx) {
-            var opReturnOutputScript = createOpReturnScriptForRskWithP2pkhRefundAddress(V1_PROTOCOL_VERSION);
-            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
-        }
-
-        private void addOpReturnOutputUnknownProtocolVersion(BtcTransaction peginBtcTx) {
-            var opReturnOutputScript = createOpReturnScriptForRsk(UNKNOWN_PROTOCOL_VERSION);
-            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
-
-            addOutputToFed(peginBtcTx);
-        }
-
-        private void addOpReturnOutputUnknownProtocolVersionWithRefundAddress(BtcTransaction peginBtcTx) {
-            var opReturnOutputScript = createOpReturnScriptForRskWithP2pkhRefundAddress(UNKNOWN_PROTOCOL_VERSION);
-            peginBtcTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, opReturnOutputScript);
-
-            addOutputToFed(peginBtcTx);
-        }
-
-        private co.rsk.bitcoinj.script.Script createOpReturnScriptForRsk(
-            int protocolVersion
-        ) {
-            int DEFAULT_PAYLOAD_BYTES_LENGTH = RSK_PREFIX_LENGTH + PROTOCOL_VERSION_LENGTH + RSK_DESTINATION_ADDRESS_LENGTH;
-            byte[] payloadBytes = new byte[DEFAULT_PAYLOAD_BYTES_LENGTH];
-
-            addDefaultPayload(payloadBytes, protocolVersion);
-            return ScriptBuilder.createOpReturnScript(payloadBytes);
-        }
-
-        private co.rsk.bitcoinj.script.Script createOpReturnScriptForRskWithP2pkhRefundAddress(int protocolVersion) {
-            byte[] payloadBytes = new byte[PAYLOAD_WITH_REFUND_ADDRESS_LENGTH];
-
-            addDefaultPayload(payloadBytes, protocolVersion);
-            addRefundP2pkhAddress(payloadBytes);
-
-            return ScriptBuilder.createOpReturnScript(payloadBytes);
-        }
-
-        private void addRefundP2pkhAddress(byte[] payloadBytes) {
-            int REFUND_ADDRESS_TYPE_INDEX = 25;
-            payloadBytes[REFUND_ADDRESS_TYPE_INDEX] = 1; // P2PKH address type
-
-            int REFUND_ADDRESS_INDEX = REFUND_ADDRESS_TYPE_INDEX + 1;
-            System.arraycopy(
-                SENDER_PUBLIC_KEY.getPubKeyHash(),
-                0,
-                payloadBytes,
-                REFUND_ADDRESS_INDEX,
-                SENDER_PUBLIC_KEY.getPubKeyHash().length
-            );
-        }
-
-        private void addDefaultPayload(byte[] payloadBytes, int protocolVersion) {
-            addRskPrefix(payloadBytes);
-            addProtocolVersion(payloadBytes, protocolVersion);
-            addDestinationAddress(payloadBytes);
-        }
-
-        private void addRskPrefix(byte[] payloadBytes) {
-            var index = 0;
-            System.arraycopy(RSK_PREFIX, 0, payloadBytes, index, RSK_PREFIX_LENGTH);
-        }
-
-        private void addProtocolVersion(byte[] payloadBytes, int protocolVersion) {
-            var index = RSK_PREFIX.length;
-            payloadBytes[index] = (byte) protocolVersion;
-        }
-
-        private void addDestinationAddress(byte[] payloadBytes) {
-            int RSK_PREFIX_INDEX = 0;
-            int PROTOCOL_VERSION_INDEX = RSK_PREFIX_INDEX + RSK_PREFIX_LENGTH;
-            int RSK_DESTINATION_ADDRESS_INDEX = PROTOCOL_VERSION_INDEX + PROTOCOL_VERSION_LENGTH;
-            System.arraycopy(
-                DESTINATION_ADDRESS.getBytes(),
-                0,
-                payloadBytes,
-                RSK_DESTINATION_ADDRESS_INDEX,
-                RSK_DESTINATION_ADDRESS_LENGTH
-            );
-        }
-
         private void assertTxSentToBridge(BtcTransaction btcTx) throws IOException {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
 
-            PartialMerkleTree pmt = getPMT(tx);
+            org.bitcoinj.core.PartialMerkleTree pmt = getPMT(tx);
             verify(federatorSupport).sendRegisterBtcTransaction(tx, PREV_BLOCK_HEIGHT, pmt);
         }
 
-        private PartialMerkleTree getPMT(Transaction peginTx) throws IOException {
+        private org.bitcoinj.core.PartialMerkleTree getPMT(Transaction peginBtcTx) throws IOException {
             BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData();
-            List<Proof> proofs = fileData.getTransactionProofs().get(getTxHash(peginTx));
+            List<Proof> proofs = fileData.getTransactionProofs().get(getTxHash(peginBtcTx));
 
             Proof proof = proofs.get(0);
             return proof.getPartialMerkleTree();
-        }
-
-        private Sha256Hash getTxHash(Transaction tx) {
-            if (tx.hasWitnesses()) {
-                return tx.getWTxId();
-            }
-            return tx.getTxId();
         }
 
         private void assertTxNotSentToBridge() {
@@ -3479,80 +3215,6 @@ class BtcToRskClientTest {
             public BlockStore store() {
                 return store;
             }
-        }
-
-        private Block createBlockWithTx(Sha256Hash prevBlockHash, Transaction tx) {
-            if (tx.hasWitnesses()) {
-                return createSegwitBlockWithTx(prevBlockHash, tx);
-            }
-
-            return createBlock(prevBlockHash, tx);
-        }
-
-        private Block createSegwitBlockWithTx(Sha256Hash prevBlockHash, Transaction pegInTx) {
-            Sha256Hash witnessRoot = Sha256Hash.wrapReversed(
-                Sha256Hash.hashTwice(
-                    Sha256Hash.ZERO_HASH.getReversedBytes(),
-                    pegInTx.getWTxId().getReversedBytes()
-                )
-            );
-            byte[] witnessReservedValue = WITNESS_RESERVED_VALUE.getBytes();
-            co.rsk.bitcoinj.core.Sha256Hash witnessCommitment = co.rsk.bitcoinj.core.Sha256Hash.twiceOf(
-                witnessRoot.getReversedBytes(),
-                witnessReservedValue
-            );
-            Transaction coinbaseTx = createCoinbaseTransactionWithWitnessCommitment(MAINNET_BTC_PARAMS, witnessCommitment);
-
-            return createBlock(prevBlockHash, coinbaseTx, pegInTx);
-        }
-
-        private Transaction createCoinbaseTransactionWithWitnessCommitment(
-            co.rsk.bitcoinj.core.NetworkParameters networkParameters,
-            co.rsk.bitcoinj.core.Sha256Hash witnessCommitment
-        ) {
-            BtcTransaction coinbaseTx = createCoinbaseTxWithWitnessReservedValue(networkParameters);
-            byte[] WITNESS_COMMITMENT_HEADER = org.bouncycastle.util.encoders.Hex.decode("aa21a9ed");
-
-            byte[] witnessCommitmentWithHeader = ByteUtil.merge(
-                WITNESS_COMMITMENT_HEADER,
-                witnessCommitment.getBytes()
-            );
-            coinbaseTx.addOutput(co.rsk.bitcoinj.core.Coin.ZERO, ScriptBuilder.createOpReturnScript(witnessCommitmentWithHeader));
-            coinbaseTx.verify();
-
-            return ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, coinbaseTx);
-        }
-
-        private BtcTransaction createCoinbaseTxWithWitnessReservedValue(co.rsk.bitcoinj.core.NetworkParameters networkParameters) {
-            BtcTransaction coinbaseTx = createCoinbaseTransaction(networkParameters);
-
-            co.rsk.bitcoinj.core.TransactionWitness txWitness = new co.rsk.bitcoinj.core.TransactionWitness(1);
-            txWitness.setPush(0, WITNESS_RESERVED_VALUE.getBytes());
-            coinbaseTx.setWitness(0, txWitness);
-
-            return coinbaseTx;
-        }
-
-        private BtcTransaction createCoinbaseTransaction(co.rsk.bitcoinj.core.NetworkParameters networkParameters) {
-            co.rsk.bitcoinj.core.Address rewardAddress = createP2PKHAddress(networkParameters, "miner");
-            co.rsk.bitcoinj.script.Script inputScript = new co.rsk.bitcoinj.script.Script(new byte[]{ 1, 0 }); // Free-form, as long as it's has at least 2 bytes
-
-            BtcTransaction coinbaseTx = new BtcTransaction(networkParameters);
-            coinbaseTx.addInput(
-                co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH,
-                -1L,
-                inputScript
-            );
-            coinbaseTx.addOutput(co.rsk.bitcoinj.core.Coin.COIN, rewardAddress);
-            coinbaseTx.verify();
-
-            return coinbaseTx;
-        }
-
-        private co.rsk.bitcoinj.core.Address createP2PKHAddress(co.rsk.bitcoinj.core.NetworkParameters networkParameters, String seed) {
-            BtcECKey key = BtcECKey.fromPrivate(
-                HashUtil.keccak256(seed.getBytes(StandardCharsets.UTF_8)));
-            return key.toAddress(networkParameters);
         }
     }
 
@@ -3956,18 +3618,18 @@ class BtcToRskClientTest {
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
-        Transaction peginTx = createSegwitTransaction();
+        Transaction peginBtcTx = createSegwitTransaction();
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(1);
-        when(federatorSupport.isBtcTxHashAlreadyProcessed(peginTx.getTxId())).thenReturn(true);
-        when(federatorSupport.getBtcTxHashProcessedHeight(peginTx.getTxId())).thenReturn(1L);
+        when(federatorSupport.isBtcTxHashAlreadyProcessed(peginBtcTx.getTxId())).thenReturn(true);
+        when(federatorSupport.getBtcTxHashProcessedHeight(peginBtcTx.getTxId())).thenReturn(1L);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
         when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
         Map<Sha256Hash, Transaction> txsInWallet = new HashMap<>();
-        txsInWallet.put(peginTx.getWTxId(), peginTx);
+        txsInWallet.put(peginBtcTx.getWTxId(), peginBtcTx);
         when(bitcoinWrapper.getTransactionMap(bridgeRegTestConstants.getBtc2RskMinimumAcceptableConfirmations()))
             .thenReturn(txsInWallet);
 
@@ -3975,7 +3637,7 @@ class BtcToRskClientTest {
         Proof proof = mock(Proof.class);
         proofs.add(proof);
         BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
-        btcToRskClientFileData.getTransactionProofs().put(peginTx.getWTxId(), proofs);
+        btcToRskClientFileData.getTransactionProofs().put(peginBtcTx.getWTxId(), proofs);
 
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
@@ -4001,7 +3663,7 @@ class BtcToRskClientTest {
 
         btcToRskClient.updateBridge();
 
-        verify(federatorSupport, times(1)).isBtcTxHashAlreadyProcessed(peginTx.getTxId());
+        verify(federatorSupport, times(1)).isBtcTxHashAlreadyProcessed(peginBtcTx.getTxId());
         verify(federatorSupport, never()).sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
     }
 
@@ -4057,6 +3719,7 @@ class BtcToRskClientTest {
         return btcToRskClientFileStorage;
     }
 
+
     private Block createBlock(Transaction... txs) {
         return createBlock(createHash(), txs);
     }
@@ -4073,6 +3736,31 @@ class BtcToRskClientTest {
             0,
             Lists.newArrayList(txs)
         );
+    }
+
+    private Block createBlockWithTx(Sha256Hash prevBlockHash, Transaction tx) {
+        if (tx.hasWitnesses()) {
+            return createSegwitBlockWithTx(prevBlockHash, tx);
+        }
+
+        return createBlock(prevBlockHash, tx);
+    }
+
+    private Block createSegwitBlockWithTx(Sha256Hash prevBlockHash, Transaction pegInTx) {
+        Sha256Hash witnessRoot = Sha256Hash.wrapReversed(
+            Sha256Hash.hashTwice(
+                Sha256Hash.ZERO_HASH.getReversedBytes(),
+                pegInTx.getWTxId().getReversedBytes()
+            )
+        );
+        byte[] witnessReservedValue = WITNESS_RESERVED_VALUE.getBytes();
+        co.rsk.bitcoinj.core.Sha256Hash witnessCommitment = co.rsk.bitcoinj.core.Sha256Hash.twiceOf(
+            witnessRoot.getReversedBytes(),
+            witnessReservedValue
+        );
+        BtcTransaction coinbaseBtcTx = createCoinbaseTransactionWithWitnessCommitment(MAINNET_BTC_PARAMS, witnessCommitment);
+
+        return createBlock(prevBlockHash, ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, coinbaseBtcTx), pegInTx);
     }
 
     private Transaction createTransaction() {
@@ -4267,5 +3955,4 @@ class BtcToRskClientTest {
 
         return config;
     }
-
 }
