@@ -1,5 +1,6 @@
 package co.rsk.federate;
 
+import static co.rsk.peg.PegUtils.allUTXOsToFedAreAboveMinimumPeginValue;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -11,10 +12,8 @@ import co.rsk.federate.io.*;
 import co.rsk.federate.timing.TurnScheduler;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.BridgeUtils;
-import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.bitcoin.BitcoinUtils;
-import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.Federation;
@@ -597,7 +596,18 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 );
                 BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
 
-                if (btcTx.getValueSentToMe(federationWallet).isZero()) {
+                co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(federationWallet);
+                long bestBlockNumber = federatorSupport.getRskBestChainHeight();
+                ActivationConfig.ForBlock activations = activationConfig.forBlock(bestBlockNumber);
+
+                boolean isAnyValueSentBelowMinimum = !allUTXOsToFedAreAboveMinimumPeginValue(
+                    btcTx,
+                    federationWallet,
+                    bridgeConstants.getMinimumPeginTxValue(activations),
+                    activations
+                );
+
+                if (valueSentToMe.isZero() || isAnyValueSentBelowMinimum) {
                     // Remove the tx from the set to be sent to the Bridge since it's not processable
                     txsToSendToRskHashes.remove(txHash);
 
@@ -610,11 +620,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     continue;
                 }
 
-                long bestBlockNumber = federatorSupport.getRskBestChainHeight();
                 PeginInformation peginInformation = new PeginInformation(
                     btcLockSenderProvider,
                     peginInstructionsProvider,
-                    activationConfig.forBlock(bestBlockNumber)
+                    activations
                 );
                 try {
                     peginInformation.parse(btcTx);
@@ -638,18 +647,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         txsToSendToRskHashes.remove(txHash);
                         continue;
                     }
-                }
-
-                // Check if the tx can be processed by the Bridge
-                if (!isTxProcessable(btcTx, peginInformation.getSenderBtcAddressType())) {
-                    logger.warn(
-                        "[updateBridgeBtcTransactions] Transaction hash {} (wtxid: {}) contains a type {} that it is not processable.",
-                        btcTx.getHash(),
-                        btcTx.getHash(true),
-                        peginInformation.getSenderBtcAddressType()
-                    );
-                    txsToSendToRskHashes.remove(txHash);
-                    continue;
                 }
 
                 // Check if the tx was processed (using the tx hash without witness)
@@ -850,16 +847,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 throw new Exception("Failed to read data from BtcToRskClient file", e);
             }
         }
-    }
-
-    private boolean isTxProcessable(BtcTransaction btcTx, TxSenderAddressType txSenderAddressType) {
-        long bestBlockNumber = federatorSupport.getRskBestChainHeight();
-
-        // If the tx is a peg-out it means we are receiving change (or migrating funds)
-        // so it should be processable
-        return PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(federation), activationConfig.forBlock(bestBlockNumber))
-            || activationConfig.isActive(ConsensusRule.RSKIP170, bestBlockNumber)
-            || BridgeUtils.txIsProcessableInLegacyVersion(txSenderAddressType, activationConfig.forBlock(bestBlockNumber));
     }
 
     @VisibleForTesting
