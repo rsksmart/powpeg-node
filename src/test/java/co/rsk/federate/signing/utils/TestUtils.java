@@ -133,10 +133,12 @@ public final class TestUtils {
     }
 
     public static Federation createP2shP2wshErpFederation(NetworkParameters params, int amountOfMembers) {
-        List<BtcECKey> keys = Stream
-            .generate(BtcECKey::new)
-            .limit(amountOfMembers)
-            .toList();
+        List<BtcECKey> keys = new ArrayList<>();
+        for (int i = 0; i < amountOfMembers; i++) {
+            String seed = "seed" + i;
+            BtcECKey key = getBtcEcKeyFromSeed(seed);
+            keys.add(key);
+        }
 
         return createP2shP2wshErpFederation(params, keys);
     }
@@ -156,7 +158,6 @@ public final class TestUtils {
         }
         return federationPrivateKeys;
     }
-
 
     public static BtcECKey getBtcEcKeyFromSeed(String seed) {
         byte[] serializedSeed = HashUtil.keccak256(seed.getBytes(StandardCharsets.UTF_8));
