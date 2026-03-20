@@ -588,6 +588,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         "[updateBridgeBtcTransactions] Btc tx {} was not found in wallet or is not yet confirmed.",
                         txHash
                     );
+                    // Don't remove it as we still have to wait for its confirmations.
                     continue;
                 }
 
