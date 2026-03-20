@@ -564,13 +564,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     protected void updateBridgeBtcTransactions() {
         logger.debug("[updateBridgeBtcTransactions] Updating btc transactions");
-        Map<Sha256Hash, Transaction> federatorWalletTxMap = bitcoinWrapper.getTransactionMap(
-            bridgeConstants.getBtc2RskMinimumAcceptableConfirmations()
-        );
-        int numberOfTxsSent = 0;
-        Set<Sha256Hash> txsToSendToRskHashes = this.fileData.getTransactionProofs().keySet();
-        logger.debug("[updateBridgeBtcTransactions] Tx count: {}", txsToSendToRskHashes.size());
-
         co.rsk.bitcoinj.core.Context context = co.rsk.bitcoinj.core.Context.getOrCreate(bridgeConstants.getBtcParams());
         co.rsk.bitcoinj.wallet.Wallet federationWallet = BridgeUtils.getFederationNoSpendWallet(
             context,
@@ -579,10 +572,17 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             null
         );
 
+        int btcToRskMinimumAcceptableConfirmations = bridgeConstants.getBtc2RskMinimumAcceptableConfirmations();
+        Map<Sha256Hash, Transaction> federatorWalletTxMap = bitcoinWrapper.getTransactionMap(btcToRskMinimumAcceptableConfirmations);
+        Set<Sha256Hash> txsToSendToRskHashes = this.fileData.getTransactionProofs().keySet();
+        logger.debug("[updateBridgeBtcTransactions] Tx to send count: {}", txsToSendToRskHashes.size());
+
+        int numberOfTxsSent = 0;
         for (Sha256Hash txHash : txsToSendToRskHashes) {
             try {
                 Transaction tx = federatorWalletTxMap.get(txHash);
                 logger.debug("[updateBridgeBtcTransactions] Evaluating Btc Tx {}", txHash);
+
                 if (tx == null) {
                     logger.debug(
                         "[updateBridgeBtcTransactions] Btc tx {} was not found in wallet or is not yet confirmed.",
@@ -590,37 +590,30 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     );
                     continue;
                 }
+
+                Sha256Hash txId = tx.getTxId();
+                Sha256Hash wTxId = tx.getWTxId();
                 logger.debug(
                     "[updateBridgeBtcTransactions] Got Btc Tx {} (wtxid:{})",
-                    tx.getTxId(),
-                    tx.getWTxId()
+                    txId,
+                    wTxId
                 );
 
-                if (!shouldSendTx(tx, federationWallet)) {
-                    txsToSendToRskHashes.remove(txHash);
-                    logger.warn(
-                        "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to sent to Bridge",
-                        tx.getTxId(),
-                        tx.getWTxId()
-                    );
-                    continue;
-                }
-
                 // Check if the tx was processed (using the tx hash without witness)
-                if (federatorSupport.isBtcTxHashAlreadyProcessed(tx.getTxId())) {
+                if (federatorSupport.isBtcTxHashAlreadyProcessed(txId)) {
                     logger.debug(
                         "[updateBridgeBtcTransactions] Btc Tx {} (wtxid: {}) already processed",
-                        tx.getTxId(),
-                        tx.getWTxId()
+                        txId,
+                        wTxId
                     );
-                    Long txProcessedHeight = federatorSupport.getBtcTxHashProcessedHeight(tx.getTxId());
-                    Long bestChainHeight = federatorSupport.getRskBestChainHeight();
 
-                    // If the bridge says this transaction was processed at height N, and current height
-                    // is M, with M - N >= K
-                    // with K = BridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()
-                    // then remove the transaction from the list
-                    if ((bestChainHeight - txProcessedHeight) >= bridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()) {
+                    // N = height at which transaction was processed
+                    // M = current height M
+                    // K = BridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()
+                    // If M >= N + K, then remove the transaction from the list
+                    Long txProcessedHeight = federatorSupport.getBtcTxHashProcessedHeight(txId);
+                    Long bestChainHeight = federatorSupport.getRskBestChainHeight();
+                    if (bestChainHeight >= txProcessedHeight + btcToRskMinimumAcceptableConfirmations) {
                         txsToSendToRskHashes.remove(txHash);
                         logger.debug(
                             "[updateBridgeBtcTransactions] Btc Tx {} was processed at height {}, current height is {}. Tx removed from pending lock list",
@@ -632,8 +625,17 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     continue;
                 }
 
-                sendTx(tx);
+                if (!shouldSendTx(tx, federationWallet)) {
+                    txsToSendToRskHashes.remove(txHash);
+                    logger.warn(
+                        "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to sent to Bridge",
+                        txId,
+                        wTxId
+                    );
+                    continue;
+                }
 
+                sendTx(tx);
                 numberOfTxsSent++;
                 // Sent a maximum of 40 registerBtcTransaction txs per federator
                 if (numberOfTxsSent >= MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN) {
@@ -660,6 +662,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         if (valueSentToMe.isZero()) {
             return false;
         }
+
         long bestBlockNumber = federatorSupport.getRskBestChainHeight();
         ActivationConfig.ForBlock activations = activationConfig.forBlock(bestBlockNumber);
 
