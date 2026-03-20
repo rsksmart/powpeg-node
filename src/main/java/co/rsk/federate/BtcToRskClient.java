@@ -632,7 +632,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     continue;
                 }
 
-                sendTx(tx, txHash);
+                sendTx(tx);
 
                 numberOfTxsSent++;
                 // Sent a maximum of 40 registerBtcTransaction txs per federator
@@ -702,7 +702,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         return isPeginV1(peginInformation);
     }
 
-    private void sendTx(Transaction tx, Sha256Hash txHash) throws BlockStoreException {
+    private void sendTx(Transaction tx) throws BlockStoreException {
+        Sha256Hash txHash = getTxHash(tx);
         logger.debug(
             "[updateBridgeBtcTransactions] Btc tx {} (wtxid: {}) with enough confirmations and not yet processed",
             tx.getTxId(),
@@ -746,6 +747,13 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 txHash
             );
         }
+    }
+
+    private org.bitcoinj.core.Sha256Hash getTxHash(Transaction tx) {
+        if (tx.hasWitnesses()) {
+            return tx.getWTxId();
+        }
+        return tx.getTxId();
     }
 
     private boolean isLegacyPegin(PeginInformation peginInformation) {
