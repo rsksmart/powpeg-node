@@ -695,14 +695,15 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             return refundAddress != null;
         }
 
+        // at this point, tx could be a legacy pegin or a pegin with instructions with valid op return structure
         if (isLegacyPegin(peginInformation)) {
             // if there's a valid lock sender, i.e., sender address type is not UNKNOWN, tx should be sent
             return peginInformation.getSenderBtcAddressType() != BtcLockSender.TxSenderAddressType.UNKNOWN;
         }
 
-        // at this point, the tx is either a legacy pegin nor a pegin V1 that should be refund.
-        // so we just want to send it if it's a pegin V1 (that would be valid at this point)
-        return isPeginV1(peginInformation);
+        // at this point, tx is a pegin with instructions with valid structure,
+        // but we just want to send it if the protocol version is valid
+        return isPeginWithInstructionsProtocolVersionValid(peginInformation);
     }
 
     private void sendTx(Transaction tx) throws BlockStoreException {
@@ -763,7 +764,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         return peginInformation.getProtocolVersion() == 0;
     }
 
-    private boolean isPeginV1(PeginInformation peginInformation) {
+    private boolean isPeginWithInstructionsProtocolVersionValid(PeginInformation peginInformation) {
         return peginInformation.getProtocolVersion() == 1;
     }
 
