@@ -26,9 +26,9 @@ public final class BitcoinTestUtils {
     private static final Coin MINIMUM_PEGIN_TX_VALUE = Coin.valueOf(500_000);
     private static final BtcECKey SENDER_PUBLIC_KEY = BitcoinTestUtils.getBtcEcKeyFromSeed("sender");
     private static final List<BtcECKey> MULTISIG_KEYS = Arrays.asList(
-        BitcoinTestUtils.getBtcEcKeyFromSeed("key1"),
-        BitcoinTestUtils.getBtcEcKeyFromSeed("key2"),
-        BitcoinTestUtils.getBtcEcKeyFromSeed("key3")
+        getBtcEcKeyFromSeed("key1"),
+        getBtcEcKeyFromSeed("key2"),
+        getBtcEcKeyFromSeed("key3")
     );
     private static final Script MULTISIG_REDEEM_SCRIPT = ScriptBuilder.createRedeemScript(2, MULTISIG_KEYS);
 
