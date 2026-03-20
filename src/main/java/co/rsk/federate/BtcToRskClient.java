@@ -574,6 +574,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
         int btcToRskMinimumAcceptableConfirmations = bridgeConstants.getBtc2RskMinimumAcceptableConfirmations();
         Map<Sha256Hash, Transaction> federatorWalletTxMap = bitcoinWrapper.getTransactionMap(btcToRskMinimumAcceptableConfirmations);
+
         Set<Sha256Hash> txsToSendToRskHashes = this.fileData.getTransactionProofs().keySet();
         logger.debug("[updateBridgeBtcTransactions] Tx to send count: {}", txsToSendToRskHashes.size());
 
@@ -626,25 +627,45 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     continue;
                 }
 
-                if (!shouldSendTx(tx, federationWallet)) {
-                    txsToSendToRskHashes.remove(txHash);
-                    logger.warn(
-                        "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to sent to Bridge",
-                        txId,
-                        wTxId
-                    );
-                    continue;
-                }
+                synchronized (this) {
+                    // validate tx proofs, stored block and pmt are found
+                    Optional<List<Proof>> txProofs = getTxProofs(tx);
+                    if (txProofs.isEmpty()) {
+                        logger.debug("[updateBridgeBtcTransactions] Couldn't find proof for tx {}", txHash);
+                        continue;
+                    }
+                    Optional<StoredBlock> txStoredBlockOpt = getStoredBlock(tx);
+                    if (txStoredBlockOpt.isEmpty()) {
+                        logger.debug("[updateBridgeBtcTransactions] Couldn't find stored block for tx {}", txHash);
+                        continue;
+                    }
+                    StoredBlock txStoredBlock = txStoredBlockOpt.get();
+                    Optional<PartialMerkleTree> pmt = getPMT(txProofs.get(), txStoredBlock);
+                    if (pmt.isEmpty()) {
+                        logger.debug("[updateBridgeBtcTransactions] Couldn't find pmt for tx {}", txHash);
+                        continue;
+                    }
 
-                sendTx(tx);
-                numberOfTxsSent++;
-                // Sent a maximum of 40 registerBtcTransaction txs per federator
-                if (numberOfTxsSent >= MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN) {
-                    logger.debug(
-                        "[updateBridgeBtcTransactions] Reached maximum number of txs to send to the Bridge: {}",
-                        MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN
-                    );
-                    break;
+                    if (!shouldSendTx(tx, federationWallet)) {
+                        txsToSendToRskHashes.remove(txHash);
+                        logger.warn(
+                            "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to sent to Bridge",
+                            txId,
+                            wTxId
+                        );
+                        continue;
+                    }
+
+                    sendTx(tx, txStoredBlock, pmt.get());
+                    numberOfTxsSent++;
+                    // Sent a maximum of 40 registerBtcTransaction txs per federator
+                    if (numberOfTxsSent >= MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN) {
+                        logger.debug(
+                            "[updateBridgeBtcTransactions] Reached maximum number of txs to send to the Bridge: {}",
+                            MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN
+                        );
+                        break;
+                    }
                 }
             } catch (Exception e) {
                 logger.error(
@@ -656,9 +677,35 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
     }
 
-    private boolean shouldSendTx(Transaction tx, co.rsk.bitcoinj.wallet.Wallet federationWallet) {
-        BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
+    private Optional<List<Proof>> getTxProofs(Transaction tx) {
+        Sha256Hash txHash = getTxHash(tx);
+        Map<Sha256Hash, List<Proof>> proofs = this.fileData.getTransactionProofs();
 
+        return Optional.ofNullable(proofs.get(txHash))
+            .filter(txProofs -> !txProofs.isEmpty());
+    }
+
+    private Optional<StoredBlock> getStoredBlock(Transaction tx) {
+        try {
+            return Optional.of(findBestChainStoredBlockFor(tx));
+        } catch (BlockStoreException | IllegalStateException e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<PartialMerkleTree> getPMT(List<Proof> txProofs, StoredBlock txStoredBlock) {
+        Sha256Hash blockHash = txStoredBlock.getHeader().getHash();
+
+        return txProofs.stream()
+            .filter(proof -> proof.getBlockHash().equals(blockHash))
+            .findFirst()
+            .map(Proof::getPartialMerkleTree);
+    }
+
+    private boolean shouldSendTx(Transaction tx, co.rsk.bitcoinj.wallet.Wallet federationWallet) {
+        logger.debug("[updateBridgeBtcTransactions] Checking if tx should be send {}", getTxHash(tx));
+
+        BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
         co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(federationWallet);
         if (valueSentToMe.isZero()) {
             return false;
@@ -707,51 +754,27 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         return isPeginWithInstructionsProtocolVersionValid(peginInformation);
     }
 
-    private void sendTx(Transaction tx) throws BlockStoreException {
-        Sha256Hash txHash = getTxHash(tx);
+    private void sendTx(Transaction tx, StoredBlock txStoredBlock, PartialMerkleTree pmt) {
         logger.debug(
-            "[updateBridgeBtcTransactions] Btc tx {} (wtxid: {}) with enough confirmations and not yet processed",
+            "[sendTx] Will send btc tx {} (wtxid: {}) with enough confirmations",
             tx.getTxId(),
             tx.getWTxId()
         );
-        synchronized (this) {
-            List<Proof> proofs = this.fileData.getTransactionProofs().get(txHash);
-            if (proofs == null || proofs.isEmpty()) {
-                logger.debug("[updateBridgeBtcTransactions] No proofs found for tx {}", txHash);
-                return;
-            }
 
-            StoredBlock txStoredBlock = findBestChainStoredBlockFor(tx);
-            int blockHeight = txStoredBlock.getHeight();
-            logger.debug(
-                "[updateBridgeBtcTransactions] Tx {} belongs to block {} at height {}",
-                txHash,
-                txStoredBlock.getHeader().getHash(),
-                blockHeight
-            );
-            PartialMerkleTree pmt = null;
-            for (Proof proof : proofs) {
-                if (proof.getBlockHash().equals(txStoredBlock.getHeader().getHash())) {
-                    pmt = proof.getPartialMerkleTree();
-                }
-            }
+        Sha256Hash txHash = getTxHash(tx);
+        int blockHeight = txStoredBlock.getHeight();
+        logger.debug(
+            "[sendTx] Tx {} belongs to block {} at height {}",
+            txHash,
+            txStoredBlock.getHeader().getHash(),
+            blockHeight
+        );
 
-            // Make sure the proof was found
-            if (pmt == null) {
-                logger.error(
-                    "[updateBridgeBtcTransactions] Could not find proof that the transaction {} belongs to the block {}",
-                    txHash,
-                    txStoredBlock.getHeader().getHash()
-                );
-                return;
-            }
-
-            federatorSupport.sendRegisterBtcTransaction(tx, blockHeight, pmt);
-            logger.debug(
-                "[updateBridgeBtcTransactions] Invoked registerBtcTransaction for tx {}",
-                txHash
-            );
-        }
+        federatorSupport.sendRegisterBtcTransaction(tx, blockHeight, pmt);
+        logger.debug(
+            "[sendTx] Invoked registerBtcTransaction for tx {}",
+            txHash
+        );
     }
 
     private org.bitcoinj.core.Sha256Hash getTxHash(Transaction tx) {
