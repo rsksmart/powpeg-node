@@ -1,7 +1,6 @@
 package co.rsk.federate;
 
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
-import static co.rsk.federate.bitcoin.BitcoinUtils.getTxHash;
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.Assertions.*;
@@ -3138,9 +3137,9 @@ class BtcToRskClientTest {
             verify(federatorSupport).sendRegisterBtcTransaction(tx, PREV_BLOCK_HEIGHT, pmt);
         }
 
-        private org.bitcoinj.core.PartialMerkleTree getPMT(Transaction peginBtcTx) throws IOException {
+        private org.bitcoinj.core.PartialMerkleTree getPMT(Transaction tx) throws IOException {
             BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData();
-            List<Proof> proofs = fileData.getTransactionProofs().get(getTxHash(peginBtcTx));
+            List<Proof> proofs = fileData.getTransactionProofs().get(tx.getWTxId());
 
             Proof proof = proofs.get(0);
             return proof.getPartialMerkleTree();

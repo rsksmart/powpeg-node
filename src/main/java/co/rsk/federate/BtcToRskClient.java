@@ -1,7 +1,6 @@
 package co.rsk.federate;
 
 import static co.rsk.federate.PegUtils.isPegOutTx;
-import static co.rsk.federate.bitcoin.BitcoinUtils.getTxHash;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -676,9 +675,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private Optional<List<Proof>> getTxProofs(Transaction tx) {
-        Sha256Hash txHash = getTxHash(tx);
         Map<Sha256Hash, List<Proof>> proofs = this.fileData.getTransactionProofs();
 
+        Sha256Hash txHash = tx.getWTxId();
         return Optional.ofNullable(proofs.get(txHash))
             .filter(txProofs -> !txProofs.isEmpty());
     }
@@ -701,7 +700,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private boolean shouldSendTx(Transaction tx, co.rsk.bitcoinj.wallet.Wallet federationWallet) {
-        logger.debug("[updateBridgeBtcTransactions] Checking if tx should be send {}", getTxHash(tx));
+        logger.debug("[updateBridgeBtcTransactions] Checking if tx should be send {}", tx.getWTxId());
         BtcTransaction btcTx = ThinConverter.toThinInstance(federationWallet.getNetworkParameters(), tx);
 
         co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(federationWallet);
@@ -747,7 +746,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             tx.getWTxId()
         );
 
-        Sha256Hash txHash = getTxHash(tx);
+        Sha256Hash txHash = tx.getWTxId();
         int blockHeight = txStoredBlock.getHeight();
         logger.debug(
             "[sendTx] Tx {} belongs to block {} at height {}",
