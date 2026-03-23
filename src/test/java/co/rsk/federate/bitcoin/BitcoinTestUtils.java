@@ -1,6 +1,7 @@
 package co.rsk.federate.bitcoin;
 
 import static co.rsk.bitcoinj.script.ScriptBuilder.createP2SHOutputScript;
+import static co.rsk.federate.PegUtils.MINIMUM_PEGIN_TX_VALUE;
 import static co.rsk.peg.bitcoin.BitcoinUtils.*;
 
 import co.rsk.bitcoinj.core.*;
@@ -9,13 +10,13 @@ import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import co.rsk.core.RskAddress;
 import co.rsk.peg.federation.Federation;
-import org.bitcoinj.core.Transaction;
 import org.ethereum.crypto.HashUtil;
 import org.ethereum.util.ByteUtil;
 
@@ -23,8 +24,7 @@ public final class BitcoinTestUtils {
     public static final org.bitcoinj.core.Sha256Hash WITNESS_RESERVED_VALUE = org.bitcoinj.core.Sha256Hash.ZERO_HASH;
     public static final int WITNESS_COMMITMENT_LENGTH = 36; // 4 bytes for header, 32 for hash
 
-    private static final Coin MINIMUM_PEGIN_TX_VALUE = Coin.valueOf(500_000);
-    private static final BtcECKey SENDER_PUBLIC_KEY = BitcoinTestUtils.getBtcEcKeyFromSeed("sender");
+    private static final BtcECKey SENDER_PUBLIC_KEY = getBtcEcKeyFromSeed("sender");
     private static final List<BtcECKey> MULTISIG_KEYS = Arrays.asList(
         getBtcEcKeyFromSeed("key1"),
         getBtcEcKeyFromSeed("key2"),
@@ -138,7 +138,7 @@ public final class BitcoinTestUtils {
             TransactionOutPoint transactionOutpoint = new TransactionOutPoint(
                 btcParams,
                 inputIndex,
-                BitcoinTestUtils.createHash(inputIndex)
+                createHash(inputIndex)
             );
             TransactionInput txInput = new TransactionInput(btcParams, null, new byte[]{}, transactionOutpoint, outpointValue);
             tx.addInput(txInput);
@@ -148,6 +148,67 @@ public final class BitcoinTestUtils {
         return tx;
     }
 
+    public static BtcTransaction createMigrationTx(NetworkParameters networkParameters, Federation retiringFederation, Federation activeFederation) {
+        co.rsk.bitcoinj.core.Coin baseCoin = co.rsk.bitcoinj.core.Coin.valueOf(1_000_000L);
+        List<Coin> utxosToMigrate = new ArrayList<>();
+        var totalOfUtxosToMigrate = 10;
+
+        for (int i = 1; i <= totalOfUtxosToMigrate; i++) {
+            utxosToMigrate.add(baseCoin.multiply(i));
+        }
+
+        return createMigrationTxWithUTXOs(networkParameters, retiringFederation, activeFederation, utxosToMigrate);
+    }
+
+    public static BtcTransaction createMigrationTxBelowMinimumPeginValue(NetworkParameters networkParameters, Federation retiringFederation, Federation activeFederation) {
+        var totalValue = MINIMUM_PEGIN_TX_VALUE.minus(co.rsk.bitcoinj.core.Coin.SATOSHI);
+
+        List<co.rsk.bitcoinj.core.Coin> utxosToMigrate = new ArrayList<>();
+        var totalOfUtxosToMigrate = 10;
+        var utxoValue = totalValue.div(totalOfUtxosToMigrate);
+
+        for (int i = 1; i <= totalOfUtxosToMigrate; i++) {
+            utxosToMigrate.add(utxoValue);
+        }
+
+        return createMigrationTxWithUTXOs(networkParameters, retiringFederation, activeFederation, utxosToMigrate);
+    }
+
+    public static BtcTransaction createMigrationTxWithUTXOs(NetworkParameters networkParameters, Federation retiringFederation, Federation activeFederation, List<Coin> utxosToMigrate) {
+        co.rsk.bitcoinj.core.Address retiringFederationAddress = retiringFederation.getAddress();
+        co.rsk.bitcoinj.core.Address activeFederationAddress = activeFederation.getAddress();
+
+        List<BtcTransaction> txsToMigrate = new ArrayList<>();
+        Coin utxosTotalValue = Coin.ZERO;
+        for (Coin coin : utxosToMigrate) {
+            BtcTransaction txSentToRetiringFed = new BtcTransaction(networkParameters);
+            txSentToRetiringFed.addOutput(coin, retiringFederationAddress);
+            utxosTotalValue = utxosTotalValue.add(coin);
+
+            txsToMigrate.add(txSentToRetiringFed);
+        }
+
+        // add base script from retiring fed to all inputs
+        BtcTransaction migrationBtcTx = new BtcTransaction(networkParameters);
+        for (int i = 0; i < txsToMigrate.size(); i++) {
+            BtcTransaction txToMigrate = txsToMigrate.get(i);
+            co.rsk.bitcoinj.core.TransactionOutput output = txToMigrate.getOutput(0);
+            migrationBtcTx.addInput(output);
+
+            addSpendingFederationBaseScript(
+                migrationBtcTx,
+                i,
+                retiringFederation.getRedeemScript(),
+                retiringFederation.getFormatVersion()
+            );
+        }
+
+        // one output to the new fed with the utxos total value
+        migrationBtcTx.addOutput(utxosTotalValue, activeFederationAddress);
+
+        return migrationBtcTx;
+    }
+
     public static BtcTransaction createTxFromP2pkh(NetworkParameters networkParameters) {
         BtcTransaction peginBtcTx = new BtcTransaction(networkParameters);
         addInputFromP2pkh(peginBtcTx);
@@ -155,7 +216,7 @@ public final class BitcoinTestUtils {
     }
 
     private static void addInputFromP2pkh(BtcTransaction peginBtcTx) {
-        peginBtcTx.addInput(BitcoinTestUtils.createHash(1), 0, ScriptBuilder.createInputScript(null, SENDER_PUBLIC_KEY));
+        peginBtcTx.addInput(createHash(1), 0, ScriptBuilder.createInputScript(null, SENDER_PUBLIC_KEY));
     }
 
     public static BtcTransaction createTxFromP2wpkh(NetworkParameters networkParameters) {
@@ -220,7 +281,7 @@ public final class BitcoinTestUtils {
         Script witnessScript = new ScriptBuilder()
             .data(redeemScript)
             .build();
-        peginBtcTx.addInput(BitcoinTestUtils.createHash(1), 0, witnessScript);
+        peginBtcTx.addInput(createHash(1), 0, witnessScript);
 
         int numSigs = 1;
         addWitness(peginBtcTx, numSigs, SENDER_PUBLIC_KEY.getPubKey());
@@ -353,13 +414,6 @@ public final class BitcoinTestUtils {
             RSK_DESTINATION_ADDRESS_INDEX,
             RSK_DESTINATION_ADDRESS_LENGTH
         );
-    }
-
-    public static org.bitcoinj.core.Sha256Hash getTxHash(Transaction tx) {
-        if (tx.hasWitnesses()) {
-            return tx.getWTxId();
-        }
-        return tx.getTxId();
     }
 
     public static BtcTransaction createCoinbaseTransactionWithWitnessCommitment(

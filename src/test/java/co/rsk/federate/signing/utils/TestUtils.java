@@ -15,6 +15,7 @@ import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
 import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
 import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMVersion;
+import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.*;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
@@ -23,6 +24,8 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
+
+import co.rsk.peg.federation.constants.FederationConstants;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
@@ -148,6 +151,15 @@ public final class TestUtils {
         FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
         return FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpFedPubKeysList,
             ERP_FED_ACTIVATION_DELAY);
+    }
+
+    public static Federation createP2shP2wshErpFederation(BridgeConstants constants, List<BtcECKey> keys) {
+        List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
+        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, constants.getBtcParams());
+
+        FederationConstants federationConstants = constants.getFederationConstants();
+        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, federationConstants.getErpFedPubKeysList(),
+            federationConstants.getErpFedActivationDelay());
     }
 
     public static List<BtcECKey> getFederationPrivateKeys(long amountOfMembers) {
