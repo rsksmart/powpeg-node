@@ -48,13 +48,10 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.internal.util.MockUtil;
 import org.spongycastle.util.encoders.Hex;
 
-/**
- * Created by ajlopez on 6/1/2016.
- */
 class BtcToRskClientTest {
-    private final BridgeConstants BRIDGE_MAINNET_CONSTANTS = BridgeMainNetConstants.getInstance();
-    private final String MAINNET_BTC_PARAMS_STRING = BRIDGE_MAINNET_CONSTANTS.getBtcParamsString();
-    private final co.rsk.bitcoinj.core.NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
+    private static final BridgeConstants BRIDGE_MAINNET_CONSTANTS = BridgeMainNetConstants.getInstance();
+    private static final String MAINNET_BTC_PARAMS_STRING = BRIDGE_MAINNET_CONSTANTS.getBtcParamsString();
+    private static final co.rsk.bitcoinj.core.NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
 
     private int nhash = 0;
     private ActivationConfig activationConfig;
@@ -1810,10 +1807,10 @@ class BtcToRskClientTest {
     @Nested
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class UpdateBridgeBtcTransactionsTests {
-        private final NetworkParameters MAINNET_PARAMS = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING);
-        private final Context MAINNET_CONTEXT = new Context(MAINNET_PARAMS);
+        private static final NetworkParameters MAINNET_PARAMS = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING);
+        private static final Context MAINNET_CONTEXT = new Context(MAINNET_PARAMS);
 
-        private final int PREV_BLOCK_HEIGHT = 3;
+        private static final int PREV_BLOCK_HEIGHT = 3;
 
         private final Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(BRIDGE_MAINNET_CONSTANTS.getBtcParams(), 15);
         private final co.rsk.bitcoinj.core.Address retiringFederationAddress = retiringFederation.getAddress();
@@ -1931,7 +1928,7 @@ class BtcToRskClientTest {
             confidence.setConfidenceType(org.bitcoinj.core.TransactionConfidence.ConfidenceType.BUILDING);
             confidence.setDepthInBlocks(BRIDGE_MAINNET_CONSTANTS.getBtc2RskMinimumAcceptableConfirmations());
 
-            int CHAIN_HEIGHT = 4;
+            final int CHAIN_HEIGHT = 4;
             StoredBlock[] blocks = createBlockchain(CHAIN_HEIGHT);
 
             Sha256Hash prevBlockHash = blocks[PREV_BLOCK_HEIGHT].getHeader().getHash();
@@ -3597,12 +3594,6 @@ class BtcToRskClientTest {
 
         verify(federatorSupport, times(1)).isBtcTxHashAlreadyProcessed(peginBtcTx.getTxId());
         verify(federatorSupport, never()).sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
-    }
-
-    private static co.rsk.bitcoinj.script.Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
-        co.rsk.bitcoinj.script.Script scriptPubKey = federation.getP2SHScript();
-
-        return scriptPubKey.createEmptyInputScript(null, federation.getRedeemScript());
     }
 
     private BtcToRskClient buildWithFactory(FederatorSupport federatorSupport, NodeBlockProcessor nodeBlockProcessor) {
