@@ -38,7 +38,6 @@ import java.util.stream.Stream;
 import com.google.common.collect.Lists;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
-import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.wallet.Wallet;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
@@ -3149,55 +3148,6 @@ class BtcToRskClientTest {
 
         private void assertTxNotSentToBridge() {
             verify(federatorSupport, never()).sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
-        }
-
-        // Class that allows to override certain methods in Kit class
-        // that are inherited from WalletAppKit class and can't be mocked
-        private static class KitForTests extends Kit {
-
-            private final Wallet wallet;
-            private BlockStore store;
-
-            public KitForTests(Context btcContext, File directory, String filePrefix, Wallet wallet) {
-                super(btcContext, directory, filePrefix);
-                this.wallet = wallet;
-            }
-
-            protected void setStore(StoredBlock[] storedBlocks) throws BlockStoreException {
-                BlockStore blockStore = mock(BlockStore.class);
-                for (int i = 0; i < storedBlocks.length; i++) {
-                    StoredBlock storedBlock = Arrays.stream(storedBlocks).toList().get(i);
-                    when(blockStore.get(storedBlock.getHeader().getHash())).thenReturn(storedBlock);
-                    when(blockStore.getChainHead()).thenReturn(storedBlock);
-                }
-
-                this.store = blockStore;
-            }
-
-            @Override
-            protected void startUp() {
-                // Not needed for tests
-            }
-
-            @Override
-            protected void shutDown() {
-                // Not needed for tests
-            }
-
-            @Override
-            protected Wallet createWallet() {
-                return wallet;
-            }
-
-            @Override
-            public Wallet wallet() {
-                return wallet;
-            }
-
-            @Override
-            public BlockStore store() {
-                return store;
-            }
         }
     }
 

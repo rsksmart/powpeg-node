@@ -282,36 +282,4 @@ class BitcoinWrapperImplTest {
         Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
         assertEquals(0, txProofsKeySet.size());
     }
-
-    // Class that allows to override certain methods in Kit class
-    // that are inherited from WalletAppKit class and can't be mocked
-    private static class KitForTests extends Kit {
-
-        private final Wallet wallet;
-
-        public KitForTests(Context btcContext, File directory, String filePrefix, Wallet wallet) {
-            super(btcContext, directory, filePrefix);
-            this.wallet = wallet;
-        }
-
-        @Override
-        protected void startUp() {
-            // Not needed for tests
-        }
-
-        @Override
-        protected void shutDown() {
-            // Not needed for tests
-        }
-
-        @Override
-        protected Wallet createWallet() {
-            return wallet;
-        }
-
-        @Override
-        public Wallet wallet() {
-            return wallet;
-        }
-    }
 }
