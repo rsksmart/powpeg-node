@@ -313,7 +313,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     protected void coinsReceived(Transaction tx) {
         if (watchedFederations.isEmpty()) {
             logger.trace(
-                "[coinsReceivedOrSent] No watched federations, skipping transaction {} (wtxid: {})",
+                "[coinsReceived] No watched federations, skipping transaction {} (wtxid: {})",
                 tx.getTxId(),
                 tx.getWTxId()
             );
@@ -321,7 +321,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         }
 
         logger.debug(
-            "[coinsReceivedOrSent] Received filtered transaction {} (wtxid: {}). Currently watching {} federations",
+            "[coinsReceived] Received filtered transaction {} (wtxid: {}). Currently watching {} federations",
             tx.getTxId(),
             tx.getWTxId(),
             watchedFederations.size()
