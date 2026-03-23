@@ -6,7 +6,6 @@ import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.peg.*;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.Federation;
-import co.rsk.util.MaxSizeHashMap;
 import java.util.*;
 import org.bitcoinj.core.*;
 import org.bitcoinj.core.TransactionConfidence.ConfidenceType;
@@ -34,7 +33,6 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         }
     }
 
-    private static final int MAX_SIZE_MAP_STORED_BLOCKS = 10_000;
     private static final Logger logger = LoggerFactory.getLogger(BitcoinWrapperImpl.class);
 
     private final Context btcContext;
@@ -43,10 +41,6 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     private final List<BlockListener> blockListeners;
     private final Collection<NewBestBlockListener> newBestBlockListeners;
 
-    private final Map<Sha256Hash, StoredBlock> knownBlocks = new MaxSizeHashMap<>(
-        MAX_SIZE_MAP_STORED_BLOCKS,
-        true
-    );
     private final Kit kit;
 
     private boolean running = false;
@@ -143,12 +137,10 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             if (blockHash == null) {
                 return null;
             }
-            StoredBlock currentBlock = knownBlocks.get(blockHash);
-            if(currentBlock == null) {
-                currentBlock = blockStore.get(blockHash);
-                if (currentBlock == null) {
-                    return null;
-                }
+
+            StoredBlock currentBlock = blockStore.get(blockHash);
+            if (currentBlock == null) {
+                return null;
             }
             blockHash = currentBlock.getHeader().getPrevBlockHash();
         }
@@ -156,10 +148,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         if (blockHash == null) {
             return null;
         }
-        StoredBlock block = knownBlocks.get(blockHash);
-        if(block == null) {
-            block = blockStore.get(blockHash);
-        }
+        StoredBlock block = blockStore.get(blockHash);
 
         if (block != null && block.getHeight() != height) {
             String message = String.format(
