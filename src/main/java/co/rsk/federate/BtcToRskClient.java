@@ -1,10 +1,11 @@
 package co.rsk.federate;
 
+import static co.rsk.federate.PegUtils.isPegOutTx;
+import static co.rsk.federate.bitcoin.BitcoinUtils.getTxHash;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.wallet.Wallet;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.*;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
@@ -12,15 +13,12 @@ import co.rsk.federate.io.*;
 import co.rsk.federate.timing.TurnScheduler;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.BridgeUtils;
-import co.rsk.peg.PegUtilsLegacy;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.bitcoin.BitcoinUtils;
-import co.rsk.peg.btcLockSender.BtcLockSender;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
-import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -55,7 +53,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     private BtcLockSenderProvider btcLockSenderProvider;
     private PeginInstructionsProvider peginInstructionsProvider;
     private boolean isUpdateBridgeTimerEnabled;
-    private Federation federation; // Federation on which this client is operating
+    private Federation federationToListen; // Federation on which this client is operating
     private ScheduledExecutorService updateBridgeTimer; // Timer that updates the bridge periodically
     private int amountOfHeadersToSend; // Set amount of headers to inform in a single call
     private BtcToRskClientFileData fileData = new BtcToRskClientFileData();
@@ -74,7 +72,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         BtcToRskClientFileStorage btcToRskClientFileStorage,
         BtcLockSenderProvider btcLockSenderProvider,
         PeginInstructionsProvider peginInstructionsProvider,
-        Federation federation,
+        Federation federationToListen,
         PowpegNodeSystemProperties config
     ) throws Exception {
         this.bitcoinWrapper = bitcoinWrapper;
@@ -84,7 +82,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         this.restoreFileData();
         this.btcLockSenderProvider = btcLockSenderProvider;
         this.peginInstructionsProvider = peginInstructionsProvider;
-        this.federation = federation;
+        this.federationToListen = federationToListen;
         setConfigVariables(config);
     }
 
@@ -108,7 +106,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     public void start(Federation federation) {
         logger.info("[start] Starting for federation {}", federation.getAddress());
-        this.federation = federation;
+        this.federationToListen = federation;
 
         FederationMember federator = federatorSupport.getFederationMember();
         BtcECKey federatorBtcKey = federator.getBtcPublicKey();
@@ -164,7 +162,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public void stop() {
         logger.info("[stop] Stopping");
 
-        this.federation = null;
+        this.federationToListen = null;
 
         if (updateBridgeTimer != null) {
             updateBridgeTimer.shutdown();
@@ -177,7 +175,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     public void updateBridge() {
-        if (federation == null) {
+        if (federationToListen == null) {
             logger.warn("[updateBridge] updateBridge skipped because no Federation is associated to this BtcToRskClient");
             return;
         }
@@ -187,7 +185,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             return;
         }
 
-        logger.debug("[updateBridge] Updating bridge. Federation {}", federation.getAddress());
+        logger.debug("[updateBridge] Updating bridge. Federation {}", federationToListen.getAddress());
 
         if (shouldUpdateBridgeBtcBlockchain) {
             // Call receiveHeaders
@@ -567,7 +565,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         co.rsk.bitcoinj.core.Context context = co.rsk.bitcoinj.core.Context.getOrCreate(bridgeConstants.getBtcParams());
         co.rsk.bitcoinj.wallet.Wallet federationWallet = BridgeUtils.getFederationNoSpendWallet(
             context,
-            federation,
+            federationToListen,
             false,
             null
         );
@@ -704,8 +702,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     private boolean shouldSendTx(Transaction tx, co.rsk.bitcoinj.wallet.Wallet federationWallet) {
         logger.debug("[updateBridgeBtcTransactions] Checking if tx should be send {}", getTxHash(tx));
+        BtcTransaction btcTx = ThinConverter.toThinInstance(federationWallet.getNetworkParameters(), tx);
 
-        BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
         co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(federationWallet);
         if (valueSentToMe.isZero()) {
             return false;
@@ -713,45 +711,33 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
         long bestBlockNumber = federatorSupport.getRskBestChainHeight();
         ActivationConfig.ForBlock activations = activationConfig.forBlock(bestBlockNumber);
-
-        if (PegUtilsLegacy.isPegOutTx(btcTx, List.of(federation), activations)) {
-            return true;
-        }
-
-        // from now on, the tx will be treated as a pegin
-        boolean isAnyValueSentBelowMinimumPeginValue = !allUTXOsToFedAreAboveMinimumPeginValue(
-            btcTx,
-            federationWallet,
-            bridgeConstants.getMinimumPeginTxValue(activations)
-        );
-        if (isAnyValueSentBelowMinimumPeginValue) {
-           return false;
-        }
-
         PeginInformation peginInformation = new PeginInformation(
             btcLockSenderProvider,
             peginInstructionsProvider,
             activations
         );
-        try {
-            peginInformation.parse(btcTx);
-        } catch (PeginInstructionsException e) {
-            // pegin instructions exception is only being thrown when a pegin has an INVALID op return output structure
-            // meaning if there's NO op return found, or the protocol version is unknown, it won't throw.
-            co.rsk.bitcoinj.core.Address refundAddress = peginInformation.getSenderBtcAddress();
-            // if there's a refund address, i.e., refundAddress is not null, tx should be sent
-            return refundAddress != null;
+
+        FederationProviderFromFederatorSupport federationProviderFromFederatorSupport = new FederationProviderFromFederatorSupport(
+            federatorSupport,
+            bridgeConstants.getFederationConstants()
+        );
+        Federation activeFederation = federationProviderFromFederatorSupport.getActiveFederation();
+
+        boolean imAnActiveFederator = activeFederation.equals(federationToListen);
+        // if the client is listening to a retired federator,
+        // we just want to inform the tx when it's a (valid) pegin
+        if (!imAnActiveFederator) {
+            return PegUtils.isValidPegInTx(btcTx, federationWallet, peginInformation);
         }
 
-        // at this point, tx could be a legacy pegin or a pegin with instructions with valid op return structure
-        if (isLegacyPegin(peginInformation)) {
-            // if there's a valid lock sender, i.e., sender address type is not UNKNOWN, tx should be sent
-            return peginInformation.getSenderBtcAddressType() != BtcLockSender.TxSenderAddressType.UNKNOWN;
+        Optional<Federation> retiringFederation = federationProviderFromFederatorSupport.getRetiringFederation();
+        if (retiringFederation.isPresent() && PegUtils.isMigrationTx(btcTx, retiringFederation.get(), activeFederation)) {
+            return true;
         }
-
-        // at this point, tx is a pegin with instructions with valid structure,
-        // but we just want to send it if the protocol version is valid
-        return isPeginWithInstructionsProtocolVersionValid(peginInformation);
+        if (isPegOutTx(btcTx, federationToListen)) {
+            return true;
+        }
+        return PegUtils.isValidPegInTx(btcTx, federationWallet, peginInformation);
     }
 
     private void sendTx(Transaction tx, StoredBlock txStoredBlock, PartialMerkleTree pmt) {
@@ -774,36 +760,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         logger.debug(
             "[sendTx] Invoked registerBtcTransaction for tx {}",
             txHash
-        );
-    }
-
-    private org.bitcoinj.core.Sha256Hash getTxHash(Transaction tx) {
-        if (tx.hasWitnesses()) {
-            return tx.getWTxId();
-        }
-        return tx.getTxId();
-    }
-
-    private boolean isLegacyPegin(PeginInformation peginInformation) {
-        return peginInformation.getProtocolVersion() == 0;
-    }
-
-    private boolean isPeginWithInstructionsProtocolVersionValid(PeginInformation peginInformation) {
-        return peginInformation.getProtocolVersion() == 1;
-    }
-
-    private boolean allUTXOsToFedAreAboveMinimumPeginValue(
-        BtcTransaction btcTx,
-        Wallet fedWallet,
-        co.rsk.bitcoinj.core.Coin minimumPegInTxValue
-    ) {
-        List<co.rsk.bitcoinj.core.TransactionOutput> fedUtxos = btcTx.getWalletOutputs(fedWallet);
-        if (fedUtxos.isEmpty()) {
-            return false;
-        }
-
-        return fedUtxos.stream().allMatch(transactionOutput ->
-            transactionOutput.getValue().compareTo(minimumPegInTxValue) >= 0
         );
     }
 
@@ -883,8 +839,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     public void tearDown() throws IOException {
         logger.info("[tearDown] BtcToRskClient tearDown starting...");
 
-        if (federation != null) {
-            bitcoinWrapper.removeFederationListener(federation, this);
+        if (federationToListen != null) {
+            bitcoinWrapper.removeFederationListener(federationToListen, this);
         }
 
         bitcoinWrapper.removeBlockListener(this);
