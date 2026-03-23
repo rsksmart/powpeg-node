@@ -10,17 +10,15 @@ import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.LevelDBBlockStore;
 import org.bitcoinj.wallet.Wallet;
 import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener;
-import org.bitcoinj.wallet.listeners.WalletCoinsSentEventListener;
 import org.ethereum.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Kit extends WalletAppKit {
 
-    private Context btcContext;
+    private final Context btcContext;
     private BlocksDownloadedEventListener blockListener;
     private WalletCoinsReceivedEventListener coinsReceivedListener;
-    private WalletCoinsSentEventListener coinsSentListener;
     private NewBestBlockListener newBestBlockListener;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Kit.class);
@@ -34,12 +32,10 @@ public class Kit extends WalletAppKit {
     public void setup(
         BlocksDownloadedEventListener blockListener,
         WalletCoinsReceivedEventListener coinsReceivedListener,
-        WalletCoinsSentEventListener coinsSentListener,
         NewBestBlockListener newBestBlockListener) {
 
         this.blockListener = blockListener;
         this.coinsReceivedListener = coinsReceivedListener;
-        this.coinsSentListener = coinsSentListener;
         this.newBestBlockListener = newBestBlockListener;
     }
 
@@ -53,7 +49,6 @@ public class Kit extends WalletAppKit {
             vWallet.reset();
         }
         vWallet.addCoinsReceivedEventListener(coinsReceivedListener);
-        vWallet.addCoinsSentEventListener(coinsSentListener);
         vPeerGroup.setDownloadTxDependencies(0);
         vChain.addNewBestBlockListener(newBestBlockListener);
     }

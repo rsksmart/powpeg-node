@@ -285,7 +285,7 @@ public class FedNodeRunner implements NodeRunner {
             BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
             PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
             btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(new BtcToRskClientFileStorageInfo(config));
-            bitcoinWrapper = createAndSetupBitcoinWrapper(btcLockSenderProvider, peginInstructionsProvider);
+            bitcoinWrapper = createAndSetupBitcoinWrapper();
 
             btcToRskClientActive.setup(
                 bitcoinWrapper,
@@ -380,10 +380,7 @@ public class FedNodeRunner implements NodeRunner {
         logger.info("[stop] Federation node Shut down.");
     }
 
-    private BitcoinWrapper createAndSetupBitcoinWrapper(
-        BtcLockSenderProvider btcLockSenderProvider,
-        PeginInstructionsProvider peginInstructionsProvider) throws UnknownHostException {
-
+    private BitcoinWrapper createAndSetupBitcoinWrapper() throws UnknownHostException {
         Context btcContext = new Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
         File pegDirectory = new File(this.btcToRskClientFileStorage.getInfo().getPegDirectoryPath());
         Kit kit = new Kit(btcContext, pegDirectory, "BtcToRskClient");
@@ -391,9 +388,6 @@ public class FedNodeRunner implements NodeRunner {
         BitcoinWrapper wrapper = new BitcoinWrapperImpl(
             btcContext,
             bridgeConstants,
-            btcLockSenderProvider,
-            peginInstructionsProvider,
-            federatorSupport,
             kit
         );
         wrapper.setup(federatorSupport.getBitcoinPeerAddresses());

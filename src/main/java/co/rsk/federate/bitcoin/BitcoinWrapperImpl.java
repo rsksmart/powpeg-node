@@ -2,14 +2,10 @@ package co.rsk.federate.bitcoin;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.wallet.Wallet;
-import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.peg.*;
-import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.Federation;
-import co.rsk.peg.pegininstructions.PeginInstructionsException;
-import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import co.rsk.util.MaxSizeHashMap;
 import java.util.*;
 import org.bitcoinj.core.*;
@@ -20,8 +16,6 @@ import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener;
-import org.bitcoinj.wallet.listeners.WalletCoinsSentEventListener;
-import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,9 +47,6 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         MAX_SIZE_MAP_STORED_BLOCKS,
         true
     );
-    private final BtcLockSenderProvider btcLockSenderProvider;
-    private final PeginInstructionsProvider peginInstructionsProvider;
-    private final FederatorSupport federatorSupport;
     private final Kit kit;
 
     private boolean running = false;
@@ -63,19 +54,14 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     public BitcoinWrapperImpl(
         Context btcContext,
         BridgeConstants bridgeConstants,
-        BtcLockSenderProvider btcLockSenderProvider,
-        PeginInstructionsProvider peginInstructionsProvider,
-        FederatorSupport federatorSupport,
-        Kit kit) {
+        Kit kit
+    ) {
 
         this.btcContext = btcContext;
         this.bridgeConstants = bridgeConstants;
         this.blockListeners = new LinkedList<>();
         this.watchedFederations = new LinkedList<>();
         this.newBestBlockListeners = new LinkedList<>();
-        this.btcLockSenderProvider = btcLockSenderProvider;
-        this.peginInstructionsProvider = peginInstructionsProvider;
-        this.federatorSupport = federatorSupport;
         this.kit = kit;
     }
 
@@ -95,13 +81,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             tx,
             prevBalance,
             newBalance
-        ) -> coinsReceivedOrSent(tx);
-        WalletCoinsSentEventListener coinsSentEventListener = (
-            wallet,
-            tx,
-            prevBalance,
-            newBalance
-        ) -> coinsReceivedOrSent(tx);
+        ) -> coinsReceived(tx);
         NewBestBlockListener newBestBlockListener = storedBlock -> newBestBlockListeners.forEach(
             listener -> listener.notifyNewBestBlock(storedBlock)
         );
@@ -109,7 +89,6 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         kit.setup(
             blocksDownloadedEventListener,
             coinsReceivedEventListener,
-            coinsSentEventListener,
             newBestBlockListener
         );
 
@@ -342,7 +321,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         newBestBlockListeners.remove(newBestBlockListener);
     }
 
-    protected void coinsReceivedOrSent(Transaction tx) {
+    protected void coinsReceived(Transaction tx) {
         if (watchedFederations.isEmpty()) {
             logger.trace(
                 "[coinsReceivedOrSent] No watched federations, skipping transaction {} (wtxid: {})",
@@ -364,66 +343,22 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
         co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
 
-        ActivationConfig.ForBlock activations = federatorSupport.getConfigForBestBlock();
-
         for (FederationListener watched : watchedFederations) {
             Federation watchedFederation = watched.federation();
             TransactionListener listener = watched.listener();
             Wallet watchedFederationWallet = new BridgeBtcWallet(btcContextThin, Collections.singletonList(watchedFederation));
             logger.debug(
-                "[coinsReceivedOrSent] Checking transaction {} (wtxid: {}) for watched federation {}",
+                "[coinsReceived] Checking transaction {} (wtxid: {}) for watched federation {}",
                 tx.getTxId(),
                 tx.getWTxId(),
                 watchedFederation.getAddress()
             );
 
-            if (PegUtilsLegacy.isValidPegInTx(
-                btcTx,
-                watchedFederation,
-                watchedFederationWallet,
-                bridgeConstants,
-                activations
-            )) {
-                PeginInformation peginInformation = new PeginInformation(
-                    btcLockSenderProvider,
-                    peginInstructionsProvider,
-                    activations
-                );
-
-                try {
-                    peginInformation.parse(btcTx);
-                } catch (PeginInstructionsException e) {
-                    logger.debug(
-                        "[coinsReceivedOrSent] [btctx: {} (wtxid: {})] failed to parse peg-in information",
-                        tx.getTxId(),
-                        tx.getWTxId(),
-                        e
-                    );
-                    // If tx sender could be retrieved then let the Bridge process the tx and refund the sender
-                    if (peginInformation.getSenderBtcAddress() != null) {
-                        logger.debug(
-                            "[coinsReceivedOrSent] [btctx: {} (wtxid: {})] is not a valid peg-in tx, funds will be refunded to sender",
-                            tx.getTxId(),
-                            tx.getWTxId()
-                        );
-                    } else {
-                        logger.debug(
-                            "[coinsReceivedOrSent] [btctx: {} (wtxid: {})] is not a valid peg-in tx and won't be processed",
-                            tx.getTxId(),
-                            tx.getWTxId()
-                        );
-                        continue;
-                    }
-                }
-
-                logger.debug("[coinsReceivedOrSent] [btctx: {} (wtxid: {})] is a peg-in", tx.getTxId(), tx.getWTxId());
-                listener.onTransaction(tx);
+            co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(watchedFederationWallet);
+            if (valueSentToMe.isZero()) {
+                return;
             }
-
-            if (PegUtilsLegacy.isPegOutTx(btcTx, Collections.singletonList(watchedFederation), activations)) {
-                logger.debug("[coinsReceivedOrSent] [btctx: {} (wtxid: {})] is a peg-out", tx.getTxId(), tx.getWTxId());
-                listener.onTransaction(tx);
-            }
+            listener.onTransaction(tx);
         }
     }
 }

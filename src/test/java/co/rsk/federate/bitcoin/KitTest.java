@@ -7,11 +7,8 @@ import static org.mockito.Mockito.when;
 
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.constants.BridgeRegTestConstants;
-import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.signing.utils.TestUtils;
-import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
-import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,17 +34,11 @@ class KitTest {
 
     @Test
     void setupConsistentWallet() {
-        BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
-        PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         File pegDirectoryMock = mock(File.class);
 
         BitcoinWrapper bitcoinWrapper = new BitcoinWrapperImpl(
             btcContext,
             bridgeConstants,
-            btcLockSenderProvider,
-            peginInstructionsProvider,
-            federatorSupport,
             new Kit(btcContext, pegDirectoryMock, "")
         );
         List<PeerAddress> peerAddresses = new ArrayList<>();
@@ -70,17 +61,11 @@ class KitTest {
 
     @Test
     void setupNoConsistentWallet() {
-        BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
-        PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
         File pegDirectoryMock = mock(File.class);
 
         BitcoinWrapper bitcoinWrapper = new BitcoinWrapperImpl(
             btcContext,
             bridgeConstants,
-            btcLockSenderProvider,
-            peginInstructionsProvider,
-            federatorSupport,
             new Kit(btcContext, pegDirectoryMock, "")
         );
         List<PeerAddress> peerAddresses = new ArrayList<>();
