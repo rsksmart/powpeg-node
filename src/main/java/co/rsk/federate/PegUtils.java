@@ -43,20 +43,15 @@ public class PegUtils {
             return false;
         }
 
-        Script proposedFederationRedeemScript = proposedFederation.getRedeemScript();
+        Script defaultProposedFederationP2SHScript = getFederationStandardP2SHScript(proposedFederation);
         int proposedFedInputIndex = 0;
-        Script proposedFedScript = ScriptBuilder.createP2SHP2WSHOutputScript(proposedFederationRedeemScript);
-
         int flyoverProposedFedInputIndex = 1;
-        Keccak256 proposedFederationFlyoverPrefix = bridgeConstants.getProposedFederationFlyoverPrefix();
-        Script flyoverProposedFederationRedeemScript = getFlyoverFederationRedeemScript(proposedFederationFlyoverPrefix, proposedFederationRedeemScript);
-        Script flyoverProposedFedScript = ScriptBuilder.createP2SHP2WSHOutputScript(flyoverProposedFederationRedeemScript);
 
         int activeFedOutputIndex = 0;
         Script activeFedScript = activeFederation.getP2SHScript();
 
-        return isInputFromScript(proposedFedScript, btcTx, proposedFedInputIndex)
-            && isInputFromScript(flyoverProposedFedScript, btcTx, flyoverProposedFedInputIndex)
+        return isInputFromScript(defaultProposedFederationP2SHScript, btcTx, proposedFedInputIndex)
+            && isInputFromScript(defaultProposedFederationP2SHScript, btcTx, flyoverProposedFedInputIndex)
             && isOutputToScript(activeFedScript, btcTx.getOutput(activeFedOutputIndex));
     }
 

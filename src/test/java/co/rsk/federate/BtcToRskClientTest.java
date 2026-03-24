@@ -3324,8 +3324,12 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge();
         }
 
-        private static Stream<Arguments> notActiveAndActiveFedsArgs() {
-            final Federation activeFed = TestUtils.createP2shP2wshErpFederation(
+        private static Stream<Arguments> activeAndNotActiveFedsArgs() {
+            final Federation activeStandardMultiSigFed = TestUtils.createStandardMultisigFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            final Federation activeSegwitFed = TestUtils.createP2shP2wshErpFederation(
                 MAINNET_BTC_PARAMS,
                 9
             );
@@ -3334,17 +3338,20 @@ class BtcToRskClientTest {
                 20
             );
 
-            return Stream.of(Arguments.of(notActiveFed, activeFed));
+            return Stream.of(
+                Arguments.of(activeStandardMultiSigFed, notActiveFed),
+                Arguments.of(activeSegwitFed, notActiveFed)
+            );
         }
 
         @ParameterizedTest
-        @MethodSource("notActiveAndActiveFedsArgs")
-        void updateBridgeBtcTransactions_svpSpendTx_shouldBeInformed(Federation notActiveFederation, Federation activeFederation) throws Exception {
+        @MethodSource("activeAndNotActiveFedsArgs")
+        void updateBridgeBtcTransactions_svpSpendTx_shouldBeInformed(Federation activeFederation, Federation notActiveFederation) throws Exception {
             // arrange
             setUpProposedFed(notActiveFederation);
             setUpActiveFed(activeFederation);
 
-            var svpSpendBtcTx = createSVPSpendTx(BRIDGE_MAINNET_CONSTANTS, notActiveFederation, activeFederation);
+            var svpSpendBtcTx = createSVPSpendTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, notActiveFederation);
             setUpTx(svpSpendBtcTx);
 
             // act
@@ -3355,14 +3362,14 @@ class BtcToRskClientTest {
         }
 
         @ParameterizedTest
-        @MethodSource("notActiveAndActiveFedsArgs")
+        @MethodSource("activeAndNotActiveFedsArgs")
         void updateBridgeBtcTransactions_svpSpendTx_clientForRetiringFed_shouldNotBeInformed(Federation notActiveFederation, Federation activeFederation) throws Exception {
             // arrange
             setUpActiveFed(activeFederation);
             setUpRetiringFed(notActiveFederation);
             setUpClient(notActiveFederation);
 
-            var svpSpendTx = createSVPSpendTx(BRIDGE_MAINNET_CONSTANTS, notActiveFederation, activeFederation);
+            var svpSpendTx = createSVPSpendTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, notActiveFederation);
             setUpTx(svpSpendTx);
 
             // act
