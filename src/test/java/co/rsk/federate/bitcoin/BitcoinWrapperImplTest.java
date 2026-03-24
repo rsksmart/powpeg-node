@@ -78,7 +78,6 @@ class BitcoinWrapperImplTest {
         Kit kit = new KitForTests(btcContext, mock(File.class), "", mock(Wallet.class));
         bitcoinWrapper = new BitcoinWrapperImpl(
             btcContext,
-            bridgeConstants,
             kit
         );
 

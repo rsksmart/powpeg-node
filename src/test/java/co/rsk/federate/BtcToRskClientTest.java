@@ -1911,7 +1911,6 @@ class BtcToRskClientTest {
         private void setUpBitcoinWrapper(Kit kit) {
             bitcoinWrapper = new BitcoinWrapperImpl(
                 MAINNET_CONTEXT,
-                BRIDGE_MAINNET_CONSTANTS,
                 kit
             );
 

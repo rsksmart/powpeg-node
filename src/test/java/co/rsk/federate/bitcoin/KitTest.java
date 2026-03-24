@@ -5,9 +5,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import co.rsk.peg.constants.BridgeConstants;
-import co.rsk.peg.constants.BridgeRegTestConstants;
-import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.signing.utils.TestUtils;
 import java.io.File;
 import java.util.ArrayList;
@@ -22,13 +19,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class KitTest {
-    private static BridgeConstants bridgeConstants;
+
     private static Context btcContext;
 
     @BeforeEach
     void setUpBeforeClass() {
-        bridgeConstants = new BridgeRegTestConstants();
-        NetworkParameters networkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
+        NetworkParameters networkParameters = NetworkParameters.fromID(NetworkParameters.ID_MAINNET);
         btcContext = new Context(networkParameters);
     }
 
@@ -38,7 +34,6 @@ class KitTest {
 
         BitcoinWrapper bitcoinWrapper = new BitcoinWrapperImpl(
             btcContext,
-            bridgeConstants,
             new Kit(btcContext, pegDirectoryMock, "")
         );
         List<PeerAddress> peerAddresses = new ArrayList<>();
@@ -65,7 +60,6 @@ class KitTest {
 
         BitcoinWrapper bitcoinWrapper = new BitcoinWrapperImpl(
             btcContext,
-            bridgeConstants,
             new Kit(btcContext, pegDirectoryMock, "")
         );
         List<PeerAddress> peerAddresses = new ArrayList<>();

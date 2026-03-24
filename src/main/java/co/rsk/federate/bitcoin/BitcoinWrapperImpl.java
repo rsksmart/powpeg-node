@@ -4,7 +4,6 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.wallet.Wallet;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.peg.*;
-import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.Federation;
 import java.util.*;
 import org.bitcoinj.core.*;
@@ -36,7 +35,6 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     private static final Logger logger = LoggerFactory.getLogger(BitcoinWrapperImpl.class);
 
     private final Context btcContext;
-    private final BridgeConstants bridgeConstants;
     private final List<FederationListener> watchedFederations;
     private final List<BlockListener> blockListeners;
     private final Collection<NewBestBlockListener> newBestBlockListeners;
@@ -47,12 +45,10 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
 
     public BitcoinWrapperImpl(
         Context btcContext,
-        BridgeConstants bridgeConstants,
         Kit kit
     ) {
 
         this.btcContext = btcContext;
-        this.bridgeConstants = bridgeConstants;
         this.blockListeners = new LinkedList<>();
         this.watchedFederations = new LinkedList<>();
         this.newBestBlockListeners = new LinkedList<>();
@@ -329,8 +325,8 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         Context.propagate(btcContext);
 
         // Wrap tx in a co.rsk.bitcoinj.core.BtcTransaction
-        BtcTransaction btcTx = ThinConverter.toThinInstance(bridgeConstants.getBtcParams(), tx);
         co.rsk.bitcoinj.core.Context btcContextThin = ThinConverter.toThinInstance(btcContext);
+        BtcTransaction btcTx = ThinConverter.toThinInstance(btcContextThin.getParams(), tx);
 
         for (FederationListener watched : watchedFederations) {
             Federation watchedFederation = watched.federation();
