@@ -720,16 +720,20 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             federatorSupport,
             bridgeConstants.getFederationConstants()
         );
-        Federation activeFederation = federationProviderFromFederatorSupport.getActiveFederation();
 
-        boolean imAnActiveFederator = activeFederation.equals(federationToListen);
+        Optional<Federation> retiringFederation = federationProviderFromFederatorSupport.getRetiringFederation();
+        boolean imARetiringFederator = retiringFederation.isPresent() && retiringFederation.get().equals(federationToListen);
         // if the client is listening to a retired federator,
         // we just want to inform the tx when it's a (valid) pegin
-        if (!imAnActiveFederator) {
+        if (imARetiringFederator) {
             return PegUtils.isValidPegInTx(btcTx, federationWallet, peginInformation);
         }
 
-        Optional<Federation> retiringFederation = federationProviderFromFederatorSupport.getRetiringFederation();
+        Optional<Federation> proposedFederation = federationProviderFromFederatorSupport.getProposedFederation();
+        Federation activeFederation = federationProviderFromFederatorSupport.getActiveFederation();
+        if (proposedFederation.isPresent() && PegUtils.isSVPSpendTx(bridgeConstants, btcTx, proposedFederation.get(), activeFederation)) {
+            return true;
+        }
         if (retiringFederation.isPresent() && PegUtils.isMigrationTx(btcTx, retiringFederation.get(), activeFederation)) {
             return true;
         }

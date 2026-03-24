@@ -8,6 +8,7 @@ import co.rsk.federate.config.TestSystemProperties;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
@@ -120,6 +121,11 @@ public class SimpleFederatorSupport extends FederatorSupport {
     @Override
     public Integer getRetiringFederationSize() {
         return FEDERATION_NON_EXISTENT.getCode();
+    }
+
+    @Override
+    public Optional<Integer> getProposedFederationSize() {
+        return Optional.empty();
     }
 
     @Override

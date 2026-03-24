@@ -2,6 +2,8 @@ package co.rsk.federate.bitcoin;
 
 import static co.rsk.bitcoinj.script.ScriptBuilder.createP2SHOutputScript;
 import static co.rsk.federate.PegUtils.MINIMUM_PEGIN_TX_VALUE;
+import static co.rsk.peg.PegUtils.getFlyoverFederationRedeemScript;
+import static co.rsk.peg.ReleaseTransactionBuilder.BTC_TX_VERSION_2;
 import static co.rsk.peg.bitcoin.BitcoinUtils.*;
 
 import co.rsk.bitcoinj.core.*;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import co.rsk.core.RskAddress;
+import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.Federation;
 import org.ethereum.crypto.HashUtil;
 import org.ethereum.util.ByteUtil;
@@ -209,20 +212,78 @@ public final class BitcoinTestUtils {
         return migrationBtcTx;
     }
 
-    public static BtcTransaction createTxFromP2pkh(NetworkParameters networkParameters) {
-        BtcTransaction peginBtcTx = new BtcTransaction(networkParameters);
-        addInputFromP2pkh(peginBtcTx);
-        return peginBtcTx;
+    public static BtcTransaction createSVPSpendTx(
+        BridgeConstants bridgeConstants,
+        Federation proposedFederation,
+        Federation activeFederation
+    ) {
+        BtcTransaction svpFundTransaction = createSVPFundTx(bridgeConstants, proposedFederation);
+
+        NetworkParameters networkParameters = bridgeConstants.getBtcParams();
+        BtcTransaction svpSpendTransaction = new BtcTransaction(networkParameters);
+        svpSpendTransaction.setVersion(BTC_TX_VERSION_2);
+
+        // add inputs from fund tx
+        Script proposedFederationRedeemScript = proposedFederation.getRedeemScript();
+        int proposedFederationFormatVersion = proposedFederation.getFormatVersion();
+
+        TransactionOutput outputToProposedFed = svpFundTransaction.getOutput(0);
+        svpSpendTransaction.addInput(outputToProposedFed);
+        int proposedFederationInputIndex = 0;
+        addSpendingFederationBaseScript(svpSpendTransaction, proposedFederationInputIndex, proposedFederationRedeemScript, proposedFederationFormatVersion);
+
+        TransactionOutput outputToFlyoverProposedFed = svpFundTransaction.getOutput(1);
+        svpSpendTransaction.addInput(outputToFlyoverProposedFed);
+        int flyoverFederationInputIndex = 1;
+        Script flyoverFederationRedeemScript = getFlyoverFederationRedeemScript(bridgeConstants.getProposedFederationFlyoverPrefix(), proposedFederation.getRedeemScript());
+        addSpendingFederationBaseScript(svpSpendTransaction, flyoverFederationInputIndex, flyoverFederationRedeemScript, proposedFederation.getFormatVersion());
+
+        // create output to active fed
+        Coin valueSentToProposedFed = outputToProposedFed.getValue();
+        Coin valueSentToFlyoverProposedFed = outputToFlyoverProposedFed.getValue();
+
+        Coin fees = Coin.CENT;
+        Coin valueToSend = valueSentToProposedFed
+            .plus(valueSentToFlyoverProposedFed)
+            .minus(fees);
+
+        svpSpendTransaction.addOutput(
+            valueToSend,
+            activeFederation.getAddress()
+        );
+
+        return svpSpendTransaction;
     }
 
-    private static void addInputFromP2pkh(BtcTransaction peginBtcTx) {
-        peginBtcTx.addInput(createHash(1), 0, ScriptBuilder.createInputScript(null, SENDER_PUBLIC_KEY));
+    private static BtcTransaction createSVPFundTx(BridgeConstants bridgeConstants, Federation proposedFederation) {
+        NetworkParameters networkParameters = bridgeConstants.getBtcParams();
+
+        BtcTransaction svpFundTransaction = new BtcTransaction(networkParameters);
+        Coin svpFundTxOutputsAmountToSend = bridgeConstants.getSvpFundTxOutputsValue();
+
+        addOutputToFed(svpFundTransaction, proposedFederation.getAddress(), svpFundTxOutputsAmountToSend);
+        Script flyoverProposedFederationRedeemScript = getFlyoverFederationRedeemScript(bridgeConstants.getProposedFederationFlyoverPrefix(), proposedFederation.getRedeemScript());
+        Script flyoverProposedFedScript = ScriptBuilder.createP2SHP2WSHOutputScript(flyoverProposedFederationRedeemScript);
+        Address flyoverProposedFederationAddress = Address.fromP2SHScript(networkParameters, flyoverProposedFedScript);
+        addOutputToFed(svpFundTransaction, flyoverProposedFederationAddress, svpFundTxOutputsAmountToSend);
+
+        return svpFundTransaction;
+    }
+
+    public static BtcTransaction createTxFromP2pkh(NetworkParameters networkParameters) {
+        BtcTransaction btcTx = new BtcTransaction(networkParameters);
+        addInputFromP2pkh(btcTx);
+        return btcTx;
+    }
+
+    private static void addInputFromP2pkh(BtcTransaction btcTx) {
+        btcTx.addInput(createHash(1), 0, ScriptBuilder.createInputScript(null, SENDER_PUBLIC_KEY));
     }
 
     public static BtcTransaction createTxFromP2wpkh(NetworkParameters networkParameters) {
-        BtcTransaction peginBtcTx = new BtcTransaction(networkParameters);
-        addInputFromP2wpkh(peginBtcTx);
-        return peginBtcTx;
+        BtcTransaction btcTx = new BtcTransaction(networkParameters);
+        addInputFromP2wpkh(btcTx);
+        return btcTx;
     }
 
     private static void addInputFromP2wpkh(BtcTransaction btcTx) {
@@ -237,9 +298,9 @@ public final class BitcoinTestUtils {
     }
 
     public static BtcTransaction createTxFromP2wshMultiSig(NetworkParameters networkParameters) {
-        BtcTransaction peginBtcTx = new BtcTransaction(networkParameters);
-        addInputFromP2wshMultiSig(peginBtcTx);
-        return peginBtcTx;
+        BtcTransaction btcTx = new BtcTransaction(networkParameters);
+        addInputFromP2wshMultiSig(btcTx);
+        return btcTx;
     }
 
     private static void addInputFromP2wshMultiSig(BtcTransaction btcTx) {
@@ -271,20 +332,20 @@ public final class BitcoinTestUtils {
     }
 
     public static BtcTransaction createTxFromP2shP2wpkh(NetworkParameters networkParameters) {
-        BtcTransaction peginBtcTx = new BtcTransaction(networkParameters);
-        addInputFromP2shP2wpkh(peginBtcTx);
-        return peginBtcTx;
+        BtcTransaction btcTx = new BtcTransaction(networkParameters);
+        addInputFromP2shP2wpkh(btcTx);
+        return btcTx;
     }
 
-    private static void addInputFromP2shP2wpkh(BtcTransaction peginBtcTx) {
+    private static void addInputFromP2shP2wpkh(BtcTransaction btcTx) {
         byte[] redeemScript = ByteUtil.merge(new byte[]{0x00, 0x14}, SENDER_PUBLIC_KEY.getPubKeyHash());
         Script witnessScript = new ScriptBuilder()
             .data(redeemScript)
             .build();
-        peginBtcTx.addInput(createHash(1), 0, witnessScript);
+        btcTx.addInput(createHash(1), 0, witnessScript);
 
         int numSigs = 1;
-        addWitness(peginBtcTx, numSigs, SENDER_PUBLIC_KEY.getPubKey());
+        addWitness(btcTx, numSigs, SENDER_PUBLIC_KEY.getPubKey());
     }
 
     public static BtcTransaction createTxFromP2shMultiSig(NetworkParameters networkParameters) {
@@ -311,29 +372,29 @@ public final class BitcoinTestUtils {
         btcTx.getInput(0).setScriptSig(inputScript);
     }
 
-    public static void addOutputToFedWithMinimumPeginValue(BtcTransaction peginBtcTx, Address federationAddress) {
-        addOutputToFed(peginBtcTx, federationAddress, MINIMUM_PEGIN_TX_VALUE);
+    public static void addOutputToFedWithMinimumPeginValue(BtcTransaction btcTx, Address federationAddress) {
+        addOutputToFed(btcTx, federationAddress, MINIMUM_PEGIN_TX_VALUE);
     }
 
-    public static void addOutputToFedBelowMinimumPeginValue(BtcTransaction peginBtcTx, Address federationAddress) {
+    public static void addOutputToFedBelowMinimumPeginValue(BtcTransaction btcTx, Address federationAddress) {
         Coin amountBelowMinimum = MINIMUM_PEGIN_TX_VALUE.subtract(Coin.valueOf(1L));
-        addOutputToFed(peginBtcTx, federationAddress, amountBelowMinimum);
+        addOutputToFed(btcTx, federationAddress, amountBelowMinimum);
     }
 
-    public static void addOutputToFed(BtcTransaction peginBtcTx, Address federationAddress, Coin amountToSend) {
-        peginBtcTx.addOutput(amountToSend, federationAddress);
+    public static void addOutputToFed(BtcTransaction btcTx, Address federationAddress, Coin amountToSend) {
+        btcTx.addOutput(amountToSend, federationAddress);
     }
 
-    public static void addOpReturnOutput(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRsk(V1_PROTOCOL_VERSION));
+    public static void addOpReturnOutput(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRsk(V1_PROTOCOL_VERSION));
     }
 
-    public static void addOpReturnOutputInvalidPayload(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskInvalidPayload());
+    public static void addOpReturnOutputInvalidPayload(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskInvalidPayload());
     }
 
-    public static void addOpReturnOutputInvalidPayloadWithRefundAddress(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskInvalidPayloadWithRefundAddress());
+    public static void addOpReturnOutputInvalidPayloadWithRefundAddress(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskInvalidPayloadWithRefundAddress());
     }
 
     private static Script createOpReturnScriptForRskInvalidPayload() {
@@ -351,16 +412,16 @@ public final class BitcoinTestUtils {
         return ScriptBuilder.createOpReturnScript(payloadBytes);
     }
 
-    public static void addOpReturnOutputWithRefundAddress(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskWithP2pkhRefundAddress(V1_PROTOCOL_VERSION));
+    public static void addOpReturnOutputWithRefundAddress(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskWithP2pkhRefundAddress(V1_PROTOCOL_VERSION));
     }
 
-    public static void addOpReturnOutputUnknownProtocolVersion(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRsk(UNKNOWN_PROTOCOL_VERSION));
+    public static void addOpReturnOutputUnknownProtocolVersion(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRsk(UNKNOWN_PROTOCOL_VERSION));
     }
 
-    public static void addOpReturnOutputUnknownProtocolVersionWithRefundAddress(BtcTransaction peginBtcTx) {
-        peginBtcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskWithP2pkhRefundAddress(UNKNOWN_PROTOCOL_VERSION));
+    public static void addOpReturnOutputUnknownProtocolVersionWithRefundAddress(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskWithP2pkhRefundAddress(UNKNOWN_PROTOCOL_VERSION));
     }
 
     private static Script createOpReturnScriptForRsk(int protocolVersion) {

@@ -1892,6 +1892,22 @@ class BtcToRskClientTest {
             when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
         }
 
+        private void setUpProposedFed(Federation proposedFederation) {
+            when(federatorSupport.getProposedFederationSize()).thenReturn(Optional.of(proposedFederation.getSize()));
+            for (int i = 0; i < proposedFederation.getSize(); i++) {
+                FederationMember member = proposedFederation.getMembers().get(i);
+                org.ethereum.crypto.ECKey btcKey = org.ethereum.crypto.ECKey.fromPublicOnly(member.getBtcPublicKey().getPubKey());
+                when(federatorSupport.getProposedFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC)).thenReturn(Optional.of(btcKey));
+                org.ethereum.crypto.ECKey rskKey = member.getRskPublicKey();
+                when(federatorSupport.getProposedFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK)).thenReturn(Optional.of(rskKey));
+                org.ethereum.crypto.ECKey mstKey = member.getMstPublicKey();
+                when(federatorSupport.getProposedFederatorPublicKeyOfType(i, FederationMember.KeyType.MST)).thenReturn(Optional.of(mstKey));
+            }
+            when(federatorSupport.getProposedFederationCreationTime()).thenReturn(Optional.of(proposedFederation.getCreationTime()));
+            when(federatorSupport.getProposedFederationCreationBlockNumber()).thenReturn(Optional.of(proposedFederation.getCreationBlockNumber()));
+            when(federatorSupport.getProposedFederationAddress()).thenReturn(Optional.of(proposedFederation.getAddress()));
+        }
+
         private void setUpBitcoinWrapper(Kit kit) {
             bitcoinWrapper = new BitcoinWrapperImpl(
                 MAINNET_CONTEXT,
@@ -3300,6 +3316,54 @@ class BtcToRskClientTest {
 
             var migrationBtcTx = createMigrationTx(MAINNET_BTC_PARAMS, retiringFederation, activeFederation);
             setUpTx(migrationBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+        }
+
+        private static Stream<Arguments> notActiveAndActiveFedsArgs() {
+            final Federation activeFed = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            final Federation notActiveFed = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
+
+            return Stream.of(Arguments.of(notActiveFed, activeFed));
+        }
+
+        @ParameterizedTest
+        @MethodSource("notActiveAndActiveFedsArgs")
+        void updateBridgeBtcTransactions_svpSpendTx_shouldBeInformed(Federation notActiveFederation, Federation activeFederation) throws Exception {
+            // arrange
+            setUpProposedFed(notActiveFederation);
+            setUpActiveFed(activeFederation);
+
+            var svpSpendBtcTx = createSVPSpendTx(BRIDGE_MAINNET_CONSTANTS, notActiveFederation, activeFederation);
+            setUpTx(svpSpendBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(svpSpendBtcTx);
+        }
+
+        @ParameterizedTest
+        @MethodSource("notActiveAndActiveFedsArgs")
+        void updateBridgeBtcTransactions_svpSpendTx_clientForRetiringFed_shouldNotBeInformed(Federation notActiveFederation, Federation activeFederation) throws Exception {
+            // arrange
+            setUpActiveFed(activeFederation);
+            setUpRetiringFed(notActiveFederation);
+            setUpClient(notActiveFederation);
+
+            var svpSpendTx = createSVPSpendTx(BRIDGE_MAINNET_CONSTANTS, notActiveFederation, activeFederation);
+            setUpTx(svpSpendTx);
 
             // act
             client.updateBridgeBtcTransactions();
