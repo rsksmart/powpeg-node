@@ -3346,6 +3346,23 @@ class BtcToRskClientTest {
 
         @ParameterizedTest
         @MethodSource("activeAndNotActiveFedsArgs")
+        void updateBridgeBtcTransactions_svpFundTx_shouldBeInformed(Federation activeFederation, Federation notActiveFederation) throws Exception {
+            // arrange
+            setUpProposedFed(notActiveFederation);
+            setUpActiveFed(activeFederation);
+
+            var svpFundBtcTx = createSVPFundTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, notActiveFederation);
+            setUpTx(svpFundBtcTx);
+
+            // act
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridge(svpFundBtcTx);
+        }
+
+        @ParameterizedTest
+        @MethodSource("activeAndNotActiveFedsArgs")
         void updateBridgeBtcTransactions_svpSpendTx_shouldBeInformed(Federation activeFederation, Federation notActiveFederation) throws Exception {
             // arrange
             setUpProposedFed(notActiveFederation);

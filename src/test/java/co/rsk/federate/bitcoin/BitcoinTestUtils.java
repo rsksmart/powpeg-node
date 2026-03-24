@@ -255,14 +255,16 @@ public final class BitcoinTestUtils {
         return svpSpendTransaction;
     }
 
-    private static BtcTransaction createSVPFundTx(BridgeConstants bridgeConstants, Federation activeFederation, Federation proposedFederation) {
+    public static BtcTransaction createSVPFundTx(BridgeConstants bridgeConstants, Federation activeFederation, Federation proposedFederation) {
         NetworkParameters networkParameters = bridgeConstants.getBtcParams();
 
         BtcTransaction prevTx = new BtcTransaction(networkParameters);
-        addOutputToFed(prevTx, activeFederation.getAddress(), Coin.COIN);
+        Coin prevAmount = Coin.COIN;
+        addOutputToFed(prevTx, activeFederation.getAddress(), prevAmount);
 
         BtcTransaction svpFundTransaction = new BtcTransaction(networkParameters);
         svpFundTransaction.addInput(prevTx.getOutput(0));
+        addSpendingFederationBaseScript(svpFundTransaction, 0, activeFederation.getRedeemScript(), activeFederation.getFormatVersion());
 
         Coin svpFundTxOutputsAmountToSend = bridgeConstants.getSvpFundTxOutputsValue();
         addOutputToFed(svpFundTransaction, proposedFederation.getAddress(), svpFundTxOutputsAmountToSend);
@@ -270,6 +272,11 @@ public final class BitcoinTestUtils {
         Script flyoverProposedFedScript = ScriptBuilder.createP2SHP2WSHOutputScript(flyoverProposedFederationRedeemScript);
         Address flyoverProposedFederationAddress = Address.fromP2SHScript(networkParameters, flyoverProposedFedScript);
         addOutputToFed(svpFundTransaction, flyoverProposedFederationAddress, svpFundTxOutputsAmountToSend);
+
+        Coin changeAmount = prevAmount
+            .minus(svpFundTxOutputsAmountToSend)
+            .minus(svpFundTxOutputsAmountToSend);
+        addOutputToFed(svpFundTransaction, activeFederation.getAddress(), changeAmount);
 
         return svpFundTransaction;
     }
