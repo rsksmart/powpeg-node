@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Stream;
 
 import org.bitcoinj.core.*;
 import org.bitcoinj.wallet.Wallet;
@@ -33,8 +34,10 @@ import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.crypto.HashUtil;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.spongycastle.util.encoders.Hex;
 
 class BitcoinWrapperImplTest {
@@ -42,16 +45,7 @@ class BitcoinWrapperImplTest {
     private static final co.rsk.bitcoinj.core.NetworkParameters thinNetworkParameters = bridgeConstants.getBtcParams();
     private static final NetworkParameters originalNetworkParameters = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
     private static final Context btcContext = new Context(originalNetworkParameters);
-
-    private final Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
-        thinNetworkParameters,
-        15
-    );
-
-    private final Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
-        thinNetworkParameters,
-        20
-    );
+    private FederatorSupport federatorSupport;
 
     private BtcToRskClientFileStorage btcToRskClientFileStorage;
     private BtcToRskClientBuilder btcToRskClientBuilder;
@@ -67,10 +61,8 @@ class BitcoinWrapperImplTest {
         when(activations.isActive(any(ConsensusRule.class))).thenReturn(true);
         ActivationConfig activationConfig = mock(ActivationConfig.class);
         when(activationConfig.forBlock(any(Long.class))).thenReturn(activations);
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
-        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
-        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
 
         // using a temporary directory for testing
         FileStorageInfo fileStorageInfo = mock(BtcToRskClientFileStorageInfo.class);
@@ -112,11 +104,26 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.addFederationListener(federationToListen, listener);
     }
 
-    @Test
-    void coinsReceived_validLegacyPegIn_shouldListenTx() throws Exception {
+    private static Stream<Federation> fedArgs() {
+        final Federation standardMultisigFederation = TestUtils.createStandardMultisigFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation p2shP2wshErpFederation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            20
+        );
+
+        return Stream.of(standardMultisigFederation, p2shP2wshErpFederation);
+    }
+
+    @ParameterizedTest
+    @MethodSource("fedArgs")
+    void coinsReceived_validLegacyPegIn_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        setUpListenerAndWrapperWithFederation(activeFederation);
-        Transaction pegin = createLegacyPegIn(activeFederation);
+        when(federatorSupport.getFederationAddress()).thenReturn(federation.getAddress());
+        setUpListenerAndWrapperWithFederation(federation);
+        Transaction pegin = createLegacyPegIn(federation);
 
         // Act
         bitcoinWrapper.coinsReceived(pegin);
@@ -125,11 +132,13 @@ class BitcoinWrapperImplTest {
         assertWTxIdWasAddedToProofs(pegin);
     }
 
-    @Test
-    void coinsReceived_validPeginV1_shouldListenTx() throws Exception {
+    @ParameterizedTest
+    @MethodSource("fedArgs")
+    void coinsReceived_validPeginV1_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        setUpListenerAndWrapperWithFederation(activeFederation);
-        Transaction pegin = createValidPegInV1(activeFederation.getAddress());
+        when(federatorSupport.getFederationAddress()).thenReturn(federation.getAddress());
+        setUpListenerAndWrapperWithFederation(federation);
+        Transaction pegin = createValidPegInV1(federation.getAddress());
 
         // Act
         bitcoinWrapper.coinsReceived(pegin);
@@ -172,11 +181,13 @@ class BitcoinWrapperImplTest {
         return pegin;
     }
 
-    @Test
-    void coinsReceived_validPegOutTx_shouldListenTx() throws Exception {
+    @ParameterizedTest
+    @MethodSource("fedArgs")
+    void coinsReceived_validPegOutTx_shouldListenTx(Federation federation) throws Exception {
         // Arrange
-        final Transaction pegout = createPegOutTx(activeFederation);
-        setUpListenerAndWrapperWithFederation(activeFederation);
+        when(federatorSupport.getFederationAddress()).thenReturn(federation.getAddress());
+        setUpListenerAndWrapperWithFederation(federation);
+        final Transaction pegout = createPegOutTx(federation);
 
         // Act
         bitcoinWrapper.coinsReceived(pegout);
@@ -219,9 +230,32 @@ class BitcoinWrapperImplTest {
         return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), pegout);
     }
 
-    @Test
-    void coinsReceived_migrationTx_activeFedListener_shouldListenTx() throws Exception {
+    private static Stream<Arguments> retiringAndActiveFedsArgs() {
+        final Federation standardMultiSigFed = TestUtils.createStandardMultisigFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation firstP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        final Federation secondP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            20
+        );
+
+        return Stream.of(
+            Arguments.of(standardMultiSigFed, firstP2shP2wshErpFed),
+            Arguments.of(firstP2shP2wshErpFed, secondP2shP2wshErpFed)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("retiringAndActiveFedsArgs")
+    void coinsReceived_migrationTx_activeFedListener_shouldListenTx(Federation retiringFederation, Federation activeFederation) throws Exception {
         // Arrange
+        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
+        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
         setUpListenerAndWrapperWithFederation(activeFederation);
         var migrationBtcTx = createMigrationTx(thinNetworkParameters, retiringFederation, activeFederation);
 
@@ -233,9 +267,12 @@ class BitcoinWrapperImplTest {
         assertWTxIdWasAddedToProofs(migrationTx);
     }
 
-    @Test
-    void coinsReceived_migrationTxBelowMinimumPeginValue_activeFedListener_shouldListenTx() throws Exception {
+    @ParameterizedTest
+    @MethodSource("retiringAndActiveFedsArgs")
+    void coinsReceived_migrationTxBelowMinimumPeginValue_activeFedListener_shouldListenTx(Federation retiringFederation, Federation activeFederation) throws Exception {
         // Arrange
+        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
+        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
         setUpListenerAndWrapperWithFederation(activeFederation);
         var migrationBtcTx = createMigrationTxBelowMinimumPeginValue(thinNetworkParameters, retiringFederation, activeFederation);
 
@@ -249,9 +286,12 @@ class BitcoinWrapperImplTest {
         assertWTxIdWasAddedToProofs(migrationTx);
     }
 
-    @Test
-    void coinsReceived_migrationTx_retiringFedListener_shouldNotListenTx() throws Exception {
+    @ParameterizedTest
+    @MethodSource("retiringAndActiveFedsArgs")
+    void coinsReceived_migrationTx_retiringFedListener_shouldNotListenTx(Federation retiringFederation, Federation activeFederation) throws Exception {
         // Arrange
+        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
+        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
         setUpListenerAndWrapperWithFederation(retiringFederation);
         var migrationBtcTx = createMigrationTx(thinNetworkParameters, retiringFederation, activeFederation);
 

@@ -55,9 +55,10 @@ public class PegUtils {
             }
 
             Script redeemScript = new ScriptBuilder().addChunks(redeemScriptChunks).build();
+            Script p2shOutputScript = ScriptBuilder.createP2SHOutputScript(redeemScript);
             Script p2wshOutputScript = ScriptBuilder.createP2SHP2WSHOutputScript(redeemScript);
 
-            if (federationP2SHScript.equals(p2wshOutputScript)) {
+            if (federationP2SHScript.equals(p2shOutputScript) || federationP2SHScript.equals(p2wshOutputScript)) {
                 return true;
             }
         }
@@ -66,6 +67,10 @@ public class PegUtils {
     }
 
     private static Script getFederationStandardP2SHScript(Federation federation) {
+        if (!(federation instanceof ErpFederation)) {
+            return federation.getP2SHScript();
+        }
+
         return ((ErpFederation) federation).getDefaultP2SHScript();
     }
 
