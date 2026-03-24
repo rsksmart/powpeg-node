@@ -35,7 +35,7 @@ import org.ethereum.crypto.HashUtil;
 
 public final class TestUtils {
     private static final long CREATION_BLOCK_NUMBER = 0;
-    private static final List<BtcECKey> erpFedPubKeysList = Stream.of(
+    private static final List<BtcECKey> ERP_FED_PUB_KEYS_LIST = Stream.of(
         "0257c293086c4d4fe8943deda5f890a37d11bebd140e220faa76258a41d077b4d4",
         "03c2660a46aa73078ee6016dee953488566426cf55fc8011edd0085634d75395f9",
         "03cd3e383ec6e12719a6c69515e5559bcbe037d0aa24c187e1e26ce932e22ad7b3",
@@ -100,10 +100,12 @@ public final class TestUtils {
     }
 
     public static Federation createStandardMultisigFederation(NetworkParameters params, int amountOfMembers) {
-        List<BtcECKey> keys = Stream
-            .generate(BtcECKey::new)
-            .limit(amountOfMembers)
-            .toList();
+        List<BtcECKey> keys = new ArrayList<>();
+        for (int i = 0; i < amountOfMembers; i++) {
+            String seed = "seed" + i;
+            BtcECKey key = getBtcEcKeyFromSeed(seed);
+            keys.add(key);
+        }
         return createStandardMultisigFederation(params, keys);
     }
 
@@ -117,22 +119,6 @@ public final class TestUtils {
             params
         );
         return FederationFactory.buildStandardMultiSigFederation(federationArgs);
-    }
-
-    public static Federation createP2shErpFederation(NetworkParameters params, int amountOfMembers) {
-        List<BtcECKey> keys = Stream
-            .generate(BtcECKey::new)
-            .limit(amountOfMembers)
-            .toList();
-        return createP2shErpFederation(params, keys);
-    }
-
-    public static Federation createP2shErpFederation(NetworkParameters params, List<BtcECKey> keys) {
-        final long CREATION_BLOCK_NUMBER = 0;
-        List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
-        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
-        return FederationFactory.buildP2shErpFederation(federationArgs, erpFedPubKeysList,
-            ERP_FED_ACTIVATION_DELAY);
     }
 
     public static Federation createP2shP2wshErpFederation(NetworkParameters params, int amountOfMembers) {
@@ -149,7 +135,7 @@ public final class TestUtils {
     public static Federation createP2shP2wshErpFederation(NetworkParameters params, List<BtcECKey> keys) {
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
         FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
-        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpFedPubKeysList,
+        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, ERP_FED_PUB_KEYS_LIST,
             ERP_FED_ACTIVATION_DELAY);
     }
 
