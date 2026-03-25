@@ -1,16 +1,11 @@
 package co.rsk.federate;
 
-import co.rsk.bitcoinj.core.BtcTransaction;
-import co.rsk.bitcoinj.core.Coin;
-import co.rsk.bitcoinj.core.ScriptException;
-import co.rsk.bitcoinj.core.TransactionOutput;
+import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.script.*;
 import co.rsk.bitcoinj.wallet.Wallet;
-import co.rsk.crypto.Keccak256;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.btcLockSender.BtcLockSender;
-import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
@@ -19,8 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static co.rsk.peg.PegUtils.getFlyoverFederationRedeemScript;
-
 public class PegUtils {
     public static final Coin MINIMUM_PEGIN_TX_VALUE = Coin.valueOf(500_000);
     private static final Logger logger = LoggerFactory.getLogger(PegUtils.class);
@@ -28,13 +21,15 @@ public class PegUtils {
     private PegUtils() {}
 
     public static boolean isSVPSpendTx(
-        BridgeConstants bridgeConstants,
         BtcTransaction btcTx,
         Federation proposedFederation,
         Federation activeFederation
     ) {
         int svpSpendTxInputsCount = 2;
         if (btcTx.getInputs().size() != svpSpendTxInputsCount) {
+            return false;
+        }
+        if (btcTx.countWitnesses() != svpSpendTxInputsCount) {
             return false;
         }
 
@@ -67,11 +62,10 @@ public class PegUtils {
     }
 
     public static boolean isPegOutTx(BtcTransaction btcTx, Federation activeFederation) {
-        Script federationP2SHScript = getFederationStandardP2SHScript(activeFederation);
-
+        Script fedStandardP2SHScript = getFederationStandardP2SHScript(activeFederation);
         int inputsSize = btcTx.getInputs().size();
         for (int i = 0; i < inputsSize; i++) {
-            if (isInputFromScript(federationP2SHScript, btcTx, i)) {
+            if (isInputFromScript(fedStandardP2SHScript, btcTx, i)) {
                 return true;
             }
         }

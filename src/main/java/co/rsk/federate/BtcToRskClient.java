@@ -700,7 +700,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private boolean shouldSendTx(Transaction tx, co.rsk.bitcoinj.wallet.Wallet federationWallet) {
-        logger.debug("[updateBridgeBtcTransactions] Checking if tx should be send {}", tx.getWTxId());
+        logger.debug("[shouldSendTx] Checking if tx should be send {}", tx.getWTxId());
         BtcTransaction btcTx = ThinConverter.toThinInstance(federationWallet.getNetworkParameters(), tx);
 
         co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(federationWallet);
@@ -731,7 +731,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
         Optional<Federation> proposedFederation = federationProviderFromFederatorSupport.getProposedFederation();
         Federation activeFederation = federationProviderFromFederatorSupport.getActiveFederation();
-        if (proposedFederation.isPresent() && PegUtils.isSVPSpendTx(bridgeConstants, btcTx, proposedFederation.get(), activeFederation)) {
+        if (proposedFederation.isPresent() && PegUtils.isSVPSpendTx(btcTx, proposedFederation.get(), activeFederation)) {
             return true;
         }
         if (retiringFederation.isPresent() && PegUtils.isMigrationTx(btcTx, retiringFederation.get(), activeFederation)) {
