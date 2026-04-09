@@ -719,11 +719,12 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     Long txProcessedHeight = federatorSupport.getBtcTxHashProcessedHeight(tx.getTxId());
                     Long bestChainHeight = federatorSupport.getRskBestChainHeight();
 
+                    int btc2RskMinimumAcceptableConfirmationsOnRsk = 100;
                     // If the bridge says this transaction was processed at height N, and current height
                     // is M, with M - N >= K
-                    // with K = BridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()
+                    // with K = btc2RskMinimumAcceptableConfirmationsOnRsk
                     // then remove the transaction from the list
-                    if ((bestChainHeight - txProcessedHeight) >= bridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()) {
+                    if ((bestChainHeight - txProcessedHeight) >= btc2RskMinimumAcceptableConfirmationsOnRsk) {
                         txsToSendToRskHashes.remove(txHash);
                         logger.debug(
                             "[updateBridgeBtcTransactions] Btc Tx {} was processed at height {}, current height is {}. Tx removed from pending lock list",
