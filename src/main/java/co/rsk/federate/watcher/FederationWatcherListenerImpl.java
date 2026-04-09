@@ -1,7 +1,6 @@
 package co.rsk.federate.watcher;
 
 import co.rsk.federate.BtcToRskClient;
-import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.peg.federation.Federation;
 import org.slf4j.Logger;
@@ -11,21 +10,19 @@ import java.util.Objects;
 public class FederationWatcherListenerImpl implements FederationWatcherListener {
 
     private static final Logger logger = LoggerFactory.getLogger(FederationWatcherListenerImpl.class);
-    
+
     private final BtcToRskClient btcToRskClientActive;
     private final BtcToRskClient btcToRskClientRetiring;
     private final BtcReleaseClient btcReleaseClient;
-    private final BitcoinWrapper bitcoinWrapper;
 
     public FederationWatcherListenerImpl(
-            BtcToRskClient btcToRskClientActive,
-            BtcToRskClient btcToRskClientRetiring,
-            BtcReleaseClient btcReleaseClient,
-            BitcoinWrapper bitcoinWrapper) {
+        BtcToRskClient btcToRskClientActive,
+        BtcToRskClient btcToRskClientRetiring,
+        BtcReleaseClient btcReleaseClient
+    ) {
         this.btcToRskClientActive = btcToRskClientActive;
         this.btcToRskClientRetiring = btcToRskClientRetiring;
         this.btcReleaseClient = btcReleaseClient;
-        this.bitcoinWrapper = bitcoinWrapper;
     }
 
     @Override
@@ -52,14 +49,10 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
         }
 
         try {
-            // start {@code BtcReleaseClient} with proposed federation
+            // start {@code BtcReleaseClient} with proposed federation,
             // so it can sign svp spend tx
             btcReleaseClient.start(newProposedFederation);
 
-            // add proposed federation to active btc to rsk client so
-            // it can register svp spend tx in the bridge
-            bitcoinWrapper.addFederationListener(newProposedFederation, btcToRskClientActive);
-          
             logger.info(
                 "[onProposedFederationChange] Clients for proposed federation [{}] started with success",
                 newProposedFederation.getAddress());
@@ -74,7 +67,7 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
     private void triggerClientChange(BtcToRskClient btcToRskClient, Federation newFederation) {
         // This method assumes that the new federation cannot be null
         Objects.requireNonNull(newFederation);
-      
+
         try {
             // Stop the current clients
             btcToRskClient.stop();
@@ -94,7 +87,7 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
                 e);
         }
     }
-    
+
     private void clearRetiringFederationClient() {
         logger.info("[triggerClientChange] Clearing retiring federation client");
 
