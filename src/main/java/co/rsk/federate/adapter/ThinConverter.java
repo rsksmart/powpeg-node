@@ -8,9 +8,6 @@ import co.rsk.peg.constants.BridgeConstants;
 
 import java.nio.ByteBuffer;
 
-/**
- * Created by oscar on 03/05/2017.
- */
 public class ThinConverter {
 
     private ThinConverter() {
@@ -64,10 +61,10 @@ public class ThinConverter {
         }
 
         return new Context(
-                NetworkParameters.fromID(context.getParams().getId()),
-                context.getEventHorizon(),
-                Coin.valueOf(context.getFeePerKb().getValue()),
-                context.isEnsureMinRequiredFee()
+            NetworkParameters.fromID(context.getParams().getId()),
+            context.getEventHorizon(),
+            Coin.valueOf(context.getFeePerKb().getValue()),
+            context.isEnsureMinRequiredFee()
         );
     }
 }
