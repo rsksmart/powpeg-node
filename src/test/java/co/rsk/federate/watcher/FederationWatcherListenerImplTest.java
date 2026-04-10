@@ -28,7 +28,7 @@ class FederationWatcherListenerImplTest {
 
     private static final NetworkParameters NETWORK_PARAMETERS = NetworkParameters.fromID(NetworkParameters.ID_REGTEST);
 
-    private static final List<FederationMember> FEDERATION_MEMBERS = 
+    private static final List<FederationMember> FEDERATION_MEMBERS =
         getFederationMembersFromPksForBtc(1000, 2000, 3000, 4000);
     private static final long CREATION_BLOCK_NUMBER = 0L;
     private static final Instant FEDERATION_CREATION_TIME = Instant.ofEpochMilli(5005L);
@@ -49,9 +49,9 @@ class FederationWatcherListenerImplTest {
         btcReleaseClient = mock(BtcReleaseClient.class);
         bitcoinWrapper = mock(BitcoinWrapper.class);
         federationWatcherListener = new FederationWatcherListenerImpl(
-            btcToRskClientActive, btcToRskClientRetiring, btcReleaseClient, bitcoinWrapper);
+            btcToRskClientActive, btcToRskClientRetiring, btcReleaseClient);
     }
-   
+
     @Test
     void onActiveFederationChange_whenFederationIsValid_shouldTriggerClientChange() {
         // Act
@@ -106,13 +106,13 @@ class FederationWatcherListenerImplTest {
     }
 
     @Test
-    void onProposedFederationChange_whenNewProposedFederationIsValid_shouldStartClient() {
+    void onProposedFederationChange_whenNewProposedFederationIsValid_shouldStartReleaseClient_shouldNotStartListener() {
         // Act
         federationWatcherListener.onProposedFederationChange(FEDERATION);
 
         // Assert
         verify(btcReleaseClient).start(FEDERATION);
-        verify(bitcoinWrapper).addFederationListener(FEDERATION, btcToRskClientActive);
+        verify(bitcoinWrapper, never()).addFederationListener(any(Federation.class), any(BtcToRskClient.class));
     }
 
     @Test
