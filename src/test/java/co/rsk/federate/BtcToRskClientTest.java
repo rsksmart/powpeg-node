@@ -1,5 +1,6 @@
 package co.rsk.federate;
 
+import static co.rsk.federate.BtcToRskClient.BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static java.util.Objects.nonNull;
@@ -3393,6 +3394,63 @@ class BtcToRskClientTest {
 
             // assert
             assertTxNotSentToBridge();
+        }
+
+        @ParameterizedTest
+        @MethodSource("activeFedArgs")
+        void updateBridgeBtcTransactions_txProcessed_afterBtcToRskMinimumAcceptableConfirmationsOnRsk_isNotSentAndRemovedFromProofsFile(Federation federation) throws Exception {
+            // arrange
+            setUpActiveFed(federation);
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
+            setUpTx(peginBtcTx);
+            var peginTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, peginBtcTx);
+
+            assertWTxIdIsInProofsFile(peginTx);
+            // simulate that the bridge has processed the tx
+            var peginTxId = peginTx.getTxId();
+            when(federatorSupport.isBtcTxHashAlreadyProcessed(peginTxId)).thenReturn(true);
+            long txProcessedHeight = 1L;
+            when(federatorSupport.getBtcTxHashProcessedHeight(peginTxId)).thenReturn(txProcessedHeight);
+
+            long heightAtWhichRemoveTxFromProofs = txProcessedHeight + BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK;
+            // check that calling updateBridgeBtcTransactions right before
+            // BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK blocks have passed,
+            // the fed sends the tx to the bridge and the tx hash is still in the proofs file
+            long heightBeforeRemovingTxFromProofs = heightAtWhichRemoveTxFromProofs - 1;
+            when(federatorSupport.getRskBestChainHeight()).thenReturn(heightBeforeRemovingTxFromProofs);
+            client.updateBridgeBtcTransactions();
+            assertTxSentToBridge(peginBtcTx);
+            assertWTxIdIsInProofsFile(peginTx);
+
+            clearInvocations(federatorSupport);
+            // act
+            // now check that right when BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK
+            // blocks have passed, the fed does not send the tx to the bridge
+            // and the tx proof is removed from the file
+            when(federatorSupport.getRskBestChainHeight()).thenReturn(heightAtWhichRemoveTxFromProofs);
+            client.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge();
+            assertWTxIdIsNotInProofsFile();
+        }
+
+        private void assertWTxIdIsInProofsFile(Transaction tx) throws IOException {
+            BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData();
+            Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
+            Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
+            assertEquals(1, txProofsKeySet.size());
+            Sha256Hash wTxId = tx.getWTxId();
+            Sha256Hash savedWTxId = txProofsKeySet.iterator().next();
+            assertEquals(wTxId, savedWTxId);
+        }
+
+        private void assertWTxIdIsNotInProofsFile() throws IOException {
+            BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData();
+            Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
+            Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
+            assertEquals(0, txProofsKeySet.size());
         }
 
         private void assertTxSentToBridge(BtcTransaction btcTx) throws IOException {
