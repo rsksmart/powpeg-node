@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
  */
 public class BtcToRskClient implements BlockListener, TransactionListener {
     protected static final int MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN = 40;
+    protected static final int BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK = 100;
 
     private static final Logger logger = LoggerFactory.getLogger(BtcToRskClient.class);
 
@@ -576,7 +577,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         logger.debug("[updateBridgeBtcTransactions] Tx to send count: {}", txsToSendToRskHashes.size());
 
         int numberOfTxsSent = 0;
-        for (Sha256Hash txHash : txsToSendToRskHashes) {
+
+        Iterator<Sha256Hash> txHashIterator = txsToSendToRskHashes.iterator();
+        while (txHashIterator.hasNext()) {
+            Sha256Hash txHash = txHashIterator.next();
             try {
                 Transaction tx = federatorWalletTxMap.get(txHash);
                 logger.debug("[updateBridgeBtcTransactions] Evaluating Btc Tx {}", txHash);
@@ -606,23 +610,22 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         wTxId
                     );
 
-                    int btc2RskMinimumAcceptableConfirmationsOnRsk = 100;
                     // N = height at which transaction was processed
                     // M = current height M
-                    // K = btc2RskMinimumAcceptableConfirmationsOnRsk
+                    // K = BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK
                     // If M >= N + K, then remove the transaction from the list
                     Long txProcessedHeight = federatorSupport.getBtcTxHashProcessedHeight(txId);
                     Long bestChainHeight = federatorSupport.getRskBestChainHeight();
-                    if (bestChainHeight >= txProcessedHeight + btc2RskMinimumAcceptableConfirmationsOnRsk) {
-                        txsToSendToRskHashes.remove(txHash);
+                    if (bestChainHeight >= txProcessedHeight + BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK) {
+                        removeTxHashFromFile(txHashIterator);
                         logger.debug(
                             "[updateBridgeBtcTransactions] Btc Tx {} was processed at height {}, current height is {}. Tx removed from pending lock list",
                             txHash,
                             txProcessedHeight,
                             bestChainHeight
                         );
+                        continue;
                     }
-                    continue;
                 }
 
                 synchronized (this) {
@@ -645,7 +648,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     }
 
                     if (!shouldSendTx(tx, federationWallet)) {
-                        txsToSendToRskHashes.remove(txHash);
+                        removeTxHashFromFile(txHashIterator);
                         logger.warn(
                             "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to sent to Bridge",
                             txId,
@@ -671,6 +674,22 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     txHash,
                     e.getMessage()
                 );
+            }
+        }
+    }
+
+    private void removeTxHashFromFile(Iterator<Sha256Hash> txHashIterator) {
+        txHashIterator.remove();
+        writeToStorage();
+    }
+
+    private void writeToStorage() {
+        synchronized (this) {
+            try {
+                this.btcToRskClientFileStorage.write(this.fileData);
+                logger.debug("[writeToStorage] Persisted fileData to storage.");
+            } catch (IOException e) {
+                logger.error("[writeToStorage] Error {} persisting fileData to storage.", e.getMessage(), e);
             }
         }
     }
