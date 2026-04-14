@@ -3440,6 +3440,55 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge();
         }
 
+        /**
+         * When two {@link BtcToRskClient} instances shared a single {@link BtcToRskClientFileStorage}
+         * (same on-disk RLP), the retiring client's onBlock could write the file with in-memory state
+         * that did not include peg-ins only the active client had listened to, overwriting
+         * the file and dropping those peg-ins from persistence.
+         * With separate proof files per client, both federations' pending peg-ins must remain stored after both
+         * clients process the same block (here: block only includes the retiring-fed peg-in; the active-fed peg-in
+         * must still be present on the active client's file).
+         */
+        @ParameterizedTest
+        @MethodSource("retiringAndActiveFedsArgs")
+        void updateBridgeBtcTransactions_clientForBothFeds_onePeginForEachFed_areInformedByRespectiveClient(Federation retiringFed, Federation activeFed) throws Exception {
+            // arrange
+            setUpActiveFedClient(activeFed);
+            setUpRetiringFedClient(retiringFed);
+
+            // pegin to the active fed
+            var peginToActiveFedBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(peginToActiveFedBtcTx, activeFed.getAddress());
+            // in real life, pegin to the active fed will just be listened by the active fed client
+            setUpTx(activeFedClient, peginToActiveFedBtcTx);
+            assertWTxIdIsInActiveFedClientProofsFile(peginToActiveFedBtcTx);
+
+            // pegin to the retiring fed
+            var peginToRetiringFedBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(peginToRetiringFedBtcTx, retiringFed.getAddress());
+            // in real life, pegin to the retiring fed will just be listened by the retiring fed client
+            setUpTx(retiringFedClient, peginToRetiringFedBtcTx);
+            assertWTxIdIsInRetiringFedClientProofsFile(peginToRetiringFedBtcTx);
+
+            // active fed client also receives the block with the pegin to the retiring fed
+            Transaction peginToRetiringFedTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, peginToRetiringFedBtcTx);
+            listenBlockWithTx(activeFedClient, peginToRetiringFedTx);
+
+            // assert
+            // wtxids are saved in respective proofs file
+            assertWTxIdIsInRetiringFedClientProofsFile(peginToRetiringFedBtcTx);
+            assertWTxIdIsInActiveFedClientProofsFile(peginToActiveFedBtcTx);
+
+            // active fed client sends its pegin
+            activeFedClient.updateBridgeBtcTransactions();
+            assertTxSentToBridgeByActiveFedClient(peginToActiveFedBtcTx);
+
+            // retiring fed client sends its pegin
+            retiringFedClient.updateBridgeBtcTransactions();
+            int expectedBlockWithTxHeight = 1;
+            assertTxSentToBridge(btcToRskRetiringFedClientFileStorage, peginToRetiringFedBtcTx, expectedBlockWithTxHeight);
+        }
+
         @ParameterizedTest
         @MethodSource("activeFedArgs")
         void updateBridgeBtcTransactions_txProcessed_afterBtcToRskMinimumAcceptableConfirmationsOnRsk_shouldNotBeInformed_shouldBeRemovedFromProofsFile(Federation federation) throws Exception {
