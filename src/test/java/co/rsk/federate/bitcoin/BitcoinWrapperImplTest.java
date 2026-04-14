@@ -71,7 +71,7 @@ class BitcoinWrapperImplTest {
         FileStorageInfo fileStorageInfo = mock(BtcToRskClientFileStorageInfo.class);
         String pegDir = tempDir.toString();
         String filePath = tempDir.resolve("btcToRskClient2.rlp").toString();
-        when(fileStorageInfo.getPegDirectoryPath()).thenReturn(pegDir);
+        when(fileStorageInfo.getDirectoryPath()).thenReturn(pegDir);
         when(fileStorageInfo.getFilePath()).thenReturn(filePath);
         btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(fileStorageInfo);
 
