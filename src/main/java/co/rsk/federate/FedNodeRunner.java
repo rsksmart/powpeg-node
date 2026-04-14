@@ -83,8 +83,8 @@ public class FedNodeRunner implements NodeRunner {
     private final HSMClientProtocolFactory hsmClientProtocolFactory;
     private final HSMBookKeepingClientProvider hsmBookKeepingClientProvider;
 
+    private DirectoryStorageInfo directoryStorageInfo;
     private BitcoinWrapper bitcoinWrapper;
-    private BtcToRskClientFileStorage btcToRskClientFileStorage;
     private FederationMember member;
     private ECDSASigner signer;
     private HSMBookkeepingClient hsmBookkeepingClient;
@@ -284,21 +284,23 @@ public class FedNodeRunner implements NodeRunner {
 
             BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
             PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
-            btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(new BtcToRskClientFileStorageInfo(config));
+            directoryStorageInfo = new BtcToRskClientDirectoryStorageInfo(config);
             bitcoinWrapper = createAndSetupBitcoinWrapper();
 
+            BtcToRskClientFileStorage btcToRskActiveClientFileStorage = createStorageFileForActiveFedClient();
             btcToRskClientActive.setup(
                 bitcoinWrapper,
                 bridgeConstants,
-                btcToRskClientFileStorage,
+                btcToRskActiveClientFileStorage,
                 btcLockSenderProvider,
                 peginInstructionsProvider,
                 config
             );
+            BtcToRskClientFileStorage btcToRskRetiringClientFileStorage = createStorageFileForRetiringFedClient();
             btcToRskClientRetiring.setup(
                 bitcoinWrapper,
                 bridgeConstants,
-                btcToRskClientFileStorage,
+                btcToRskRetiringClientFileStorage,
                 btcLockSenderProvider,
                 peginInstructionsProvider,
                 config
@@ -339,6 +341,21 @@ public class FedNodeRunner implements NodeRunner {
 
             federationWatcher.start(federationProvider, federationWatcherListener);
         }
+    }
+
+    private BtcToRskClientFileStorage createStorageFileForActiveFedClient() {
+        String fileCustomizer = "active";
+        return createStorageFile(fileCustomizer);
+    }
+
+    private BtcToRskClientFileStorage createStorageFileForRetiringFedClient() {
+        String fileCustomizer = "retiring";
+        return createStorageFile(fileCustomizer);
+    }
+
+    private BtcToRskClientFileStorage createStorageFile(String fileCustomizer) {
+        FileStorageInfo fileStorageInfo = new BtcToRskClientFileStorageInfo(directoryStorageInfo, fileCustomizer);
+        return new BtcToRskClientFileStorageImpl(fileStorageInfo);
     }
 
     @PreDestroy
@@ -383,7 +400,7 @@ public class FedNodeRunner implements NodeRunner {
     private BitcoinWrapper createAndSetupBitcoinWrapper() throws UnknownHostException {
         final String BTC_TO_RSK_CLIENT_FILE_PREFIX = "BtcToRskClient";
         Context btcContext = new Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
-        File pegDirectory = new File(this.btcToRskClientFileStorage.getInfo().getPegDirectoryPath());
+        File pegDirectory = new File(directoryStorageInfo.getPath());
         Kit kit = new Kit(btcContext, pegDirectory, BTC_TO_RSK_CLIENT_FILE_PREFIX);
 
         BitcoinWrapper wrapper = new BitcoinWrapperImpl(
