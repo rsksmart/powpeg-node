@@ -1,9 +1,10 @@
 package co.rsk.federate.bitcoin;
 
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
+import static co.rsk.federate.utils.ClientProofsAssertions.assertProofsFileIsEmpty;
+import static co.rsk.federate.utils.ClientProofsAssertions.assertWTxIdIsInProofsFile;
 import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
 import static org.bitcoinj.script.ScriptOpCodes.OP_RETURN;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -11,7 +12,6 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.federate.BtcToRskClientBuilder;
-import co.rsk.federate.Proof;
 import co.rsk.federate.io.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
@@ -150,7 +150,7 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.coinsReceivedOrSent(pegin);
 
         // assert
-        assertWTxIdIsInProofsFile(btcToRskActiveFedClientFileStorage, pegin);
+        assertWTxIdIsInActiveFedClientProofsFile(pegin);
     }
 
     @ParameterizedTest
@@ -164,7 +164,7 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.coinsReceivedOrSent(pegin);
 
         // assert
-        assertWTxIdIsInProofsFile(btcToRskActiveFedClientFileStorage, pegin);
+        assertWTxIdIsInActiveFedClientProofsFile(pegin);
     }
 
     private Transaction createLegacyPegIn(Federation federation) {
@@ -212,7 +212,7 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.coinsReceivedOrSent(pegout);
 
         // assert
-        assertWTxIdIsInProofsFile(btcToRskActiveFedClientFileStorage, pegout);
+        assertWTxIdIsInActiveFedClientProofsFile(pegout);
     }
 
     private Transaction createPegOutTx(Federation federation) {
@@ -282,8 +282,8 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.coinsReceivedOrSent(migrationTx);
 
         // assert
-        assertWTxIdIsInProofsFile(btcToRskActiveFedClientFileStorage, migrationTx);
-        assertProofsFileIsEmpty(btcToRskRetiringFedClientFileStorage);
+        assertWTxIdIsInActiveFedClientProofsFile(migrationTx);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
     @ParameterizedTest
@@ -299,8 +299,8 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.coinsReceivedOrSent(migrationTx);
 
         // assert
-        assertWTxIdIsInProofsFile(btcToRskActiveFedClientFileStorage, migrationTx);
-        assertProofsFileIsEmpty(btcToRskRetiringFedClientFileStorage);
+        assertWTxIdIsInActiveFedClientProofsFile(migrationTx);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
     @ParameterizedTest
@@ -317,8 +317,8 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.coinsReceivedOrSent(peginTxToActiveFed);
 
         // assert
-        assertWTxIdIsInProofsFile(btcToRskActiveFedClientFileStorage, peginTxToActiveFed);
-        assertProofsFileIsEmpty(btcToRskRetiringFedClientFileStorage);
+        assertWTxIdIsInActiveFedClientProofsFile(peginTxToActiveFed);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
     @ParameterizedTest
@@ -335,27 +335,15 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.coinsReceivedOrSent(peginTxToRetiringFed);
 
         // assert
-        assertWTxIdIsInProofsFile(btcToRskRetiringFedClientFileStorage, peginTxToRetiringFed);
-        assertProofsFileIsEmpty(btcToRskActiveFedClientFileStorage);
+        assertWTxIdIsInRetiringFedClientProofsFile(peginTxToRetiringFed);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskActiveFedClientFileStorage);
     }
 
-    private void assertWTxIdIsInProofsFile(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
-        BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(originalNetworkParameters).getData();
-        Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
-
-        Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
-        assertEquals(1, txProofsKeySet.size());
-
-        Sha256Hash wTxId = tx.getWTxId();
-        Sha256Hash savedWTxId = txProofsKeySet.iterator().next();
-        assertEquals(wTxId, savedWTxId);
+    private void assertWTxIdIsInActiveFedClientProofsFile(Transaction tx) throws IOException {
+        assertWTxIdIsInProofsFile(originalNetworkParameters, btcToRskActiveFedClientFileStorage, tx);
     }
 
-    private void assertProofsFileIsEmpty(BtcToRskClientFileStorage btcToRskClientFileStorage) throws IOException {
-        BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(originalNetworkParameters).getData();
-        Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
-
-        Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
-        assertEquals(0, txProofsKeySet.size());
+    private void assertWTxIdIsInRetiringFedClientProofsFile(Transaction tx) throws IOException {
+        assertWTxIdIsInProofsFile(originalNetworkParameters, btcToRskRetiringFedClientFileStorage, tx);
     }
 }
