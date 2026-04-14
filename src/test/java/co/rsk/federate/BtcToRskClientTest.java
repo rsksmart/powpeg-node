@@ -2,6 +2,8 @@ package co.rsk.federate;
 
 import static co.rsk.federate.BtcToRskClient.BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
+import static co.rsk.federate.utils.ClientProofsAssertions.assertProofsFileIsEmpty;
+import static co.rsk.federate.utils.ClientProofsAssertions.assertWTxIdIsInProofsFile;
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.Assertions.*;
@@ -3526,36 +3528,17 @@ class BtcToRskClientTest {
 
             // assert
             assertTxNotSentToBridge();
-            assertActiveFedClientProofsFileIsEmpty();
+            assertProofsFileIsEmpty(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage);
         }
 
         private void assertWTxIdIsInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
             Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
-            assertWTxIdIsInProofsFile(btcToRskActiveFedClientFileStorage, tx);
+            assertWTxIdIsInProofsFile(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, tx);
         }
 
         private void assertWTxIdIsInRetiringFedClientProofsFile(BtcTransaction btcTx) throws IOException {
             Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
-            assertWTxIdIsInProofsFile(btcToRskRetiringFedClientFileStorage, tx);
-        }
-
-        private void assertWTxIdIsInProofsFile(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
-            BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData();
-            Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
-
-            Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
-            assertEquals(1, txProofsKeySet.size());
-
-            Sha256Hash wTxId = tx.getWTxId();
-            Sha256Hash savedWTxId = txProofsKeySet.iterator().next();
-            assertEquals(wTxId, savedWTxId);
-        }
-
-        private void assertActiveFedClientProofsFileIsEmpty() throws IOException {
-            BtcToRskClientFileData fileData = btcToRskActiveFedClientFileStorage.read(MAINNET_PARAMS).getData();
-            Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
-            Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
-            assertEquals(0, txProofsKeySet.size());
+            assertWTxIdIsInProofsFile(MAINNET_PARAMS, btcToRskRetiringFedClientFileStorage, tx);
         }
 
         private void assertTxSentToBridgeByActiveFedClient(BtcTransaction btcTx) throws IOException {
