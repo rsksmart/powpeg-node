@@ -2,8 +2,7 @@ package co.rsk.federate;
 
 import static co.rsk.federate.BtcToRskClient.BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
-import static co.rsk.federate.utils.ClientProofsAssertions.assertProofsFileIsEmpty;
-import static co.rsk.federate.utils.ClientProofsAssertions.assertWTxIdIsInProofsFile;
+import static co.rsk.federate.utils.ClientProofsAssertions.*;
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1811,7 +1810,7 @@ class BtcToRskClientTest {
     }
 
     @Nested
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    @TestInstance(TestInstance.Lifecycle.PER_METHOD)
     class UpdateBridgeBtcTransactionsTests {
         private static final NetworkParameters MAINNET_PARAMS = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING);
         private static final Context MAINNET_CONTEXT = new Context(MAINNET_PARAMS);
@@ -1826,7 +1825,6 @@ class BtcToRskClientTest {
         private BtcToRskClientFileStorage btcToRskRetiringFedClientFileStorage;
 
         private Set<Transaction> walletTxs;
-        private KitForTests kit;
         private BitcoinWrapperImpl bitcoinWrapper;
         private BtcToRskClient activeFedClient;
         private BtcToRskClient retiringFedClient;
@@ -1858,7 +1856,7 @@ class BtcToRskClientTest {
             String btcToRskClientFilePrefix = "BtcToRskClient";
             File directory = new File(directoryStorageInfo.getPath());
             Wallet wallet = mock(Wallet.class);
-            kit = new KitForTests(MAINNET_CONTEXT, directory, btcToRskClientFilePrefix, wallet);
+            KitForTests kit = new KitForTests(MAINNET_CONTEXT, directory, btcToRskClientFilePrefix, wallet);
             setUpBitcoinWrapper(kit);
 
             walletTxs = new HashSet<>();
@@ -3445,50 +3443,102 @@ class BtcToRskClientTest {
         /**
          * When two {@link BtcToRskClient} instances shared a single {@link BtcToRskClientFileStorage}
          * (same on-disk RLP), the retiring client's onBlock could write the file with in-memory state
-         * that did not include peg-ins only the active client had listened to, overwriting
-         * the file and dropping those peg-ins from persistence.
-         * With separate proof files per client, both federations' pending peg-ins must remain stored after both
-         * clients process the same block (here: block only includes the retiring-fed peg-in; the active-fed peg-in
-         * must still be present on the active client's file).
+         * that did not include txs only the active client had listened to, overwriting
+         * the file and dropping those txs from persistence.
+         * With separate proof files per client, both federations' pending txs must remain stored
+         * after both clients process the same block
          */
         @ParameterizedTest
         @MethodSource("retiringAndActiveFedsArgs")
-        void updateBridgeBtcTransactions_clientForBothFeds_onePeginForEachFed_areInformedByRespectiveClient(Federation retiringFed, Federation activeFed) throws Exception {
+        void onBlock_clientForBothFeds_sharedStorage_overwritesProofsFile(Federation retiringFed, Federation activeFed) throws Exception {
             // arrange
-            setUpActiveFedClient(activeFed);
-            setUpRetiringFedClient(retiringFed);
+            // 1. Set up clients with shared storage
+            String fileCustomizer = "shared";
+            btcToRskActiveFedClientFileStorage = buildClientFileStorageInfo(fileCustomizer);
+            btcToRskRetiringFedClientFileStorage = buildClientFileStorageInfo(fileCustomizer);
+            // 2. Create a tx that both clients will know about
+            var btcTx1 = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(btcTx1, activeFed.getAddress());
+            addOutputToFedWithMinimumPeginValue(btcTx1, retiringFed.getAddress());
+            // 3. Create a tx just for the active federation
+            var btcTx2 = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(btcTx2, activeFed.getAddress());
 
-            // pegin to the active fed
-            var peginToActiveFedBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
-            addOutputToFedWithMinimumPeginValue(peginToActiveFedBtcTx, activeFed.getAddress());
-            // in real life, pegin to the active fed will just be listened by the active fed client
-            setUpTx(activeFedClient, peginToActiveFedBtcTx);
-            assertWTxIdIsInActiveFedClientProofsFile(peginToActiveFedBtcTx);
-
-            // pegin to the retiring fed
-            var peginToRetiringFedBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
-            addOutputToFedWithMinimumPeginValue(peginToRetiringFedBtcTx, retiringFed.getAddress());
-            // in real life, pegin to the retiring fed will just be listened by the retiring fed client
-            setUpTx(retiringFedClient, peginToRetiringFedBtcTx);
-            assertWTxIdIsInRetiringFedClientProofsFile(peginToRetiringFedBtcTx);
-
-            // active fed client also receives the block with the pegin to the retiring fed
-            Transaction peginToRetiringFedTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, peginToRetiringFedBtcTx);
-            listenBlockWithTx(activeFedClient, peginToRetiringFedTx);
+            // act
+            setUpForFileStorageTests(retiringFed, activeFed, btcTx1, btcTx2);
 
             // assert
-            // wtxids are saved in respective proofs file
-            assertWTxIdIsInRetiringFedClientProofsFile(peginToRetiringFedBtcTx);
-            assertWTxIdIsInActiveFedClientProofsFile(peginToActiveFedBtcTx);
+            // the new tx is LOST from the file because retiringFedClient overwrote it
+            var tx2 = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx2);
+            assertWTxIdIsNotInProofsFile(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, tx2);
+        }
 
-            // active fed client sends its pegin
-            activeFedClient.updateBridgeBtcTransactions();
-            assertTxSentToBridgeByActiveFedClient(peginToActiveFedBtcTx);
+        @ParameterizedTest
+        @MethodSource("retiringAndActiveFedsArgs")
+        void onBlock_clientForBothFeds_separateStorage_doesNotOverwriteProofsFile(Federation retiringFed, Federation activeFed) throws Exception {
+            // arrange
+            // 1. Set up clients with separate storage
+            String fileCustomizerForActiveFed = "active";
+            btcToRskActiveFedClientFileStorage = buildClientFileStorageInfo(fileCustomizerForActiveFed);
+            String fileCustomizerForRetiringFed = "retiring";
+            btcToRskRetiringFedClientFileStorage = buildClientFileStorageInfo(fileCustomizerForRetiringFed);
+            // 2. Create a tx that both clients will know about
+            var btcTx1 = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(btcTx1, activeFed.getAddress());
+            addOutputToFedWithMinimumPeginValue(btcTx1, retiringFed.getAddress());
+            // 3. Create a tx just for the active federation
+            var btcTx2 = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(btcTx2, activeFed.getAddress());
 
-            // retiring fed client sends its pegin
-            retiringFedClient.updateBridgeBtcTransactions();
-            int expectedBlockWithTxHeight = 1;
-            assertTxSentToBridge(btcToRskRetiringFedClientFileStorage, peginToRetiringFedBtcTx, expectedBlockWithTxHeight);
+            // act
+            setUpForFileStorageTests(retiringFed, activeFed, btcTx1, btcTx2);
+
+            // assert
+            // the new tx is still in active fed client proofs file
+            assertWTxIdIsInActiveFedClientProofsFile(btcTx2);
+        }
+
+        private void setUpForFileStorageTests(Federation retiringFed, Federation activeFed, BtcTransaction btcTx1, BtcTransaction btcTx2) throws Exception {
+            // active fed client
+            setUpActiveFed(activeFed);
+            activeFedClient = buildClient(btcToRskActiveFedClientFileStorage, activeFed);
+            addListener(activeFed, activeFedClient);
+            // retiring fed client
+            setUpActiveFed(retiringFed);
+            retiringFedClient = buildClient(btcToRskRetiringFedClientFileStorage, retiringFed);
+            addListener(retiringFed, retiringFedClient);
+
+            // listen to tx1 and block that contains it
+            var tx1 = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx1);
+            setUpTxConfidence(tx1);
+            listenTx(activeFedClient, tx1);
+            listenTx(retiringFedClient, tx1);
+            // both clients should listen to the same block containing the tx
+            Block blockWithTx1 = buildBlockWithTx(tx1);
+            activeFedClient.onBlock(blockWithTx1);
+            retiringFedClient.onBlock(blockWithTx1);
+
+            // Both clients should have tx1 in their proofs file and their in-memory fileData
+            assertWTxIdIsInActiveFedClientProofsFile(btcTx1);
+            assertWTxIdIsInRetiringFedClientProofsFile(btcTx1);
+            assertWTxIdIsInTxsToBeSentMap(activeFedClient, tx1);
+            assertWTxIdIsInTxsToBeSentMap(retiringFedClient, tx1);
+
+            // listen to tx2 and block that contains it
+            var tx2 = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx2);
+            // in real life, it would be listened just by the active fed client
+            setUpTx(activeFedClient, btcTx2);
+            // active fed client should have tx2 in its proofs file and its in-memory fileData
+            assertWTxIdIsInActiveFedClientProofsFile(btcTx2);
+            assertWTxIdIsInTxsToBeSentMap(activeFedClient, tx2);
+
+            // act
+            // A new Bitcoin block is mined containing the tx1
+            Block newBlockWithTx1 = buildBlockWithTx(tx1);
+            // Both clients listen to the block since both have the tx1 saved
+            // -to simulate overwriting scenario, the active fed client should listen to it first-
+            activeFedClient.onBlock(newBlockWithTx1);
+            retiringFedClient.onBlock(newBlockWithTx1);
         }
 
         @ParameterizedTest
