@@ -3469,8 +3469,7 @@ class BtcToRskClientTest {
 
             // assert
             // the new tx is LOST from the file because retiringFedClient overwrote it
-            var tx2 = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx2);
-            assertWTxIdIsNotInProofsFile(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, tx2);
+            assertWTxIdIsNotInActiveFedClientProofsFile(btcTx2);
         }
 
         @ParameterizedTest
@@ -3520,9 +3519,10 @@ class BtcToRskClientTest {
 
             // Both clients should have tx1 in their proofs file and their in-memory fileData
             assertWTxIdIsInActiveFedClientProofsFile(btcTx1);
+            assertWTxIdIsInActiveFedClientTxsToBeSentMap(btcTx1);
+
             assertWTxIdIsInRetiringFedClientProofsFile(btcTx1);
-            assertWTxIdIsInTxsToBeSentMap(activeFedClient, tx1);
-            assertWTxIdIsInTxsToBeSentMap(retiringFedClient, tx1);
+            assertWTxIdIsInRetiringFedClientTxsToBeSentMap(btcTx1);
 
             // listen to tx2 and block that contains it
             var tx2 = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx2);
@@ -3530,7 +3530,7 @@ class BtcToRskClientTest {
             setUpTx(activeFedClient, btcTx2);
             // active fed client should have tx2 in its proofs file and its in-memory fileData
             assertWTxIdIsInActiveFedClientProofsFile(btcTx2);
-            assertWTxIdIsInTxsToBeSentMap(activeFedClient, tx2);
+            assertWTxIdIsInActiveFedClientTxsToBeSentMap(btcTx2);
 
             // act
             // A new Bitcoin block is mined containing the tx1
@@ -3578,7 +3578,7 @@ class BtcToRskClientTest {
 
             // assert
             assertTxNotSentToBridge();
-            assertProofsFileIsEmpty(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage);
+            assertWTxIdIsNotInActiveFedClientProofsFile(peginBtcTx);
         }
 
         private void assertWTxIdIsInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
@@ -3586,9 +3586,24 @@ class BtcToRskClientTest {
             assertWTxIdIsInProofsFile(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, tx);
         }
 
+        private void assertWTxIdIsInActiveFedClientTxsToBeSentMap(BtcTransaction btcTx) {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsInTxsToBeSentMap(activeFedClient, tx);
+        }
+
+        private void assertWTxIdIsNotInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsNotInProofsFile(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, tx);
+        }
+
         private void assertWTxIdIsInRetiringFedClientProofsFile(BtcTransaction btcTx) throws IOException {
             Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
             assertWTxIdIsInProofsFile(MAINNET_PARAMS, btcToRskRetiringFedClientFileStorage, tx);
+        }
+
+        private void assertWTxIdIsInRetiringFedClientTxsToBeSentMap(BtcTransaction btcTx) {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsInTxsToBeSentMap(retiringFedClient, tx);
         }
 
         private void assertTxSentToBridgeByActiveFedClient(BtcTransaction btcTx) throws IOException {
