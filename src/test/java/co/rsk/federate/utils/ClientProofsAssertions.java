@@ -21,10 +21,6 @@ public class ClientProofsAssertions {
         assertTrue(btcToRskClient.getTransactionsToSendToRsk().containsKey(tx.getWTxId()));
     }
 
-    public static void assertWTxIdIsNotInTxsToBeSentMap(BtcToRskClient btcToRskClient, Transaction tx) {
-        assertFalse(btcToRskClient.getTransactionsToSendToRsk().containsKey(tx.getWTxId()));
-    }
-
     public static void assertWTxIdIsInProofsFile(NetworkParameters networkParameters, BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
         BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(networkParameters).getData();
         Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
