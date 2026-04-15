@@ -1862,8 +1862,8 @@ class BtcToRskClientTest {
             walletTxs = new HashSet<>();
             when(wallet.getTransactions(false)).thenReturn(walletTxs);
 
-            int CHAIN_HEIGHT = 4;
-            blocks = createBlockchain(CHAIN_HEIGHT);
+            int chainHeight = 4;
+            blocks = createBlockchain(chainHeight);
             kit.setStore(blocks);
 
             blockWithTxIndex = 0;
@@ -1970,7 +1970,7 @@ class BtcToRskClientTest {
             bitcoinWrapper.addFederationListener(federationToListen, client);
         }
 
-        private void setUpTx(BtcToRskClient client, BtcTransaction btcTx) throws BlockStoreException {
+        private void setUpTx(BtcToRskClient client, BtcTransaction btcTx) {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
 
             setUpTxConfidence(tx);
