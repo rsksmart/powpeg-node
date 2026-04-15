@@ -22,26 +22,24 @@ public class ClientProofsAssertions {
     }
 
     public static void assertWTxIdIsInProofsFile(NetworkParameters networkParameters, BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
-        BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(networkParameters).getData();
-        Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
-
-        Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
+        Set<Sha256Hash> txProofsKeySet = getTxProofsKeySet(networkParameters, btcToRskClientFileStorage);
         assertTrue(txProofsKeySet.contains(tx.getWTxId()));
     }
 
     public static void assertWTxIdIsNotInProofsFile(NetworkParameters networkParameters, BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
-        BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(networkParameters).getData();
-        Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
-
-        Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
+        Set<Sha256Hash> txProofsKeySet = getTxProofsKeySet(networkParameters, btcToRskClientFileStorage);
         assertFalse(txProofsKeySet.contains(tx.getWTxId()));
     }
 
     public static void assertProofsFileIsEmpty(NetworkParameters networkParameters, BtcToRskClientFileStorage btcToRskClientFileStorage) throws IOException {
+        Set<Sha256Hash> txProofsKeySet = getTxProofsKeySet(networkParameters, btcToRskClientFileStorage);
+        assertEquals(0, txProofsKeySet.size());
+    }
+
+    private static Set<Sha256Hash> getTxProofsKeySet(NetworkParameters networkParameters, BtcToRskClientFileStorage btcToRskClientFileStorage) throws IOException {
         BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(networkParameters).getData();
         Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
 
-        Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
-        assertEquals(0, txProofsKeySet.size());
+        return transactionProofs.keySet();
     }
 }
