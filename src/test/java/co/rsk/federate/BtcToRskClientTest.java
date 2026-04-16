@@ -1820,17 +1820,21 @@ class BtcToRskClientTest {
 
         @TempDir
         private Path tempDir;
+        private File directory;
         private DirectoryStorageInfo directoryStorageInfo;
         private BtcToRskClientFileStorage btcToRskActiveFedClientFileStorage;
         private BtcToRskClientFileStorage btcToRskRetiringFedClientFileStorage;
 
+        private Wallet wallet;
         private Set<Transaction> walletTxs;
+        private KitForTests kit;
         private BitcoinWrapperImpl bitcoinWrapper;
         private BtcToRskClient activeFedClient;
         private BtcToRskClient retiringFedClient;
         private FederatorSupport federatorSupport;
         private BtcLockSenderProvider btcLockSenderProvider;
         private PeginInstructionsProvider peginInstructionsProvider;
+        private PowpegNodeSystemProperties config;
 
         @BeforeEach
         void setUp() throws BlockStoreException {
@@ -1840,6 +1844,15 @@ class BtcToRskClientTest {
             when(activations.isActive(any(ConsensusRule.class))).thenReturn(true);
             when(activationConfig.forBlock(anyLong())).thenReturn(activations);
             when(activationConfig.isActive(any(ConsensusRule.class), anyLong())).thenReturn(true);
+
+            config = mock(PowpegNodeSystemProperties.class);
+            when(config.getActivationConfig()).thenReturn(activationConfig);
+            when(config.shouldUpdateCollections()).thenReturn(true);
+            when(config.shouldUpdateBridgeBtcBlockchain()).thenReturn(true);
+            when(config.shouldUpdateBridgeBtcTransactions()).thenReturn(true);
+            when(config.shouldUpdateBridgeBtcCoinbaseTransactions()).thenReturn(true);
+            when(config.isUpdateBridgeTimerEnabled()).thenReturn(true);
+            when(config.getAmountOfHeadersToSend()).thenReturn(100);
 
             federatorSupport = mock(FederatorSupport.class);
             when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
@@ -1852,24 +1865,27 @@ class BtcToRskClientTest {
             // using a temporary directory for testing
             directoryStorageInfo = mock(DirectoryStorageInfo.class);
             when(directoryStorageInfo.getPath()).thenReturn(tempDir.toString());
-
-            String btcToRskClientFilePrefix = "BtcToRskClient";
-            File directory = new File(directoryStorageInfo.getPath());
-            Wallet wallet = mock(Wallet.class);
-            KitForTests kit = new KitForTests(MAINNET_CONTEXT, directory, btcToRskClientFilePrefix, wallet);
-            setUpBitcoinWrapper(kit);
-
-            walletTxs = new HashSet<>();
-            when(wallet.getTransactions(false)).thenReturn(walletTxs);
+            directory = new File(directoryStorageInfo.getPath());
 
             int chainHeight = 4;
             blocks = createBlockchain(chainHeight);
-            kit.setStore(blocks);
-
             blockWithTxIndex = 0;
+
+            walletTxs = new HashSet<>();
+            wallet = mock(Wallet.class);
+            when(wallet.getTransactions(false)).thenReturn(walletTxs);
+
+            setUpKit();
+            setUpBitcoinWrapper();
         }
 
-        private void setUpBitcoinWrapper(Kit kit) {
+        private void setUpKit() throws BlockStoreException {
+            String btcToRskClientFilePrefix = "BtcToRskClient";
+            kit = new KitForTests(MAINNET_CONTEXT, directory, btcToRskClientFilePrefix, wallet);
+            kit.setStore(blocks);
+        }
+
+        private void setUpBitcoinWrapper() {
             bitcoinWrapper = new BitcoinWrapperImpl(
                 MAINNET_CONTEXT,
                 kit
@@ -2058,7 +2074,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2075,7 +2091,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2109,7 +2125,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2143,7 +2159,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2177,7 +2193,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2194,7 +2210,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         // PEGIN V1
@@ -2249,7 +2265,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2321,7 +2337,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2339,7 +2355,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2429,7 +2445,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2447,7 +2463,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2465,7 +2481,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2483,7 +2499,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2537,7 +2553,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2555,7 +2571,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2645,7 +2661,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2663,7 +2679,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2753,7 +2769,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2771,7 +2787,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2789,7 +2805,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2807,7 +2823,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         // PEGIN WITH INSTRUCTIONS - UNKNOWN PROTOCOL VERSION
@@ -2862,7 +2878,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2880,7 +2896,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2898,7 +2914,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2916,7 +2932,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2934,7 +2950,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -2952,7 +2968,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3006,7 +3022,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3024,7 +3040,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3078,7 +3094,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3096,7 +3112,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3150,7 +3166,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3168,7 +3184,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3186,7 +3202,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3204,7 +3220,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3222,7 +3238,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3240,7 +3256,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
         }
 
         @ParameterizedTest
@@ -3266,7 +3282,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(pegoutBtcTx);
         }
 
         @ParameterizedTest
@@ -3366,7 +3382,7 @@ class BtcToRskClientTest {
             retiringFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(migrationBtcTx);
         }
 
         private static Stream<Arguments> activeAndNotActiveFedsArgs() {
@@ -3437,20 +3453,20 @@ class BtcToRskClientTest {
             retiringFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(svpSpendBtcTx);
         }
 
         /**
          * When two {@link BtcToRskClient} instances shared a single {@link BtcToRskClientFileStorage}
          * (same on-disk RLP), the retiring client's onBlock could write the file with in-memory state
          * that did not include txs only the active client had listened to, overwriting
-         * the file and dropping those txs from persistence.
+         * the file and dropping those txs from persistence when a restart of the node is performed.
          * With separate proof files per client, both federations' pending txs must remain stored
          * after both clients process the same block
          */
         @ParameterizedTest
         @MethodSource("retiringAndActiveFedsArgs")
-        void onBlock_clientForBothFeds_sharedStorage_overwritesProofsFile(Federation retiringFed, Federation activeFed) throws Exception {
+        void updateBridgeBtcTransactions_clientForBothFeds_sharedStorage_shouldNotSendTx(Federation retiringFed, Federation activeFed) throws Exception {
             // arrange
             // 1. Set up clients with shared storage
             String fileCustomizer = "shared";
@@ -3464,17 +3480,20 @@ class BtcToRskClientTest {
             var btcTx2 = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(btcTx2, activeFed.getAddress());
 
-            // act
             setUpForFileStorageTests(retiringFed, activeFed, btcTx1, btcTx2);
 
-            // assert
-            // the new tx is LOST from the file because retiringFedClient overwrote it
+            // act & assert
+            // the new tx is LOST from the file and won't be sent because retiringFedClient overwrote it
             assertWTxIdIsNotInActiveFedClientProofsFile(btcTx2);
+            assertWTxIdIsNotInActiveFedClientTxsToBeSentMap(btcTx2);
+            // calling to update bridge txs will not send it to the bridge
+            activeFedClient.updateBridgeBtcTransactions();
+            assertTxNotSentToBridge(btcTx2);
         }
 
         @ParameterizedTest
         @MethodSource("retiringAndActiveFedsArgs")
-        void onBlock_clientForBothFeds_separateStorage_doesNotOverwriteProofsFile(Federation retiringFed, Federation activeFed) throws Exception {
+        void updateBridgeBtcTransactions_clientForBothFeds_separateStorage_shouldSendTx(Federation retiringFed, Federation activeFed) throws Exception {
             // arrange
             // 1. Set up clients with separate storage
             String fileCustomizerForActiveFed = "active";
@@ -3493,8 +3512,12 @@ class BtcToRskClientTest {
             setUpForFileStorageTests(retiringFed, activeFed, btcTx1, btcTx2);
 
             // assert
-            // the new tx is still in active fed client proofs file
+            // the new tx is still in active fed client proofs file and txs to be sent map
             assertWTxIdIsInActiveFedClientProofsFile(btcTx2);
+            assertWTxIdIsInActiveFedClientTxsToBeSentMap(btcTx2);
+            // calling to update bridge txs will send it to the bridge 
+            activeFedClient.updateBridgeBtcTransactions();
+            assertTxSentToBridge(btcToRskActiveFedClientFileStorage, btcTx2, 1);
         }
 
         private void setUpForFileStorageTests(Federation retiringFed, Federation activeFed, BtcTransaction btcTx1, BtcTransaction btcTx2) throws Exception {
@@ -3503,7 +3526,7 @@ class BtcToRskClientTest {
             activeFedClient = buildClient(btcToRskActiveFedClientFileStorage, activeFed);
             addListener(activeFed, activeFedClient);
             // retiring fed client
-            setUpActiveFed(retiringFed);
+            setUpRetiringFed(retiringFed);
             retiringFedClient = buildClient(btcToRskRetiringFedClientFileStorage, retiringFed);
             addListener(retiringFed, retiringFedClient);
 
@@ -3525,7 +3548,6 @@ class BtcToRskClientTest {
             assertWTxIdIsInRetiringFedClientTxsToBeSentMap(btcTx1);
 
             // listen to tx2 and block that contains it
-            var tx2 = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx2);
             // in real life, it would be listened just by the active fed client
             setUpTx(activeFedClient, btcTx2);
             // active fed client should have tx2 in its proofs file and its in-memory fileData
@@ -3539,6 +3561,40 @@ class BtcToRskClientTest {
             // -to simulate overwriting scenario, the active fed client should listen to it first-
             activeFedClient.onBlock(newBlockWithTx1);
             retiringFedClient.onBlock(newBlockWithTx1);
+
+            // active fed client should still have tx2 in its txs-to-be-sent map
+            assertWTxIdIsInActiveFedClientTxsToBeSentMap(btcTx2);
+
+            // now simulate a restart of the node:
+            // perform FedNodeRunner.stop() actions
+            bitcoinWrapper.stop();
+            activeFedClient.stop();
+            retiringFedClient.stop();
+
+            // perform FedNodeRunner.startFederate() actions
+            setUpKit();
+            setUpBitcoinWrapper();
+            activeFedClient.setup(
+                bitcoinWrapper,
+                BRIDGE_MAINNET_CONSTANTS,
+                btcToRskActiveFedClientFileStorage,
+                btcLockSenderProvider,
+                peginInstructionsProvider,
+                config
+            );
+            retiringFedClient.setup(
+                bitcoinWrapper,
+                BRIDGE_MAINNET_CONSTANTS,
+                btcToRskRetiringFedClientFileStorage,
+                btcLockSenderProvider,
+                peginInstructionsProvider,
+                config
+            );
+            // start clients again
+            when(federatorSupport.getFederationMember()).thenReturn(activeFed.getMembers().get(0));
+            activeFedClient.start(activeFed);
+            when(federatorSupport.getFederationMember()).thenReturn(retiringFed.getMembers().get(0));
+            retiringFedClient.start(retiringFed);
         }
 
         @ParameterizedTest
@@ -3577,7 +3633,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             // assert
-            assertTxNotSentToBridge();
+            assertTxNotSentToBridge(peginBtcTx);
             assertWTxIdIsNotInActiveFedClientProofsFile(peginBtcTx);
         }
 
@@ -3589,6 +3645,11 @@ class BtcToRskClientTest {
         private void assertWTxIdIsInActiveFedClientTxsToBeSentMap(BtcTransaction btcTx) {
             Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
             assertWTxIdIsInTxsToBeSentMap(activeFedClient, tx);
+        }
+
+        private void assertWTxIdIsNotInActiveFedClientTxsToBeSentMap(BtcTransaction btcTx) {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsNotInTxsToBeSentMap(activeFedClient, tx);
         }
 
         private void assertWTxIdIsNotInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
@@ -3626,8 +3687,9 @@ class BtcToRskClientTest {
             return proof.getPartialMerkleTree();
         }
 
-        private void assertTxNotSentToBridge() {
-            verify(federatorSupport, never()).sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
+        private void assertTxNotSentToBridge(BtcTransaction btcTx) {
+            var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
         }
     }
 
