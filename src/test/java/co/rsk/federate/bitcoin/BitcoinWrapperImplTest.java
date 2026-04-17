@@ -1,9 +1,10 @@
 package co.rsk.federate.bitcoin;
 
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
+import static co.rsk.federate.utils.ClientProofsAssertions.assertProofsFileIsEmpty;
+import static co.rsk.federate.utils.ClientProofsAssertions.assertWTxIdIsInProofsFile;
 import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
 import static org.bitcoinj.script.ScriptOpCodes.OP_RETURN;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import co.rsk.bitcoinj.core.BtcECKey;
@@ -11,7 +12,6 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.federate.BtcToRskClientBuilder;
-import co.rsk.federate.Proof;
 import co.rsk.federate.io.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
@@ -47,8 +47,9 @@ class BitcoinWrapperImplTest {
     private static final Context btcContext = new Context(originalNetworkParameters);
     private FederatorSupport federatorSupport;
 
-    private BtcToRskClientFileStorage btcToRskClientFileStorage;
-    private BtcToRskClientBuilder btcToRskClientBuilder;
+    private DirectoryStorageInfo directoryStorageInfo;
+    private BtcToRskClientFileStorage btcToRskActiveFedClientFileStorage;
+    private BtcToRskClientFileStorage btcToRskRetiringFedClientFileStorage;
     private BitcoinWrapperImpl bitcoinWrapper;
     private TransactionListener listener;
 
@@ -56,26 +57,26 @@ class BitcoinWrapperImplTest {
     private Path tempDir;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
         when(activations.isActive(any(ConsensusRule.class))).thenReturn(true);
         ActivationConfig activationConfig = mock(ActivationConfig.class);
         when(activationConfig.forBlock(any(Long.class))).thenReturn(activations);
+        
         federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
 
         // using a temporary directory for testing
-        FileStorageInfo fileStorageInfo = mock(BtcToRskClientFileStorageInfo.class);
-        String pegDir = tempDir.toString();
-        String filePath = tempDir.resolve("btcToRskClient2.rlp").toString();
-        when(fileStorageInfo.getPegDirectoryPath()).thenReturn(pegDir);
-        when(fileStorageInfo.getFilePath()).thenReturn(filePath);
-        btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(fileStorageInfo);
+        directoryStorageInfo = mock(DirectoryStorageInfo.class);
+        when(directoryStorageInfo.getPath()).thenReturn(tempDir.toString());
 
-        BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
-        PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
+        String btcToRskClientFilePrefix = "BtcToRskClient";
+        File directory = new File(directoryStorageInfo.getPath());
+        Kit kit = new KitForTests(btcContext, directory, btcToRskClientFilePrefix, mock(Wallet.class));
+        setUpBitcoinWrapper(kit);
+    }
 
-        Kit kit = new KitForTests(btcContext, mock(File.class), "", mock(Wallet.class));
+    private void setUpBitcoinWrapper(Kit kit) {
         bitcoinWrapper = new BitcoinWrapperImpl(
             btcContext,
             kit
@@ -84,8 +85,26 @@ class BitcoinWrapperImplTest {
         List<PeerAddress> peerAddresses = Collections.emptyList();
         bitcoinWrapper.setup(peerAddresses);
         bitcoinWrapper.start();
+    }
 
-        btcToRskClientBuilder = BtcToRskClientBuilder.builder();
+    private void setUpActiveFedListener(Federation activeFed) throws Exception {
+        when(federatorSupport.getFederationAddress()).thenReturn(activeFed.getAddress());
+        String fileCustomizer = "active";
+        btcToRskActiveFedClientFileStorage = buildClientFileStorageInfo(fileCustomizer);
+        setUpFederationListener(btcToRskActiveFedClientFileStorage, activeFed);
+    }
+
+    private void setUpRetiringFedListener(Federation retiringFed) throws Exception {
+        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFed.getAddress()));
+        String fileCustomizer = "retiring";
+        btcToRskRetiringFedClientFileStorage = buildClientFileStorageInfo(fileCustomizer);
+        setUpFederationListener(btcToRskRetiringFedClientFileStorage, retiringFed);
+    }
+
+    private void setUpFederationListener(BtcToRskClientFileStorage btcToRskClientFileStorage, Federation federationToListen) throws Exception {
+        BtcToRskClientBuilder btcToRskClientBuilder = BtcToRskClientBuilder.builder();
+        BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
+        PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
         listener = btcToRskClientBuilder
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
@@ -93,14 +112,18 @@ class BitcoinWrapperImplTest {
             .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
             .withBtcLockSenderProvider(btcLockSenderProvider)
             .withPeginInstructionsProvider(peginInstructionsProvider)
-            .build();
-    }
-
-    private void setUpListenerAndWrapperWithFederation(Federation federationToListen) throws Exception {
-        listener = btcToRskClientBuilder
             .withFederation(federationToListen)
             .build();
+        addListener(federationToListen);
+    }
+
+    private void addListener(Federation federationToListen) {
         bitcoinWrapper.addFederationListener(federationToListen, listener);
+    }
+
+    private BtcToRskClientFileStorage buildClientFileStorageInfo(String fileCustomizer) {
+        FileStorageInfo fileStorageInfo = new BtcToRskClientFileStorageInfo(directoryStorageInfo, fileCustomizer);
+        return new BtcToRskClientFileStorageImpl(fileStorageInfo);
     }
 
     private static Stream<Federation> fedArgs() {
@@ -119,31 +142,29 @@ class BitcoinWrapperImplTest {
     @ParameterizedTest
     @MethodSource("fedArgs")
     void coinsReceivedOrSent_validLegacyPegIn_shouldListenTx(Federation federation) throws Exception {
-        // Arrange
-        when(federatorSupport.getFederationAddress()).thenReturn(federation.getAddress());
-        setUpListenerAndWrapperWithFederation(federation);
+        // arrange
+        setUpActiveFedListener(federation);
         Transaction pegin = createLegacyPegIn(federation);
 
-        // Act
+        // act
         bitcoinWrapper.coinsReceivedOrSent(pegin);
 
         // assert
-        assertWTxIdWasAddedToProofs(pegin);
+        assertWTxIdIsInActiveFedClientProofsFile(pegin);
     }
 
     @ParameterizedTest
     @MethodSource("fedArgs")
     void coinsReceivedOrSent_validPeginV1_shouldListenTx(Federation federation) throws Exception {
-        // Arrange
-        when(federatorSupport.getFederationAddress()).thenReturn(federation.getAddress());
-        setUpListenerAndWrapperWithFederation(federation);
+        // arrange
+        setUpActiveFedListener(federation);
         Transaction pegin = createValidPegInV1(federation.getAddress());
 
-        // Act
+        // act
         bitcoinWrapper.coinsReceivedOrSent(pegin);
 
         // assert
-        assertWTxIdWasAddedToProofs(pegin);
+        assertWTxIdIsInActiveFedClientProofsFile(pegin);
     }
 
     private Transaction createLegacyPegIn(Federation federation) {
@@ -183,16 +204,15 @@ class BitcoinWrapperImplTest {
     @ParameterizedTest
     @MethodSource("fedArgs")
     void coinsReceivedOrSent_validPegOutTx_shouldListenTx(Federation federation) throws Exception {
-        // Arrange
-        when(federatorSupport.getFederationAddress()).thenReturn(federation.getAddress());
-        setUpListenerAndWrapperWithFederation(federation);
+        // arrange
+        setUpActiveFedListener(federation);
         final Transaction pegout = createPegOutTx(federation);
 
-        // Act
+        // act
         bitcoinWrapper.coinsReceivedOrSent(pegout);
 
-        // Assert
-        assertWTxIdWasAddedToProofs(pegout);
+        // assert
+        assertWTxIdIsInActiveFedClientProofsFile(pegout);
     }
 
     private Transaction createPegOutTx(Federation federation) {
@@ -251,120 +271,79 @@ class BitcoinWrapperImplTest {
 
     @ParameterizedTest
     @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_migrationTx_activeFedListener_shouldListenTx(Federation retiringFederation, Federation activeFederation) throws Exception {
-        // Arrange
-        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
-        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
-        setUpListenerAndWrapperWithFederation(activeFederation);
+    void coinsReceivedOrSent_migrationTx_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+        // arrange
+        setUpActiveFedListener(activeFederation);
+        setUpRetiringFedListener(retiringFederation);
         var migrationBtcTx = createMigrationTx(thinNetworkParameters, retiringFederation, activeFederation);
 
-        // Act
-        var migrationTx = ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), migrationBtcTx);
-        bitcoinWrapper.coinsReceivedOrSent(migrationTx);
-
-        // Assert
-        assertWTxIdWasAddedToProofs(migrationTx);
-    }
-
-    @ParameterizedTest
-    @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_migrationTxBelowMinimumPeginValue_activeFedListener_shouldListenTx(Federation retiringFederation, Federation activeFederation) throws Exception {
-        // Arrange
-        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
-        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
-        setUpListenerAndWrapperWithFederation(activeFederation);
-        var migrationBtcTx = createMigrationTxBelowMinimumPeginValue(thinNetworkParameters, retiringFederation, activeFederation);
-
-        // Act
-        var migrationTx = ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), migrationBtcTx);
-
         // act
+        var migrationTx = ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), migrationBtcTx);
         bitcoinWrapper.coinsReceivedOrSent(migrationTx);
 
         // assert
-        assertWTxIdWasAddedToProofs(migrationTx);
+        assertWTxIdIsInActiveFedClientProofsFile(migrationTx);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
     @ParameterizedTest
     @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_migrationTx_retiringFedListener_shouldNotListenTx(Federation retiringFederation, Federation activeFederation) throws Exception {
-        // Arrange
-        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
-        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
-        setUpListenerAndWrapperWithFederation(retiringFederation);
-        var migrationBtcTx = createMigrationTx(thinNetworkParameters, retiringFederation, activeFederation);
+    void coinsReceivedOrSent_migrationTxBelowMinimumPeginValue_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+        // arrange
+        setUpActiveFedListener(activeFederation);
+        setUpRetiringFedListener(retiringFederation);
+        var migrationBtcTx = createMigrationTxBelowMinimumPeginValue(thinNetworkParameters, retiringFederation, activeFederation);
 
-        // Act
+        // act
         var migrationTx = ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), migrationBtcTx);
         bitcoinWrapper.coinsReceivedOrSent(migrationTx);
 
-        // Assert
-        assertWTxIdWasNotAddedToProofs();
+        // assert
+        assertWTxIdIsInActiveFedClientProofsFile(migrationTx);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
     @ParameterizedTest
     @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_peginToActiveFed_listenerForBothFeds_retiringFedListenerFirst_shouldListenTx(Federation retiringFederation, Federation activeFederation) throws Exception {
-        // Arrange
-        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
-        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
-
-        setUpListenerAndWrapperWithFederation(retiringFederation);
-        listener = btcToRskClientBuilder
-            .withFederation(activeFederation)
-            .build();
-        bitcoinWrapper.addFederationListener(activeFederation, listener);
+    void coinsReceivedOrSent_peginToActiveFed_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+        // arrange
+        setUpActiveFedListener(activeFederation);
+        setUpRetiringFedListener(retiringFederation);
 
         var peginBtcTxToActiveFed = createPegIn(activeFederation.getAddress());
 
-        // Act
+        // act
         var peginTxToActiveFed = ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), peginBtcTxToActiveFed);
         bitcoinWrapper.coinsReceivedOrSent(peginTxToActiveFed);
 
-        // Assert
-        assertWTxIdWasAddedToProofs(peginTxToActiveFed);
+        // assert
+        assertWTxIdIsInActiveFedClientProofsFile(peginTxToActiveFed);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
     @ParameterizedTest
     @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_peginToRetiringFed_listenerForBothFeds_activeFedListenerFirst_shouldListenTx(Federation retiringFederation, Federation activeFederation) throws Exception {
-        // Arrange
-        when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
-        when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
+    void coinsReceivedOrSent_peginToRetiringFed_listenerForBothFeds_shouldBeSavedJustInRetiringFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+        // arrange
+        setUpActiveFedListener(activeFederation);
+        setUpRetiringFedListener(retiringFederation);
 
-        setUpListenerAndWrapperWithFederation(activeFederation);
-        listener = btcToRskClientBuilder
-            .withFederation(retiringFederation)
-            .build();
-        bitcoinWrapper.addFederationListener(retiringFederation, listener);
+        var peginBtcTxToRetiringFed = createPegIn(retiringFederation.getAddress());
 
-        var peginBtcTxToActiveFed = createPegIn(retiringFederation.getAddress());
+        // act
+        var peginTxToRetiringFed = ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), peginBtcTxToRetiringFed);
+        bitcoinWrapper.coinsReceivedOrSent(peginTxToRetiringFed);
 
-        // Act
-        var peginTxToActiveFed = ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), peginBtcTxToActiveFed);
-        bitcoinWrapper.coinsReceivedOrSent(peginTxToActiveFed);
-
-        // Assert
-        assertWTxIdWasAddedToProofs(peginTxToActiveFed);
+        // assert
+        assertWTxIdIsInRetiringFedClientProofsFile(peginTxToRetiringFed);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskActiveFedClientFileStorage);
     }
 
-    private void assertWTxIdWasAddedToProofs(Transaction tx) throws IOException {
-        BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(originalNetworkParameters).getData();
-        Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
-
-        Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
-        assertEquals(1, txProofsKeySet.size());
-
-        Sha256Hash wTxId = tx.getWTxId();
-        Sha256Hash savedWTxId = txProofsKeySet.iterator().next();
-        assertEquals(wTxId, savedWTxId);
+    private void assertWTxIdIsInActiveFedClientProofsFile(Transaction tx) throws IOException {
+        assertWTxIdIsInProofsFile(originalNetworkParameters, btcToRskActiveFedClientFileStorage, tx);
     }
 
-    private void assertWTxIdWasNotAddedToProofs() throws IOException {
-        BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(originalNetworkParameters).getData();
-        Map<Sha256Hash, List<Proof>> transactionProofs = fileData.getTransactionProofs();
-
-        Set<Sha256Hash> txProofsKeySet = transactionProofs.keySet();
-        assertEquals(0, txProofsKeySet.size());
+    private void assertWTxIdIsInRetiringFedClientProofsFile(Transaction tx) throws IOException {
+        assertWTxIdIsInProofsFile(originalNetworkParameters, btcToRskRetiringFedClientFileStorage, tx);
     }
 }
