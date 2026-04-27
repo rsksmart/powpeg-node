@@ -33,7 +33,7 @@ public class BtcToRskClientFileStorageImpl implements BtcToRskClientFileStorage 
         if (data == null) {
             throw new IOException("Data is null");
         }
-        File directory = new File(storageInfo.getPegDirectoryPath());
+        File directory = new File(storageInfo.getDirectoryPath());
         if (!directory.exists() && !directory.mkdirs()) {
             throw new IOException("Could not create directory " + directory.getAbsolutePath());
         }
