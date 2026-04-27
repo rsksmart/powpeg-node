@@ -51,7 +51,7 @@ class BtcToRskClientFileStorageImplTest {
     @Test
     void read_no_file() throws IOException {
         FileStorageInfo storageInfo = mock(FileStorageInfo.class);
-        when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
+        when(storageInfo.getDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         BtcToRskClientFileStorageImpl storage = getBtcToRskClientFileStorage(storageInfo);
@@ -66,7 +66,7 @@ class BtcToRskClientFileStorageImplTest {
     @Test
     void read_empty_file() throws IOException {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
-        when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
+        when(storageInfo.getDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         createFile(storageInfo, new byte[]{});
@@ -83,7 +83,7 @@ class BtcToRskClientFileStorageImplTest {
     @Test
     void read_trash_file() throws IOException {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
-        when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
+        when(storageInfo.getDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         createFile(storageInfo, new byte[]{ 6, 6, 6 });
@@ -98,7 +98,7 @@ class BtcToRskClientFileStorageImplTest {
     @Test
     void write_null_data() {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
-        when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
+        when(storageInfo.getDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         BtcToRskClientFileStorageImpl storage = getBtcToRskClientFileStorage(storageInfo);
@@ -109,7 +109,7 @@ class BtcToRskClientFileStorageImplTest {
     @Test
     void write_empty_data() throws Exception {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
-        when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
+        when(storageInfo.getDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         BtcToRskClientFileStorageImpl storage = getBtcToRskClientFileStorage(storageInfo);
@@ -128,7 +128,7 @@ class BtcToRskClientFileStorageImplTest {
     @Test
     void write_and_read_ok() throws Exception {
         BtcToRskClientFileStorageInfo storageInfo = mock(BtcToRskClientFileStorageInfo.class);
-        when(storageInfo.getPegDirectoryPath()).thenReturn(DIRECTORY_PATH);
+        when(storageInfo.getDirectoryPath()).thenReturn(DIRECTORY_PATH);
         when(storageInfo.getFilePath()).thenReturn(FILE_PATH);
 
         BtcToRskClientFileData fileData = new BtcToRskClientFileData();
