@@ -385,9 +385,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     protected int updateBridgeBtcBlockchain() throws BlockStoreException, IOException {
-        long bestBlockNumber = federatorSupport.getRskBestChainHeight();
-        boolean useBlockDepth = activationConfig.isActive(ConsensusRule.RSKIP89, bestBlockNumber);
-
         int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBlockchainBestChainHeight();
         int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
         if (federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight) {
@@ -400,15 +397,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             // update the bridge with the latest.
 
             // First, find the common ancestor that is in the federator's bestchain
-            // using either the old method -- block locator
-            // or the new one -- block depth incremental search
-            StoredBlock commonAncestor;
-            if (useBlockDepth) {
-                commonAncestor = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
-            } else {
-                commonAncestor = findBridgeBtcBlockchainMatchingAncestorUsingBlockLocator();
-            }
-
+            // using block depth incremental search
+            StoredBlock commonAncestor = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
             checkNotNull(commonAncestor, "No best chain block found");
 
             logger.debug(
@@ -527,34 +517,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             // of the current fed block, hence the ancestor is immediately found and this code isn't reached.
             currentSearchDepth = IntStream.of(1 << iteration, maxSearchDepth).min().getAsInt();
             iteration++;
-        }
-
-        return matchedBlock;
-    }
-
-    private StoredBlock findBridgeBtcBlockchainMatchingAncestorUsingBlockLocator() throws BlockStoreException {
-        // Find the last best chain block the bridge has with respect
-        // to the federate node's best chain.
-        Object[] blockLocatorArray = federatorSupport.getBtcBlockchainBlockLocator();
-        logger.debug(
-            "Block locator size {}, first {}, last {}.",
-            blockLocatorArray.length,
-            blockLocatorArray[0],
-            blockLocatorArray[blockLocatorArray.length - 1]
-        );
-
-        StoredBlock matchedBlock = null;
-        for (Object o : blockLocatorArray) {
-            String blockHash = (String) o;
-            StoredBlock storedBlock = bitcoinWrapper.getBlock(Sha256Hash.wrap(blockHash));
-            if (storedBlock == null) {
-                continue;
-            }
-            StoredBlock storedBlockInBestChain = bitcoinWrapper.getBlockAtHeight(storedBlock.getHeight());
-            if (storedBlock.equals(storedBlockInBestChain)) {
-                matchedBlock = storedBlockInBestChain;
-                break;
-            }
         }
 
         return matchedBlock;
@@ -802,21 +764,14 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             coinbaseInformation.getBlockHash()
         );
 
-        long bestBlockNumber = federatorSupport.getRskBestChainHeight();
-        if (activationConfig.isActive(ConsensusRule.RSKIP143, bestBlockNumber)) {
-            if (!federatorSupport.hasBlockCoinbaseInformed(coinbaseInformation.getBlockHash())) {
-                logger.debug(
-                    "[updateBridgeBtcCoinbaseTransactions] informing coinbase transaction {}",
-                    coinbaseInformation.getCoinbaseTransaction().getTxId()
-                );
-                federatorSupport.sendRegisterCoinbaseTransaction(coinbaseInformation);
-            } else {
-                logger.debug("[updateBridgeBtcCoinbaseTransactions] coinbase transaction already informed, removing from map");
-                // Remove the coinbase from the map
-                fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
-            }
+        if (!federatorSupport.hasBlockCoinbaseInformed(coinbaseInformation.getBlockHash())) {
+            logger.debug(
+                "[updateBridgeBtcCoinbaseTransactions] informing coinbase transaction {}",
+                coinbaseInformation.getCoinbaseTransaction().getTxId()
+            );
+            federatorSupport.sendRegisterCoinbaseTransaction(coinbaseInformation);
         } else {
-            logger.debug("[updateBridgeBtcCoinbaseTransactions] RSKIP-143 is not active. Can't send coinbase transactions.");
+            logger.debug("[updateBridgeBtcCoinbaseTransactions] coinbase transaction already informed, removing from map");
             // Remove the coinbase from the map
             fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
         }
