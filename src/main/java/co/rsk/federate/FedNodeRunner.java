@@ -287,7 +287,8 @@ public class FedNodeRunner implements NodeRunner {
             directoryStorageInfo = new BtcToRskClientDirectoryStorageInfo(config);
             bitcoinWrapper = createAndSetupBitcoinWrapper();
 
-            BtcToRskClientFileStorage btcToRskActiveClientFileStorage = createStorageFileForActiveFedClient();
+            BtcToRskClientFileStorageFactory fileStorageFactory = new BtcToRskClientFileStorageFactory(directoryStorageInfo);
+            BtcToRskClientFileStorage btcToRskActiveClientFileStorage = fileStorageFactory.forActive();
             btcToRskClientActive.setup(
                 bitcoinWrapper,
                 bridgeConstants,
@@ -296,7 +297,7 @@ public class FedNodeRunner implements NodeRunner {
                 peginInstructionsProvider,
                 config
             );
-            BtcToRskClientFileStorage btcToRskRetiringClientFileStorage = createStorageFileForRetiringFedClient();
+            BtcToRskClientFileStorage btcToRskRetiringClientFileStorage = fileStorageFactory.forRetiring();
             btcToRskClientRetiring.setup(
                 bitcoinWrapper,
                 bridgeConstants,
@@ -341,21 +342,6 @@ public class FedNodeRunner implements NodeRunner {
 
             federationWatcher.start(federationProvider, federationWatcherListener);
         }
-    }
-
-    private BtcToRskClientFileStorage createStorageFileForActiveFedClient() {
-        String fileCustomizer = "active";
-        return createStorageFile(fileCustomizer);
-    }
-
-    private BtcToRskClientFileStorage createStorageFileForRetiringFedClient() {
-        String fileCustomizer = "retiring";
-        return createStorageFile(fileCustomizer);
-    }
-
-    private BtcToRskClientFileStorage createStorageFile(String fileCustomizer) {
-        FileStorageInfo fileStorageInfo = new BtcToRskClientFileStorageInfo(directoryStorageInfo, fileCustomizer);
-        return new BtcToRskClientFileStorageImpl(fileStorageInfo);
     }
 
     @PreDestroy
