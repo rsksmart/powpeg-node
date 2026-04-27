@@ -4,6 +4,7 @@ import co.rsk.federate.BtcToRskClient;
 import co.rsk.federate.Proof;
 import co.rsk.federate.io.BtcToRskClientFileData;
 import co.rsk.federate.io.BtcToRskClientFileStorage;
+import org.bitcoinj.core.Block;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
@@ -28,6 +29,16 @@ public class ClientProofsAssertions {
     public static void assertWTxIdIsInProofsFile(NetworkParameters networkParameters, BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
         Set<Sha256Hash> txProofsKeySet = getTxProofsKeySet(networkParameters, btcToRskClientFileStorage);
         assertTrue(txProofsKeySet.contains(tx.getWTxId()));
+    }
+
+    public static void assertBlockWithTxHashIsInCoinbaseInformationMap(NetworkParameters networkParameters, BtcToRskClientFileStorage btcToRskClientFileStorage, Block blockWithTx) throws IOException {
+        BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(networkParameters).getData();
+        assertTrue(fileData.getCoinbaseInformationMap().containsKey(blockWithTx.getHash()));
+    }
+
+    public static void assertBlockWithTxHashIsNotInCoinbaseInformationMap(NetworkParameters networkParameters, BtcToRskClientFileStorage btcToRskClientFileStorage, Block blockWithTx) throws IOException {
+        BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(networkParameters).getData();
+        assertFalse(fileData.getCoinbaseInformationMap().containsKey(blockWithTx.getHash()));
     }
 
     public static void assertWTxIdIsNotInProofsFile(NetworkParameters networkParameters, BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
