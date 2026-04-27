@@ -12,6 +12,7 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.federate.BtcToRskClientBuilder;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.io.*;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.constants.BridgeConstants;
@@ -47,7 +48,6 @@ class BitcoinWrapperImplTest {
     private static final Context btcContext = new Context(originalNetworkParameters);
     private FederatorSupport federatorSupport;
 
-    private DirectoryStorageInfo directoryStorageInfo;
     private BtcToRskClientFileStorage btcToRskActiveFedClientFileStorage;
     private BtcToRskClientFileStorage btcToRskRetiringFedClientFileStorage;
     private BitcoinWrapperImpl bitcoinWrapper;
@@ -67,11 +67,15 @@ class BitcoinWrapperImplTest {
         when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
 
         // using a temporary directory for testing
-        directoryStorageInfo = mock(DirectoryStorageInfo.class);
-        when(directoryStorageInfo.getPath()).thenReturn(tempDir.toString());
+        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
+        when(config.databaseDir()).thenReturn(tempDir.toAbsolutePath().toString());
+        BtcToRskClientDirectoryStorageInfo directoryStorageInfo = new BtcToRskClientDirectoryStorageInfo(config);
+        File directory = new File(directoryStorageInfo.getPath());
+        BtcToRskClientFileStorageFactory btcToRskClientFileStorageFactory = new BtcToRskClientFileStorageFactory(directoryStorageInfo);
+        btcToRskActiveFedClientFileStorage = btcToRskClientFileStorageFactory.forActive();
+        btcToRskRetiringFedClientFileStorage = btcToRskClientFileStorageFactory.forRetiring();
 
         String btcToRskClientFilePrefix = "BtcToRskClient";
-        File directory = new File(directoryStorageInfo.getPath());
         Kit kit = new KitForTests(btcContext, directory, btcToRskClientFilePrefix, mock(Wallet.class));
         setUpBitcoinWrapper(kit);
     }
@@ -89,15 +93,11 @@ class BitcoinWrapperImplTest {
 
     private void setUpActiveFedListener(Federation activeFed) throws Exception {
         when(federatorSupport.getFederationAddress()).thenReturn(activeFed.getAddress());
-        String fileCustomizer = "active";
-        btcToRskActiveFedClientFileStorage = buildClientFileStorageInfo(fileCustomizer);
         setUpFederationListener(btcToRskActiveFedClientFileStorage, activeFed);
     }
 
     private void setUpRetiringFedListener(Federation retiringFed) throws Exception {
         when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFed.getAddress()));
-        String fileCustomizer = "retiring";
-        btcToRskRetiringFedClientFileStorage = buildClientFileStorageInfo(fileCustomizer);
         setUpFederationListener(btcToRskRetiringFedClientFileStorage, retiringFed);
     }
 
@@ -119,11 +119,6 @@ class BitcoinWrapperImplTest {
 
     private void addListener(Federation federationToListen) {
         bitcoinWrapper.addFederationListener(federationToListen, listener);
-    }
-
-    private BtcToRskClientFileStorage buildClientFileStorageInfo(String fileCustomizer) {
-        FileStorageInfo fileStorageInfo = new BtcToRskClientFileStorageInfo(directoryStorageInfo, fileCustomizer);
-        return new BtcToRskClientFileStorageImpl(fileStorageInfo);
     }
 
     private static Stream<Federation> fedArgs() {
