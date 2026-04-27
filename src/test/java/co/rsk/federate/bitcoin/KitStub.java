@@ -1,5 +1,6 @@
 package co.rsk.federate.bitcoin;
 
+import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.store.BlockStore;
@@ -32,6 +33,7 @@ public class KitStub extends Kit {
         }
 
         this.store = blockStore;
+        this.vChain = new BlockChain(context, wallet, store);
     }
 
     @Override
