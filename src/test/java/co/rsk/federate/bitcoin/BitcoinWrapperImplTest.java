@@ -76,7 +76,7 @@ class BitcoinWrapperImplTest {
         btcToRskRetiringFedClientFileStorage = btcToRskClientFileStorageFactory.forRetiring();
 
         String btcToRskClientFilePrefix = "BtcToRskClient";
-        Kit kit = new KitForTests(btcContext, directory, btcToRskClientFilePrefix, mock(Wallet.class));
+        Kit kit = new KitStub(btcContext, directory, btcToRskClientFilePrefix, mock(Wallet.class));
         setUpBitcoinWrapper(kit);
     }
 
