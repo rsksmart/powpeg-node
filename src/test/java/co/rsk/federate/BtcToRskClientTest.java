@@ -1827,7 +1827,7 @@ class BtcToRskClientTest {
 
         private Wallet wallet;
         private Set<Transaction> walletTxs;
-        private KitForTests kit;
+        private KitStub kit;
         private BitcoinWrapperImpl bitcoinWrapper;
         private BtcToRskClient activeFedClient;
         private BtcToRskClient retiringFedClient;
@@ -1881,7 +1881,7 @@ class BtcToRskClientTest {
 
         private void setUpKit() throws BlockStoreException {
             String btcToRskClientFilePrefix = "BtcToRskClient";
-            kit = new KitForTests(MAINNET_CONTEXT, directory, btcToRskClientFilePrefix, wallet);
+            kit = new KitStub(MAINNET_CONTEXT, directory, btcToRskClientFilePrefix, wallet);
             kit.setStore(blocks);
         }
 

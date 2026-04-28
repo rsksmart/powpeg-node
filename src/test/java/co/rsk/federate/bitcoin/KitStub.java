@@ -14,11 +14,11 @@ import static org.mockito.Mockito.when;
 
 // Class that allows to override certain methods in Kit class
 // that are inherited from WalletAppKit class and can't be mocked
-public class KitForTests extends Kit {
+public class KitStub extends Kit {
     private final Wallet wallet;
     private BlockStore store;
 
-    public KitForTests(Context btcContext, File directory, String filePrefix, Wallet wallet) {
+    public KitStub(Context btcContext, File directory, String filePrefix, Wallet wallet) {
         super(btcContext, directory, filePrefix);
         this.wallet = wallet;
     }
