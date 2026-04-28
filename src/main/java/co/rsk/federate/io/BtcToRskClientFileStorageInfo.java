@@ -1,23 +1,20 @@
 package co.rsk.federate.io;
 
-import co.rsk.federate.config.PowpegNodeSystemProperties;
-
 import java.io.File;
 
-public class BtcToRskClientFileStorageInfo implements FileStorageInfo {
+public final class BtcToRskClientFileStorageInfo implements FileStorageInfo {
+    private final String directoryPath;
 
-    private String pegDirectoryPath;
+    private final String filePath;
 
-    private String filePath;
-
-    public BtcToRskClientFileStorageInfo(PowpegNodeSystemProperties config) {
-        this.pegDirectoryPath = config.databaseDir() + File.separator + "peg";
-        this.filePath = this.pegDirectoryPath + File.separator + "btcToRskClient2.rlp";
+    public BtcToRskClientFileStorageInfo(DirectoryStorageInfo directoryStorageInfo, String fileCustomizer) {
+        this.directoryPath = directoryStorageInfo.getPath();
+        this.filePath = this.directoryPath + File.separator + "btcToRskClient" + "-" + fileCustomizer + ".rlp";
     }
 
     @Override
-    public String getPegDirectoryPath() {
-        return pegDirectoryPath;
+    public String getDirectoryPath() {
+        return directoryPath;
     }
 
     @Override
