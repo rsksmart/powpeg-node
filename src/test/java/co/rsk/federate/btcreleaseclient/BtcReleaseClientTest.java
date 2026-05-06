@@ -1,5 +1,6 @@
 package co.rsk.federate.btcreleaseclient;
 
+import static co.rsk.federate.EventsTestUtils.*;
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
 import static co.rsk.federate.signing.utils.TestUtils.*;
 import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
@@ -349,12 +350,19 @@ class BtcReleaseClientTest {
         // when recreating already signed pegouts
         // we need to manually add the sigs,
         // since the real signing is done by the bridge
-        
-        private final byte[] bridgeContractAddressSerialized = PrecompiledContracts.BRIDGE_ADDR.getBytes();
-        private final CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
-        private final CallTransaction.Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
-        
+
+        private final byte[] BRIDGE_ADDRESS = PrecompiledContracts.BRIDGE_ADDR.getBytes();
+        private final CallTransaction.Function RELEASE_REQUESTED_EVENT = BridgeEvents.RELEASE_REQUESTED.getEvent();
+        private final byte[] wrongTopic = TestUtils.createHash(456).getBytes();
+
         // feds setup
+        private final ECKey.ECDSASignature ethSig1 = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
+        private final BtcECKey.ECDSASignature btcSig1 = new BtcECKey.ECDSASignature(ethSig1.r, ethSig1.s);
+        private final ECKey.ECDSASignature ethSig2 = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
+        private final BtcECKey.ECDSASignature btcSig2 = new BtcECKey.ECDSASignature(ethSig2.r, ethSig2.s);
+        private final int latestHSMVersion = TestUtils.getLatestHsmVersion().getNumber();
+        private final int keyFileVersion = 1;
+
         private final BtcECKey keyFile1BtcPubKey = getBtcEcKeyFromSeed("keyFile1BtcPubKey");
         private final ECKey keyFile1RskPubKey = ECKey.fromPublicOnly(keyFile1BtcPubKey.getPubKey());
         private final BtcECKey keyFile2BtcPubKey = getBtcEcKeyFromSeed("keyFile2BtcPubKey");
@@ -372,7 +380,7 @@ class BtcReleaseClientTest {
         private final long erpActivationDelay = federationMainnetConstants.getErpFedActivationDelay();
         private final Instant creationTime = Instant.ofEpochSecond(100_000_000L);
         private final long creationBlockNumber = 1L;
-        
+
         private final FederationArgs federationArgs = new FederationArgs(members, creationTime, creationBlockNumber, params);
         private final Federation legacyFederation =
             FederationFactory.buildP2shErpFederation(federationArgs, erpFedKeys, erpActivationDelay);
@@ -380,22 +388,29 @@ class BtcReleaseClientTest {
             FederationFactory.buildP2shP2wshErpFederation(federationArgs, erpFedKeys, erpActivationDelay);
 
         private final Keccak256 unprocessableTestnetPegoutRskTxCreationHash = new Keccak256("86c6739feeb9279d8c7cd85bc6732cb818c3a9d54b55a070adfe1d31ba10f4e5");
-        private final Keccak256 rskTxHash = new Keccak256("0102030405060708090000000000000000000000000000000000000000000000");
-        private final byte[] rskTxHashSerialized = rskTxHash.getBytes();
-        private final byte[] notNullBytes = new byte[]{0x01};
+        private final Keccak256 releaseCreationRskTxHash = new Keccak256("0102030405060708090000000000000000000000000000000000000000000000");
+        private final byte[] releaseCreationRskTxHashBytes = releaseCreationRskTxHash.getBytes();
+
+        private final Keccak256 anotherRskTxHash = createHash(123);
+        private final Transaction anotherRskTx = mock(Transaction.class);
+        private final TransactionReceipt anotherRskTxReceipt = buildTxReceiptForRskTx(anotherRskTxHash);
+
+        private final Coin prevReleaseTxValue = Coin.COIN;
+        private final byte[] releaseRequestedEventData = buildEncodedData(RELEASE_REQUESTED_EVENT, prevReleaseTxValue.getValue());
 
         private BtcTransaction releaseTx;
+        private byte[] releaseBtcTxHashBytes;
         private SortedMap<Keccak256, BtcTransaction> releases;
         private SignerMessageBuilderFactory signerMessageBuilderFactory;
         private ReleaseCreationInformationGetter releaseCreationInformationGetter;
-        private List<LogInfo> logInfoList;
         private List<Transaction> rskTxsList;
 
         @BeforeEach
         void setUp() {
             powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-            logInfoList = new ArrayList<>();
             releases = new TreeMap<>();
+
+            when(anotherRskTx.getHash()).thenReturn(anotherRskTxHash);;
 
             rskTxsList = new ArrayList<>();
             when(bestBlock.getTransactionsList()).thenReturn(rskTxsList);
@@ -409,11 +424,15 @@ class BtcReleaseClientTest {
             powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         }
 
-        private void addReleaseTxFromFedToSet(Federation federation) {
+        private void setUpReleaseTxFromFed(Federation federation) {
+            buildReleaseTx(federation);
+            setUpBlockchainForProcessingRelease(releaseCreationRskTxHash, releaseTx);
+        }
+
+        private void buildReleaseTx(Federation federation) {
             // set up for release tx
             BtcTransaction prevTx = new BtcTransaction(params);
-            Coin prevTxValue = Coin.COIN;
-            prevTx.addOutput(prevTxValue, federation.getAddress());
+            prevTx.addOutput(prevReleaseTxValue, federation.getAddress());
             releaseTx = new BtcTransaction(params);
             releaseTx.addInput(prevTx.getOutput(0));
             addSpendingFederationBaseScript(
@@ -423,49 +442,43 @@ class BtcReleaseClientTest {
                 federation.getFormatVersion()
             );
 
-            setUpBlockchainForProcessingRelease(rskTxHash, releaseTx);
+            releaseBtcTxHashBytes = releaseTx.getHash().getBytes();
         }
 
         private void setUpBlockchainForProcessingRelease(Keccak256 releaseCreationRskTxHash, BtcTransaction releaseTx) {
+            addReleaseTxToSet(releaseCreationRskTxHash, releaseTx);
+
+            TransactionReceipt txReceipt = buildTxReceiptForRskTx(releaseCreationRskTxHash);
+            addReleaseRequestedLogs(txReceipt, releaseCreationRskTxHash, releaseTx);
+            setUpBlockChain(txReceipt, releaseCreationRskTxHash);
+        }
+
+        private void addReleaseTxToSet(Keccak256 releaseCreationRskTxHash, BtcTransaction releaseTx) {
             // put release in set
             releases.put(releaseCreationRskTxHash, releaseTx);
             // add rsk tx to txs list
             Transaction rskTx = mock(Transaction.class);
             when(rskTx.getHash()).thenReturn(releaseCreationRskTxHash);
             rskTxsList.add(rskTx);
+        }
 
+        private void addReleaseRequestedLogs(TransactionReceipt pegoutCreationRskTxReceipt, Keccak256 releaseCreationRskTxHash, BtcTransaction releaseTx) {
             Sha256Hash originalReleaseTxHash = releaseTx.getHash();
             Coin prevTxValue = releaseTx.getInput(0).getValue();
+            LogInfo releaseRequestedLog = createReleaseRequestedLog(releaseCreationRskTxHash, originalReleaseTxHash, prevTxValue);
+            addLogToRskTxReceipt(pegoutCreationRskTxReceipt, releaseRequestedLog);
 
-            // set up release requested event
-            byte[] releaseCreationRskTxHashSerialized = releaseCreationRskTxHash.getBytes();
-            byte[][] releaseRequestedEncodedTopics = releaseRequestedEvent.encodeEventTopics(releaseCreationRskTxHashSerialized, originalReleaseTxHash.getBytes());
-            List<DataWord> releaseRequestedTopics = LogInfo.byteArrayToList(releaseRequestedEncodedTopics);
-            byte[] releaseRequestedEncodedData = releaseRequestedEvent.encodeEventData(prevTxValue.getValue());
-            LogInfo releaseRequestedLogInfo = new LogInfo(bridgeContractAddressSerialized, releaseRequestedTopics, releaseRequestedEncodedData);
-            logInfoList.add(releaseRequestedLogInfo);
-
-            // set up pegout transaction created event
-            byte[][] pegoutTransactionCreatedEncodedTopicsSerialized = pegoutTransactionCreatedEvent.encodeEventTopics(originalReleaseTxHash.getBytes());
-            List<DataWord> pegoutTransactionCreatedEncodedTopics = LogInfo.byteArrayToList(pegoutTransactionCreatedEncodedTopicsSerialized);
             byte[] serializedOutpointValues = UtxoUtils.encodeOutpointValues(List.of(prevTxValue));
-            byte[] pegoutTransactionCreatedEncodedData = pegoutTransactionCreatedEvent.encodeEventData(serializedOutpointValues);
-            LogInfo pegoutTransactionCreatedLogInfo = new LogInfo(bridgeContractAddressSerialized, pegoutTransactionCreatedEncodedTopics, pegoutTransactionCreatedEncodedData);
-            logInfoList.add(pegoutTransactionCreatedLogInfo);
+            LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(originalReleaseTxHash, serializedOutpointValues);
+            addLogToRskTxReceipt(pegoutCreationRskTxReceipt, pegoutTransactionCreatedLog);
+        }
 
-            TransactionReceipt txReceipt = new TransactionReceipt(
-                releaseCreationRskTxHashSerialized,
-                notNullBytes,
-                notNullBytes,
-                mock(Bloom.class),
-                logInfoList,
-                notNullBytes
-            );
-
-            byte[] rskBlockHashSerialized = rskBlockHash.getBytes();
+        private void setUpBlockChain(TransactionReceipt txReceipt, Keccak256 releaseCreationRskTxHash) {
             int txIndex = releases.size(); // to not override txs
-            TransactionInfo txInfo = new TransactionInfo(txReceipt, rskBlockHashSerialized, txIndex);
+            TransactionInfo txInfo = buildTxInfo(txReceipt, rskBlockHash, txIndex);
 
+            byte[] releaseCreationRskTxHashSerialized = releaseCreationRskTxHash.getBytes();
+            byte[] rskBlockHashSerialized = rskBlockHash.getBytes();
             when(receiptStore.getInMainChain(releaseCreationRskTxHashSerialized, blockStore)).thenReturn(Optional.of(txInfo));
             when(receiptStore.get(releaseCreationRskTxHashSerialized, rskBlockHashSerialized)).thenReturn(Optional.of(txInfo));
             when(blockStore.getBlockByHash(rskBlockHashSerialized)).thenReturn(bestBlock);
@@ -475,12 +488,9 @@ class BtcReleaseClientTest {
         void processReleases_signWithKeyFile_legacyFed_whenSetHasUnprocessablePegout_testnet_shouldSkipJustIt() throws Exception {
             // Arrange
             testnetPowpegNodeSetUp();
-            addReleaseTxFromFedToSet(legacyFederation);
+            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(legacyFederation);
             addUnprocessableReleaseTxToSet(legacyFederation);
-
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(legacyFederation, keyFile1Member, signerVersion, ethSig);
 
             // act
             for (int i = 0; i < releases.size(); i++) {
@@ -488,29 +498,16 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            // assert signable release was signed
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
-
-            // assert unprocessable release was not signed
-            verify(federatorSupport, never()).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(unprocessableTestnetPegoutRskTxCreationHash.getBytes(), rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithKeyFile_legacyFed_whenSetHasUnprocessablePegout_mainnet_shouldSign() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(legacyFederation);
+            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(legacyFederation);
             addUnprocessableReleaseTxToSet(legacyFederation);
-
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(legacyFederation, keyFile1Member, signerVersion, ethSig);
 
             // act
             for (int i = 0; i < releases.size(); i++) {
@@ -518,27 +515,17 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(unprocessableTestnetPegoutRskTxCreationHash.getBytes(), rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithHSM_legacyFed_whenSetHasUnprocessablePegout_testnet_shouldSkipJustIt() throws Exception {
             // Arrange
             testnetPowpegNodeSetUp();
-            addReleaseTxFromFedToSet(legacyFederation);
+            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(legacyFederation);
             addUnprocessableReleaseTxToSet(legacyFederation);
-
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(legacyFederation, hsm1Member, signerVersion, ethSig);
 
             // act
             for (int i = 0; i < releases.size(); i++) {
@@ -546,29 +533,16 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            // assert signable release was signed
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
-
-            // assert unprocessable release was not signed
-            verify(federatorSupport, never()).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(unprocessableTestnetPegoutRskTxCreationHash.getBytes(), rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig1);
         }
 
         @Test
         void processReleases_signWithHSM_legacyFed_whenSetHasUnprocessablePegout_mainnet_shouldSign() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(legacyFederation);
+            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(legacyFederation);
             addUnprocessableReleaseTxToSet(legacyFederation);
-
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(legacyFederation, hsm1Member, signerVersion, ethSig);
 
             // act
             for (int i = 0; i < releases.size(); i++) {
@@ -576,153 +550,99 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(unprocessableTestnetPegoutRskTxCreationHash.getBytes(), rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig1);
         }
 
         @Test
         void processReleases_signWithKeyFile_legacyFed_ok() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(legacyFederation);
-
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(legacyFederation, keyFile1Member, signerVersion, ethSig);
+            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(legacyFederation);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithHSM_legacyFed_ok() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(legacyFederation);
-
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(legacyFederation, hsm1Member, signerVersion, ethSig);
+            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(legacyFederation);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
         }
 
         @Test
         void processReleases_signWithKeyFile_legacyFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(legacyFederation);
-            
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(legacyFederation, keyFile1Member, signerVersion, ethSig);
+            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(legacyFederation);
             TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport, times(0)).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasNotSigned(releaseCreationRskTxHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithHSM_legacyFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(legacyFederation);
-            
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(legacyFederation, hsm1Member, signerVersion, ethSig);
+            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(legacyFederation);
             TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport, times(0)).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasNotSigned(releaseCreationRskTxHash, btcSig1);
         }
 
         @Test
         void processReleases_signWithKeyFile_whenOtherFedAlreadySigned_legacyFed_ok() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(legacyFederation);
-            
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(legacyFederation, keyFile1Member, signerVersion, ethSig);
-
+            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(legacyFederation);
             TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
 
             // act
             client.processReleases(releases.entrySet());
-            
+
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithHSM_whenOtherFedAlreadySigned_legacyFed_ok() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(legacyFederation);
-
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(legacyFederation, hsm1Member, signerVersion, ethSig);
-
+            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(legacyFederation);
             TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
         }
 
         @Test
         void processReleases_signWithKeyFile_segwitFed_whenSetHasUnprocessablePegout_testnet_shouldSkipJustIt() throws Exception {
             // Arrange
             testnetPowpegNodeSetUp();
-            addReleaseTxFromFedToSet(segwitFederation);
+            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(segwitFederation);
             addUnprocessableReleaseTxToSet(segwitFederation);
-
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(segwitFederation, keyFile1Member, signerVersion, ethSig);
 
             // act
             for (int i = 0; i < releases.size(); i++) {
@@ -730,29 +650,16 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            // assert signable release was signed
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
-
-            // assert unprocessable release was not signed
-            verify(federatorSupport, never()).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(unprocessableTestnetPegoutRskTxCreationHash.getBytes(), rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithKeyFile_segwitFed_whenSetHasUnprocessablePegout_mainnet_shouldSign() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(segwitFederation);
+            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(segwitFederation);
             addUnprocessableReleaseTxToSet(segwitFederation);
-
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(segwitFederation, keyFile1Member, signerVersion, ethSig);
 
             // act
             for (int i = 0; i < releases.size(); i++) {
@@ -760,27 +667,17 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(unprocessableTestnetPegoutRskTxCreationHash.getBytes(), rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithHSM_segwitFed_whenSetHasUnprocessablePegout_testnet_shouldSkipJustIt() throws Exception {
             // Arrange
             testnetPowpegNodeSetUp();
-            addReleaseTxFromFedToSet(segwitFederation);
+            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(segwitFederation);
             addUnprocessableReleaseTxToSet(segwitFederation);
-
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(segwitFederation, hsm1Member, signerVersion, ethSig);
 
             // act
             for (int i = 0; i < releases.size(); i++) {
@@ -788,29 +685,16 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            // assert signable release was signed
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
-
-            // assert unprocessable release was not signed
-            verify(federatorSupport, never()).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(unprocessableTestnetPegoutRskTxCreationHash.getBytes(), rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig1);
         }
 
         @Test
         void processReleases_signWithHSM_segwitFed_whenSetHasUnprocessablePegout_mainnet_shouldSign() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(segwitFederation);
+            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(segwitFederation);
             addUnprocessableReleaseTxToSet(segwitFederation);
-
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(segwitFederation, hsm1Member, signerVersion, ethSig);
 
             // act
             for (int i = 0; i < releases.size(); i++) {
@@ -818,142 +702,90 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(unprocessableTestnetPegoutRskTxCreationHash.getBytes(), rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig1);
         }
 
         @Test
         void processReleases_signWithKeyFile_segwitFed_ok() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(segwitFederation);
-
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(segwitFederation, keyFile1Member, signerVersion, ethSig);
+            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(segwitFederation);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithHSM_segwitFed_ok() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(segwitFederation);
-            
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(segwitFederation, hsm1Member, signerVersion, ethSig);
+            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(segwitFederation);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
         }
 
         @Test
         void processReleases_signWithKeyFile_segwitFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(segwitFederation);
-            
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(segwitFederation, keyFile1Member, signerVersion, ethSig);
-
+            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(segwitFederation);
             TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport, times(0)).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasNotSigned(releaseCreationRskTxHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithHSM_segwitFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(segwitFederation);
-
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(segwitFederation, hsm1Member, signerVersion, ethSig);
+            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(segwitFederation);
             TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport, times(0)).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasNotSigned(releaseCreationRskTxHash, btcSig1);
         }
 
         @Test
         void processReleases_signWithKeyFile_whenOtherFedAlreadySigned_segwitFed_ok() throws Exception {
             // arrange
-            addReleaseTxFromFedToSet(segwitFederation);
-            
-            int signerVersion = 1;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-            setUpFederator(segwitFederation, keyFile1Member, signerVersion, ethSig);
-
+            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpReleaseTxFromFed(segwitFederation);
             TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
         }
 
         @Test
         void processReleases_signWithHSM_whenOtherFedAlreadySigned_segwitFed_ok() throws Exception {
             // Arrange
-            addReleaseTxFromFedToSet(segwitFederation);
-
-            int signerVersion = 5;
-            ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-            setUpFederator(segwitFederation, hsm1Member, signerVersion, ethSig);
-
+            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpReleaseTxFromFed(segwitFederation);
             TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            BtcECKey.ECDSASignature btcSig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
-            verify(federatorSupport).addSignature(
-                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
-                argThat(rskHash -> Arrays.equals(rskTxHashSerialized, rskHash))
-            );
+            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
         }
 
         private void addUnprocessableReleaseTxToSet(Federation federation) {
@@ -972,7 +804,7 @@ class BtcReleaseClientTest {
 
             setUpBlockchainForProcessingRelease(unprocessableTestnetPegoutRskTxCreationHash, unprocessableReleaseTx);
         }
-        
+
         private void setUpFederator(
             Federation federation,
             FederationMember member,
@@ -1007,6 +839,20 @@ class BtcReleaseClientTest {
             );
 
             client.start(federation);
+        }
+
+        private void assertTxWasSigned(Keccak256 rskTxHash, BtcECKey.ECDSASignature btcSig) {
+            verify(federatorSupport).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHash.getBytes(), rskHash))
+            );
+        }
+
+        private void assertTxWasNotSigned(Keccak256 rskTxHash, BtcECKey.ECDSASignature btcSig) {
+            verify(federatorSupport, never()).addSignature(
+                argThat(signatures -> Arrays.equals(btcSig.encodeToDER(), signatures.get(0))),
+                argThat(rskHash -> Arrays.equals(rskTxHash.getBytes(), rskHash))
+            );
         }
     }
 
@@ -1270,7 +1116,7 @@ class BtcReleaseClientTest {
         field = pegoutSignedCache.getClass().getDeclaredField("clock");
         field.setAccessible(true);
         field.set(pegoutSignedCache, Clock.offset(baseClock, Duration.ofHours(1)));
-    
+
         // At this point the pegout tx is invalid in the pegouts signed cache,
         // so it should not throw an exception
         assertDoesNotThrow(
@@ -1397,7 +1243,7 @@ class BtcReleaseClientTest {
                 List.of(federationKeys.get(0))
             );
         }
-      
+
         Keccak256 svpSpendCreationRskTxHash = createHash(0);
         Map.Entry<Keccak256, BtcTransaction> svpSpendTxWFS = new AbstractMap.SimpleEntry<>(svpSpendCreationRskTxHash, svpSpendTx);
         StateForProposedFederator stateForProposedFederator = new StateForProposedFederator(svpSpendTxWFS);
@@ -1464,7 +1310,7 @@ class BtcReleaseClientTest {
         ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
 
         // Assert
-        
+
         // We should have searched by the expected svp spend tx hash
         BitcoinUtils.removeSignaturesFromMultiSigTransaction(svpSpendTx);
         assertEquals(svpSpendTxHashBeforeSigning, svpSpendTx.getHash());
@@ -1765,7 +1611,7 @@ class BtcReleaseClientTest {
         );
 
         btcReleaseClient.start(proposedFederation);
-      
+
         // Act
         ethereumListener.get().onBestBlock(bestBlock, Collections.emptyList());
 
@@ -2012,7 +1858,7 @@ class BtcReleaseClientTest {
 
         ECPublicKey signerPublicKey = new ECPublicKey(federator1PrivKey.getPubKey());
         Mockito.doReturn(signerPublicKey).when(signer).getPublicKey(ArgumentMatchers.any(KeyId.class));
-      
+
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
         client = new BtcReleaseClient(
