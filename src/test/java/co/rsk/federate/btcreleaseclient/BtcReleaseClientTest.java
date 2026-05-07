@@ -351,17 +351,29 @@ class BtcReleaseClientTest {
         // we need to manually add the sigs,
         // since the real signing is done by the bridge
 
-        private final byte[] BRIDGE_ADDRESS = PrecompiledContracts.BRIDGE_ADDR.getBytes();
-        private final CallTransaction.Function RELEASE_REQUESTED_EVENT = BridgeEvents.RELEASE_REQUESTED.getEvent();
-        private final byte[] wrongTopic = TestUtils.createHash(456).getBytes();
+        private static final byte[] BRIDGE_ADDRESS = PrecompiledContracts.BRIDGE_ADDR.getBytes();
+        private static final CallTransaction.Function RELEASE_REQUESTED_EVENT = BridgeEvents.RELEASE_REQUESTED.getEvent();
+        private static final byte[] WRONG_TOPIC = TestUtils.createHash(456).getBytes();
 
         // feds setup
-        private final ECKey.ECDSASignature ethSig1 = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-        private final BtcECKey.ECDSASignature btcSig1 = new BtcECKey.ECDSASignature(ethSig1.r, ethSig1.s);
-        private final ECKey.ECDSASignature ethSig2 = new ECKey.ECDSASignature(BigInteger.TWO, BigInteger.TEN);
-        private final BtcECKey.ECDSASignature btcSig2 = new BtcECKey.ECDSASignature(ethSig2.r, ethSig2.s);
-        private final int latestHSMVersion = TestUtils.getLatestHsmVersion().getNumber();
-        private final int keyFileVersion = 1;
+        private static final ECKey.ECDSASignature ETH_SIG_1 = new ECKey.ECDSASignature(
+            BigInteger.ONE,
+            BigInteger.TEN
+        );
+        private static final BtcECKey.ECDSASignature BTC_SIG_1 = new BtcECKey.ECDSASignature(
+            ETH_SIG_1.r,
+            ETH_SIG_1.s
+        );
+        private static final ECKey.ECDSASignature ETH_SIG_2 = new ECKey.ECDSASignature(
+            BigInteger.TWO,
+            BigInteger.TEN
+        );
+        private static final BtcECKey.ECDSASignature BTC_SIG_2 = new BtcECKey.ECDSASignature(
+            ETH_SIG_2.r,
+            ETH_SIG_2.s
+        );
+        private static final int LATEST_HSM_VERSION = TestUtils.getLatestHsmVersion().getNumber();
+        private static final int KEY_FILE_VERSION = 1;
 
         private final BtcECKey keyFile1BtcPubKey = getBtcEcKeyFromSeed("keyFile1BtcPubKey");
         private final ECKey keyFile1RskPubKey = ECKey.fromPublicOnly(keyFile1BtcPubKey.getPubKey());
@@ -488,7 +500,7 @@ class BtcReleaseClientTest {
         void processReleases_signWithKeyFile_legacyFed_whenSetHasUnprocessablePegout_testnet_shouldSkipJustIt() throws Exception {
             // Arrange
             testnetPowpegNodeSetUp();
-            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(legacyFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(legacyFederation);
             addUnprocessableReleaseTxToSet(legacyFederation);
 
@@ -498,14 +510,14 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
-            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig2);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_2);
+            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithKeyFile_legacyFed_whenSetHasUnprocessablePegout_mainnet_shouldSign() throws Exception {
             // Arrange
-            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(legacyFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(legacyFederation);
             addUnprocessableReleaseTxToSet(legacyFederation);
 
@@ -515,15 +527,15 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
-            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig2);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_2);
+            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithHSM_legacyFed_whenSetHasUnprocessablePegout_testnet_shouldSkipJustIt() throws Exception {
             // Arrange
             testnetPowpegNodeSetUp();
-            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(legacyFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(legacyFederation);
             addUnprocessableReleaseTxToSet(legacyFederation);
 
@@ -533,14 +545,14 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_signWithHSM_legacyFed_whenSetHasUnprocessablePegout_mainnet_shouldSign() throws Exception {
             // Arrange
-            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(legacyFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(legacyFederation);
             addUnprocessableReleaseTxToSet(legacyFederation);
 
@@ -550,40 +562,40 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_signWithKeyFile_legacyFed_ok() throws Exception {
             // Arrange
-            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(legacyFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(legacyFederation);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithHSM_legacyFed_ok() throws Exception {
             // Arrange
-            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(legacyFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(legacyFederation);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_signWithKeyFile_legacyFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
             // Arrange
-            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(legacyFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(legacyFederation);
             TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
 
@@ -591,13 +603,13 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasNotSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithHSM_legacyFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
             // Arrange
-            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(legacyFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(legacyFederation);
             TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
 
@@ -605,13 +617,13 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasNotSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_signWithKeyFile_whenOtherFedAlreadySigned_legacyFed_ok() throws Exception {
             // Arrange
-            setUpFederator(legacyFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(legacyFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(legacyFederation);
             TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
 
@@ -619,13 +631,13 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithHSM_whenOtherFedAlreadySigned_legacyFed_ok() throws Exception {
             // Arrange
-            setUpFederator(legacyFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(legacyFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(legacyFederation);
             TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
 
@@ -633,14 +645,14 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_signWithKeyFile_segwitFed_whenSetHasUnprocessablePegout_testnet_shouldSkipJustIt() throws Exception {
             // Arrange
             testnetPowpegNodeSetUp();
-            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(segwitFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(segwitFederation);
             addUnprocessableReleaseTxToSet(segwitFederation);
 
@@ -650,14 +662,14 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
-            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig2);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_2);
+            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithKeyFile_segwitFed_whenSetHasUnprocessablePegout_mainnet_shouldSign() throws Exception {
             // Arrange
-            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(segwitFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(segwitFederation);
             addUnprocessableReleaseTxToSet(segwitFederation);
 
@@ -667,15 +679,15 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
-            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig2);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_2);
+            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithHSM_segwitFed_whenSetHasUnprocessablePegout_testnet_shouldSkipJustIt() throws Exception {
             // Arrange
             testnetPowpegNodeSetUp();
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
             addUnprocessableReleaseTxToSet(segwitFederation);
 
@@ -685,14 +697,14 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(unprocessableTestnetPegoutRskTxCreationHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_signWithHSM_segwitFed_whenSetHasUnprocessablePegout_mainnet_shouldSign() throws Exception {
             // Arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
             addUnprocessableReleaseTxToSet(segwitFederation);
 
@@ -702,40 +714,40 @@ class BtcReleaseClientTest {
             }
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasSigned(unprocessableTestnetPegoutRskTxCreationHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_signWithKeyFile_segwitFed_ok() throws Exception {
             // Arrange
-            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(segwitFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(segwitFederation);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithHSM_segwitFed_ok() throws Exception {
             // Arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_signWithKeyFile_segwitFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
             // Arrange
-            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(segwitFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(segwitFederation);
             TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
 
@@ -743,13 +755,13 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasNotSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithHSM_segwitFed_whenSameFederatorAlreadySigned_shouldNotSignAgain() throws Exception {
             // Arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
             TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
 
@@ -757,13 +769,13 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasNotSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_signWithKeyFile_whenOtherFedAlreadySigned_segwitFed_ok() throws Exception {
             // arrange
-            setUpFederator(segwitFederation, keyFile1Member, keyFileVersion, ethSig2);
+            setUpFederator(segwitFederation, keyFile1Member, KEY_FILE_VERSION, ETH_SIG_2);
             setUpReleaseTxFromFed(segwitFederation);
             TestUtils.addSignatures(releaseTx, hsm1BtcPubKey);
 
@@ -771,13 +783,13 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig2);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_2);
         }
 
         @Test
         void processReleases_signWithHSM_whenOtherFedAlreadySigned_segwitFed_ok() throws Exception {
             // Arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
             TestUtils.addSignatures(releaseTx, keyFile1BtcPubKey);
 
@@ -785,13 +797,13 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_whenTxHasEmptyReceipt_shouldNotSign() throws Exception {
             // arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
 
             buildReleaseTx(segwitFederation);
             addReleaseTxToSet(releaseCreationRskTxHash, releaseTx);
@@ -810,7 +822,7 @@ class BtcReleaseClientTest {
         @Test
         void processReleases_whenBlockDoesNotContainPegoutCreationRskTx_shouldNotSign() throws Exception {
             // arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
 
             // put release in set
             buildReleaseTx(segwitFederation);
@@ -834,7 +846,7 @@ class BtcReleaseClientTest {
         @Test
         void processReleases_whenFirstMatchIsFromWrongSender_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
             // arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
 
             // build tx with wrong log - correct topics but from another sender (not the bridge)
@@ -850,14 +862,14 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasNotSigned(anotherRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_whenFirstMatchHasWrongReleaseRequestedTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
             // arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
 
             // build tx with wrong log - wrong event topic
@@ -876,20 +888,20 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasNotSigned(anotherRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_whenFirstMatchHasWrongPegoutCreationRskTxHashTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
             // arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
 
             // build tx with wrong log - wrong pegoutCreationRskTxHash topic
             List<DataWord> topics = buildCustomTopics(
                 RELEASE_REQUESTED_EVENT,
-                List.of(wrongTopic, releaseBtcTxHashBytes)
+                List.of(WRONG_TOPIC, releaseBtcTxHashBytes)
             );
             LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
             addLogToRskTxReceipt(anotherRskTxReceipt, log);
@@ -902,20 +914,20 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasNotSigned(anotherRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_whenFirstMatchHasWrongPegoutBtcTxHashTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
             // arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
 
             // build tx with wrong log - wrong pegoutBtcTxHash topic
             List<DataWord> topics = buildCustomTopics(
                 RELEASE_REQUESTED_EVENT,
-                List.of(releaseCreationRskTxHashBytes, wrongTopic)
+                List.of(releaseCreationRskTxHashBytes, WRONG_TOPIC)
             );
             LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
             addLogToRskTxReceipt(anotherRskTxReceipt, log);
@@ -927,14 +939,14 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasNotSigned(anotherRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_whenFirstMatchMissesPegoutCreationRskTxHashTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
             // arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
 
             // build tx with wrong log - missing pegoutCreationRskTxHash topic
@@ -949,14 +961,14 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasNotSigned(anotherRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_whenFirstMatchMissesPegoutBtcTxHashTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
             // arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
 
             // build tx with wrong log - missing pegoutBtcTxHash topic
@@ -971,20 +983,20 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasNotSigned(anotherRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
         }
 
         @Test
         void processReleases_whenFirstMatchHasExtraTopics_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
             // arrange
-            setUpFederator(segwitFederation, hsm1Member, latestHSMVersion, ethSig1);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
             setUpReleaseTxFromFed(segwitFederation);
 
             // build tx with wrong log - one extra topic
             List<DataWord> topics = buildCustomTopics(
                 RELEASE_REQUESTED_EVENT,
-                List.of(releaseCreationRskTxHashBytes, releaseBtcTxHashBytes, wrongTopic)
+                List.of(releaseCreationRskTxHashBytes, releaseBtcTxHashBytes, WRONG_TOPIC)
             );
             LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
             addLogToRskTxReceipt(anotherRskTxReceipt, log);
@@ -996,8 +1008,8 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, btcSig1);
-            assertTxWasNotSigned(anotherRskTxHash, btcSig1);
+            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
         }
 
         private void addUnprocessableReleaseTxToSet(Federation federation) {

@@ -33,9 +33,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 class ReleaseCreationInformationGetterTest {
-    private final CallTransaction.Function RELEASE_REQUESTED_EVENT = BridgeEvents.RELEASE_REQUESTED.getEvent();
-    private final byte[] BRIDGE_ADDRESS = PrecompiledContracts.BRIDGE_ADDR.getBytes();
-    private final HSMVersion latestHSMVersion = TestUtils.getLatestHsmVersion();
+    private static final CallTransaction.Function RELEASE_REQUESTED_EVENT = BridgeEvents.RELEASE_REQUESTED.getEvent();
+    private static final byte[] BRIDGE_ADDRESS = PrecompiledContracts.BRIDGE_ADDR.getBytes();
+    private static final HSMVersion LATEST_HSM_VERSION = TestUtils.getLatestHsmVersion();
 
     private final Sha256Hash releaseBtcTxHash = BitcoinTestUtils.createHash(1);
     private final byte[] releaseBtcTxHashBytes = releaseBtcTxHash.getBytes();
@@ -153,7 +153,7 @@ class ReleaseCreationInformationGetterTest {
         );
 
         // assert
-        assertTxInfoToSign(releaseCreationInformationGetter, latestHSMVersion.getNumber());
+        assertTxInfoToSign(releaseCreationInformationGetter, LATEST_HSM_VERSION.getNumber());
     }
 
     @Test
@@ -169,7 +169,7 @@ class ReleaseCreationInformationGetterTest {
         );
 
         // assert
-        assertTxInfoToSign(releaseCreationInformationGetter, latestHSMVersion.getNumber());
+        assertTxInfoToSign(releaseCreationInformationGetter, LATEST_HSM_VERSION.getNumber());
     }
 
     @Test
@@ -236,7 +236,7 @@ class ReleaseCreationInformationGetterTest {
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(releaseCreationInformationGetter, latestHSMVersion.getNumber());
+        assertTxInfoToSign(releaseCreationInformationGetter, LATEST_HSM_VERSION.getNumber());
     }
 
     @Test
@@ -257,7 +257,7 @@ class ReleaseCreationInformationGetterTest {
         ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, latestHSMVersion.getNumber());
+        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
     }
 
     @Test
@@ -276,7 +276,7 @@ class ReleaseCreationInformationGetterTest {
         ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, latestHSMVersion.getNumber());
+        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
     }
 
     @Test
@@ -295,7 +295,7 @@ class ReleaseCreationInformationGetterTest {
         ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, latestHSMVersion.getNumber());
+        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
     }
 
     @Test
@@ -311,7 +311,7 @@ class ReleaseCreationInformationGetterTest {
         ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, latestHSMVersion.getNumber());
+        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
     }
 
     @Test
@@ -327,7 +327,7 @@ class ReleaseCreationInformationGetterTest {
         ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, latestHSMVersion.getNumber());
+        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
     }
 
     @Test
@@ -346,7 +346,7 @@ class ReleaseCreationInformationGetterTest {
         ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, latestHSMVersion.getNumber());
+        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
     }
 
     private void assertTxInfoToSign(
@@ -368,7 +368,7 @@ class ReleaseCreationInformationGetterTest {
     private void assertThrowsHSMReleaseCreationInformationException(ReleaseCreationInformationGetter releaseCreationInformationGetter) {
         assertThrows(HSMReleaseCreationInformationException.class,
             () -> releaseCreationInformationGetter.getTxInfoToSign(
-                latestHSMVersion.getNumber(),
+                LATEST_HSM_VERSION.getNumber(),
                 pegoutCreationRskTx.getHash(),
                 pegoutBtcTx
             ));
