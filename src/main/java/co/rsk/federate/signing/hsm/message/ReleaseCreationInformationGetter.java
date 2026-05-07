@@ -63,7 +63,7 @@ public class ReleaseCreationInformationGetter {
                 "Rsk transaction %s where the pegout was created could not be found in best chain",
                 pegoutCreationRskTxHash
             );
-            logger.error("[getTxInfoToSign] {}", message);
+            logger.error("[getBaseReleaseCreationInformation] {}", message);
             throw new HSMReleaseCreationInformationException(message);
         }
         TransactionReceipt transactionReceipt = transactionInfo.getReceipt();
@@ -88,11 +88,11 @@ public class ReleaseCreationInformationGetter {
             TransactionReceipt transactionReceipt = baseReleaseCreationInformation.getTransactionReceipt();
 
             // Get transaction from the block, searching by tx hash, and set it in the tx receipt
-            logger.trace("[getTxInfoToSign] Searching for rsk transaction {} in block {} ({})", pegoutCreationRskTxHash, block.getHash(), block.getNumber());
+            logger.trace("[getTxInfoToSignPowHsm] Searching for rsk transaction {} in block {} ({})", pegoutCreationRskTxHash, block.getHash(), block.getNumber());
             List<Transaction> transactions = block.getTransactionsList().stream()
                 .filter(t -> t.getHash().equals(pegoutCreationRskTxHash))
                 .toList();
-            logger.trace("[getTxInfoToSign] Transactions found {}", transactions.size());
+            logger.trace("[getTxInfoToSignPowHsm] Transactions found {}", transactions.size());
 
             if (transactions.size() != 1) {
                 String message = String.format(
@@ -101,7 +101,7 @@ public class ReleaseCreationInformationGetter {
                     block.getHash().toHexString(),
                     transactions.size()
                 );
-                logger.error("[getTxInfoToSign] {}", message);
+                logger.error("[getTxInfoToSignPowHsm] {}", message);
                 throw new HSMReleaseCreationInformationException(message);
             }
             Transaction transaction = transactions.get(0);
