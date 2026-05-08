@@ -21,8 +21,6 @@ import java.util.Optional;
 public class ReleaseCreationInformationGetter {
     private static final Logger logger = LoggerFactory.getLogger(ReleaseCreationInformationGetter.class);
 
-    private final CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
-
     private final BlockStore blockStore;
     private final ReceiptStore receiptStore;
 
@@ -35,15 +33,15 @@ public class ReleaseCreationInformationGetter {
     }
 
     public ReleaseCreationInformation getTxInfoToSign(
-        int version,
+        int signerVersion,
         Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx
     ) throws HSMReleaseCreationInformationException {
         HSMVersion hsmVersion;
         try {
-            hsmVersion = HSMVersion.fromNumber(version);
+            hsmVersion = HSMVersion.fromNumber(signerVersion);
         } catch (HSMUnsupportedVersionException e) {
-            throw new HSMReleaseCreationInformationException(String.format("Unsupported version %d", version), e);
+            throw new HSMReleaseCreationInformationException(String.format("Unsupported version %d", signerVersion), e);
         }
 
         ReleaseCreationInformation baseReleaseCreationInformation = getBaseReleaseCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx);
@@ -135,7 +133,7 @@ public class ReleaseCreationInformationGetter {
 
         if (transactions.size() != 1) {
             String message = String.format(
-                "Rsk transaction %s could not be found in block %s or more than 1 result obtained. Filter size: %d",
+                "Rsk transaction %s could not be found in block %s or more than 1 result obtained. Txs found: %d",
                 pegoutCreationRskTxHash,
                 pegoutCreationBlock.getHash().toHexString(),
                 transactions.size()
@@ -151,25 +149,37 @@ public class ReleaseCreationInformationGetter {
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutCreationRskTxHash
     ) throws HSMReleaseCreationInformationException {
+        boolean hasReleaseRequestedLogs = false;
+        boolean hasPegoutTransactionCreatedLogs = false;
 
         for (LogInfo logInfo : logs) {
-            if (isLogValid(logInfo, pegoutBtcTx, pegoutCreationRskTxHash)) {
+            if (isReleaseRequestedLog(logInfo, pegoutBtcTx, pegoutCreationRskTxHash)) {
                 logger.debug(
-                    "[validateReleaseRequestedLogsAreFound] Expected log for pegout creation rsk tx {} was found",
+                    "[validateReleaseRequestedLogsAreFound] Expected release requested log for pegout creation rsk tx {} was found",
                     pegoutCreationRskTxHash
                 );
-                return;
+                hasReleaseRequestedLogs = true;
+            }
+
+            if (isPegoutTransactionCreatedLog(logInfo, pegoutBtcTx)) {
+                logger.debug(
+                    "[validateReleaseRequestedLogsAreFound] Expected pegout transaction created log for pegout creation rsk tx {} was found",
+                    pegoutCreationRskTxHash
+                );
+                hasPegoutTransactionCreatedLogs = true;
             }
         }
 
-        // Since RSKIP375, release_requested and pegout_transaction_created events
-        // are always emitted in the same block where the pegout was created.
-        throw new HSMReleaseCreationInformationException(
-            String.format("Expected logs not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
-        );
+        if (!hasReleaseRequestedLogs || !hasPegoutTransactionCreatedLogs) {
+            // Since RSKIP375, release_requested and pegout_transaction_created events
+            // are always emitted in the same block where the pegout was created.
+            throw new HSMReleaseCreationInformationException(
+                String.format("Expected logs not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
+            );
+        }
     }
 
-    private boolean isLogValid(
+    private boolean isReleaseRequestedLog(
         LogInfo logInfo,
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutCreationRskTxHash
@@ -177,7 +187,17 @@ public class ReleaseCreationInformationGetter {
         List<DataWord> topics = logInfo.getTopics();
 
         return isLogFromBridge(logInfo) &&
-            hasExpectedTopics(topics, pegoutBtcTx, pegoutCreationRskTxHash);
+            hasReleaseRequestedExpectedTopics(topics, pegoutBtcTx, pegoutCreationRskTxHash);
+    }
+
+    private boolean isPegoutTransactionCreatedLog(
+        LogInfo logInfo,
+        BtcTransaction pegoutBtcTx
+    ) {
+        List<DataWord> topics = logInfo.getTopics();
+
+        return isLogFromBridge(logInfo) &&
+            hasPegoutTransactionCreatedExpectedTopics(topics, pegoutBtcTx);
     }
 
     private boolean isLogFromBridge(LogInfo logInfo) {
@@ -185,22 +205,21 @@ public class ReleaseCreationInformationGetter {
         return logsEmittedFrom.equals(PrecompiledContracts.BRIDGE_ADDR);
     }
 
-    private boolean hasExpectedTopics(
+    private boolean hasReleaseRequestedExpectedTopics(
         List<DataWord> topics,
         BtcTransaction pegoutBtcTx,
         Keccak256 pegoutCreationRskTxHash
     ) {
         // three topics expected (in order):
-        // release requested signature, pegout creation rsk tx hash, and pegout btc tx hash
+        // release requested event signature, pegout creation rsk tx hash, and pegout btc tx hash
 
         int expectedTopicsSize = 3;
-        boolean hasExpectedTopicsSize = topics.size() == expectedTopicsSize;
-        if (!hasExpectedTopicsSize) {
+        if (topics.size() != expectedTopicsSize) {
             return false;
         }
 
         byte[] releaseRequestedSignatureTopic = topics.get(0).getData();
-        boolean hasReleaseRequestedTopic = Arrays.equals(releaseRequestedSignatureTopic, releaseRequestedEvent.encodeSignatureLong());
+        boolean hasReleaseRequestedTopic = Arrays.equals(releaseRequestedSignatureTopic, BridgeEvents.RELEASE_REQUESTED.getEvent().encodeSignatureLong());
 
         byte[] pegoutCreationRskTxHashTopic = topics.get(1).getData();
         boolean hasPegoutCreationRskTxHashTopic = Arrays.equals(pegoutCreationRskTxHashTopic, pegoutCreationRskTxHash.getBytes());
@@ -211,5 +230,26 @@ public class ReleaseCreationInformationGetter {
         return hasReleaseRequestedTopic &&
             hasPegoutCreationRskTxHashTopic &&
             hasPegoutBtcTxHashTopic;
+    }
+
+    private boolean hasPegoutTransactionCreatedExpectedTopics(
+        List<DataWord> topics,
+        BtcTransaction pegoutBtcTx
+    ) {
+        // two topics expected (in order):
+        // pegout transaction created event signature and pegout btc tx hash
+
+        int expectedTopicsSize = 2;
+        if (topics.size() != expectedTopicsSize) {
+            return false;
+        }
+
+        byte[] pegoutTransactionCreatedSignatureTopic = topics.get(0).getData();
+        boolean hasPegoutTransactionCreatedTopic = Arrays.equals(pegoutTransactionCreatedSignatureTopic, BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent().encodeSignatureLong());
+
+        byte[] pegoutBtcTxHashTopic = topics.get(1).getData();
+        boolean hasPegoutBtcTxHashTopic = Arrays.equals(pegoutBtcTxHashTopic, pegoutBtcTx.getHash().getBytes());
+
+        return hasPegoutTransactionCreatedTopic && hasPegoutBtcTxHashTopic;
     }
 }
