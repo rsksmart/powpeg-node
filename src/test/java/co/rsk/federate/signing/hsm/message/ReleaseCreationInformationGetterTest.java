@@ -37,23 +37,20 @@ class ReleaseCreationInformationGetterTest {
     private static final byte[] BRIDGE_ADDRESS = PrecompiledContracts.BRIDGE_ADDR.getBytes();
     private static final HSMVersion LATEST_HSM_VERSION = TestUtils.getLatestHsmVersion();
 
-    private final Sha256Hash releaseBtcTxHash = BitcoinTestUtils.createHash(1);
-    private final byte[] releaseBtcTxHashBytes = releaseBtcTxHash.getBytes();
+    private final Sha256Hash pegoutBtcTxHash = BitcoinTestUtils.createHash(1);
+    private final byte[] pegoutBtcTxHashBytes = pegoutBtcTxHash.getBytes();
     private final byte[] serializedOutpointsValues = Hex.decode("FE80F0FA02FEC0687804FE00E1F505"); // 50_000_000 = FE80F0FA02, 75_000_000 = FEC0687804, 100_000_000 = FE00E1F505
-    private final LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(releaseBtcTxHash, serializedOutpointsValues);
+    private final LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(pegoutBtcTxHash, serializedOutpointsValues);
 
-    private final Keccak256 pegoutCreationRskTxHash = TestUtils.createHash(2);
-    private final byte[] releaseCreationRskTxHashBytes = pegoutCreationRskTxHash.getBytes();
+    private final Keccak256 pegoutCreationRskTxHash = TestUtils.createHash(123);
+    private final byte[] pegoutCreationRskTxHashBytes = pegoutCreationRskTxHash.getBytes();
+
     private final Coin pegoutAmount = Coin.COIN;
-
-    private final LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTxHash, releaseBtcTxHash, pegoutAmount);
+    private final LogInfo releaseRequestedLog = createReleaseRequestedLog(pegoutCreationRskTxHash, pegoutBtcTxHash, pegoutAmount);
     private final byte[] releaseRequestedEventData = buildEncodedData(RELEASE_REQUESTED_EVENT, pegoutAmount.getValue());
 
-    private final RskAddress senderAddress = new RskAddress(TestUtils.getEcKeyFromSeed("senderKey").getAddress());
-    private final LogInfo updateCollectionsLog = createUpdateCollectionsLog(senderAddress);
-
-    private final Keccak256 anotherRskTxHash = TestUtils.createHash(123);
-    private final byte[] anotherRskTxHashBytes = anotherRskTxHash.getBytes();
+    private final RskAddress pegnatoryAddress = new RskAddress(TestUtils.getEcKeyFromSeed("pegnatory").getAddress());
+    private final LogInfo updateCollectionsLog = createUpdateCollectionsLog(pegnatoryAddress);
 
     private final byte[] wrongTopic = TestUtils.createHash(456).getBytes();
 
@@ -62,11 +59,8 @@ class ReleaseCreationInformationGetterTest {
 
     private Transaction pegoutCreationRskTx;
     private TransactionReceipt pegoutCreationRskTxReceipt;
-    private TransactionInfo pegoutCreationRskTxInfo;
 
     private Transaction anotherRskTx;
-    private TransactionReceipt anotherRskTxReceipt;
-    private TransactionInfo anotherRskTxInfo;
 
     private ReceiptStore receiptStore;
     private BlockStore blockStore;
@@ -77,61 +71,43 @@ class ReleaseCreationInformationGetterTest {
         blockStore = mock(BlockStore.class);
 
         pegoutBtcTx = mock(BtcTransaction.class);
-        when(pegoutBtcTx.getHash()).thenReturn(releaseBtcTxHash);
+        when(pegoutBtcTx.getHash()).thenReturn(pegoutBtcTxHash);
 
         pegoutCreationRskTx = mock(Transaction.class);
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
 
-        anotherRskTx = mock(Transaction.class);
-        when(anotherRskTx.getHash()).thenReturn(anotherRskTxHash);
+        pegoutCreationRskTxReceipt = buildTxReceiptForRskTx(pegoutCreationRskTxHash);
 
-        pegoutCreationRskTxReceipt = new TransactionReceipt();
-        addReleaseRequestedLogs();
-
-        anotherRskTxReceipt = buildTxReceiptForRskTx(anotherRskTxHash);
-
-        pegoutCreationBlock = createBlockWithTxs(Arrays.asList(anotherRskTx, pegoutCreationRskTx));
         setUpBlockchain();
     }
 
-    private void addReleaseRequestedLogs() {
-        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, updateCollectionsLog);
-        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, releaseRequestedLog);
-        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, pegoutTransactionCreatedLog);
-    }
-
     private void setUpBlockchain() {
-        setUpAnotherRskTxInfo();
-        setUpPegoutCreationRskTxInfo();
+        // create block with another rsk tx to be more realistic
+        anotherRskTx = mock(Transaction.class);
+        Keccak256 anotherRskTxHash = TestUtils.createHash(456);
+        when(anotherRskTx.getHash()).thenReturn(anotherRskTxHash);
+        pegoutCreationBlock = createBlockWithTxs(Arrays.asList(anotherRskTx, pegoutCreationRskTx));
+        int pegoutCreationTxIndex = 1;
+        TransactionInfo pegoutCreationRskTxInfo = buildTxInfo(pegoutCreationRskTxReceipt, pegoutCreationBlock.getHash(), pegoutCreationTxIndex);
 
         byte[] pegoutCreationBlockHash = pegoutCreationBlock.getHash().getBytes();
         when(blockStore.getBlockByHash(pegoutCreationBlockHash))
             .thenReturn(pegoutCreationBlock);
-        when(receiptStore.get(releaseCreationRskTxHashBytes, pegoutCreationBlockHash))
-            .thenReturn(Optional.of(pegoutCreationRskTxInfo));
-
         when(blockStore.getChainBlockByNumber(pegoutCreationBlock.getNumber()))
             .thenReturn(pegoutCreationBlock);
-        when(receiptStore.getInMainChain(releaseCreationRskTxHashBytes, blockStore))
+        when(receiptStore.getInMainChain(pegoutCreationRskTxHashBytes, blockStore))
             .thenReturn(Optional.of(pegoutCreationRskTxInfo));
-        when(receiptStore.getInMainChain(anotherRskTxHashBytes, blockStore))
-            .thenReturn(Optional.of(anotherRskTxInfo));
-    }
-
-    private void setUpAnotherRskTxInfo() {
-        int anotherTxIndex = 0;
-        anotherRskTxInfo = buildTxInfo(anotherRskTxReceipt, pegoutCreationBlock.getHash(), anotherTxIndex);
-    }
-
-    private void setUpPegoutCreationRskTxInfo() {
-        int pegoutCreationTxIndex = 1;
-        pegoutCreationRskTxInfo = buildTxInfo(pegoutCreationRskTxReceipt, pegoutCreationBlock.getHash(), pegoutCreationTxIndex);
+        when(receiptStore.get(pegoutCreationRskTxHashBytes, pegoutCreationBlockHash))
+            .thenReturn(Optional.of(pegoutCreationRskTxInfo));
     }
 
     @ParameterizedTest
     @EnumSource(HSMVersion.class)
     void getTxInfoToSign_differentHSMVersions_returnsCorrectTxInfo(HSMVersion hsmVersion) throws HSMReleaseCreationInformationException {
+        // arrange
+        addLogsForReleaseRequestedEvent();
+
         // act
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
@@ -143,8 +119,9 @@ class ReleaseCreationInformationGetterTest {
     void getTxInfoToSign_whenBatchPegoutHasPegoutTransactionCreatedEvent_returnsCorrectTxInfo() throws HSMReleaseCreationInformationException {
         // Arrange
         List<Keccak256> pegoutRequestsRskTxHashes = Collections.singletonList(TestUtils.createHash(10));
-        LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(releaseBtcTxHash, pegoutRequestsRskTxHashes);
+        LogInfo batchPegoutCreatedLog = createBatchPegoutCreatedLog(pegoutBtcTxHash, pegoutRequestsRskTxHashes);
         addLogToRskTxReceipt(pegoutCreationRskTxReceipt, batchPegoutCreatedLog);
+        addLogsForReleaseRequestedEvent();
 
         // act
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
@@ -159,8 +136,9 @@ class ReleaseCreationInformationGetterTest {
     @Test
     void getTxInfoToSign_whenRejectedPeginHasPegoutCreatedEvent_returnsCorrectTxInfo() throws HSMReleaseCreationInformationException {
         // Arrange
-        LogInfo rejectedPeginLog = createRejectedPeginLog(releaseBtcTxHash, RejectedPeginReason.LEGACY_PEGIN_MULTISIG_SENDER);
+        LogInfo rejectedPeginLog = createRejectedPeginLog(pegoutBtcTxHash, RejectedPeginReason.LEGACY_PEGIN_MULTISIG_SENDER);
         addLogToRskTxReceipt(pegoutCreationRskTxReceipt, rejectedPeginLog);
+        addLogsForReleaseRequestedEvent();
 
         // act
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
@@ -170,6 +148,12 @@ class ReleaseCreationInformationGetterTest {
 
         // assert
         assertTxInfoToSign(releaseCreationInformationGetter, LATEST_HSM_VERSION.getNumber());
+    }
+
+    private void addLogsForReleaseRequestedEvent() {
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, updateCollectionsLog);
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, releaseRequestedLog);
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, pegoutTransactionCreatedLog);
     }
 
     @Test
@@ -209,7 +193,8 @@ class ReleaseCreationInformationGetterTest {
     void getTxInfoToSign_whenBlockDoesNotContainPegoutCreationRskTx_throwsHSMReleaseCreationInformationException() {
         // arrange
         // simulate pegout creation block does not have pegoutCreationRskTx
-        pegoutCreationBlock = createBlockWithTxs(Collections.singletonList(anotherRskTx));
+        Transaction anotherRskTx2 = mock(Transaction.class);
+        pegoutCreationBlock = createBlockWithTxs(Arrays.asList(anotherRskTx, anotherRskTx2));
         setUpBlockchain();
 
         // act
@@ -223,130 +208,122 @@ class ReleaseCreationInformationGetterTest {
     }
 
     @Test
-    void getTxInfoToSign_whenFirstMatchIsFromWrongSender_returnsInfoFromCorrectTx() throws HSMReleaseCreationInformationException {
+    void getTxInfoToSign_whenLogsAreFromWrongSender_throwsHSMReleaseCreationInformationException() {
         // arrange
-        // build tx with wrong log - correct topics but from another sender (not the bridge)
-        List<DataWord> topics = buildEncodedTopics(RELEASE_REQUESTED_EVENT, releaseCreationRskTxHashBytes, releaseBtcTxHashBytes);
-
+        // build wrong log - correct topics but from another sender (not the bridge)
+        List<DataWord> topics = buildEncodedTopics(RELEASE_REQUESTED_EVENT, pegoutCreationRskTxHashBytes, pegoutBtcTxHashBytes);
         byte[] sender = Hex.decode("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
-        LogInfo wrongReleaseRequestedLogInfo = buildLogInfoFrom(sender, topics, releaseRequestedEventData);
-        addLogToRskTxReceipt(anotherRskTxReceipt, wrongReleaseRequestedLogInfo);
+        LogInfo wrongLog = buildLogInfoFrom(sender, topics, releaseRequestedEventData);
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, wrongLog);
 
         // act
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(releaseCreationInformationGetter, LATEST_HSM_VERSION.getNumber());
+        assertThrowsHSMReleaseCreationInformationException(releaseCreationInformationGetter);
     }
 
     @Test
-    void getTxInfoToSign_whenFirstMatchHasWrongReleaseRequestedTopic_returnsInfoFromCorrectTx() throws HSMReleaseCreationInformationException {
+    void getTxInfoToSign_whenLogHasWrongReleaseRequestedTopic_throwsHSMReleaseCreationInformationException() {
         // arrange
-        // build tx with wrong log - wrong event topic
+        // build wrong log - wrong event topic
         CallTransaction.Function wrongEvent = BridgeEvents.LOCK_BTC.getEvent();
         List<DataWord> topics = buildCustomTopics(
             wrongEvent,
-            List.of(releaseCreationRskTxHashBytes, releaseBtcTxHashBytes)
+            List.of(pegoutCreationRskTxHashBytes, pegoutBtcTxHashBytes)
         );
-
-
-        LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-        addLogToRskTxReceipt(anotherRskTxReceipt, log);
+        LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, wrongLog);
 
         // act
-        ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
+        assertThrowsHSMReleaseCreationInformationException(releaseCreationInformationGetter);
     }
 
     @Test
-    void getTxInfoToSign_whenFirstMatchHasWrongPegoutCreationRskTxHashTopic_returnsInfoFromCorrectTx() throws HSMReleaseCreationInformationException {
+    void getTxInfoToSign_whenLogHasWrongPegoutCreationRskTxHashTopic_throwsHSMReleaseCreationInformationException() {
         // arrange
-        // build tx with wrong log - wrong pegoutCreationRskTxHash topic
+        // build wrong log - wrong pegoutCreationRskTxHash topic
         List<DataWord> topics = buildCustomTopics(
             RELEASE_REQUESTED_EVENT,
-            List.of(wrongTopic, releaseBtcTxHashBytes)
+            List.of(wrongTopic, pegoutBtcTxHashBytes)
         );
-
-        LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-        addLogToRskTxReceipt(anotherRskTxReceipt, log);
+        LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, wrongLog);
 
         // act
-        ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
+        assertThrowsHSMReleaseCreationInformationException(releaseCreationInformationGetter);
     }
 
     @Test
-    void getTxInfoToSign_whenFirstMatchHasWrongPegoutBtcTxHashTopic_returnsInfoFromCorrectTx() throws HSMReleaseCreationInformationException {
+    void getTxInfoToSign_whenLogHasWrongPegoutBtcTxHashTopic_throwsHSMReleaseCreationInformationException() {
         // arrange
-        // build tx with wrong log - wrong pegoutBtcTxHash topic
+        // build wrong log - wrong pegoutBtcTxHash topic
         List<DataWord> topics = buildCustomTopics(
             RELEASE_REQUESTED_EVENT,
-            List.of(releaseCreationRskTxHashBytes, wrongTopic)
+            List.of(pegoutCreationRskTxHashBytes, wrongTopic)
         );
-
-        LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-        addLogToRskTxReceipt(anotherRskTxReceipt, log);
+        LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, wrongLog);
 
         // act
-        ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
+        assertThrowsHSMReleaseCreationInformationException(releaseCreationInformationGetter);
     }
 
     @Test
-    void getTxInfoToSign_whenFirstMatchMissesPegoutCreationRskTxHashTopic_returnsInfoFromCorrectTx() throws HSMReleaseCreationInformationException {
+    void getTxInfoToSign_whenLogMissesPegoutCreationRskTxHashTopic_throwsHSMReleaseCreationInformationException() {
         // arrange
-        // build tx with wrong log - missing pegoutCreationRskTxHash topic
-        List<DataWord> topics = buildCustomTopics(RELEASE_REQUESTED_EVENT, List.of(releaseBtcTxHashBytes));
-
-        LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-        addLogToRskTxReceipt(anotherRskTxReceipt, log);
+        // build wrong log - missing pegoutCreationRskTxHash topic
+        List<DataWord> topics = buildCustomTopics(RELEASE_REQUESTED_EVENT, List.of(pegoutBtcTxHashBytes));
+        LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, wrongLog);
 
         // act
-        ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
+        assertThrowsHSMReleaseCreationInformationException(releaseCreationInformationGetter);
     }
 
     @Test
-    void getTxInfoToSign_whenFirstMatchMissesPegoutBtcTxHashTopic_returnsInfoFromCorrectTx() throws HSMReleaseCreationInformationException {
+    void getTxInfoToSign_whenLogMissesPegoutBtcTxHashTopic_throwsHSMReleaseCreationInformationException() {
         // arrange
-        // build tx with wrong log - missing pegoutBtcTxHash topic
-        List<DataWord> topics = buildCustomTopics(RELEASE_REQUESTED_EVENT, List.of(releaseCreationRskTxHashBytes));
-
-        LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-        addLogToRskTxReceipt(anotherRskTxReceipt, log);
+        // build wrong log - missing pegoutBtcTxHash topic
+        List<DataWord> topics = buildCustomTopics(RELEASE_REQUESTED_EVENT, List.of(pegoutCreationRskTxHashBytes));
+        LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, wrongLog);
 
         // act
-        ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
+        assertThrowsHSMReleaseCreationInformationException(releaseCreationInformationGetter);
     }
 
     @Test
-    void getTxInfoToSign_whenFirstMatchHasExtraTopics_returnsInfoFromCorrectTx() throws HSMReleaseCreationInformationException {
+    void getTxInfoToSign_whenLogHasExtraTopics_throwsHSMReleaseCreationInformationException() {
         // arrange
-        // build tx with wrong log - one extra topic
+        // build wrong log - one extra topic
         List<DataWord> topics = buildCustomTopics(
             RELEASE_REQUESTED_EVENT,
-            List.of(releaseCreationRskTxHashBytes, releaseBtcTxHashBytes, wrongTopic)
+            List.of(pegoutCreationRskTxHashBytes, pegoutBtcTxHashBytes, wrongTopic)
         );
-
-        LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-        addLogToRskTxReceipt(anotherRskTxReceipt, log);
+        LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+        addLogToRskTxReceipt(pegoutCreationRskTxReceipt, wrongLog);
 
         // act
-        ReleaseCreationInformationGetter getter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
+        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
 
         // assert
-        assertTxInfoToSign(getter, LATEST_HSM_VERSION.getNumber());
+        assertThrowsHSMReleaseCreationInformationException(releaseCreationInformationGetter);
     }
 
     private void assertTxInfoToSign(

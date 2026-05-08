@@ -12,6 +12,7 @@ import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.params.MainNetParams;
 import co.rsk.bitcoinj.script.*;
+import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
@@ -404,8 +405,9 @@ class BtcReleaseClientTest {
         private final byte[] releaseCreationRskTxHashBytes = releaseCreationRskTxHash.getBytes();
 
         private final Keccak256 anotherRskTxHash = createHash(123);
-        private final Transaction anotherRskTx = mock(Transaction.class);
-        private final TransactionReceipt anotherRskTxReceipt = buildTxReceiptForRskTx(anotherRskTxHash);
+
+        private final RskAddress pegnatoryAddress = new RskAddress(TestUtils.getEcKeyFromSeed("pegnatory").getAddress());
+        private final LogInfo updateCollectionsLog = createUpdateCollectionsLog(pegnatoryAddress);
 
         private final Coin prevReleaseTxValue = Coin.COIN;
         private final byte[] releaseRequestedEventData = buildEncodedData(RELEASE_REQUESTED_EVENT, prevReleaseTxValue.getValue());
@@ -421,8 +423,6 @@ class BtcReleaseClientTest {
         void setUp() {
             powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
             releases = new TreeMap<>();
-
-            when(anotherRskTx.getHash()).thenReturn(anotherRskTxHash);;
 
             rskTxsList = new ArrayList<>();
             when(bestBlock.getTransactionsList()).thenReturn(rskTxsList);
@@ -460,9 +460,9 @@ class BtcReleaseClientTest {
         private void setUpBlockchainForProcessingRelease(Keccak256 releaseCreationRskTxHash, BtcTransaction releaseTx) {
             addReleaseTxToSet(releaseCreationRskTxHash, releaseTx);
 
-            TransactionReceipt txReceipt = buildTxReceiptForRskTx(releaseCreationRskTxHash);
-            addReleaseRequestedLogs(txReceipt, releaseCreationRskTxHash, releaseTx);
-            setUpBlockChain(txReceipt, releaseCreationRskTxHash);
+            TransactionReceipt rskTxReceipt = buildTxReceiptForRskTx(releaseCreationRskTxHash);
+            addLogsForReleaseRequestedEventToTxReceipt(rskTxReceipt, releaseCreationRskTxHash, releaseTx);
+            setUpBlockChain(rskTxReceipt, releaseCreationRskTxHash);
         }
 
         private void addReleaseTxToSet(Keccak256 releaseCreationRskTxHash, BtcTransaction releaseTx) {
@@ -474,15 +474,17 @@ class BtcReleaseClientTest {
             rskTxsList.add(rskTx);
         }
 
-        private void addReleaseRequestedLogs(TransactionReceipt pegoutCreationRskTxReceipt, Keccak256 releaseCreationRskTxHash, BtcTransaction releaseTx) {
+        private void addLogsForReleaseRequestedEventToTxReceipt(TransactionReceipt rskTxReceipt, Keccak256 releaseCreationRskTxHash, BtcTransaction releaseTx) {
+            addLogToRskTxReceipt(rskTxReceipt, updateCollectionsLog);
+
             Sha256Hash originalReleaseTxHash = releaseTx.getHash();
             Coin prevTxValue = releaseTx.getInput(0).getValue();
             LogInfo releaseRequestedLog = createReleaseRequestedLog(releaseCreationRskTxHash, originalReleaseTxHash, prevTxValue);
-            addLogToRskTxReceipt(pegoutCreationRskTxReceipt, releaseRequestedLog);
+            addLogToRskTxReceipt(rskTxReceipt, releaseRequestedLog);
 
             byte[] serializedOutpointValues = UtxoUtils.encodeOutpointValues(List.of(prevTxValue));
             LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(originalReleaseTxHash, serializedOutpointValues);
-            addLogToRskTxReceipt(pegoutCreationRskTxReceipt, pegoutTransactionCreatedLog);
+            addLogToRskTxReceipt(rskTxReceipt, pegoutTransactionCreatedLog);
         }
 
         private void setUpBlockChain(TransactionReceipt txReceipt, Keccak256 releaseCreationRskTxHash) {
@@ -816,7 +818,7 @@ class BtcReleaseClientTest {
             client.processReleases(releases.entrySet());
 
             // assert
-            verify(federatorSupport, never()).addSignature(anyList(), any(byte[].class));
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
@@ -829,6 +831,8 @@ class BtcReleaseClientTest {
             releases.put(releaseCreationRskTxHash, releaseTx);
 
             // block will not contain pegoutCreationRskTx, but another one
+            Transaction anotherRskTx = mock(Transaction.class);
+            when(anotherRskTx.getHash()).thenReturn(anotherRskTxHash);
             rskTxsList.clear();
             rskTxsList.add(anotherRskTx);
             // tx receipt for the other tx
@@ -844,172 +848,167 @@ class BtcReleaseClientTest {
         }
 
         @Test
-        void processReleases_whenFirstMatchIsFromWrongSender_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
+        void processReleases_whenLogsAreFromWrongSender_shouldNotSign() throws Exception {
             // arrange
             setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
-            setUpReleaseTxFromFed(segwitFederation);
-
-            // build tx with wrong log - correct topics but from another sender (not the bridge)
-            List<DataWord> topics = buildEncodedTopics(RELEASE_REQUESTED_EVENT, releaseCreationRskTxHashBytes, releaseBtcTxHashBytes);
+            // build wrong log - correct topics but from another sender (not the bridge)
+            List<DataWord> topics = buildEncodedTopics(
+                RELEASE_REQUESTED_EVENT,
+                releaseCreationRskTxHashBytes,
+                releaseBtcTxHashBytes
+            );
             byte[] sender = org.bouncycastle.util.encoders.Hex.decode("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
-            LogInfo wrongReleaseRequestedLogInfo = buildLogInfoFrom(sender, topics, releaseRequestedEventData);
-            addLogToRskTxReceipt(anotherRskTxReceipt, wrongReleaseRequestedLogInfo);
-            // wrong tx should appear first in the list
-            rskTxsList.add(0, anotherRskTx);
-            setUpBlockChain(anotherRskTxReceipt, anotherRskTxHash);
+            LogInfo wrongLog = buildLogInfoFrom(sender, topics, releaseRequestedEventData);
+            setUpReleaseTxWithWrongLog(wrongLog);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
-            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
-        void processReleases_whenFirstMatchHasWrongReleaseRequestedTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
+        void processReleases_whenLogHasWrongReleaseRequestedTopic_shouldNotSign() throws Exception {
             // arrange
             setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
-            setUpReleaseTxFromFed(segwitFederation);
-
-            // build tx with wrong log - wrong event topic
+            // build wrong log - wrong event topic
             CallTransaction.Function wrongEvent = BridgeEvents.LOCK_BTC.getEvent();
             List<DataWord> topics = buildCustomTopics(
                 wrongEvent,
                 List.of(releaseCreationRskTxHashBytes, releaseBtcTxHashBytes)
             );
-            LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-            addLogToRskTxReceipt(anotherRskTxReceipt, log);
-            // wrong tx should appear first in the list
-            rskTxsList.add(0, anotherRskTx);
-            setUpBlockChain(anotherRskTxReceipt, anotherRskTxHash);
+            LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+            setUpReleaseTxWithWrongLog(wrongLog);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
-            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
-        void processReleases_whenFirstMatchHasWrongPegoutCreationRskTxHashTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
+        void processReleases_whenLogHasWrongPegoutCreationRskTxHashTopic_shouldNotSign() throws Exception {
             // arrange
             setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
-            setUpReleaseTxFromFed(segwitFederation);
-
-            // build tx with wrong log - wrong pegoutCreationRskTxHash topic
+            // build wrong log - wrong pegoutCreationRskTxHash topic
             List<DataWord> topics = buildCustomTopics(
                 RELEASE_REQUESTED_EVENT,
                 List.of(WRONG_TOPIC, releaseBtcTxHashBytes)
             );
-            LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-            addLogToRskTxReceipt(anotherRskTxReceipt, log);
-
-            // wrong tx should appear first in the list
-            rskTxsList.add(0, anotherRskTx);
-            setUpBlockChain(anotherRskTxReceipt, anotherRskTxHash);
+            LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+            setUpReleaseTxWithWrongLog(wrongLog);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
-            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
-        void processReleases_whenFirstMatchHasWrongPegoutBtcTxHashTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
+        void processReleases_whenLogHasWrongPegoutBtcTxHashTopic_shouldNotSign() throws Exception {
             // arrange
             setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
-            setUpReleaseTxFromFed(segwitFederation);
-
-            // build tx with wrong log - wrong pegoutBtcTxHash topic
+            // build wrong log - wrong pegoutBtcTxHash topic
             List<DataWord> topics = buildCustomTopics(
                 RELEASE_REQUESTED_EVENT,
                 List.of(releaseCreationRskTxHashBytes, WRONG_TOPIC)
             );
-            LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-            addLogToRskTxReceipt(anotherRskTxReceipt, log);
-            // wrong tx should appear first in the list
-            rskTxsList.add(0, anotherRskTx);
-            setUpBlockChain(anotherRskTxReceipt, anotherRskTxHash);
+            LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+            setUpReleaseTxWithWrongLog(wrongLog);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
-            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
-        void processReleases_whenFirstMatchMissesPegoutCreationRskTxHashTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
+        void processReleases_whenLogMissesPegoutCreationRskTxHashTopic_shouldNotSign() throws Exception {
             // arrange
             setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
-            setUpReleaseTxFromFed(segwitFederation);
-
-            // build tx with wrong log - missing pegoutCreationRskTxHash topic
+            // build wrong log - missing pegoutCreationRskTxHash topic
             List<DataWord> topics = buildCustomTopics(RELEASE_REQUESTED_EVENT, List.of(releaseBtcTxHashBytes));
-            LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-            addLogToRskTxReceipt(anotherRskTxReceipt, log);
-            // wrong tx should appear first in the list
-            rskTxsList.add(0, anotherRskTx);
-            setUpBlockChain(anotherRskTxReceipt, anotherRskTxHash);
+            LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+            setUpReleaseTxWithWrongLog(wrongLog);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
-            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
-        void processReleases_whenFirstMatchMissesPegoutBtcTxHashTopic_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
+        void processReleases_whenLogMissesPegoutBtcTxHashTopic_shouldNotSign() throws Exception {
             // arrange
             setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
-            setUpReleaseTxFromFed(segwitFederation);
-
-            // build tx with wrong log - missing pegoutBtcTxHash topic
+            // build wrong log - missing pegoutBtcTxHash topic
             List<DataWord> topics = buildCustomTopics(RELEASE_REQUESTED_EVENT, List.of(releaseCreationRskTxHashBytes));
-            LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-            addLogToRskTxReceipt(anotherRskTxReceipt, log);
-            // wrong tx should appear first in the list
-            rskTxsList.add(0, anotherRskTx);
-            setUpBlockChain(anotherRskTxReceipt, anotherRskTxHash);
+            LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+            setUpReleaseTxWithWrongLog(wrongLog);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
-            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
         }
 
         @Test
-        void processReleases_whenFirstMatchHasExtraTopics_shouldSignCorrectTx() throws BtcReleaseClientException, SignerException {
+        void processReleases_whenLogHasExtraTopics_shouldNotSign() throws Exception {
             // arrange
             setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
-            setUpReleaseTxFromFed(segwitFederation);
-
-            // build tx with wrong log - one extra topic
+            // build wrong log - one extra topic
             List<DataWord> topics = buildCustomTopics(
                 RELEASE_REQUESTED_EVENT,
                 List.of(releaseCreationRskTxHashBytes, releaseBtcTxHashBytes, WRONG_TOPIC)
             );
-            LogInfo log = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
-            addLogToRskTxReceipt(anotherRskTxReceipt, log);
-            // wrong tx should appear first in the list
-            rskTxsList.add(0, anotherRskTx);
-            setUpBlockChain(anotherRskTxReceipt, anotherRskTxHash);
+            LogInfo wrongLog = buildLogInfoFrom(BRIDGE_ADDRESS, topics, releaseRequestedEventData);
+            setUpReleaseTxWithWrongLog(wrongLog);
 
             // act
             client.processReleases(releases.entrySet());
 
             // assert
-            assertTxWasSigned(releaseCreationRskTxHash, BTC_SIG_1);
-            assertTxWasNotSigned(anotherRskTxHash, BTC_SIG_1);
+            assertTxWasNotSigned(releaseCreationRskTxHash, BTC_SIG_1);
+        }
+
+        @Test
+        void processReleases_whenAnotherTxHasExpectedLogs_shouldNotSign() throws BtcReleaseClientException, SignerException {
+            // arrange
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, ETH_SIG_1);
+            // build release tx and add it to the set
+            buildReleaseTx(segwitFederation);
+            addReleaseTxToSet(releaseCreationRskTxHash, releaseTx);
+            // but put the logs in another rsk tx
+            TransactionReceipt anotherRskTxReceipt = buildTxReceiptForRskTx(anotherRskTxHash);
+            addLogsForReleaseRequestedEventToTxReceipt(anotherRskTxReceipt, releaseCreationRskTxHash, releaseTx);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            verify(federatorSupport, never()).addSignature(anyList(), any(byte[].class));
+        }
+
+        private void setUpReleaseTxWithWrongLog(LogInfo wrongLog) {
+            buildReleaseTx(segwitFederation);
+            addReleaseTxToSet(releaseCreationRskTxHash, releaseTx);
+
+            TransactionReceipt rskTxReceipt = buildTxReceiptForRskTx(releaseCreationRskTxHash);
+            addLogToRskTxReceipt(rskTxReceipt, wrongLog);
+
+            Sha256Hash originalReleaseTxHash = releaseTx.getHash();
+            Coin prevTxValue = releaseTx.getInput(0).getValue();
+            byte[] serializedOutpointValues = UtxoUtils.encodeOutpointValues(List.of(prevTxValue));
+            LogInfo pegoutTransactionCreatedLog = createPegoutTransactionCreatedLog(originalReleaseTxHash, serializedOutpointValues);
+            addLogToRskTxReceipt(rskTxReceipt, pegoutTransactionCreatedLog);
+
+            setUpBlockChain(rskTxReceipt, releaseCreationRskTxHash);
         }
 
         private void addUnprocessableReleaseTxToSet(Federation federation) {
