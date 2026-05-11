@@ -83,8 +83,8 @@ public class FedNodeRunner implements NodeRunner {
     private final HSMClientProtocolFactory hsmClientProtocolFactory;
     private final HSMBookKeepingClientProvider hsmBookKeepingClientProvider;
 
+    private DirectoryStorageInfo directoryStorageInfo;
     private BitcoinWrapper bitcoinWrapper;
-    private BtcToRskClientFileStorage btcToRskClientFileStorage;
     private FederationMember member;
     private ECDSASigner signer;
     private HSMBookkeepingClient hsmBookkeepingClient;
@@ -284,21 +284,25 @@ public class FedNodeRunner implements NodeRunner {
 
             BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
             PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
-            btcToRskClientFileStorage = new BtcToRskClientFileStorageImpl(new BtcToRskClientFileStorageInfo(config));
             bitcoinWrapper = createAndSetupBitcoinWrapper(btcLockSenderProvider, peginInstructionsProvider);
 
+            directoryStorageInfo = new BtcToRskClientDirectoryStorageInfo(config);
+            BtcToRskClientFileStorageFactory fileStorageFactory = new BtcToRskClientFileStorageFactory(directoryStorageInfo);
+
+            BtcToRskClientFileStorage btcToRskActiveClientFileStorage = fileStorageFactory.forActive();
             btcToRskClientActive.setup(
                 bitcoinWrapper,
                 bridgeConstants,
-                btcToRskClientFileStorage,
+                btcToRskActiveClientFileStorage,
                 btcLockSenderProvider,
                 peginInstructionsProvider,
                 config
             );
+            BtcToRskClientFileStorage btcToRskRetiringClientFileStorage = fileStorageFactory.forRetiring();
             btcToRskClientRetiring.setup(
                 bitcoinWrapper,
                 bridgeConstants,
-                btcToRskClientFileStorage,
+                btcToRskRetiringClientFileStorage,
                 btcLockSenderProvider,
                 peginInstructionsProvider,
                 config
@@ -382,11 +386,13 @@ public class FedNodeRunner implements NodeRunner {
 
     private BitcoinWrapper createAndSetupBitcoinWrapper(
         BtcLockSenderProvider btcLockSenderProvider,
-        PeginInstructionsProvider peginInstructionsProvider) throws UnknownHostException {
+        PeginInstructionsProvider peginInstructionsProvider
+    ) throws UnknownHostException {
+        final String BTC_TO_RSK_CLIENT_FILE_PREFIX = "BtcToRskClient";
 
         Context btcContext = new Context(ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
-        File pegDirectory = new File(this.btcToRskClientFileStorage.getInfo().getPegDirectoryPath());
-        Kit kit = new Kit(btcContext, pegDirectory, "BtcToRskClient");
+        File pegDirectory = new File(directoryStorageInfo.getPath());
+        Kit kit = new Kit(btcContext, pegDirectory, BTC_TO_RSK_CLIENT_FILE_PREFIX);
 
         BitcoinWrapper wrapper = new BitcoinWrapperImpl(
             btcContext,
