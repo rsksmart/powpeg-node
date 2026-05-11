@@ -578,7 +578,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             null
         );
 
-        for (Sha256Hash txHash : txsToSendToRskHashes) {
+        Iterator<Sha256Hash> txHashIterator = txsToSendToRskHashes.iterator();
+        while (txHashIterator.hasNext()) {
+            Sha256Hash txHash = txHashIterator.next();
             try {
                 Transaction tx = federatorWalletTxMap.get(txHash);
                 logger.debug("[updateBridgeBtcTransactions] Evaluating Btc Tx {}", txHash);
@@ -724,7 +726,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     // with K = BridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()
                     // then remove the transaction from the list
                     if ((bestChainHeight - txProcessedHeight) >= bridgeConstants.getBtc2RskMinimumAcceptableConfirmationsOnRsk()) {
-                        txsToSendToRskHashes.remove(txHash);
+                        removeTxHashFromFile(txHashIterator);
                         logger.debug(
                             "[updateBridgeBtcTransactions] Btc Tx {} was processed at height {}, current height is {}. Tx removed from pending lock list",
                             txHash,
@@ -739,6 +741,22 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     txHash,
                     e.getMessage()
                 );
+            }
+        }
+    }
+
+    private void removeTxHashFromFile(Iterator<Sha256Hash> txHashIterator) {
+        txHashIterator.remove();
+        writeToStorage();
+    }
+
+    private void writeToStorage() {
+        synchronized (this) {
+            try {
+                this.btcToRskClientFileStorage.write(this.fileData);
+                logger.debug("[writeToStorage] Persisted fileData to storage.");
+            } catch (IOException e) {
+                logger.error("[writeToStorage] Error {} persisting fileData to storage.", e.getMessage(), e);
             }
         }
     }
