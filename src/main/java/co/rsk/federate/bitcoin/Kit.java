@@ -8,7 +8,6 @@ import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.LevelDBBlockStore;
-import org.bitcoinj.wallet.Wallet;
 import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener;
 import org.bitcoinj.wallet.listeners.WalletCoinsSentEventListener;
 import org.ethereum.util.FileUtil;
@@ -17,13 +16,13 @@ import org.slf4j.LoggerFactory;
 
 public class Kit extends WalletAppKit {
 
-    private Context btcContext;
+    private static final Logger logger = LoggerFactory.getLogger(Kit.class);
+
+    private final Context btcContext;
     private BlocksDownloadedEventListener blockListener;
     private WalletCoinsReceivedEventListener coinsReceivedListener;
     private WalletCoinsSentEventListener coinsSentListener;
     private NewBestBlockListener newBestBlockListener;
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(Kit.class);
 
     public Kit(Context btcContext, File directory, String filePrefix) {
         super(btcContext.getParams(), directory, filePrefix, 1514764800);
@@ -35,7 +34,8 @@ public class Kit extends WalletAppKit {
         BlocksDownloadedEventListener blockListener,
         WalletCoinsReceivedEventListener coinsReceivedListener,
         WalletCoinsSentEventListener coinsSentListener,
-        NewBestBlockListener newBestBlockListener) {
+        NewBestBlockListener newBestBlockListener
+    ) {
 
         this.blockListener = blockListener;
         this.coinsReceivedListener = coinsReceivedListener;
@@ -45,22 +45,17 @@ public class Kit extends WalletAppKit {
 
     @Override
     protected void onSetupCompleted() {
-        LOGGER.debug("[onSetupCompleted] Setup completed");
+        logger.debug("[onSetupCompleted] Setup completed");
         Context.propagate(btcContext);
         vPeerGroup.addBlocksDownloadedEventListener(blockListener);
         if(!vWallet.isConsistent()) {
-            LOGGER.warn("[onSetupCompleted] Wallet database is in an inconsistent state, starting to reset it");
+            logger.warn("[onSetupCompleted] Wallet database is in an inconsistent state, starting to reset it");
             vWallet.reset();
         }
         vWallet.addCoinsReceivedEventListener(coinsReceivedListener);
         vWallet.addCoinsSentEventListener(coinsSentListener);
         vPeerGroup.setDownloadTxDependencies(0);
         vChain.addNewBestBlockListener(newBestBlockListener);
-    }
-
-    @Override
-    protected Wallet createWallet() {
-        return super.createWallet();
     }
 
     @Override
