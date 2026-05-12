@@ -81,15 +81,8 @@ class BitcoinWrapperImplTest {
     }
 
     private void setUpBitcoinWrapper(Kit kit) {
-        BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
-        PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
-
         bitcoinWrapper = new BitcoinWrapperImpl(
             btcContext,
-            bridgeConstants,
-            btcLockSenderProvider,
-            peginInstructionsProvider,
-            federatorSupport,
             kit
         );
 
@@ -273,7 +266,7 @@ class BitcoinWrapperImplTest {
 
     @ParameterizedTest
     @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_migrationTx_listenerForBothFeds_shouldBeSavedInBothFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+    void coinsReceivedOrSent_migrationTx_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
         // arrange
         setUpActiveFedListener(activeFederation);
         setUpRetiringFedListener(retiringFederation);
@@ -285,12 +278,12 @@ class BitcoinWrapperImplTest {
 
         // assert
         assertWTxIdIsInActiveFedClientProofsFile(migrationTx);
-        assertWTxIdIsInRetiringFedClientProofsFile(migrationTx);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
     @ParameterizedTest
     @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_migrationTxBelowMinimumPeginValue_listenerForBothFeds_shouldBeSavedJustInRetiringFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+    void coinsReceivedOrSent_migrationTxBelowMinimumPeginValue_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
         // arrange
         setUpActiveFedListener(activeFederation);
         setUpRetiringFedListener(retiringFederation);
@@ -301,13 +294,13 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.coinsReceivedOrSent(migrationTx);
 
         // assert
-        assertWTxIdIsInRetiringFedClientProofsFile(migrationTx);
-        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskActiveFedClientFileStorage);
+        assertWTxIdIsInActiveFedClientProofsFile(migrationTx);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
     @ParameterizedTest
     @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_peginToActiveFed_listenerForBothFeds_shouldBeSavedInBothFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+    void coinsReceivedOrSent_peginToActiveFed_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
         // arrange
         setUpActiveFedListener(activeFederation);
         setUpRetiringFedListener(retiringFederation);
@@ -320,12 +313,12 @@ class BitcoinWrapperImplTest {
 
         // assert
         assertWTxIdIsInActiveFedClientProofsFile(peginTxToActiveFed);
-        assertWTxIdIsInRetiringFedClientProofsFile(peginTxToActiveFed);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
     @ParameterizedTest
     @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_peginToRetiringFed_listenerForBothFeds_shouldBeSavedInBothFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+    void coinsReceivedOrSent_peginToRetiringFed_listenerForBothFeds_shouldBeSavedJustInRetiringFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
         // arrange
         setUpActiveFedListener(activeFederation);
         setUpRetiringFedListener(retiringFederation);
@@ -337,8 +330,8 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.coinsReceivedOrSent(peginTxToRetiringFed);
 
         // assert
-        assertWTxIdIsInActiveFedClientProofsFile(peginTxToRetiringFed);
         assertWTxIdIsInRetiringFedClientProofsFile(peginTxToRetiringFed);
+        assertProofsFileIsEmpty(originalNetworkParameters, btcToRskActiveFedClientFileStorage);
     }
 
     private void assertWTxIdIsInActiveFedClientProofsFile(Transaction tx) throws IOException {
