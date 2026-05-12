@@ -1,19 +1,31 @@
 package co.rsk.federate.mock;
 
+import co.rsk.bitcoinj.core.Address;
+import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.config.TestSystemProperties;
+
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import co.rsk.peg.federation.Federation;
+import co.rsk.peg.federation.FederationMember;
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
+import org.ethereum.crypto.ECKey;
+
+import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 
 /**
  * Created by ajlopez on 6/2/2016.
  */
 public class SimpleFederatorSupport extends FederatorSupport {
+    private Federation federation;
     private Block[] headers;
     private int sendReceiveHeadersInvocations = 0;
     private final List<TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction = new ArrayList<>();
@@ -66,6 +78,54 @@ public class SimpleFederatorSupport extends FederatorSupport {
     @Override
     public List<PeerAddress> getBitcoinPeerAddresses() {
         return null;
+    }
+
+    public void setFederation(Federation federation) {
+        this.federation = federation;
+    }
+
+    @Override
+    public Address getFederationAddress() {
+        return federation.getAddress();
+    }
+
+    @Override
+    public Integer getFederationSize() {
+        return federation.getSize();
+    }
+
+    @Override
+    public ECKey getFederatorPublicKeyOfType(int index, FederationMember.KeyType keyType) {
+        FederationMember member = federation.getMembers().get(index);
+        return switch (keyType) {
+            case BTC -> ECKey.fromPublicOnly(member.getBtcPublicKey().getPubKey());
+            case RSK -> member.getRskPublicKey();
+            case MST -> member.getMstPublicKey();
+        };
+    }
+    @Override
+    public Instant getFederationCreationTime() {
+        return federation.getCreationTime();
+    }
+
+    @Override
+    public long getFederationCreationBlockNumber() {
+        return federation.getCreationBlockNumber();
+    }
+
+    @Override
+    public NetworkParameters getBtcParams() {
+        return federation.getBtcParams();
+    }
+
+    @Override
+    public Integer getRetiringFederationSize() {
+        return FEDERATION_NON_EXISTENT.getCode();
+    }
+
+    @Override
+    public Optional<Integer> getProposedFederationSize() {
+        return Optional.empty();
     }
 
     @Override
