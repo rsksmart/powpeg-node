@@ -1,25 +1,31 @@
 package co.rsk.federate.bitcoin;
 
 import static co.rsk.bitcoinj.script.ScriptBuilder.createP2SHOutputScript;
+import static co.rsk.federate.PegUtils.MINIMUM_PEGIN_TX_VALUE;
+import static co.rsk.peg.PegUtils.getFlyoverFederationRedeemScript;
+import static co.rsk.peg.ReleaseTransactionBuilder.BTC_TX_VERSION_2;
 import static co.rsk.peg.bitcoin.BitcoinUtils.*;
 
 import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import co.rsk.core.RskAddress;
+import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.Federation;
 import org.ethereum.crypto.HashUtil;
 import org.ethereum.util.ByteUtil;
 
 public final class BitcoinTestUtils {
-    public static final Coin MINIMUM_PEGIN_TX_VALUE = Coin.valueOf(500_000);
     public static final org.bitcoinj.core.Sha256Hash WITNESS_RESERVED_VALUE = org.bitcoinj.core.Sha256Hash.ZERO_HASH;
+    public static final int WITNESS_COMMITMENT_LENGTH = 36; // 4 bytes for header, 32 for hash
 
     private static final BtcECKey SENDER_PUBLIC_KEY = getBtcEcKeyFromSeed("sender");
     private static final List<BtcECKey> MULTISIG_KEYS = Arrays.asList(
@@ -28,6 +34,21 @@ public final class BitcoinTestUtils {
         getBtcEcKeyFromSeed("key3")
     );
     private static final Script MULTISIG_REDEEM_SCRIPT = ScriptBuilder.createRedeemScript(2, MULTISIG_KEYS);
+
+    private static final Coin OP_RETURN_OUTPUT_AMOUNT = Coin.ZERO;
+    private static final int V1_PROTOCOL_VERSION = 1;
+    private static final int UNKNOWN_PROTOCOL_VERSION = 2;
+    private static final int RSK_PREFIX_INDEX = 0;
+    private static final int RSK_PREFIX_LENGTH = 4;
+    private static final byte[] RSK_PREFIX = org.bouncycastle.util.encoders.Hex.decode("52534b54"); // 'RSKT' in hexa
+    private static final int PROTOCOL_VERSION_INDEX = RSK_PREFIX_INDEX + RSK_PREFIX_LENGTH;
+    private static final int PROTOCOL_VERSION_LENGTH = 1;
+    private static final int RSK_DESTINATION_ADDRESS_INDEX = PROTOCOL_VERSION_INDEX + PROTOCOL_VERSION_LENGTH;
+    private static final int RSK_DESTINATION_ADDRESS_LENGTH = 20;
+    private static final int PAYLOAD_WITH_REFUND_ADDRESS_LENGTH = 46;
+    private static final int INVALID_PAYLOAD_LENGTH = PAYLOAD_WITH_REFUND_ADDRESS_LENGTH + 1;
+
+    private static final RskAddress DESTINATION_ADDRESS = new RskAddress(org.ethereum.crypto.ECKey.fromPublicOnly(SENDER_PUBLIC_KEY.getPubKey()).getAddress());
 
     private BitcoinTestUtils() { }
 
@@ -191,6 +212,75 @@ public final class BitcoinTestUtils {
         return migrationBtcTx;
     }
 
+    public static BtcTransaction createSVPSpendTx(
+        BridgeConstants bridgeConstants,
+        Federation activeFederation,
+        Federation proposedFederation
+    ) {
+        BtcTransaction svpFundTransaction = createSVPFundTx(bridgeConstants, activeFederation, proposedFederation);
+
+        NetworkParameters networkParameters = bridgeConstants.getBtcParams();
+        BtcTransaction svpSpendTransaction = new BtcTransaction(networkParameters);
+        svpSpendTransaction.setVersion(BTC_TX_VERSION_2);
+
+        // add inputs from fund tx
+        Script proposedFederationRedeemScript = proposedFederation.getRedeemScript();
+        int proposedFederationFormatVersion = proposedFederation.getFormatVersion();
+
+        TransactionOutput outputToProposedFed = svpFundTransaction.getOutput(0);
+        svpSpendTransaction.addInput(outputToProposedFed);
+        int proposedFederationInputIndex = 0;
+        addSpendingFederationBaseScript(svpSpendTransaction, proposedFederationInputIndex, proposedFederationRedeemScript, proposedFederationFormatVersion);
+
+        TransactionOutput outputToFlyoverProposedFed = svpFundTransaction.getOutput(1);
+        svpSpendTransaction.addInput(outputToFlyoverProposedFed);
+        int flyoverFederationInputIndex = 1;
+        Script flyoverFederationRedeemScript = getFlyoverFederationRedeemScript(bridgeConstants.getProposedFederationFlyoverPrefix(), proposedFederation.getRedeemScript());
+        addSpendingFederationBaseScript(svpSpendTransaction, flyoverFederationInputIndex, flyoverFederationRedeemScript, proposedFederationFormatVersion);
+
+        // create output to active fed
+        Coin valueSentToProposedFed = outputToProposedFed.getValue();
+        Coin valueSentToFlyoverProposedFed = outputToFlyoverProposedFed.getValue();
+
+        Coin fees = Coin.CENT;
+        Coin valueToSend = valueSentToProposedFed
+            .plus(valueSentToFlyoverProposedFed)
+            .minus(fees);
+
+        svpSpendTransaction.addOutput(
+            valueToSend,
+            activeFederation.getAddress()
+        );
+
+        return svpSpendTransaction;
+    }
+
+    public static BtcTransaction createSVPFundTx(BridgeConstants bridgeConstants, Federation activeFederation, Federation proposedFederation) {
+        NetworkParameters networkParameters = bridgeConstants.getBtcParams();
+
+        BtcTransaction prevTx = new BtcTransaction(networkParameters);
+        Coin prevAmount = Coin.COIN;
+        addOutputToFed(prevTx, activeFederation.getAddress(), prevAmount);
+
+        BtcTransaction svpFundTransaction = new BtcTransaction(networkParameters);
+        svpFundTransaction.addInput(prevTx.getOutput(0));
+        addSpendingFederationBaseScript(svpFundTransaction, 0, activeFederation.getRedeemScript(), activeFederation.getFormatVersion());
+
+        Coin svpFundTxOutputsAmountToSend = bridgeConstants.getSvpFundTxOutputsValue();
+        addOutputToFed(svpFundTransaction, proposedFederation.getAddress(), svpFundTxOutputsAmountToSend);
+        Script flyoverProposedFederationRedeemScript = getFlyoverFederationRedeemScript(bridgeConstants.getProposedFederationFlyoverPrefix(), proposedFederation.getRedeemScript());
+        Script flyoverProposedFedScript = ScriptBuilder.createP2SHP2WSHOutputScript(flyoverProposedFederationRedeemScript);
+        Address flyoverProposedFederationAddress = Address.fromP2SHScript(networkParameters, flyoverProposedFedScript);
+        addOutputToFed(svpFundTransaction, flyoverProposedFederationAddress, svpFundTxOutputsAmountToSend);
+
+        Coin changeAmount = prevAmount
+            .minus(svpFundTxOutputsAmountToSend)
+            .minus(svpFundTxOutputsAmountToSend);
+        addOutputToFed(svpFundTransaction, activeFederation.getAddress(), changeAmount);
+
+        return svpFundTransaction;
+    }
+
     public static BtcTransaction createTxFromP2pkh(NetworkParameters networkParameters) {
         BtcTransaction btcTx = new BtcTransaction(networkParameters);
         addInputFromP2pkh(btcTx);
@@ -269,12 +359,133 @@ public final class BitcoinTestUtils {
         addWitness(btcTx, numSigs, SENDER_PUBLIC_KEY.getPubKey());
     }
 
+    public static BtcTransaction createTxFromP2shMultiSig(NetworkParameters networkParameters) {
+        Script multiSigOutputScript = ScriptBuilder.createP2SHOutputScript(MULTISIG_REDEEM_SCRIPT);
+        return createTxFromMultiSig(networkParameters, multiSigOutputScript);
+    }
+
+    public static BtcTransaction createTxFromP2shP2wshMultiSig(NetworkParameters networkParameters) {
+        Script multiSigOutputScript = ScriptBuilder.createP2SHP2WSHOutputScript(MULTISIG_REDEEM_SCRIPT);
+        return createTxFromMultiSig(networkParameters, multiSigOutputScript);
+    }
+
+    private static BtcTransaction createTxFromMultiSig(NetworkParameters networkParameters, Script multiSigOutputScript) {
+        BtcTransaction txFromMultiSig = new BtcTransaction(networkParameters);
+        addInputFromMultiSig(txFromMultiSig, multiSigOutputScript);
+        return txFromMultiSig;
+    }
+
+    private static void addInputFromMultiSig(BtcTransaction btcTx, Script multiSigOutputScript) {
+        BtcTransaction prevTx = new BtcTransaction(btcTx.getParams());
+        prevTx.addOutput(Coin.COIN, multiSigOutputScript);
+        btcTx.addInput(prevTx.getOutput(0));
+        Script inputScript = createBaseInputScriptThatSpendsFromRedeemScript(MULTISIG_REDEEM_SCRIPT);
+        btcTx.getInput(0).setScriptSig(inputScript);
+    }
+
     public static void addOutputToFedWithMinimumPeginValue(BtcTransaction btcTx, Address federationAddress) {
         addOutputToFed(btcTx, federationAddress, MINIMUM_PEGIN_TX_VALUE);
     }
 
+    public static void addOutputToFedBelowMinimumPeginValue(BtcTransaction btcTx, Address federationAddress) {
+        Coin amountBelowMinimum = MINIMUM_PEGIN_TX_VALUE.subtract(Coin.valueOf(1L));
+        addOutputToFed(btcTx, federationAddress, amountBelowMinimum);
+    }
+
     public static void addOutputToFed(BtcTransaction btcTx, Address federationAddress, Coin amountToSend) {
         btcTx.addOutput(amountToSend, federationAddress);
+    }
+
+    public static void addOpReturnOutput(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRsk(V1_PROTOCOL_VERSION));
+    }
+
+    public static void addOpReturnOutputInvalidPayload(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskInvalidPayload());
+    }
+
+    public static void addOpReturnOutputInvalidPayloadWithRefundAddress(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskInvalidPayloadWithRefundAddress());
+    }
+
+    private static Script createOpReturnScriptForRskInvalidPayload() {
+        byte[] payloadBytes = new byte[INVALID_PAYLOAD_LENGTH];
+        addRskPrefix(payloadBytes);
+        addProtocolVersion(payloadBytes, V1_PROTOCOL_VERSION);
+        addDestinationAddress(payloadBytes);
+        return ScriptBuilder.createOpReturnScript(payloadBytes);
+    }
+
+    private static Script createOpReturnScriptForRskInvalidPayloadWithRefundAddress() {
+        byte[] payloadBytes = new byte[INVALID_PAYLOAD_LENGTH];
+        addDefaultPayload(payloadBytes, V1_PROTOCOL_VERSION);
+        addRefundP2pkhAddress(payloadBytes);
+        return ScriptBuilder.createOpReturnScript(payloadBytes);
+    }
+
+    public static void addOpReturnOutputWithRefundAddress(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskWithP2pkhRefundAddress(V1_PROTOCOL_VERSION));
+    }
+
+    public static void addOpReturnOutputUnknownProtocolVersion(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRsk(UNKNOWN_PROTOCOL_VERSION));
+    }
+
+    public static void addOpReturnOutputUnknownProtocolVersionWithRefundAddress(BtcTransaction btcTx) {
+        btcTx.addOutput(OP_RETURN_OUTPUT_AMOUNT, createOpReturnScriptForRskWithP2pkhRefundAddress(UNKNOWN_PROTOCOL_VERSION));
+    }
+
+    private static Script createOpReturnScriptForRsk(int protocolVersion) {
+        int defaultPayloadBytesLength = RSK_PREFIX_LENGTH + PROTOCOL_VERSION_LENGTH + RSK_DESTINATION_ADDRESS_LENGTH;
+        byte[] payloadBytes = new byte[defaultPayloadBytesLength];
+        addDefaultPayload(payloadBytes, protocolVersion);
+        return ScriptBuilder.createOpReturnScript(payloadBytes);
+    }
+
+    private static Script createOpReturnScriptForRskWithP2pkhRefundAddress(int protocolVersion) {
+        byte[] payloadBytes = new byte[PAYLOAD_WITH_REFUND_ADDRESS_LENGTH];
+        addDefaultPayload(payloadBytes, protocolVersion);
+        addRefundP2pkhAddress(payloadBytes);
+        return ScriptBuilder.createOpReturnScript(payloadBytes);
+    }
+
+    private static void addRefundP2pkhAddress(byte[] payloadBytes) {
+        int refundAddressTypeIndex = 25;
+        byte p2PkhAddressType = 1;
+        payloadBytes[refundAddressTypeIndex] = p2PkhAddressType;
+        int refundAddressIndex = refundAddressTypeIndex + 1;
+        System.arraycopy(
+            SENDER_PUBLIC_KEY.getPubKeyHash(),
+            0,
+            payloadBytes,
+            refundAddressIndex,
+            SENDER_PUBLIC_KEY.getPubKeyHash().length
+        );
+    }
+
+    private static void addDefaultPayload(byte[] payloadBytes, int protocolVersion) {
+        addRskPrefix(payloadBytes);
+        addProtocolVersion(payloadBytes, protocolVersion);
+        addDestinationAddress(payloadBytes);
+    }
+
+    private static void addRskPrefix(byte[] payloadBytes) {
+        System.arraycopy(RSK_PREFIX, 0, payloadBytes, RSK_PREFIX_INDEX, RSK_PREFIX_LENGTH);
+    }
+
+    private static void addProtocolVersion(byte[] payloadBytes, int protocolVersion) {
+        var index = RSK_PREFIX.length;
+        payloadBytes[index] = (byte) protocolVersion;
+    }
+
+    private static void addDestinationAddress(byte[] payloadBytes) {
+        System.arraycopy(
+            DESTINATION_ADDRESS.getBytes(),
+            0,
+            payloadBytes,
+            RSK_DESTINATION_ADDRESS_INDEX,
+            RSK_DESTINATION_ADDRESS_LENGTH
+        );
     }
 
     public static BtcTransaction createCoinbaseTransactionWithWitnessCommitment(
