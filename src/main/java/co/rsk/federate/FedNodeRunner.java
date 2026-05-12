@@ -282,13 +282,13 @@ public class FedNodeRunner implements NodeRunner {
                 bridgeConstants.getFederationConstants()
             );
 
+            directoryStorageInfo = new BtcToRskClientDirectoryStorageInfo(config);
+
             BtcLockSenderProvider btcLockSenderProvider = new BtcLockSenderProvider();
             PeginInstructionsProvider peginInstructionsProvider = new PeginInstructionsProvider();
             bitcoinWrapper = createAndSetupBitcoinWrapper(btcLockSenderProvider, peginInstructionsProvider);
 
-            directoryStorageInfo = new BtcToRskClientDirectoryStorageInfo(config);
             BtcToRskClientFileStorageFactory fileStorageFactory = new BtcToRskClientFileStorageFactory(directoryStorageInfo);
-
             BtcToRskClientFileStorage btcToRskActiveClientFileStorage = fileStorageFactory.forActive();
             btcToRskClientActive.setup(
                 bitcoinWrapper,
