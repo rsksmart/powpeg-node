@@ -3,7 +3,6 @@ package co.rsk.federate.bitcoin;
 import static co.rsk.bitcoinj.script.ScriptBuilder.createP2SHOutputScript;
 import static co.rsk.federate.PegUtils.MINIMUM_PEGIN_TX_VALUE;
 import static co.rsk.peg.PegUtils.getFlyoverFederationRedeemScript;
-import static co.rsk.peg.ReleaseTransactionBuilder.BTC_TX_VERSION_2;
 import static co.rsk.peg.bitcoin.BitcoinUtils.*;
 
 import co.rsk.bitcoinj.core.*;
