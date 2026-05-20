@@ -384,9 +384,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     protected int updateBridgeBtcBlockchain() throws BlockStoreException, IOException {
-        long bestBlockNumber = federatorSupport.getRskBestChainHeight();
-        boolean useBlockDepth = activationConfig.isActive(ConsensusRule.RSKIP89, bestBlockNumber);
-
         int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBlockchainBestChainHeight();
         int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
         if (federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight) {
@@ -399,16 +396,12 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             // update the bridge with the latest.
 
             // First, find the common ancestor that is in the federator's bestchain
-            // using either the old method -- block locator
-            // or the new one -- block depth incremental search
-            StoredBlock commonAncestor;
-            if (useBlockDepth) {
-                commonAncestor = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
-            } else {
-                commonAncestor = findBridgeBtcBlockchainMatchingAncestorUsingBlockLocator();
+            // using block depth incremental search
+            Optional<StoredBlock> commonAncestorOpt = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
+            if (commonAncestorOpt.isEmpty()) {
+                throw new BlockStoreException("No best chain block found");
             }
-
-            checkNotNull(commonAncestor, "No best chain block found");
+            StoredBlock commonAncestor = commonAncestorOpt.get();
 
             logger.debug(
                 "[updateBridgeBtcBlockchain] Matched block {}.",
@@ -481,7 +474,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
     }
 
-    private StoredBlock findBridgeBtcBlockchainMatchingAncestor(int bridgeBtcBlockchainBestChainHeight) throws BlockStoreException {
+    private Optional<StoredBlock> findBridgeBtcBlockchainMatchingAncestor(int bridgeBtcBlockchainBestChainHeight) throws BlockStoreException {
         // Find the last federator's best chain block the bridge has and update from there
         int bridgeBtcBlockchainInitialBlockHeight = federatorSupport.getBtcBlockchainInitialBlockHeight();
         int maxSearchDepth = bridgeBtcBlockchainBestChainHeight - bridgeBtcBlockchainInitialBlockHeight;
@@ -491,27 +484,17 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             maxSearchDepth
         );
 
-        StoredBlock matchedBlock = null;
         int currentSearchDepth = 0;
         int iteration = 0;
         while (true) {
             Sha256Hash storedBlockHash = federatorSupport.getBtcBlockchainBlockHashAtDepth(currentSearchDepth);
-            StoredBlock storedBlock = bitcoinWrapper.getBlock(storedBlockHash);
+            Optional<StoredBlock> storedBlock = getMatchingStoredBlockInMainChain(storedBlockHash);
             logger.trace(
                 "[findBridgeBtcBlockchainMatchingAncestor] block[storedBlockHash] found? {}",
-                storedBlock != null
+                storedBlock.isPresent()
             );
-            if (storedBlock != null) {
-                StoredBlock storedBlockInBestChain = bitcoinWrapper.getBlockAtHeight(storedBlock.getHeight());
-                logger.trace(
-                    "[findBridgeBtcBlockchainMatchingAncestor] block[{}] in best chain? {}",
-                    storedBlock.getHeader().getHash(),
-                    storedBlock.equals(storedBlockInBestChain)
-                );
-                if (storedBlock.equals(storedBlockInBestChain)) {
-                    matchedBlock = storedBlockInBestChain;
-                    break;
-                }
+            if (storedBlock.isPresent()) {
+                return storedBlock;
             }
 
             // Have we just searched at maximum depth? If so, no more to search, nothing found!
@@ -527,36 +510,28 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             currentSearchDepth = IntStream.of(1 << iteration, maxSearchDepth).min().getAsInt();
             iteration++;
         }
-
-        return matchedBlock;
+        return Optional.empty();
     }
 
-    private StoredBlock findBridgeBtcBlockchainMatchingAncestorUsingBlockLocator() throws BlockStoreException {
-        // Find the last best chain block the bridge has with respect
-        // to the federate node's best chain.
-        Object[] blockLocatorArray = federatorSupport.getBtcBlockchainBlockLocator();
-        logger.debug(
-            "Block locator size {}, first {}, last {}.",
-            blockLocatorArray.length,
-            blockLocatorArray[0],
-            blockLocatorArray[blockLocatorArray.length - 1]
-        );
+    private Optional<StoredBlock> getMatchingStoredBlockInMainChain(Sha256Hash blockHash) throws BlockStoreException {
 
-        StoredBlock matchedBlock = null;
-        for (Object o : blockLocatorArray) {
-            String blockHash = (String) o;
-            StoredBlock storedBlock = bitcoinWrapper.getBlock(Sha256Hash.wrap(blockHash));
-            if (storedBlock == null) {
-                continue;
-            }
-            StoredBlock storedBlockInBestChain = bitcoinWrapper.getBlockAtHeight(storedBlock.getHeight());
-            if (storedBlock.equals(storedBlockInBestChain)) {
-                matchedBlock = storedBlockInBestChain;
-                break;
-            }
+        StoredBlock storedBlock = bitcoinWrapper.getBlock(blockHash);
+        if (storedBlock == null) {
+            return Optional.empty();
+        }
+        int storedBlockHeight = storedBlock.getHeight();
+        StoredBlock storedBlockAtHeightInBestChain = bitcoinWrapper.getBlockAtHeight(storedBlockHeight);
+        boolean isBlockInBestChain = storedBlock.equals(storedBlockAtHeightInBestChain);
+        logger.trace(
+            "[getMatchingStoredBlockInMainChain] block[{}] in best chain? {}",
+            storedBlock.getHeader().getHash(),
+            isBlockInBestChain
+        );
+        if (isBlockInBestChain) {
+            return Optional.of(storedBlockAtHeightInBestChain);
         }
 
-        return matchedBlock;
+        return Optional.empty();
     }
 
     protected void updateBridgeBtcTransactions() {
@@ -714,7 +689,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     private Optional<StoredBlock> getStoredBlock(Transaction tx) {
         try {
-            return Optional.of(findBestChainStoredBlockFor(tx));
+            return findBestChainStoredBlockFor(tx);
         } catch (BlockStoreException | IllegalStateException e) {
             return Optional.empty();
         }
@@ -842,24 +817,20 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     /**
      * Finds the block in the best chain where supplied tx appears.
-     * @throws IllegalStateException If the tx is not in the best chain
      */
-    private StoredBlock findBestChainStoredBlockFor(Transaction tx) throws IllegalStateException, BlockStoreException {
+    private Optional<StoredBlock> findBestChainStoredBlockFor(Transaction tx) throws IllegalStateException, BlockStoreException {
         Map<Sha256Hash, Integer> blockHashes = tx.getAppearsInHashes();
 
         if (blockHashes != null) {
             for (Sha256Hash blockHash : blockHashes.keySet()) {
-                StoredBlock storedBlock = bitcoinWrapper.getBlock(blockHash);
-                // Find out if that block is in the main chain
-                int height = storedBlock.getHeight();
-                StoredBlock storedBlockAtHeight = bitcoinWrapper.getBlockAtHeight(height);
-                if (storedBlockAtHeight!=null && storedBlockAtHeight.getHeader().getHash().equals(blockHash)) {
-                    return storedBlockAtHeight;
+                Optional<StoredBlock> storedBlock = getMatchingStoredBlockInMainChain(blockHash);
+                if (storedBlock.isPresent()) {
+                    return storedBlock;
                 }
             }
         }
 
-        throw new IllegalStateException("Tx not in the best chain: " + tx.getWTxId());
+        return Optional.empty();
     }
 
     @PreDestroy
