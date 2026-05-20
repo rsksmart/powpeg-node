@@ -265,84 +265,6 @@ class BtcReleaseClientTest {
         Mockito.verify(ethereum, Mockito.times(1)).removeListener(ArgumentMatchers.any(EthereumListener.class));
     }
 
-    @Test
-    void processReleases_ok() throws Exception {
-        // Arrange
-        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createP2shP2wshErpFederation(params, 20);
-        FederationMember federationMember = federation.getMembers().get(0);
-
-        // Create a tx from the Fed to a random btc address
-        BtcTransaction releaseTx = new BtcTransaction(params);
-
-        int amountOfInputs = 5;
-        for (int i = 0; i < amountOfInputs; i++) {
-            TransactionInput releaseInput = TestUtils.createTransactionInput(params, releaseTx, federation);
-            releaseTx.addInput(releaseInput);
-        }
-
-        BtcECKey fedKey = new BtcECKey();
-        ECPublicKey signerPublicKey = new ECPublicKey(fedKey.getPubKey());
-        ECKey.ECDSASignature ethSig = new ECKey.ECDSASignature(BigInteger.ONE, BigInteger.TEN);
-
-        when(signer.getPublicKey(BTC.getKeyId())).thenReturn(signerPublicKey);
-        when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(1);
-        when(signer.sign(eq(BTC.getKeyId()), ArgumentMatchers.any())).thenReturn(ethSig);
-
-        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
-        SignerMessageBuilder messageBuilder = new SignerMessageBuilderV1(releaseTx, sigHashCalculator);
-        SignerMessageBuilderFactory signerMessageBuilderFactory = mock(SignerMessageBuilderFactory.class);
-        when(signerMessageBuilderFactory.buildFromConfig(
-            ArgumentMatchers.anyInt(),
-            ArgumentMatchers.any(ReleaseCreationInformation.class),
-            ArgumentMatchers.anyInt()
-        )).thenReturn(messageBuilder);
-
-        doReturn(federationMember).when(federatorSupport).getFederationMember();
-
-        client = new BtcReleaseClient(
-            mock(Ethereum.class),
-            federatorSupport,
-            powpegNodeSystemProperties,
-            mock(NodeBlockProcessor.class)
-        );
-
-        Keccak256 rskTxHash = Keccak256.ZERO_HASH;
-
-        Block block = mock(Block.class);
-        ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
-            block,
-            mock(TransactionReceipt.class),
-            rskTxHash,
-            releaseTx
-        );
-        ReleaseCreationInformationGetter releaseCreationInformationGetter = mock(ReleaseCreationInformationGetter.class);
-        when(releaseCreationInformationGetter.getTxInfoToSign(
-            anyInt(),
-            any(),
-            any()
-        )).thenReturn(releaseCreationInformation);
-
-        client.setup(
-            signer,
-            signerMessageBuilderFactory,
-            releaseCreationInformationGetter,
-            mock(ReleaseRequirementsEnforcer.class)
-        );
-        client.start(federation);
-
-        SortedMap<Keccak256, BtcTransaction> releases = new TreeMap<>();
-        releases.put(rskTxHash, releaseTx);
-
-        // Act
-        client.processReleases(releases.entrySet());
-
-        // Assert
-        Mockito.verify(signer, Mockito.times(amountOfInputs)).sign(
-            eq(BTC.getKeyId()),
-            any(SignerMessage.class)
-        );
-    }
 
     @Nested
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -1249,6 +1171,14 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash1.getBytes())).thenReturn(block1);
         when(txInfo1.getReceipt()).thenReturn(txReceipt1);
         when(txInfo1.getBlockHash()).thenReturn(blockHash1.getBytes());
+        Coin pegout1Amount = tx1.getOutputSum();
+        when(txReceipt1.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(hash1, tx1.getHash(), pegout1Amount),
+            createPegoutTransactionCreatedLog(
+                tx1.getHash(),
+                UtxoUtils.encodeOutpointValues(Collections.singletonList(tx1.getInputSum()))
+            )
+        ));
         when(receiptStore.getInMainChain(hash1.getBytes(), blockStore)).thenReturn(Optional.of(txInfo1));
 
         Keccak256 blockHash2 = createHash(3);
@@ -1259,6 +1189,14 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash2.getBytes())).thenReturn(block2);
         when(txInfo2.getReceipt()).thenReturn(txReceipt2);
         when(txInfo2.getBlockHash()).thenReturn(blockHash2.getBytes());
+        Coin pegout2Amount = tx2.getOutputSum();
+        when(txReceipt2.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(hash2, tx2.getHash(), pegout2Amount),
+            createPegoutTransactionCreatedLog(
+                tx2.getHash(),
+                UtxoUtils.encodeOutpointValues(Collections.singletonList(tx2.getInputSum()))
+            )
+        ));
         when(receiptStore.getInMainChain(hash2.getBytes(), blockStore)).thenReturn(Optional.of(txInfo2));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter =
@@ -1332,6 +1270,14 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(txInfo.getReceipt()).thenReturn(txReceipt);
         when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        Coin pegoutAmount = pegout.getOutputSum();
+        when(txReceipt.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(pegoutCreationRskTxHash, pegout.getHash(), pegoutAmount),
+            createPegoutTransactionCreatedLog(
+                pegout.getHash(),
+                UtxoUtils.encodeOutpointValues(Collections.singletonList(pegout.getInputSum()))
+            )
+        ));
         when(receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter =
@@ -1419,6 +1365,14 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(txInfo.getReceipt()).thenReturn(txReceipt);
         when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        Coin pegoutAmount = pegout.getOutputSum();
+        when(txReceipt.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(pegoutCreationRskTxHash, pegout.getHash(), pegoutAmount),
+            createPegoutTransactionCreatedLog(
+                pegout.getHash(),
+                UtxoUtils.encodeOutpointValues(Collections.singletonList(pegout.getInputSum()))
+            )
+        ));
         when(receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter =
@@ -1517,6 +1471,14 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(txInfo.getReceipt()).thenReturn(txReceipt);
         when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        Coin svpSpendAmount = svpSpendTx.getOutputSum();
+        when(txReceipt.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(svpSpendCreationRskTxHash, svpSpendTx.getHash(), svpSpendAmount),
+            createPegoutTransactionCreatedLog(
+                svpSpendTx.getHash(),
+                UtxoUtils.encodeOutpointValues(Collections.singletonList(svpSpendTx.getInputSum()))
+            )
+        ));
         when(receiptStore.getInMainChain(svpSpendCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter =
@@ -1622,6 +1584,15 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(txInfo.getReceipt()).thenReturn(txReceipt);
         when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        BitcoinUtils.removeSignaturesFromMultiSigTransaction(svpSpendTx);
+        Coin svpSpendAmount = svpSpendTx.getOutputSum();
+        when(txReceipt.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(svpSpendCreationRskTxHash, svpSpendTx.getHash(), svpSpendAmount),
+            createPegoutTransactionCreatedLog(
+                svpSpendTx.getHash(),
+                UtxoUtils.encodeOutpointValues(List.of(Coin.valueOf(100_000)))
+            )
+        ));
         when(receiptStore.getInMainChain(svpSpendCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
@@ -1731,6 +1702,14 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(txInfo.getReceipt()).thenReturn(txReceipt);
         when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        Coin pegoutAmount = pegout.getOutputSum();
+        when(txReceipt.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(pegoutCreationRskTxHash, pegout.getHash(), pegoutAmount),
+            createPegoutTransactionCreatedLog(
+                pegout.getHash(),
+                UtxoUtils.encodeOutpointValues(Collections.singletonList(pegout.getInputSum()))
+            )
+        ));
         when(receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
 
         // svp spend tx
@@ -1744,6 +1723,14 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(svpSpendBlockHash.getBytes())).thenReturn(svpSpendBlock);
         when(svpSpendTxInfo.getReceipt()).thenReturn(svpSpendTxReceipt);
         when(svpSpendTxInfo.getBlockHash()).thenReturn(svpSpendBlockHash.getBytes());
+        Coin svpSpendAmount = svpSpendTx.getOutputSum();
+        when(svpSpendTxReceipt.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(svpSpendCreationRskTxHash, svpSpendTx.getHash(), svpSpendAmount),
+            createPegoutTransactionCreatedLog(
+                svpSpendTx.getHash(),
+                UtxoUtils.encodeOutpointValues(Collections.singletonList(svpSpendTx.getInputSum()))
+            )
+        ));
         when(receiptStore.getInMainChain(svpSpendCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(svpSpendTxInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(
@@ -1835,6 +1822,14 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(blockHash.getBytes())).thenReturn(block);
         when(txInfo.getReceipt()).thenReturn(txReceipt);
         when(txInfo.getBlockHash()).thenReturn(blockHash.getBytes());
+        Coin pegoutAmount = pegout.getOutputSum();
+        when(txReceipt.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(pegoutCreationRskTxHash, pegout.getHash(), pegoutAmount),
+            createPegoutTransactionCreatedLog(
+                pegout.getHash(),
+                UtxoUtils.encodeOutpointValues(Collections.singletonList(pegout.getInputSum()))
+            )
+        ));
         when(receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(txInfo));
 
         // svp spend tx
@@ -1848,6 +1843,14 @@ class BtcReleaseClientTest {
         when(blockStore.getBlockByHash(svpSpendBlockHash.getBytes())).thenReturn(svpSpendBlock);
         when(svpSpendTxInfo.getReceipt()).thenReturn(svpSpendTxReceipt);
         when(svpSpendTxInfo.getBlockHash()).thenReturn(svpSpendBlockHash.getBytes());
+        Coin svpSpendAmount = svpSpendTx.getOutputSum();
+        when(svpSpendTxReceipt.getLogInfoList()).thenReturn(List.of(
+            createReleaseRequestedLog(svpSpendCreationRskTxHash, svpSpendTx.getHash(), svpSpendAmount),
+            createPegoutTransactionCreatedLog(
+                svpSpendTx.getHash(),
+                UtxoUtils.encodeOutpointValues(Collections.singletonList(svpSpendTx.getInputSum()))
+            )
+        ));
         when(receiptStore.getInMainChain(svpSpendCreationRskTxHash.getBytes(), blockStore)).thenReturn(Optional.of(svpSpendTxInfo));
 
         ReleaseCreationInformationGetter releaseCreationInformationGetter =
@@ -2124,23 +2127,6 @@ class BtcReleaseClientTest {
     }
 
     @Test
-    void validateTxCanBeSigned_ok() throws Exception {
-        // Arrange
-        powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
-        Federation federation = TestUtils.createP2shP2wshErpFederation(params, 20);
-
-        // Create a tx from the Fed to a random btc address
-        BtcTransaction releaseTx = new BtcTransaction(params);
-        TransactionInput releaseInput = TestUtils.createTransactionInput(params, releaseTx, federation);
-        releaseTx.addInput(releaseInput);
-
-        BtcECKey fed1Key = federation.getBtcPublicKeys().get(0);
-        ECPublicKey signerPublicKey = new ECPublicKey(fed1Key.getPubKey());
-
-        test_validateTxCanBeSigned(federation, releaseTx, signerPublicKey);
-    }
-
-    @Test
     void validateTxCanBeSigned_fast_bridge_ok() throws Exception {
         // Create a StandardMultisigFederation
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
@@ -2221,7 +2207,8 @@ class BtcReleaseClientTest {
             mock(Block.class),
             mock(TransactionReceipt.class),
             rskTxHash,
-            releaseTx
+            releaseTx,
+            Collections.emptyList()
         );
 
         // Act

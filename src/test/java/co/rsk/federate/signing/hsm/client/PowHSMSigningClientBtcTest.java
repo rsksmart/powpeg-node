@@ -250,9 +250,18 @@ class PowHSMSigningClientBtcTest {
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
+        List<Coin> outpointValues = new ArrayList<>();
+        for (int i=0; i < pegoutBtcTx.getInputs().size(); i++) {
+            TransactionInput input = pegoutBtcTx.getInput(i);
+            outpointValues.add(input.getValue());
+        }
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
-            pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx);
+            pegoutCreationBlock,
+            pegoutCreationRskTxReceipt,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            outpointValues
+        );
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
 
@@ -286,9 +295,18 @@ class PowHSMSigningClientBtcTest {
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
+        List<Coin> outpointValues = new ArrayList<>();
+        for (int i=0; i < pegoutBtcTx.getInputs().size(); i++) {
+            TransactionInput input = pegoutBtcTx.getInput(i);
+            outpointValues.add(input.getValue());
+        }
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
-            pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx);
+            pegoutCreationBlock,
+            pegoutCreationRskTxReceipt,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            outpointValues
+        );
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
 

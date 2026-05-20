@@ -1,11 +1,11 @@
 package co.rsk.federate.signing.hsm.message;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
 import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
-import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.BridgeEvents;
+import co.rsk.peg.bitcoin.UtxoUtils;
 import org.ethereum.core.*;
 import org.ethereum.db.*;
 import org.ethereum.vm.DataWord;
@@ -19,6 +19,13 @@ import java.util.List;
 import java.util.Optional;
 
 public class ReleaseCreationInformationGetter {
+
+    private record ReleaseCreationLogs(
+        LogInfo releaseRequestedEvent,
+        LogInfo pegoutTransactionCreatedEvent
+    ) {
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(ReleaseCreationInformationGetter.class);
 
     private final BlockStore blockStore;
@@ -33,150 +40,79 @@ public class ReleaseCreationInformationGetter {
     }
 
     public ReleaseCreationInformation getTxInfoToSign(
-        int signerVersion,
         Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx
     ) throws HSMReleaseCreationInformationException {
-        HSMVersion hsmVersion;
-        try {
-            hsmVersion = HSMVersion.fromNumber(signerVersion);
-        } catch (HSMUnsupportedVersionException e) {
-            throw new HSMReleaseCreationInformationException(String.format("Unsupported version %d", signerVersion), e);
-        }
+        logger.debug("[getTxInfoToSign] Going to lookup rsk transaction {} to get pegout to sign", pegoutCreationRskTxHash);
 
-        ReleaseCreationInformation baseReleaseCreationInformation = getBaseReleaseCreationInformation(pegoutCreationRskTxHash, pegoutBtcTx);
-        if (!hsmVersion.isPowHSM()) {
-            return baseReleaseCreationInformation;
-        }
+        TransactionInfo pegoutCreationRskTxInfo = receiptStore
+            .getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore)
+            .orElseThrow(() -> {
+                String message = String.format(
+                    "Rsk transaction %s where the pegout was created could not be found in best chain",
+                    pegoutCreationRskTxHash
+                );
+                logger.error("[getReleaseCreationInformation] {}", message);
+                return new HSMReleaseCreationInformationException(message);
+            });
 
-        return getReleaseCreationInformationToSignWithPowHsm(baseReleaseCreationInformation);
-    }
-
-    protected ReleaseCreationInformation getBaseReleaseCreationInformation(
-        Keccak256 pegoutCreationRskTxHash,
-        BtcTransaction pegoutBtcTx
-    ) throws HSMReleaseCreationInformationException {
-        Optional<TransactionInfo> pegoutCreationRskTxInfoOpt = receiptStore.getInMainChain(pegoutCreationRskTxHash.getBytes(), blockStore);
-
-        if (pegoutCreationRskTxInfoOpt.isEmpty()) {
-            String message = String.format(
-                "Rsk transaction %s where the pegout was created could not be found in best chain",
-                pegoutCreationRskTxHash
-            );
-            logger.error("[getBaseReleaseCreationInformation] {}", message);
-            throw new HSMReleaseCreationInformationException(message);
-        }
-
-        TransactionInfo pegoutCreationRskTxInfo = pegoutCreationRskTxInfoOpt.get();
         TransactionReceipt pegoutCreationRskTxReceipt = pegoutCreationRskTxInfo.getReceipt();
         Block pegoutCreationRskBlock = blockStore.getBlockByHash(pegoutCreationRskTxInfo.getBlockHash());
+
+        List<LogInfo> logs = pegoutCreationRskTxReceipt.getLogInfoList();
+        ReleaseCreationLogs releaseCreationLogs = getReleaseCreationLogs(pegoutCreationRskTxHash, pegoutBtcTx, logs);
+        List<Coin> utxoOutpointsValues = getUtxoOutpointsValues(releaseCreationLogs.pegoutTransactionCreatedEvent());
 
         return new ReleaseCreationInformation(
             pegoutCreationRskBlock,
             pegoutCreationRskTxReceipt,
             pegoutCreationRskTxHash,
-            pegoutBtcTx
+            pegoutBtcTx,
+            utxoOutpointsValues
         );
     }
 
-    protected ReleaseCreationInformation getReleaseCreationInformationToSignWithPowHsm(
-        ReleaseCreationInformation baseReleaseCreationInformation
-    ) throws HSMReleaseCreationInformationException {
-        try {
-            Block pegoutCreationBlock = baseReleaseCreationInformation.getPegoutCreationBlock();
-            Keccak256 pegoutCreationRskTxHash = baseReleaseCreationInformation.getPegoutCreationRskTxHash();
-            BtcTransaction pegoutBtcTx = baseReleaseCreationInformation.getPegoutBtcTx();
-            TransactionReceipt pegoutCreationRskTxReceipt = baseReleaseCreationInformation.getTransactionReceipt();
-
-            // to be able to sign with hsm,
-            // we first need to check the release requested event related logs are found
-            validateReleaseRequestedLogsAreFound(
-                pegoutCreationRskTxReceipt.getLogInfoList(),
-                pegoutBtcTx,
-                pegoutCreationRskTxHash
-            );
-
-            // and then set the pegout creation rsk tx in the tx receipt
-            Transaction transaction = findPegoutCreationRskTxInBlock(baseReleaseCreationInformation);
-            pegoutCreationRskTxReceipt.setTransaction(transaction);
-
-            return new ReleaseCreationInformation(
-                pegoutCreationBlock,
-                pegoutCreationRskTxReceipt,
-                pegoutCreationRskTxHash,
-                pegoutBtcTx
-            );
-
-        } catch (Exception e) {
-            throw new HSMReleaseCreationInformationException("Unhandled exception occurred", e);
-        }
-    }
-
-    private Transaction findPegoutCreationRskTxInBlock(
-        ReleaseCreationInformation baseReleaseCreationInformation
-    ) throws HSMReleaseCreationInformationException {
-        Block pegoutCreationBlock = baseReleaseCreationInformation.getPegoutCreationBlock();
-        Keccak256 pegoutCreationRskTxHash = baseReleaseCreationInformation.getPegoutCreationRskTxHash();
-
-        logger.trace(
-            "[findPegoutCreationRskTxInBlock] Searching for pegout creation rsk tx {} in block {} ({})",
-            pegoutCreationRskTxHash,
-            pegoutCreationBlock.getHash(),
-            pegoutCreationBlock.getNumber()
-        );
-
-        // Get transaction from the block searching by tx hash
-        List<Transaction> transactions = pegoutCreationBlock.getTransactionsList().stream()
-            .filter(t -> t.getHash().equals(pegoutCreationRskTxHash))
-            .toList();
-        logger.trace("[findPegoutCreationRskTxInBlock] Transactions found {}", transactions.size());
-
-        if (transactions.size() != 1) {
-            String message = String.format(
-                "Rsk transaction %s could not be found in block %s or more than 1 result obtained. Txs found: %d",
-                pegoutCreationRskTxHash,
-                pegoutCreationBlock.getHash().toHexString(),
-                transactions.size()
-            );
-            logger.error("[findPegoutCreationRskTxInBlock] {}", message);
-            throw new HSMReleaseCreationInformationException(message);
-        }
-        return transactions.get(0);
-    }
-
-    private void validateReleaseRequestedLogsAreFound(
-        List<LogInfo> logs,
+    private ReleaseCreationLogs getReleaseCreationLogs(
+        Keccak256 pegoutCreationRskTxHash,
         BtcTransaction pegoutBtcTx,
-        Keccak256 pegoutCreationRskTxHash
+        List<LogInfo> logs
     ) throws HSMReleaseCreationInformationException {
-        boolean hasReleaseRequestedLogs = false;
-        boolean hasPegoutTransactionCreatedLogs = false;
 
+        Optional<LogInfo> releaseRequestedEvent = Optional.empty();
+        Optional<LogInfo> pegoutTransactionCreatedEvent = Optional.empty();
         for (LogInfo logInfo : logs) {
             if (isReleaseRequestedLog(logInfo, pegoutBtcTx, pegoutCreationRskTxHash)) {
                 logger.debug(
-                    "[validateReleaseRequestedLogsAreFound] Expected release requested log for pegout creation rsk tx {} was found",
+                    "[getReleaseCreationInformation] Expected release requested log for pegout creation rsk tx {} was found",
                     pegoutCreationRskTxHash
                 );
-                hasReleaseRequestedLogs = true;
+                releaseRequestedEvent = Optional.of(logInfo);
             }
 
             if (isPegoutTransactionCreatedLog(logInfo, pegoutBtcTx)) {
                 logger.debug(
-                    "[validateReleaseRequestedLogsAreFound] Expected pegout transaction created log for pegout creation rsk tx {} was found",
+                    "[getReleaseCreationInformation] Expected pegout transaction created log for pegout creation rsk tx {} was found",
                     pegoutCreationRskTxHash
                 );
-                hasPegoutTransactionCreatedLogs = true;
+                pegoutTransactionCreatedEvent = Optional.of(logInfo);
             }
         }
 
-        if (!hasReleaseRequestedLogs || !hasPegoutTransactionCreatedLogs) {
+        if (releaseRequestedEvent.isEmpty() || pegoutTransactionCreatedEvent.isEmpty()) {
             // Since RSKIP375, release_requested and pegout_transaction_created events
             // are always emitted in the same block where the pegout was created.
             throw new HSMReleaseCreationInformationException(
                 String.format("Expected logs not found. Rsk transaction: [%s]", pegoutCreationRskTxHash)
             );
         }
+        return new ReleaseCreationLogs(releaseRequestedEvent.get(), pegoutTransactionCreatedEvent.get());
+    }
+
+    private List<Coin> getUtxoOutpointsValues(LogInfo logInfo) {
+        CallTransaction.Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
+        byte[] pegoutTransactionCreatedEventData = logInfo.getData();
+        byte[] utxoOutpointsValuesEncoded = (byte[]) pegoutTransactionCreatedEvent.decodeEventData(pegoutTransactionCreatedEventData)[0];
+        return UtxoUtils.decodeOutpointValues(utxoOutpointsValuesEncoded);
     }
 
     private boolean isReleaseRequestedLog(

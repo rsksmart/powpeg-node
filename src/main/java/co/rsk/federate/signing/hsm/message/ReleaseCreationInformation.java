@@ -3,22 +3,17 @@ package co.rsk.federate.signing.hsm.message;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.crypto.Keccak256;
-import co.rsk.peg.BridgeEvents;
-import co.rsk.peg.bitcoin.UtxoUtils;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.ethereum.core.Block;
-import org.ethereum.core.CallTransaction.Function;
 import org.ethereum.core.TransactionReceipt;
-import org.ethereum.vm.LogInfo;
 
 public class ReleaseCreationInformation {
-
     private final Block pegoutCreationBlock;
     private final TransactionReceipt transactionReceipt;
     private final Keccak256 pegoutCreationRskTxHash;
     private final BtcTransaction pegoutBtcTx;
+
     private final List<Coin> utxoOutpointValues;
 
     /**
@@ -31,40 +26,14 @@ public class ReleaseCreationInformation {
         Block pegoutCreationBlock,
         TransactionReceipt transactionReceipt,
         Keccak256 pegoutCreationRskTxHash,
-        BtcTransaction pegoutBtcTx
+        BtcTransaction pegoutBtcTx,
+        List<Coin> utxoOutpointsValues
     ) {
         this.pegoutCreationBlock = pegoutCreationBlock;
         this.transactionReceipt = transactionReceipt;
         this.pegoutCreationRskTxHash = pegoutCreationRskTxHash;
         this.pegoutBtcTx = pegoutBtcTx;
-
-        this.utxoOutpointValues = decodeUtxoOutpointValues();
-    }
-
-    private List<Coin> decodeUtxoOutpointValues() {
-        return transactionReceipt.getLogInfoList().stream()
-            .filter(this::isPegoutTransactionCreatedLog)
-            .findFirst()
-            .map(LogInfo::getData)
-            .map(this::decodePegoutTransactionEventData)
-            .map(UtxoUtils::decodeOutpointValues)
-            .orElse(Collections.emptyList());
-    }
-
-    private boolean isPegoutTransactionCreatedLog(LogInfo log) {
-        Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
-        final byte[] pegoutTransactionCreatedSignatureTopic = pegoutTransactionCreatedEvent.encodeSignatureLong();
-
-        boolean logHasTopics = !log.getTopics().isEmpty();
-        return logHasTopics &&
-            // event signature topic is always the first one
-            Arrays.equals(log.getTopics().get(0).getData(), pegoutTransactionCreatedSignatureTopic);
-    }
-
-    private byte[] decodePegoutTransactionEventData(byte[] pegoutCreatedTransactionEventData) {
-        Function pegoutTransactionCreatedEvent = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
-        return (byte[]) pegoutTransactionCreatedEvent.decodeEventData(
-            pegoutCreatedTransactionEventData)[0];
+        this.utxoOutpointValues = Collections.unmodifiableList(utxoOutpointsValues);
     }
 
     public Block getPegoutCreationBlock() {
@@ -89,7 +58,5 @@ public class ReleaseCreationInformation {
         return pegoutBtcTx;
     }
 
-    public List<Coin> getUtxoOutpointValues() {
-        return Collections.unmodifiableList(utxoOutpointValues);
-    }
+    public List<Coin> getUtxoOutpointValues() { return utxoOutpointValues; }
 }

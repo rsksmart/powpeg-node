@@ -12,7 +12,6 @@ import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.core.RskAddress;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.bitcoin.BitcoinTestUtils;
-import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.pegin.RejectedPeginReason;
@@ -29,14 +28,11 @@ import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 
 class ReleaseCreationInformationGetterTest {
     private static final CallTransaction.Function RELEASE_REQUESTED_EVENT = BridgeEvents.RELEASE_REQUESTED.getEvent();
     private static final CallTransaction.Function PEGOUT_TRANSACTION_CREATED_EVENT = BridgeEvents.PEGOUT_TRANSACTION_CREATED.getEvent();
     private static final byte[] BRIDGE_ADDRESS = PrecompiledContracts.BRIDGE_ADDR.getBytes();
-    private static final HSMVersion LATEST_HSM_VERSION = TestUtils.getLatestHsmVersion();
 
     private final Sha256Hash pegoutBtcTxHash = BitcoinTestUtils.createHash(1);
     private final byte[] pegoutBtcTxHashBytes = pegoutBtcTxHash.getBytes();
@@ -105,19 +101,6 @@ class ReleaseCreationInformationGetterTest {
             .thenReturn(Optional.of(pegoutCreationRskTxInfo));
     }
 
-    @ParameterizedTest
-    @EnumSource(HSMVersion.class)
-    void getTxInfoToSign_differentHSMVersions_returnsCorrectTxInfo(HSMVersion hsmVersion) throws HSMReleaseCreationInformationException {
-        // arrange
-        addNeededLogsForSigning();
-
-        // act
-        ReleaseCreationInformationGetter releaseCreationInformationGetter = new ReleaseCreationInformationGetter(receiptStore, blockStore);
-
-        // assert
-        assertTxInfoToSign(releaseCreationInformationGetter, hsmVersion.getNumber());
-    }
-
     @Test
     void getTxInfoToSign_whenBatchPegoutHasPegoutTransactionCreatedEvent_returnsCorrectTxInfo() throws HSMReleaseCreationInformationException {
         // Arrange
@@ -133,7 +116,7 @@ class ReleaseCreationInformationGetterTest {
         );
 
         // assert
-        assertTxInfoToSign(releaseCreationInformationGetter, LATEST_HSM_VERSION.getNumber());
+        assertTxInfoToSign(releaseCreationInformationGetter);
     }
 
     @Test
@@ -150,7 +133,7 @@ class ReleaseCreationInformationGetterTest {
         );
 
         // assert
-        assertTxInfoToSign(releaseCreationInformationGetter, LATEST_HSM_VERSION.getNumber());
+        assertTxInfoToSign(releaseCreationInformationGetter);
     }
 
     private void addNeededLogsForSigning() {
@@ -164,24 +147,6 @@ class ReleaseCreationInformationGetterTest {
 
     private void addValidPegoutTransactionCreatedLogs() {
         addLogToRskTxReceipt(pegoutCreationRskTxReceipt, pegoutTransactionCreatedLog);
-    }
-
-    @Test
-    void getTxInfoToSign_wrongHSMVersion_throwsHSMReleaseCreationInformationException() {
-        // arrange
-        ReleaseCreationInformationGetter pegoutCreationInformation = new ReleaseCreationInformationGetter(
-            receiptStore,
-            blockStore
-        );
-        int wrongHSMVersion = 2;
-
-        // act & assert
-        assertThrows(HSMReleaseCreationInformationException.class,
-            () -> pegoutCreationInformation.getTxInfoToSign(
-                wrongHSMVersion,
-                pegoutCreationRskTxHash,
-                pegoutBtcTx
-            ));
     }
 
     @Test
@@ -427,11 +392,9 @@ class ReleaseCreationInformationGetterTest {
     }
 
     private void assertTxInfoToSign(
-        ReleaseCreationInformationGetter releaseCreationInformationGetter,
-        int hsmVersion
+        ReleaseCreationInformationGetter releaseCreationInformationGetter
     ) throws HSMReleaseCreationInformationException {
         ReleaseCreationInformation pegoutCreationInfo = releaseCreationInformationGetter.getTxInfoToSign(
-            hsmVersion,
             pegoutCreationRskTxHash,
             pegoutBtcTx
         );
@@ -445,7 +408,6 @@ class ReleaseCreationInformationGetterTest {
     private void assertThrowsHSMReleaseCreationInformationException(ReleaseCreationInformationGetter releaseCreationInformationGetter) {
         assertThrows(HSMReleaseCreationInformationException.class,
             () -> releaseCreationInformationGetter.getTxInfoToSign(
-                LATEST_HSM_VERSION.getNumber(),
                 pegoutCreationRskTx.getHash(),
                 pegoutBtcTx
             ));

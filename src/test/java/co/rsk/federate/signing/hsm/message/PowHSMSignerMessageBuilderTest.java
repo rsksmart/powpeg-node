@@ -1,8 +1,7 @@
 package co.rsk.federate.signing.hsm.message;
 
 import static co.rsk.federate.EventsTestUtils.*;
-import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
-import static co.rsk.federate.bitcoin.BitcoinTestUtils.createPegout;
+import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
 import static co.rsk.federate.signing.HSMField.TX;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -116,7 +115,8 @@ class PowHSMSignerMessageBuilderTest {
             pegoutCreationBlock,
             pegoutCreationRskTxReceipt,
             pegoutCreationRskTx.getHash(),
-            pegoutBtcTx
+            pegoutBtcTx,
+            outpointValues
         );
         SigHashCalculator sigHashCalculator = new SegwitSigHashCalculatorImpl(outpointValues);
         PowHSMSignerMessageBuilder messageBuilder = new PowHSMSignerMessageBuilder(
@@ -177,7 +177,8 @@ class PowHSMSignerMessageBuilderTest {
             block,
             pegoutCreationRskTxReceipt,
             pegoutCreationRskTx.getHash(),
-            mock(BtcTransaction.class)
+            mock(BtcTransaction.class),
+            Collections.emptyList()
         );
         SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
         PowHSMSignerMessageBuilder signerMessageBuilder = new PowHSMSignerMessageBuilder(
@@ -310,11 +311,17 @@ class PowHSMSignerMessageBuilderTest {
         List<Coin> expectedOutpointValues,
         BtcTransaction pegoutBtcTx
     ) throws SignerMessageBuilderException {
+        List<Coin> outpointValues = new ArrayList<>();
+        for (int i=0; i < pegoutBtcTx.getInputs().size(); i++) {
+            TransactionInput input = pegoutBtcTx.getInput(i);
+            outpointValues.add(input.getValue());
+        }
         ReleaseCreationInformation releaseInformation = new ReleaseCreationInformation(
             pegoutCreationBlock,
             pegoutCreationRskTxReceipt,
             pegoutCreationRskTx.getHash(),
-            pegoutBtcTx
+            pegoutBtcTx,
+            outpointValues
         );
 
         List<Coin> actualOutpointValues = releaseInformation.getUtxoOutpointValues();
