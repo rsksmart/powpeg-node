@@ -1,5 +1,8 @@
 package co.rsk.federate;
 
+import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
+import static co.rsk.federate.utils.ClientProofsAssertions.*;
+import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -15,6 +18,7 @@ import co.rsk.config.*;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BitcoinWrapperImpl;
+import co.rsk.federate.bitcoin.KitStub;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.io.*;
 import co.rsk.federate.mock.*;
@@ -31,18 +35,28 @@ import co.rsk.peg.federation.FederationMember;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.collect.Lists;
+
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStoreException;
+import org.bitcoinj.wallet.Wallet;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig.ForBlock;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.util.ByteUtil;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.internal.util.MockUtil;
 import org.spongycastle.util.encoders.Hex;
 
@@ -2145,6 +2159,426 @@ class BtcToRskClientTest {
         assertTrue(txsSentToRegisterBtcTransaction.isEmpty());
     }
 
+    @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_METHOD)
+    class UpdateBridgeBtcTransactionsTests {
+        private static final BridgeConstants BRIDGE_MAINNET_CONSTANTS = BridgeMainNetConstants.getInstance();
+        private static final String MAINNET_BTC_PARAMS_STRING = BRIDGE_MAINNET_CONSTANTS.getBtcParamsString();
+        private static final co.rsk.bitcoinj.core.NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
+        private static final NetworkParameters MAINNET_PARAMS = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING);
+        private static final Context MAINNET_CONTEXT = new Context(MAINNET_PARAMS);
+
+        private StoredBlock[] blocks;
+        private int blockWithTxIndex;
+
+        @TempDir
+        private Path tempDir;
+        private File directory;
+        private DirectoryStorageInfo directoryStorageInfo;
+        private BtcToRskClientFileStorage btcToRskActiveFedClientFileStorage;
+        private BtcToRskClientFileStorage btcToRskRetiringFedClientFileStorage;
+
+        private Wallet wallet;
+        private Set<Transaction> walletTxs;
+        private KitStub kit;
+        private BitcoinWrapperImpl bitcoinWrapper;
+        private BtcToRskClient activeFedClient;
+        private BtcToRskClient retiringFedClient;
+        private FederatorSupport federatorSupport;
+        private BtcLockSenderProvider btcLockSenderProvider;
+        private PeginInstructionsProvider peginInstructionsProvider;
+        private PowpegNodeSystemProperties config;
+
+        @BeforeEach
+        void setUp() throws BlockStoreException {
+            co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(MAINNET_BTC_PARAMS));
+
+            ForBlock activations = mock(ForBlock.class);
+            when(activations.isActive(any(ConsensusRule.class))).thenReturn(true);
+            when(activationConfig.forBlock(anyLong())).thenReturn(activations);
+            when(activationConfig.isActive(any(ConsensusRule.class), anyLong())).thenReturn(true);
+
+            config = mock(PowpegNodeSystemProperties.class);
+            when(config.getActivationConfig()).thenReturn(activationConfig);
+            when(config.shouldUpdateCollections()).thenReturn(true);
+            when(config.shouldUpdateBridgeBtcBlockchain()).thenReturn(true);
+            when(config.shouldUpdateBridgeBtcTransactions()).thenReturn(true);
+            when(config.shouldUpdateBridgeBtcCoinbaseTransactions()).thenReturn(true);
+            when(config.isUpdateBridgeTimerEnabled()).thenReturn(true);
+            when(config.getAmountOfHeadersToSend()).thenReturn(100);
+
+            federatorSupport = mock(FederatorSupport.class);
+            when(federatorSupport.getConfigForBestBlock()).thenReturn(activations);
+            // assuming no retiring fed for general setup
+            when(federatorSupport.getRetiringFederationSize()).thenReturn(FEDERATION_NON_EXISTENT.getCode());
+
+            btcLockSenderProvider = new BtcLockSenderProvider();
+            peginInstructionsProvider = new PeginInstructionsProvider();
+
+            // using a temporary directory for testing
+            directoryStorageInfo = mock(DirectoryStorageInfo.class);
+            when(directoryStorageInfo.getPath()).thenReturn(tempDir.toString());
+            directory = new File(directoryStorageInfo.getPath());
+
+            int chainHeight = 4;
+            blocks = createBlockchain(chainHeight);
+            blockWithTxIndex = 0;
+
+            walletTxs = new HashSet<>();
+            wallet = mock(Wallet.class);
+            when(wallet.getTransactions(false)).thenReturn(walletTxs);
+
+            setUpKit();
+            setUpBitcoinWrapper();
+        }
+
+        private void setUpKit() throws BlockStoreException {
+            String btcToRskClientFilePrefix = "BtcToRskClient";
+            kit = new KitStub(MAINNET_CONTEXT, directory, btcToRskClientFilePrefix, wallet);
+            kit.setStore(blocks);
+        }
+
+        private void setUpBitcoinWrapper() {
+            bitcoinWrapper = new BitcoinWrapperImpl(
+                MAINNET_CONTEXT,
+                BRIDGE_MAINNET_CONSTANTS,
+                btcLockSenderProvider,
+                peginInstructionsProvider,
+                federatorSupport,
+                kit
+            );
+
+            List<PeerAddress> peerAddresses = Collections.emptyList();
+            bitcoinWrapper.setup(peerAddresses);
+            bitcoinWrapper.start();
+        }
+
+        private void setUpActiveFed(Federation activeFederation) {
+            when(federatorSupport.getFederationSize()).thenReturn(activeFederation.getSize());
+            for (int i = 0; i < activeFederation.getSize(); i++) {
+                FederationMember member = activeFederation.getMembers().get(i);
+                org.ethereum.crypto.ECKey btcKey = org.ethereum.crypto.ECKey.fromPublicOnly(member.getBtcPublicKey().getPubKey());
+                when(federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC)).thenReturn(btcKey);
+                org.ethereum.crypto.ECKey rskKey = member.getRskPublicKey();
+                when(federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK)).thenReturn(rskKey);
+                org.ethereum.crypto.ECKey mstKey = member.getMstPublicKey();
+                when(federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.MST)).thenReturn(mstKey);
+            }
+            when(federatorSupport.getFederationCreationTime()).thenReturn(activeFederation.getCreationTime());
+            when(federatorSupport.getFederationCreationBlockNumber()).thenReturn(activeFederation.getCreationBlockNumber());
+            when(federatorSupport.getBtcParams()).thenReturn(MAINNET_BTC_PARAMS);
+            when(federatorSupport.getFederationAddress()).thenReturn(activeFederation.getAddress());
+        }
+
+        private void setUpRetiringFed(Federation retiringFederation) {
+            when(federatorSupport.getRetiringFederationSize()).thenReturn(retiringFederation.getSize());
+            for (int i = 0; i < retiringFederation.getSize(); i++) {
+                FederationMember member = retiringFederation.getMembers().get(i);
+                org.ethereum.crypto.ECKey btcKey = org.ethereum.crypto.ECKey.fromPublicOnly(member.getBtcPublicKey().getPubKey());
+                when(federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC)).thenReturn(btcKey);
+                org.ethereum.crypto.ECKey rskKey = member.getRskPublicKey();
+                when(federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK)).thenReturn(rskKey);
+                org.ethereum.crypto.ECKey mstKey = member.getMstPublicKey();
+                when(federatorSupport.getRetiringFederatorPublicKeyOfType(i, FederationMember.KeyType.MST)).thenReturn(mstKey);
+            }
+            when(federatorSupport.getRetiringFederationCreationTime()).thenReturn(retiringFederation.getCreationTime());
+            when(federatorSupport.getRetiringFederationCreationBlockNumber()).thenReturn(retiringFederation.getCreationBlockNumber());
+            when(federatorSupport.getRetiringFederationAddress()).thenReturn(Optional.of(retiringFederation.getAddress()));
+        }
+
+        private BtcToRskClientFileStorage buildClientFileStorageInfo(String fileCustomizer) {
+            FileStorageInfo fileStorageInfo = new BtcToRskClientFileStorageInfo(directoryStorageInfo, fileCustomizer);
+            return new BtcToRskClientFileStorageImpl(fileStorageInfo);
+        }
+
+        private BtcToRskClient buildClient(BtcToRskClientFileStorage btcToRskClientFileStorage, Federation federationToListen) throws Exception {
+            btcToRskClientBuilder = BtcToRskClientBuilder.builder();
+            return btcToRskClientBuilder
+                .withBitcoinWrapper(bitcoinWrapper)
+                .withFederatorSupport(federatorSupport)
+                .withFederation(federationToListen)
+                .withBridgeConstants(BRIDGE_MAINNET_CONSTANTS)
+                .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
+                .withBtcLockSenderProvider(btcLockSenderProvider)
+                .withPeginInstructionsProvider(peginInstructionsProvider)
+                .withActivationConfig(activationConfig)
+                .build();
+        }
+
+        private void addListener(Federation federationToListen, BtcToRskClient client) {
+            bitcoinWrapper.addFederationListener(federationToListen, client);
+        }
+
+        private void setUpTx(BtcToRskClient client, BtcTransaction btcTx) {
+            var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+
+            setUpTxConfidence(tx);
+            listenTx(client, tx);
+            listenBlockWithTx(client, tx);
+        }
+
+        private void setUpTxConfidence(Transaction tx) {
+            org.bitcoinj.core.TransactionConfidence confidence = tx.getConfidence();
+            confidence.setConfidenceType(org.bitcoinj.core.TransactionConfidence.ConfidenceType.BUILDING);
+            confidence.setDepthInBlocks(BRIDGE_MAINNET_CONSTANTS.getBtc2RskMinimumAcceptableConfirmations());
+        }
+
+        private void listenTx(BtcToRskClient client, Transaction tx) {
+            client.onTransaction(tx);
+            walletTxs.add(tx);
+        }
+
+        private void listenBlockWithTx(BtcToRskClient client, Transaction tx) {
+            Block blockWithTx = buildBlockWithTx(tx);
+            client.onBlock(blockWithTx);
+        }
+
+        private Block buildBlockWithTx(Transaction tx) {
+            Sha256Hash blockHash = blocks[blockWithTxIndex].getHeader().getHash();
+            Block blockWithTx = createBlockWithTx(blockHash, tx);
+            tx.addBlockAppearance(blockWithTx.getHash(), 1);
+
+            blockWithTxIndex++;
+            return blockWithTx;
+        }
+
+        private Block createBlockWithTx(Sha256Hash blockHash, Transaction tx) {
+            if (tx.hasWitnesses()) {
+                return createSegwitBlockWithTx(blockHash, tx);
+            }
+
+            return createBlock(blockHash, tx);
+        }
+
+        private Block createSegwitBlockWithTx(Sha256Hash blockHash, Transaction tx) {
+            Sha256Hash witnessRoot = Sha256Hash.wrapReversed(
+                Sha256Hash.hashTwice(
+                    Sha256Hash.ZERO_HASH.getReversedBytes(),
+                    tx.getWTxId().getReversedBytes()
+                )
+            );
+            byte[] witnessReservedValue = WITNESS_RESERVED_VALUE.getBytes();
+            co.rsk.bitcoinj.core.Sha256Hash witnessCommitment = co.rsk.bitcoinj.core.Sha256Hash.twiceOf(
+                witnessRoot.getReversedBytes(),
+                witnessReservedValue
+            );
+            BtcTransaction coinbaseBtcTx = createCoinbaseTransactionWithWitnessCommitment(MAINNET_BTC_PARAMS, witnessCommitment);
+
+            return createBlock(blockHash, ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, coinbaseBtcTx), tx);
+        }
+
+        private static Stream<Arguments> retiringAndActiveFedsArgs() {
+            final Federation standardMultiSigFed = TestUtils.createStandardMultisigFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            final Federation firstP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            final Federation secondP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
+
+            return Stream.of(
+                Arguments.of(standardMultiSigFed, firstP2shP2wshErpFed),
+                Arguments.of(firstP2shP2wshErpFed, secondP2shP2wshErpFed)
+            );
+        }
+
+        /**
+         * When two {@link BtcToRskClient} instances shared a single {@link BtcToRskClientFileStorage}
+         * (same on-disk RLP), the retiring client's onBlock could write the file with in-memory state
+         * that did not include txs only the active client had listened to, overwriting
+         * the file and dropping those txs from persistence when a restart of the node is performed.
+         * With separate proof files per client, both federations' pending txs must remain stored
+         * after both clients process the same block
+         */
+        @ParameterizedTest
+        @MethodSource("retiringAndActiveFedsArgs")
+        void updateBridgeBtcTransactions_clientForBothFeds_sharedStorage_shouldNotSendTx(Federation retiringFed, Federation activeFed) throws Exception {
+            // arrange
+            // 1. Set up clients with shared storage
+            String fileCustomizer = "shared";
+            btcToRskActiveFedClientFileStorage = buildClientFileStorageInfo(fileCustomizer);
+            btcToRskRetiringFedClientFileStorage = buildClientFileStorageInfo(fileCustomizer);
+            // 2. Create a tx that both clients will know about
+            var btcTx1 = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(btcTx1, activeFed.getAddress());
+            addOutputToFedWithMinimumPeginValue(btcTx1, retiringFed.getAddress());
+            // 3. Create a tx just for the active federation
+            var btcTx2 = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(btcTx2, activeFed.getAddress());
+
+            setUpForFileStorageTests(retiringFed, activeFed, btcTx1, btcTx2);
+
+            // act & assert
+            // the new tx is LOST from the file and won't be sent because retiringFedClient overwrote it
+            assertWTxIdIsNotInActiveFedClientProofsFile(btcTx2);
+            assertWTxIdIsNotInActiveFedClientTxsToBeSentMap(btcTx2);
+            // calling to update bridge txs will not send it to the bridge
+            activeFedClient.updateBridgeBtcTransactions();
+            assertTxNotSentToBridge(btcTx2);
+        }
+
+        @ParameterizedTest
+        @MethodSource("retiringAndActiveFedsArgs")
+        void updateBridgeBtcTransactions_clientForBothFeds_separateStorage_shouldSendTx(Federation retiringFed, Federation activeFed) throws Exception {
+            // arrange
+            // 1. Set up clients with separate storage
+            String fileCustomizerForActiveFed = "active";
+            btcToRskActiveFedClientFileStorage = buildClientFileStorageInfo(fileCustomizerForActiveFed);
+            String fileCustomizerForRetiringFed = "retiring";
+            btcToRskRetiringFedClientFileStorage = buildClientFileStorageInfo(fileCustomizerForRetiringFed);
+            // 2. Create a tx that both clients will know about
+            var btcTx1 = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(btcTx1, activeFed.getAddress());
+            addOutputToFedWithMinimumPeginValue(btcTx1, retiringFed.getAddress());
+            // 3. Create a tx just for the active federation
+            var btcTx2 = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(btcTx2, activeFed.getAddress());
+
+            // act
+            setUpForFileStorageTests(retiringFed, activeFed, btcTx1, btcTx2);
+
+            // assert
+            // the new tx is still in active fed client proofs file and txs to be sent map
+            assertWTxIdIsInActiveFedClientProofsFile(btcTx2);
+            assertWTxIdIsInActiveFedClientTxsToBeSentMap(btcTx2);
+            // calling to update bridge txs will send it to the bridge
+            activeFedClient.updateBridgeBtcTransactions();
+            assertTxSentToBridge(btcToRskActiveFedClientFileStorage, btcTx2, 1);
+        }
+
+        private void setUpForFileStorageTests(Federation retiringFed, Federation activeFed, BtcTransaction btcTx1, BtcTransaction btcTx2) throws Exception {
+            // active fed client
+            setUpActiveFed(activeFed);
+            activeFedClient = buildClient(btcToRskActiveFedClientFileStorage, activeFed);
+            addListener(activeFed, activeFedClient);
+            // retiring fed client
+            setUpRetiringFed(retiringFed);
+            retiringFedClient = buildClient(btcToRskRetiringFedClientFileStorage, retiringFed);
+            addListener(retiringFed, retiringFedClient);
+
+            // listen to tx1 and block that contains it
+            var tx1 = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx1);
+            setUpTxConfidence(tx1);
+            listenTx(activeFedClient, tx1);
+            listenTx(retiringFedClient, tx1);
+            // both clients should listen to the same block containing the tx
+            Block blockWithTx1 = buildBlockWithTx(tx1);
+            activeFedClient.onBlock(blockWithTx1);
+            retiringFedClient.onBlock(blockWithTx1);
+
+            // Both clients should have tx1 in their proofs file and their in-memory fileData
+            assertWTxIdIsInActiveFedClientProofsFile(btcTx1);
+            assertWTxIdIsInActiveFedClientTxsToBeSentMap(btcTx1);
+
+            assertWTxIdIsInRetiringFedClientProofsFile(btcTx1);
+            assertWTxIdIsInRetiringFedClientTxsToBeSentMap(btcTx1);
+
+            // listen to tx2 and block that contains it
+            // in real life, it would be listened just by the active fed client
+            setUpTx(activeFedClient, btcTx2);
+            // active fed client should have tx2 in its proofs file and its in-memory fileData
+            assertWTxIdIsInActiveFedClientProofsFile(btcTx2);
+            assertWTxIdIsInActiveFedClientTxsToBeSentMap(btcTx2);
+
+            // act
+            // A new Bitcoin block is mined containing the tx1
+            Block newBlockWithTx1 = buildBlockWithTx(tx1);
+            // Both clients listen to the block since both have the tx1 saved
+            // -to simulate overwriting scenario, the active fed client should listen to it first-
+            activeFedClient.onBlock(newBlockWithTx1);
+            retiringFedClient.onBlock(newBlockWithTx1);
+
+            // active fed client should still have tx2 in its txs-to-be-sent map
+            assertWTxIdIsInActiveFedClientTxsToBeSentMap(btcTx2);
+
+            // now simulate a restart of the node:
+            // perform FedNodeRunner.stop() actions
+            bitcoinWrapper.stop();
+            activeFedClient.stop();
+            retiringFedClient.stop();
+
+            // perform FedNodeRunner.startFederate() actions
+            setUpKit();
+            setUpBitcoinWrapper();
+            activeFedClient.setup(
+                bitcoinWrapper,
+                BRIDGE_MAINNET_CONSTANTS,
+                btcToRskActiveFedClientFileStorage,
+                btcLockSenderProvider,
+                peginInstructionsProvider,
+                config
+            );
+            retiringFedClient.setup(
+                bitcoinWrapper,
+                BRIDGE_MAINNET_CONSTANTS,
+                btcToRskRetiringFedClientFileStorage,
+                btcLockSenderProvider,
+                peginInstructionsProvider,
+                config
+            );
+            // start clients again
+            when(federatorSupport.getFederationMember()).thenReturn(activeFed.getMembers().get(0));
+            activeFedClient.start(activeFed);
+            when(federatorSupport.getFederationMember()).thenReturn(retiringFed.getMembers().get(0));
+            retiringFedClient.start(retiringFed);
+        }
+
+        private void assertWTxIdIsInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsInProofsFile(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, tx);
+        }
+
+        private void assertWTxIdIsInActiveFedClientTxsToBeSentMap(BtcTransaction btcTx) {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsInTxsToBeSentMap(activeFedClient, tx);
+        }
+
+        private void assertWTxIdIsNotInActiveFedClientTxsToBeSentMap(BtcTransaction btcTx) {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsNotInTxsToBeSentMap(activeFedClient, tx);
+        }
+
+        private void assertWTxIdIsNotInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsNotInProofsFile(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, tx);
+        }
+
+        private void assertWTxIdIsInRetiringFedClientProofsFile(BtcTransaction btcTx) throws IOException {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsInProofsFile(MAINNET_PARAMS, btcToRskRetiringFedClientFileStorage, tx);
+        }
+
+        private void assertWTxIdIsInRetiringFedClientTxsToBeSentMap(BtcTransaction btcTx) {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            assertWTxIdIsInTxsToBeSentMap(retiringFedClient, tx);
+        }
+
+        private void assertTxSentToBridge(BtcToRskClientFileStorage btcToRskClientFileStorage, BtcTransaction btcTx, int blockWithTxHeight) throws IOException {
+            var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+
+            org.bitcoinj.core.PartialMerkleTree pmt = getPMT(btcToRskClientFileStorage, tx);
+            verify(federatorSupport).sendRegisterBtcTransaction(tx, blockWithTxHeight, pmt);
+        }
+
+        private org.bitcoinj.core.PartialMerkleTree getPMT(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
+            BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData();
+            List<Proof> proofs = fileData.getTransactionProofs().get(tx.getWTxId());
+
+            Proof proof = proofs.get(0);
+            return proof.getPartialMerkleTree();
+        }
+
+        private void assertTxNotSentToBridge(BtcTransaction btcTx) {
+            var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
+        }
+    }
+
     @Test
     void restoreFileData_with_invalid_BtcToRskClient_file_data() throws Exception {
         BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
@@ -2856,5 +3290,4 @@ class BtcToRskClientTest {
 
         return config;
     }
-
 }

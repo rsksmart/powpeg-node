@@ -10,9 +10,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class BtcToRskClientFileData {
 
-    private Map<Sha256Hash, List<Proof>> transactionsProofs;
+    private final Map<Sha256Hash, List<Proof>> transactionsProofs;
 
-    private Map<Sha256Hash, CoinbaseInformation> coinbaseInformationMap;
+    private final Map<Sha256Hash, CoinbaseInformation> coinbaseInformationMap;
 
     public BtcToRskClientFileData() {
         this.transactionsProofs = new ConcurrentHashMap<>();
