@@ -3558,6 +3558,37 @@ class BtcToRskClientTest {
             assertWTxIdIsNotInProofsFile(testnetParams, btcToRskActiveFedClientFileStorage, peginTx);
         }
 
+        @ParameterizedTest
+        @MethodSource("activeFedArgs")
+        void updateBridgeBtcTransactions_whenOneAppearanceHashNotInBlockStore_shouldBeInformedWithBestChainProof(
+            Federation federation
+        ) throws Exception {
+            // arrange
+            setUpActiveFedClient(federation);
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
+
+            setUpTx(activeFedClient, peginBtcTx);
+
+            // inject other appearance hash that is NOT stubbed in the block store, and
+            // that iterates first in the natural-ordered treemap
+            String hashThatWillAppearFirst = "aaaaa00000aaaaa00000aaaaa00000aaaaa00000aaaaa00000aaaaa00000aaaa";
+            Sha256Hash appearanceHashFromMissingBlock = Sha256Hash.wrap(hashThatWillAppearFirst);
+            Transaction peginTx = walletTxs.iterator().next();
+            peginTx.addBlockAppearance(appearanceHashFromMissingBlock, 1);
+            // assert the block won't be found
+            assertNull(bitcoinWrapper.getBlock(appearanceHashFromMissingBlock));
+            // and that its hash is the first one in the treemap
+            Sha256Hash firstAppearanceHash = peginTx.getAppearsInHashes().keySet().iterator().next();
+            assertEquals(appearanceHashFromMissingBlock, firstAppearanceHash);
+
+            // act
+            activeFedClient.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+        }
+
         private void assertWTxIdIsInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
             Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
             assertWTxIdIsInProofsFile(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, tx);
