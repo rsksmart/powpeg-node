@@ -3,22 +3,32 @@ package co.rsk.federate.bitcoin;
 import static co.rsk.bitcoinj.script.ScriptBuilder.createP2SHOutputScript;
 import static co.rsk.federate.PegUtils.MINIMUM_PEGIN_TX_VALUE;
 import static co.rsk.peg.PegUtils.getFlyoverFederationRedeemScript;
-import static co.rsk.peg.bitcoin.BitcoinUtils.*;
+import static co.rsk.peg.bitcoin.BitcoinUtils.BTC_TX_VERSION_2;
+import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
+import static co.rsk.peg.bitcoin.BitcoinUtils.createBaseInputScriptThatSpendsFromRedeemScript;
+import static co.rsk.peg.bitcoin.BitcoinUtils.extractRedeemScriptFromInput;
 
-import co.rsk.bitcoinj.core.*;
+import co.rsk.bitcoinj.core.Address;
+import co.rsk.bitcoinj.core.BtcECKey;
+import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
+import co.rsk.bitcoinj.core.NetworkParameters;
+import co.rsk.bitcoinj.core.Sha256Hash;
+import co.rsk.bitcoinj.core.TransactionInput;
+import co.rsk.bitcoinj.core.TransactionOutPoint;
+import co.rsk.bitcoinj.core.TransactionOutput;
+import co.rsk.bitcoinj.core.TransactionWitness;
 import co.rsk.bitcoinj.crypto.TransactionSignature;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
-
+import co.rsk.core.RskAddress;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.federation.Federation;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import co.rsk.core.RskAddress;
-import co.rsk.peg.constants.BridgeConstants;
-import co.rsk.peg.federation.Federation;
 import org.ethereum.crypto.HashUtil;
 import org.ethereum.util.ByteUtil;
 
@@ -492,7 +502,7 @@ public final class BitcoinTestUtils {
         co.rsk.bitcoinj.core.Sha256Hash witnessCommitment
     ) {
         BtcTransaction coinbaseTx = createCoinbaseTxWithWitnessReservedValue(networkParameters);
-        byte[] WITNESS_COMMITMENT_HEADER = org.bouncycastle.util.encoders.Hex.decode("aa21a9ed");
+        final byte[] WITNESS_COMMITMENT_HEADER = org.bouncycastle.util.encoders.Hex.decode("aa21a9ed");
 
         byte[] witnessCommitmentWithHeader = ByteUtil.merge(
             WITNESS_COMMITMENT_HEADER,
