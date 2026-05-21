@@ -514,7 +514,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private Optional<StoredBlock> getMatchingStoredBlockInMainChain(Sha256Hash blockHash) throws BlockStoreException {
-
         StoredBlock storedBlock = bitcoinWrapper.getBlock(blockHash);
         if (storedBlock == null) {
             return Optional.empty();
