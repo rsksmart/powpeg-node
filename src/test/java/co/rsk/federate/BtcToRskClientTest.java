@@ -3639,7 +3639,10 @@ class BtcToRskClientTest {
         void updateBridgeBtcTransactions_testnet_txAlreadyProcessed_shouldNotBeInformed_rightAfterBtcToRskMinimumAcceptableConfirmationsOnRsk_shouldBeRemovedFromProofsFile() throws Exception {
             // arrange
             var testnetConstants = BridgeTestNetConstants.getInstance();
+            var testnetParamsString = testnetConstants.getBtcParamsString();
+            var testnetParams = ThinConverter.toOriginalInstance(testnetParamsString);
             var testnet = testnetConstants.getBtcParams();
+
             co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(testnet));
             var federation = TestUtils.createP2shP2wshErpFederation(
                 testnet,
@@ -3665,11 +3668,11 @@ class BtcToRskClientTest {
             var peginBtcTx = createTxFromP2pkh(testnet);
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
             // setup pegin
-            var peginTx = ThinConverter.toOriginalInstance(testnetConstants.getBtcParamsString(), peginBtcTx);
+            var peginTx = ThinConverter.toOriginalInstance(testnetParamsString, peginBtcTx);
             setUpTxConfidence(peginTx);
             listenTx(activeFedClient, peginTx);
             listenBlockWithTx(activeFedClient, peginTx);
-            assertWTxIdIsInActiveFedClientProofsFile(peginBtcTx);
+            assertWTxIdIsInProofsFile(testnetParams, btcToRskActiveFedClientFileStorage, peginTx);
 
             // simulate that the bridge has processed the tx
             var peginTxId = peginTx.getTxId();
@@ -3687,7 +3690,7 @@ class BtcToRskClientTest {
             when(federatorSupport.getRskBestChainHeight()).thenReturn(heightBeforeRemovingTxFromProofs);
             activeFedClient.updateBridgeBtcTransactions();
             assertTxNotSentToBridge(peginBtcTx);
-            assertWTxIdIsInActiveFedClientProofsFile(peginBtcTx);
+            assertWTxIdIsInProofsFile(testnetParams, btcToRskActiveFedClientFileStorage, peginTx);
             // check that right when BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_TESTNET
             // blocks have passed, the fed does not send the tx to the bridge either
             // but the tx proof is removed from the file
@@ -3695,7 +3698,7 @@ class BtcToRskClientTest {
             activeFedClient.updateBridgeBtcTransactions();
 
             assertTxNotSentToBridge(peginBtcTx);
-            assertWTxIdIsNotInActiveFedClientProofsFile(peginBtcTx);
+            assertWTxIdIsNotInProofsFile(testnetParams, btcToRskActiveFedClientFileStorage, peginTx);
         }
 
         private void assertWTxIdIsInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
