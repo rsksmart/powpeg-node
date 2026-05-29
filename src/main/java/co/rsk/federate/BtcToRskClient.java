@@ -624,8 +624,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                             txProcessedHeight,
                             bestChainHeight
                         );
-                        continue;
                     }
+
+                    // already processed tx should not be sent again
+                    continue;
                 }
 
                 synchronized (this) {
