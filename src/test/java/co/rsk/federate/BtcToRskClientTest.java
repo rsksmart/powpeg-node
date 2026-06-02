@@ -3689,7 +3689,7 @@ class BtcToRskClientTest {
             long heightBeforeRemovingTxFromProofs = heightAtWhichRemoveTxFromProofs - 1;
             when(federatorSupport.getRskBestChainHeight()).thenReturn(heightBeforeRemovingTxFromProofs);
             activeFedClient.updateBridgeBtcTransactions();
-            assertTxNotSentToBridge(peginBtcTx);
+            verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(peginTx), anyInt(), any(PartialMerkleTree.class));
             assertWTxIdIsInProofsFile(testnetParams, btcToRskActiveFedClientFileStorage, peginTx);
             // check that right when BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_TESTNET
             // blocks have passed, the fed does not send the tx to the bridge either
@@ -3697,7 +3697,7 @@ class BtcToRskClientTest {
             when(federatorSupport.getRskBestChainHeight()).thenReturn(heightAtWhichRemoveTxFromProofs);
             activeFedClient.updateBridgeBtcTransactions();
 
-            assertTxNotSentToBridge(peginBtcTx);
+            verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(peginTx), anyInt(), any(PartialMerkleTree.class));
             assertWTxIdIsNotInProofsFile(testnetParams, btcToRskActiveFedClientFileStorage, peginTx);
         }
 
