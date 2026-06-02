@@ -3615,10 +3615,10 @@ class BtcToRskClientTest {
             when(federatorSupport.getBtcTxHashProcessedHeight(peginTxId)).thenReturn(txProcessedHeight);
 
             // act & assert
-            int BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_MAINNET = 1000;
-            long heightAtWhichRemoveTxFromProofs = txProcessedHeight + BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_MAINNET;
+            int btcToRskMinimumAcceptableConfirmationsOnRskMainnet = 1000;
+            long heightAtWhichRemoveTxFromProofs = txProcessedHeight + btcToRskMinimumAcceptableConfirmationsOnRskMainnet;
             // check that calling updateBridgeBtcTransactions right before
-            // BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_MAINNET blocks have passed,
+            // btcToRskMinimumAcceptableConfirmationsOnRskMainnet blocks have passed,
             // the fed does not send the tx to the bridge but the tx hash is still in the proofs file
             long heightBeforeRemovingTxFromProofs = heightAtWhichRemoveTxFromProofs - 1;
             when(federatorSupport.getRskBestChainHeight()).thenReturn(heightBeforeRemovingTxFromProofs);
@@ -3626,7 +3626,7 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
             assertWTxIdIsInActiveFedClientProofsFile(peginBtcTx);
 
-            // check that right when BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_MAINNET
+            // check that right when btcToRskMinimumAcceptableConfirmationsOnRskMainnet
             // blocks have passed, the fed does not send the tx to the bridge
             // and the tx proof is removed from the file
             when(federatorSupport.getRskBestChainHeight()).thenReturn(heightAtWhichRemoveTxFromProofs);
@@ -3681,17 +3681,17 @@ class BtcToRskClientTest {
             when(federatorSupport.getBtcTxHashProcessedHeight(peginTxId)).thenReturn(txProcessedHeight);
 
             // act & assert
-            int BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_TESTNET = 100;
-            long heightAtWhichRemoveTxFromProofs = txProcessedHeight + BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_TESTNET;
+            int btcToRskMinimumAcceptableConfirmationsOnRskTestnet = 100;
+            long heightAtWhichRemoveTxFromProofs = txProcessedHeight + btcToRskMinimumAcceptableConfirmationsOnRskTestnet;
             // check that calling updateBridgeBtcTransactions right before
-            // BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_TESTNET blocks have passed,
+            // btcToRskMinimumAcceptableConfirmationsOnRskTestnet blocks have passed,
             // the fed does not send the tx to the bridge but the tx hash is still in the proofs file
             long heightBeforeRemovingTxFromProofs = heightAtWhichRemoveTxFromProofs - 1;
             when(federatorSupport.getRskBestChainHeight()).thenReturn(heightBeforeRemovingTxFromProofs);
             activeFedClient.updateBridgeBtcTransactions();
             verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(peginTx), anyInt(), any(PartialMerkleTree.class));
             assertWTxIdIsInProofsFile(testnetParams, btcToRskActiveFedClientFileStorage, peginTx);
-            // check that right when BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK_TESTNET
+            // check that right when btcToRskMinimumAcceptableConfirmationsOnRskTestnet
             // blocks have passed, the fed does not send the tx to the bridge either
             // but the tx proof is removed from the file
             when(federatorSupport.getRskBestChainHeight()).thenReturn(heightAtWhichRemoveTxFromProofs);
