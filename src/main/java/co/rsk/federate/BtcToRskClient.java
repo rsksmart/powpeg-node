@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
  */
 public class BtcToRskClient implements BlockListener, TransactionListener {
     protected static final int MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN = 40;
-    protected static final int BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK = 100;
 
     private static final Logger logger = LoggerFactory.getLogger(BtcToRskClient.class);
 
@@ -612,11 +611,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
                     // N = height at which transaction was processed
                     // M = current height M
-                    // K = BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK
+                    // K = btcToRskMinimumAcceptableConfirmationsOnRsk
                     // If M >= N + K, then remove the transaction from the list
                     Long txProcessedHeight = federatorSupport.getBtcTxHashProcessedHeight(txId);
                     Long bestChainHeight = federatorSupport.getRskBestChainHeight();
-                    if (bestChainHeight >= txProcessedHeight + BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK) {
+                    if (bestChainHeight >= txProcessedHeight + getBtcToRskMinimumAcceptableConfirmationsOnRsk()) {
                         removeTxHashFromFile(txHashIterator);
                         logger.debug(
                             "[updateBridgeBtcTransactions] Btc Tx {} was processed at height {}, current height is {}. Tx removed from pending lock list",
@@ -678,6 +677,15 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 );
             }
         }
+    }
+
+    private int getBtcToRskMinimumAcceptableConfirmationsOnRsk() {
+        boolean networkIsMainnet = bridgeConstants.getBtcParams().equals(co.rsk.bitcoinj.core.NetworkParameters.fromID(co.rsk.bitcoinj.core.NetworkParameters.ID_MAINNET));
+        if (networkIsMainnet) {
+            return 1000;
+        }
+
+        return 100;
     }
 
     private void removeTxHashFromFile(Iterator<Sha256Hash> txHashIterator) {
