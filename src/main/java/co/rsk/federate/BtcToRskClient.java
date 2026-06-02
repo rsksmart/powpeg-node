@@ -611,7 +611,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
                     // N = height at which transaction was processed
                     // M = current height M
-                    // K = BTC_TO_RSK_MINIMUM_ACCEPTABLE_CONFIRMATIONS_ON_RSK
+                    // K = btcToRskMinimumAcceptableConfirmationsOnRsk
                     // If M >= N + K, then remove the transaction from the list
                     Long txProcessedHeight = federatorSupport.getBtcTxHashProcessedHeight(txId);
                     Long bestChainHeight = federatorSupport.getRskBestChainHeight();
