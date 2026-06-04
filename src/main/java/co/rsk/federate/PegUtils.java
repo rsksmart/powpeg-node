@@ -85,7 +85,7 @@ public class PegUtils {
             RedeemScriptParser redeemScriptParser = RedeemScriptParserFactory.get(redeemScriptChunks);
             redeemScriptChunks = redeemScriptParser.extractStandardRedeemScriptChunks();
         } catch (ScriptException e) {
-            logger.debug("[isPegOutTx] There is no redeem script", e);
+            logger.debug("[isInputFromScript] There is no redeem script", e);
             return false;
         }
 
