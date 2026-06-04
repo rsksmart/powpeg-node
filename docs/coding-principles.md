@@ -150,7 +150,7 @@ Functions are the first line of organization in a program.
 * Prefer enums over integer constants when representing a closed set of values.
 * Avoid inheriting constants.
 * Prefer static imports for constants when it improves readability.
-* Avoid long import lists when wildcard imports are already the project convention.
+* Avoid wildcard imports; prefer explicit imports to keep diffs predictable and consistent with the existing codebase.
 * Prefer constructor injection and immutable fields for new code when practical.
 * Validate required constructor arguments.
 * Avoid nullable returns where Optional<T> would make behavior clearer.

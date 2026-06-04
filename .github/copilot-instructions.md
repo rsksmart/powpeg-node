@@ -55,19 +55,22 @@ Use the in-repo Gradle wrapper. Do not use a system Gradle.
 
 If gradle/wrapper/gradle-wrapper.jar is missing, run:
 
-bash ./configure.sh
+    ./configure.sh
 
 Common commands:
 
-bash ./gradlew clean build ./gradlew build -x test ./gradlew test ./gradlew fatJar
+    ./gradlew clean build
+    ./gradlew build -x test
+    ./gradlew test
+    ./gradlew fatJar
 
 The application entry point is:
 
-text co.rsk.federate.FederateRunner
+`co.rsk.federate.FederateRunner`
 
 Example local run shape:
 
-bash java -cp build/libs/<jar-name>.jar -Drsk.conf.file=<path-to-node.conf> co.rsk.federate.FederateRunner --regtest --reset
+    java -cp build/libs/<jar-name>.jar -Drsk.conf.file=<path-to-node.conf> co.rsk.federate.FederateRunner --regtest --reset
 
 ## RSKj dependency workflow
 
