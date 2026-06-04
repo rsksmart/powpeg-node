@@ -709,7 +709,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     private Optional<StoredBlock> getStoredBlock(Transaction tx) {
         try {
             return findBestChainStoredBlockFor(tx);
-        } catch (BlockStoreException | IllegalStateException e) {
+        } catch (BlockStoreException e) {
             return Optional.empty();
         }
     }
