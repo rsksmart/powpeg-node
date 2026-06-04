@@ -48,6 +48,7 @@ import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.ethereum.core.TransactionTypePrefix;
 
 public class BtcToRskClient implements BlockListener, TransactionListener {
     protected static final int MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN = 40;
@@ -233,6 +234,18 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             try {
                 logger.debug("[updateBridge] Sending updateCollections");
                 federatorSupport.sendUpdateCollections();
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+            }
+        }
+    }
+
+    public void updateCollections(TransactionTypePrefix typePrefix) {
+        if (shouldUpdateCollections) {
+            // Call updateCollections
+            try {
+                logger.debug("[updateCollections] Sending typed updateCollections");
+                federatorSupport.sendTypedUpdateCollections(typePrefix);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }

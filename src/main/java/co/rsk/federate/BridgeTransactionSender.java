@@ -68,10 +68,21 @@ public class BridgeTransactionSender {
         return result[0];
     }
 
+
+
     public synchronized void sendRskTx(RskAddress federatorAddress,
                                        ECDSASigner signer,
                                        CallTransaction.Function function,
                                        Object... functionArgs) {
+        this.sendTypedRskTx(TransactionTypePrefix.legacy(), federatorAddress, signer, function, functionArgs);
+    }
+
+    // Only to be used for powHSM integration tests. This is not present in mainstream code.
+    public synchronized void sendTypedRskTx(TransactionTypePrefix typePrefix,
+                                            RskAddress federatorAddress,
+                                            ECDSASigner signer,
+                                            CallTransaction.Function function,
+                                            Object... functionArgs) {
         logBridgeInteraction("send tx", function, functionArgs);
 
             PendingState pendingState = transactionPool.getPendingState();
@@ -106,6 +117,7 @@ public class BridgeTransactionSender {
                         function,
                         config.getNetworkConstants().getChainId(),
                         functionArgs);
+                rskTx.setTypePrefix(typePrefix);
                 try {
                     SignerMessageV1 messageToSign = new SignerMessageV1(rskTx.getRawHash().getBytes());
                     ECKey.ECDSASignature txSignature = signer.sign(RSK.getKeyId(), messageToSign);
