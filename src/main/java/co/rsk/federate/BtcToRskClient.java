@@ -625,7 +625,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     if (!shouldSendTx(tx, federationWallet)) {
                         removeTxHashFromFile(txHashIterator);
                         logger.warn(
-                            "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to sent to Bridge",
+                            "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to send to the Bridge",
                             txId,
                             wTxId
                         );
@@ -704,7 +704,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private boolean shouldSendTx(Transaction tx, co.rsk.bitcoinj.wallet.Wallet federationWallet) {
-        logger.debug("[shouldSendTx] Checking if tx should be send {}", tx.getWTxId());
+        logger.debug("[shouldSendTx] Checking if tx should be sent {}", tx.getWTxId());
         BtcTransaction btcTx = ThinConverter.toThinInstance(federationWallet.getNetworkParameters(), tx);
 
         co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(federationWallet);
