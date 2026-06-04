@@ -4250,20 +4250,6 @@ class BtcToRskClientTest {
         return blocks;
     }
 
-    private Object[] createLocator(StoredBlock[] blocks, int height, int additional) {
-        Object[] hashes = new Object[height + additional + 1];
-
-        for (int k = 0; k < height + 1; k++) {
-            hashes[k] = blocks[height - k].getHeader().getHash().toString();
-        }
-
-        for (int k = 0; k < additional; k++) {
-            hashes[k + height + 1] = createHash();
-        }
-
-        return hashes;
-    }
-
     private Sha256Hash[] createHashChain(StoredBlock[] blocks, int height) {
         Sha256Hash[] hashes = new Sha256Hash[height+1];
         for (int i = 0; i <= height; i++) {
