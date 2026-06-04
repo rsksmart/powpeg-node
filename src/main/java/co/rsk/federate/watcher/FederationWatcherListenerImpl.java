@@ -3,9 +3,9 @@ package co.rsk.federate.watcher;
 import co.rsk.federate.BtcToRskClient;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.peg.federation.Federation;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.Objects;
 
 public class FederationWatcherListenerImpl implements FederationWatcherListener {
 
@@ -43,8 +43,7 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
     @Override
     public void onProposedFederationChange(Federation newProposedFederation) {
         if (newProposedFederation == null) {
-            logger.info(
-                "[onProposedFederationChange] Proposed federation was cleared");
+            logger.info("[onProposedFederationChange] Proposed federation was cleared");
             return;
         }
 
@@ -54,13 +53,15 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
             btcReleaseClient.start(newProposedFederation);
 
             logger.info(
-                "[onProposedFederationChange] Clients for proposed federation [{}] started with success",
-                newProposedFederation.getAddress());
+                "[onProposedFederationChange] BtcReleaseClient for proposed federation [{}] started with success",
+                newProposedFederation.getAddress()
+            );
         } catch (Exception e) {
             logger.error(
-                "[onProposedFederationChange] Clients for proposed federation [{}] failed to start",
+                "[onProposedFederationChange] BtcReleaseClient for proposed federation [{}] failed to start",
                 newProposedFederation.getAddress(),
-                e);
+                e
+            );
         }
     }
 
@@ -84,7 +85,8 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
             logger.error(
                 "[triggerClientChange] Clients for federation [{}] cannot be changed",
                 newFederation.getAddress(),
-                e);
+                e
+            );
         }
     }
     

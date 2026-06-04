@@ -1,14 +1,20 @@
 package co.rsk.federate;
 
-import static co.rsk.federate.PegUtils.*;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static co.rsk.federate.PegUtils.isMigrationTx;
+import static co.rsk.federate.PegUtils.isPegOutTx;
+import static co.rsk.federate.PegUtils.isSVPSpendTx;
+import static co.rsk.federate.PegUtils.isValidPegInTx;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.federate.adapter.ThinConverter;
-import co.rsk.federate.bitcoin.*;
+import co.rsk.federate.bitcoin.BitcoinWrapper;
+import co.rsk.federate.bitcoin.BlockListener;
+import co.rsk.federate.bitcoin.TransactionListener;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
-import co.rsk.federate.io.*;
+import co.rsk.federate.io.BtcToRskClientFileData;
+import co.rsk.federate.io.BtcToRskClientFileReadResult;
+import co.rsk.federate.io.BtcToRskClientFileStorage;
 import co.rsk.federate.timing.TurnScheduler;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.BridgeUtils;
@@ -23,11 +29,25 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.time.Clock;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import javax.annotation.PreDestroy;
-import org.bitcoinj.core.*;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PartialMerkleTree;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Utils;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
@@ -817,7 +837,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     /**
      * Finds the block in the best chain where supplied tx appears.
      */
-    private Optional<StoredBlock> findBestChainStoredBlockFor(Transaction tx) throws IllegalStateException, BlockStoreException {
+    private Optional<StoredBlock> findBestChainStoredBlockFor(Transaction tx) throws BlockStoreException {
         Map<Sha256Hash, Integer> blockHashes = tx.getAppearsInHashes();
 
         if (blockHashes != null) {
