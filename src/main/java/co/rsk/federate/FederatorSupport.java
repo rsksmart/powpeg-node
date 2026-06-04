@@ -12,6 +12,7 @@ import co.rsk.peg.StateForFederator;
 import co.rsk.peg.StateForProposedFederator;
 import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.FederationMember;
+import org.ethereum.core.TransactionTypePrefix;
 import java.math.BigInteger;
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -245,6 +246,10 @@ public class FederatorSupport {
 
     public void sendUpdateCollections() {
         this.bridgeTransactionSender.sendRskTx(federatorAddress, signer, Bridge.UPDATE_COLLECTIONS);
+    }
+
+    public void sendTypedUpdateCollections(TransactionTypePrefix typePrefix) {
+        this.bridgeTransactionSender.sendTypedRskTx(typePrefix, federatorAddress, signer, Bridge.UPDATE_COLLECTIONS);
     }
 
     public Address getFederationAddress() {
