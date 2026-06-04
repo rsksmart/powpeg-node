@@ -459,7 +459,7 @@ public final class BitcoinTestUtils {
     }
 
     private static void addRefundP2pkhAddress(byte[] payloadBytes) {
-        int refundAddressTypeIndex = 25;
+        int refundAddressTypeIndex = RSK_DESTINATION_ADDRESS_INDEX + RSK_DESTINATION_ADDRESS_LENGTH;
         byte p2PkhAddressType = 1;
         payloadBytes[refundAddressTypeIndex] = p2PkhAddressType;
         int refundAddressIndex = refundAddressTypeIndex + 1;
