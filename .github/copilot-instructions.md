@@ -15,7 +15,7 @@ When working in security-sensitive areas:
 * Security and correctness are more important than elegance.
 * Preserve existing behavior unless the task explicitly requires a behavioral change.
 * Do not refactor signing, peg-out, federation, key-management, transaction-construction, or consensus-related code unless required by the task.
-* Prefer proven, explicit code over clever abstractions in consensus- or money-related paths.
+* Prefer proven, explicit code over clever abstractions in consensus or money-related paths.
 * Prioritize behavior preservation over stylistic improvements.
 * Refactor security-sensitive code only when there is a clear benefit and adequate test coverage.
 * Be conservative when changing validation, serialization, cryptographic, or transaction-building logic.
@@ -41,13 +41,13 @@ Key rules:
 
 * Code is read more often than written. Optimize for readability and maintainability.
 * Use intention-revealing names.
-* Include units in monetary and time-related names, such as amountInSatoshis, amountInWeis, amountInRBTC, and timeoutMillis.
+* Include units in monetary and time-related names, such as amountInSatoshis, amountInWei, amountInRBTC, and timeoutMillis.
 * Never rely on implicit monetary units.
 * Prefer focused functions and classes with clear responsibilities.
 * Eliminate duplication when practical.
 * Prefer self-explanatory code over explanatory comments.
 * Tests should be readable, independent, and cover boundary/error cases.
-* AI-generated refactorings must improve clarity, maintainability, or correctness. Do not introduce abstractions, indirection, or code movement without a clear benefit.
+* Refactors must improve clarity, maintainability, or correctness. Do not introduce abstractions, indirection, or code movement without a clear benefit.
 
 ## Build and test commands
 
@@ -129,7 +129,12 @@ When changing config parsing or defaults, preserve backward compatibility unless
 
 ## Java style guidance
 
-Follow the surrounding code style. Prefer small, explicit changes over broad rewrites.
+* Keep consistency with the surrounding codebase whenever possible.
+* Avoid unnecessary whitespace. Do not leave multiple blank lines where one is enough.
+* Leave exactly one trailing newline at the end of every file.
+* Remove unused variables, methods, imports, classes, and dependencies.
+* Do not assign a constant to a local variable unless it improves readability or avoids repeated expensive access.
+* Prefer functional style where it improves readability, but do not perform large-scale functional refactors in a single PR.
 
 Use standard Java naming:
 
@@ -142,6 +147,6 @@ Prefer constructor injection and immutable fields for new code when practical. V
 
 ## Testing guidance
 
-Unit-test new logic close to the changed class. Mock/stub Bitcoin, Rootstock, filesystem, clock, and network boundaries unless the test is explicitly an integration test.
+Unit-test new logic close to the changed class. Mock/stub Bitcoin, Rootstock, filesystem, clock, and network boundaries unless the test is explicitly an integration test. Avoid mocks for any other business logic class that can be instantied instead of mocked.
 
 Tests for signing and peg-out behavior should assert failure paths, malformed input, and edge cases, not only the happy path.

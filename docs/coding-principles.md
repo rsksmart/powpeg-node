@@ -8,12 +8,13 @@ They are guidelines, not dogma. Apply them with judgment. In security-sensitive 
 
 * Code is read far more often than it is written. Optimize for readability and maintainability.
 * Leave touched code in a better state than you found it.
+* Keep consistency with the rest of the codebase whenever possible.
 * Small improvements are valuable: rename unclear variables, remove duplication, simplify conditions, and delete dead code when safe.
 * Clarity is more important than cleverness.
 * Avoid introducing unnecessary dependencies.
 * Prefer boring, obvious code over surprising code.
 * Code should look like it was written by someone who cared.
-* Keep source files clean, well organized, and free of clutter.
+* Keep source files clean, well organized, and free of unnecessary whitespace.
 
 ## Naming
 
@@ -22,7 +23,7 @@ Names are one of the most important parts of readability.
 * Use intention-revealing names.
 * Prefer names that reveal intent without requiring comments.
 * Names should describe domain concepts, not implementation details.
-* Include units in names when working with monetary values, time values, or measurements, such as amountInSatoshis, amountInWeis, amountInRBTC, timeoutMillis, and blockHeight.
+* Include units in names when working with monetary values, time values, or measurements, such as amountInSatoshis, amountInWei, amountInRBTC, timeoutMillis, and blockHeight.
 * Never rely on implicit monetary units.
 * Avoid vague suffixes such as Data, Info, Manager, Processor, or Helper unless they accurately describe the abstraction.
 * Avoid names that differ only in small or unclear ways.
@@ -52,6 +53,7 @@ Functions are the first line of organization in a program.
 * Avoid hidden side effects.
 * Avoid output arguments. If state must change, prefer changing the owning object.
 * Keep variables close to where they are used.
+* Do not assign constants to local variables unless it clearly improves readability.
 * Replace magic numbers with named constants.
 * Remove unused methods.
 
@@ -140,7 +142,7 @@ Functions are the first line of organization in a program.
 * Do not mix formatting-only changes with behavioral changes.
 * If a cleanup would significantly obscure the purpose of a PR, perform it separately.
 * AI-generated suggestions are not automatically improvements. Evaluate them critically.
-* AI-generated refactorings must improve clarity, maintainability, or correctness.
+* Refactors must improve clarity, maintainability, or correctness.
 * Do not introduce abstractions, indirection, or code movement without a clear benefit.
 * Sometimes the right choice is to stop optimizing and move forward.
 
