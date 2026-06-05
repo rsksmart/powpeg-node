@@ -3501,9 +3501,16 @@ class BtcToRskClientTest {
             var testnet = testnetConstants.getBtcParams();
 
             co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(testnet));
+            var amountOfMembers = 20;
+            List<BtcECKey> keys = new ArrayList<>();
+            for (int i = 0; i < amountOfMembers; i++) {
+                String seed = "seed" + i;
+                BtcECKey key = TestUtils.getBtcEcKeyFromSeed(seed);
+                keys.add(key);
+            }
             var federation = TestUtils.createP2shP2wshErpFederation(
-                testnet,
-                20
+                testnetConstants,
+                keys
             );
             setUpActiveFed(federation);
             // overriding network
@@ -4038,10 +4045,6 @@ class BtcToRskClientTest {
 
     @Test
     void updateBridgeBtcTransactions_tx_with_witness_already_informed() throws Exception {
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        when(activations.isActive(ConsensusRule.RSKIP143)).thenReturn(true);
-        when(activationConfig.forBlock(anyLong())).thenReturn(activations);
-
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
@@ -4052,6 +4055,31 @@ class BtcToRskClientTest {
         when(federatorSupport.isBtcTxHashAlreadyProcessed(peginBtcTx.getTxId())).thenReturn(true);
         when(federatorSupport.getBtcTxHashProcessedHeight(peginBtcTx.getTxId())).thenReturn(1L);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
+
+        when(federatorSupport.getFederationSize()).thenReturn(activeFederation.getSize());
+
+        for (int i = 0; i < activeFederation.getSize(); i++) {
+            FederationMember member = activeFederation.getMembers().get(i);
+            org.ethereum.crypto.ECKey btcKey = org.ethereum.crypto.ECKey.fromPublicOnly(member.getBtcPublicKey().getPubKey());
+            when(federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.BTC))
+                .thenReturn(btcKey);
+            when(federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.RSK))
+                .thenReturn(member.getRskPublicKey());
+            when(federatorSupport.getFederatorPublicKeyOfType(i, FederationMember.KeyType.MST))
+                .thenReturn(member.getMstPublicKey());
+        }
+
+        when(federatorSupport.getFederationCreationTime())
+            .thenReturn(activeFederation.getCreationTime());
+        when(federatorSupport.getFederationCreationBlockNumber())
+            .thenReturn(activeFederation.getCreationBlockNumber());
+        when(federatorSupport.getBtcParams())
+            .thenReturn(bridgeRegTestConstants.getBtcParams());
+        when(federatorSupport.getFederationAddress())
+            .thenReturn(activeFederation.getAddress());
+
+        when(federatorSupport.getRetiringFederationSize()).thenReturn(FEDERATION_NON_EXISTENT.getCode());
+        when(federatorSupport.getProposedFederationSize()).thenReturn(Optional.empty());
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
         when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
