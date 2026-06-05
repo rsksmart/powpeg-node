@@ -153,7 +153,11 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         }
         StoredBlock block = blockStore.get(blockHash);
 
-        if (block != null && block.getHeight() != height) {
+        if (block == null) {
+            return null;
+        }
+
+        if (block.getHeight() != height) {
             String message = String.format(
                 "Block height is %d but should be %d. Block hash: %s",
                 block.getHeight(),
