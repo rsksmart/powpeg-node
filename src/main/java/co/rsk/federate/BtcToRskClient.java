@@ -683,7 +683,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private int getBtcToRskMinimumAcceptableConfirmationsOnRsk() {
-        boolean networkIsMainnet = bridgeConstants.getBtcParams().equals(co.rsk.bitcoinj.core.NetworkParameters.fromID(co.rsk.bitcoinj.core.NetworkParameters.ID_MAINNET));
+        boolean networkIsMainnet = co.rsk.bitcoinj.core.NetworkParameters.ID_MAINNET.equals(bridgeConstants.getBtcParams().getId());
         if (networkIsMainnet) {
             return 1000;
         }
