@@ -21,6 +21,7 @@ import java.util.Optional;
 import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Sha256Hash;
+import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Blockchain;
 import org.ethereum.crypto.ECKey;
@@ -201,10 +202,11 @@ public class FederatorSupport {
     }
 
     public void addSignature(List<byte[]> signatures, byte[] rskTxHash) {
+        String releaseCreationRskTxHash = Hex.toHexString(rskTxHash);
         logger.debug(
-            "[addSignature] About to send to the bridge signatures {} for pegout created in rsk tx {}",
-            signatures,
-            rskTxHash
+            "[addSignature] About to send to the bridge {} signatures for pegout created in rsk tx {}",
+            signatures.size(),
+            releaseCreationRskTxHash
         );
         byte[] federatorPublicKeyBytes = federationMember.getBtcPublicKey().getPubKey();
         this.bridgeTransactionSender.sendRskTx(
