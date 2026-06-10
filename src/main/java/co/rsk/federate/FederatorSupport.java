@@ -1,7 +1,6 @@
 package co.rsk.federate;
 
 import co.rsk.bitcoinj.core.Address;
-import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.core.RskAddress;
 import co.rsk.federate.adapter.ThinConverter;
@@ -96,10 +95,6 @@ public class FederatorSupport {
             new Object[]{depth}
         );
         return Sha256Hash.wrap(blockHashBytes);
-    }
-
-    public Object[] getBtcBlockchainBlockLocator() {
-        return this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_BTC_BLOCKCHAIN_BLOCK_LOCATOR);
     }
 
     public Long getRskBestChainHeight() {
@@ -241,11 +236,6 @@ public class FederatorSupport {
         return federationThreshold.intValue();
     }
 
-    public BtcECKey getFederatorPublicKey(int index) {
-        byte[] federatorPublicKey = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_FEDERATOR_PUBLIC_KEY, new Object[]{index});
-        return BtcECKey.fromPublicOnly(federatorPublicKey);
-    }
-
     public ECKey getFederatorPublicKeyOfType(int index, FederationMember.KeyType keyType) {
         byte[] federatorPublicKey = this.bridgeTransactionSender.callTx(
             federatorAddress,
@@ -302,16 +292,6 @@ public class FederatorSupport {
         }
 
         return threshold.intValue();
-    }
-
-    public BtcECKey getRetiringFederatorPublicKey(int index) {
-        byte[] publicKeyBytes = this.bridgeTransactionSender.callTx(federatorAddress, Bridge.GET_RETIRING_FEDERATOR_PUBLIC_KEY, new Object[]{index});
-
-        if (publicKeyBytes == null) {
-            return null;
-        }
-
-        return BtcECKey.fromPublicOnly(publicKeyBytes);
     }
 
     public ECKey getRetiringFederatorPublicKeyOfType(int index, FederationMember.KeyType keyType) {
