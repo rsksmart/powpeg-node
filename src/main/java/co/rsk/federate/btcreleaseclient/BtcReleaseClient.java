@@ -119,6 +119,7 @@ public class BtcReleaseClient {
         this.releaseRequirementsEnforcer = releaseRequirementsEnforcer;
 
         logger.debug("[setup] Is pegout enabled? {}", isPegoutEnabled);
+        logger.debug("[setup] BtcReleaseClient setup complete");
     }
 
     public void start(Federation federation) {

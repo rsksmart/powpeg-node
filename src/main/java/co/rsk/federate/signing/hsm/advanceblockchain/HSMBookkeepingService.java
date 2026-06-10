@@ -62,12 +62,17 @@ public class HSMBookkeepingService {
 
     public void start() {
         if (started || stopBookkeepingScheduler) {
+            logger.debug(
+                "[start] HSM bookkeeping service already started ({}) or stopBookkeepingScheduler ({}), not starting it",
+                started,
+                stopBookkeepingScheduler
+            );
             return;
         }
 
         try {
             if (hsmBookkeepingClient.getHSMPointer().isInProgress())  {
-                // HSM status is inconsistent from a previous run, if the status is in progress, reset HSM must be done.
+                logger.debug("[start] HSM status is in progress, resetting HSM to fix it");
                 hsmBookkeepingClient.resetAdvanceBlockchain();
             }
         } catch (Exception exception) {
@@ -77,7 +82,7 @@ public class HSMBookkeepingService {
         }
 
         started = true;
-        logger.info("[start] Start HSMBookkeepingService");
+        logger.debug("[start] Starting HSMBookkeepingService");
 
         try {
             updateAdvanceBlockchain = Executors.newSingleThreadScheduledExecutor();
@@ -92,6 +97,7 @@ public class HSMBookkeepingService {
             this.listeners.forEach(l -> l.onIrrecoverableError(exception));
             started = false;
         }
+        logger.debug("[start] HSMBookkeepingService started");
     }
 
     public void stop() {

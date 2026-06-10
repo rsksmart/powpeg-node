@@ -118,6 +118,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         this.peginInstructionsProvider = peginInstructionsProvider;
         bitcoinWrapper.addBlockListener(this);
         setConfigVariables(config);
+
+        logger.debug("[setup] BtcToRskClient setup complete]");
  }
 
     public void start(Federation federation) {
@@ -176,14 +178,14 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     public void stop() {
-        logger.info("[stop] Stopping");
-
+        logger.debug("[stop] Stopping");
         this.federationToListen = null;
 
         if (updateBridgeTimer != null) {
             updateBridgeTimer.shutdown();
             this.updateBridgeTimer = null;
         }
+        logger.debug("[stop] Stopped");
     }
 
     public synchronized Map<Sha256Hash, List<Proof>> getTransactionsToSendToRsk() {
