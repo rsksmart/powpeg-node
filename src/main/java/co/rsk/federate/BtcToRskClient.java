@@ -119,7 +119,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         bitcoinWrapper.addBlockListener(this);
         setConfigVariables(config);
 
-        logger.debug("[setup] BtcToRskClient setup complete]");
+        logger.debug("[setup] BtcToRskClient setup complete");
  }
 
     public void start(Federation federation) {

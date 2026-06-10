@@ -72,6 +72,7 @@ import java.util.stream.Stream;
 import javax.annotation.PreDestroy;
 import org.bitcoinj.core.Context;
 import org.ethereum.crypto.ECKey;
+import org.ethereum.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,11 +181,14 @@ public class FedNodeRunner implements NodeRunner {
         BtcECKey btcPublicKey = signer.getPublicKey(BTC.getKeyId()).toBtcKey();
         ECKey rskPublicKey = signer.getPublicKey(RSK.getKeyId()).toEthKey();
         ECKey mstKey = signer.getPublicKey(MST.getKeyId()).toEthKey();
+
+        String rskPublicKeyHex = ByteUtil.toHexString(rskPublicKey.getPubKey(true));
+        String mstKeyHex = ByteUtil.toHexString(mstKey.getPubKey(true));
         logger.info(
             "[configureFederatorSupport] BTC public key: {}. RSK public key: {}. MST public key: {}",
             btcPublicKey.getPublicKeyAsHex(),
-            rskPublicKey.getPubKey(true),
-            mstKey.getPubKey(true)
+            rskPublicKeyHex,
+            mstKeyHex
         );
 
         this.member = new FederationMember(btcPublicKey, rskPublicKey, mstKey);
@@ -223,7 +227,6 @@ public class FedNodeRunner implements NodeRunner {
         HSMClientProtocol protocol,
         PowHSMConfig powHsmConfig
     ) throws HSMClientException {
-        logger.debug("[buildBookKeepingClient] Building HSMBookkeeping client for HSM version: {}", protocol);
         HSMBookkeepingClient bookKeepingClient = hsmBookKeepingClientProvider.getHSMBookKeepingClient(protocol);
         bookKeepingClient.setMaxChunkSizeToHsm(powHsmConfig.getMaxChunkSizeToHsm());
         logger.info("[buildBookKeepingClient] HSMBookkeeping client built for HSM version: {}", bookKeepingClient.getVersion());
@@ -269,7 +272,7 @@ public class FedNodeRunner implements NodeRunner {
 
     private boolean checkFederateRequirements() {
         if (!config.isFederatorEnabled()) {
-            logger.warn("[checkFederateRequirements] Federator is disabled. Skipping federator checks.");
+            logger.warn("[checkFederateRequirements] Federator is disabled, powpeg node will not start.");
             return false;
         }
         int defaultPort = bridgeConstants.getBtcParams().getPort();
@@ -286,7 +289,7 @@ public class FedNodeRunner implements NodeRunner {
         );
 
         boolean isValidFederator = federator.validFederator();
-        logger.debug("[checkFederateRequirements] Federate requirements validated: {}", federator.validFederator());
+        logger.debug("[checkFederateRequirements] Federate requirements validated: {}", isValidFederator);
 
         return isValidFederator;
     }

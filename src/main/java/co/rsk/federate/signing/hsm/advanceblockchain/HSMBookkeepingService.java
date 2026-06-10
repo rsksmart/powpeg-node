@@ -97,7 +97,7 @@ public class HSMBookkeepingService {
             this.listeners.forEach(l -> l.onIrrecoverableError(exception));
             started = false;
         }
-        logger.debug("[start] HSMBookkeepingService started");
+        logger.debug("[start] HSMBookkeepingService started: {}", started);
     }
 
     public void stop() {
