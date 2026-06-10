@@ -164,17 +164,17 @@ public class FedNodeRunner implements NodeRunner {
         HSMClientProtocol protocol = hsmClientProtocolFactory.buildHSMClientProtocolFromConfig(powHsmConfig);
 
         HSMVersion hsmVersion = protocol.getVersion();
-        logger.debug("[run] Using HSM version {}", hsmVersion);
+        logger.debug("[startBookkeepingServices] Using HSM version {}", hsmVersion);
 
         // Only start bookkeeping services for PoW HSMs. HSM version 1 doesn't support bookkeeping.
         if (!hsmVersion.isPowHSM()) {
-            logger.debug("[run] HSM version {} does not support bookkeeping. Skipping bookkeeping services.", hsmVersion);
+            logger.debug("[startBookkeepingServices] HSM version {} does not support bookkeeping. Skipping bookkeeping services.", hsmVersion);
             return;
         }
 
         hsmBookkeepingClient = buildBookKeepingClient(protocol, powHsmConfig);
         hsmBookkeepingService = buildBookKeepingService(hsmBookkeepingClient, powHsmConfig);
-        logger.debug("[startBookkeepingServices] Bookkeeping services started");
+        logger.debug("[startBookkeepingServices] Bookkeeping services initialized");
     }
 
     private void configureFederatorSupport() throws SignerException {

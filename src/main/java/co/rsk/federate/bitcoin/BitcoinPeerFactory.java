@@ -22,7 +22,7 @@ public class BitcoinPeerFactory {
         List<String> bitcoinPeerAddressesString
     ) throws UnknownHostException {
         List<PeerAddress> bitcoinPeerAddresses = new ArrayList<>();
-        if(bitcoinPeerAddressesString != null) {
+        if (bitcoinPeerAddressesString != null) {
             for (String bitcoinPeerAddressString : bitcoinPeerAddressesString) {
                 PeerAddress bitcoinPeerAddress;
                 if (bitcoinPeerAddressString.indexOf(':') == -1) {
