@@ -55,10 +55,6 @@ import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Manages the process of informing the RSK bridge news about the bitcoin blockchain
- * @author Oscar Guindzberg
- */
 public class BtcToRskClient implements BlockListener, TransactionListener {
     protected static final int MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN = 40;
 
@@ -733,7 +729,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private boolean shouldSendTx(Transaction tx, Wallet federationWallet, Optional<Federation> proposedFederation, Optional<Federation> retiringFederation, Federation activeFederation) {
-        logger.debug("[shouldSendTx] Checking if tx should be sent {}", tx.getWTxId());
+        logger.debug("[shouldSendTx] Checking if tx should be sent {} (wtxid: {})", tx.getTxId(), tx.getWTxId());
         BtcTransaction btcTx = ThinConverter.toThinInstance(federationWallet.getNetworkParameters(), tx);
 
         co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(federationWallet);
@@ -762,25 +758,21 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     private void sendTx(Transaction tx, StoredBlock txStoredBlock, PartialMerkleTree pmt) {
-        logger.debug(
-            "[sendTx] Will send btc tx {} (wtxid: {}) with enough confirmations",
-            tx.getTxId(),
-            tx.getWTxId()
-        );
-
-        Sha256Hash txHash = tx.getWTxId();
         int blockHeight = txStoredBlock.getHeight();
+
         logger.debug(
-            "[sendTx] Tx {} belongs to block {} at height {}",
-            txHash,
+            "[sendTx] Will send btc tx {} (wtxid: {}) with enough confirmations. Belongs to block {} at height {}",
+            tx.getTxId(),
+            tx.getWTxId(),
             txStoredBlock.getHeader().getHash(),
             blockHeight
         );
 
         federatorSupport.sendRegisterBtcTransaction(tx, blockHeight, pmt);
         logger.debug(
-            "[sendTx] Invoked registerBtcTransaction for tx {}",
-            txHash
+            "[sendTx] Invoked registerBtcTransaction for tx {} (wtxid: {})",
+            tx.getTxId(),
+            tx.getWTxId()
         );
     }
 
