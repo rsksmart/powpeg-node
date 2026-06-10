@@ -1,17 +1,17 @@
 package co.rsk.federate.mock;
 
+import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
+
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.NetworkParameters;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.config.TestSystemProperties;
-
+import co.rsk.peg.federation.Federation;
+import co.rsk.peg.federation.FederationMember;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import co.rsk.peg.federation.Federation;
-import co.rsk.peg.federation.FederationMember;
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.PeerAddress;
@@ -19,20 +19,13 @@ import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.ethereum.crypto.ECKey;
 
-import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
-
-/**
- * Created by ajlopez on 6/2/2016.
- */
 public class SimpleFederatorSupport extends FederatorSupport {
     private Federation federation;
     private Block[] headers;
     private int sendReceiveHeadersInvocations = 0;
     private final List<TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction = new ArrayList<>();
     private int height = 0;
-    private Object[] locator;
     private Sha256Hash[] blockHashes;
-    private Long bestChainHeight = 1L;
     private int initialChainHeight = 0;
 
     public SimpleFederatorSupport() {
@@ -64,15 +57,6 @@ public class SimpleFederatorSupport extends FederatorSupport {
 
     public void setBlockHashes(Sha256Hash[] hashes) {
         blockHashes = hashes;
-    }
-
-    @Override
-    public Object[] getBtcBlockchainBlockLocator() {
-        return this.locator;
-    }
-
-    public void setBtcBlockchainBlockLocator(Object[] locator) {
-        this.locator = locator;
     }
 
     @Override
@@ -179,11 +163,7 @@ public class SimpleFederatorSupport extends FederatorSupport {
 
     @Override
     public Long getRskBestChainHeight() {
-        return this.bestChainHeight;
-    }
-
-    public void setRskBestChainHeight(Long height) {
-        this.bestChainHeight = height;
+        return 1L;
     }
 
     public List<TransactionSentToRegisterBtcTransaction> getTxsSentToRegisterBtcTransaction() {
