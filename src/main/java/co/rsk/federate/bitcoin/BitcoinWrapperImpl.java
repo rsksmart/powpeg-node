@@ -99,6 +99,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         Context.propagate(btcContext);
         kit.startAsync().awaitRunning();
         running = true;
+        logger.debug("[start] BitcoinWrapper started");
     }
 
     @Override
@@ -106,6 +107,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         Context.propagate(btcContext);
         kit.stopAsync().awaitTerminated();
         running = false;
+        logger.debug("[stop] BitcoinWrapper stopped");
     }
 
     @Override
