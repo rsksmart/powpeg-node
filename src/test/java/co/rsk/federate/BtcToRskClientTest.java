@@ -1673,7 +1673,6 @@ class BtcToRskClientTest {
             peginInstructionsProvider = new PeginInstructionsProvider();
 
             // using a temporary directory for testing
-            PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
             when(config.databaseDir()).thenReturn(tempDir.toAbsolutePath().toString());
             directoryStorageInfo = new BtcToRskClientDirectoryStorageInfo(config);
             directory = new File(directoryStorageInfo.getPath());
