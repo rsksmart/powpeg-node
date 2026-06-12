@@ -3661,7 +3661,7 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_does_not_have_readyToBeInformed_coinbases_does_nothing() throws Exception {
+    void updateBridgeBtcCoinbaseTransactions_when_coinbase_block_is_not_in_bridge_best_chain_does_nothing() throws Exception {
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
         Transaction coinbaseTx = getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes());
         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(coinbaseTx, null, null, null);
@@ -3686,7 +3686,7 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_but_they_were_already_informed_doesnt_call_register_and_removes() throws Exception {
+    void updateBridgeBtcCoinbaseTransactions_when_coinbase_already_informed_removes_from_map() throws Exception {
         ActivationConfig activations = mock(ActivationConfig.class);
 
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
@@ -3727,11 +3727,10 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_and_they_were_not_informed_calls_register_and_removes() throws Exception {
+    void updateBridgeBtcCoinbaseTransactions_removes_hash_after_registration() throws Exception {
         Sha256Hash blockHash = Sha256Hash.ZERO_HASH;
 
         ActivationConfig activations = mock(ActivationConfig.class);
-        when(activations.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(true);
 
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
@@ -3778,7 +3777,6 @@ class BtcToRskClientTest {
         Sha256Hash blockHash = Sha256Hash.ZERO_HASH;
 
         ActivationConfig activations = mock(ActivationConfig.class);
-        when(activations.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(true);
 
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(

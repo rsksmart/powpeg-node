@@ -742,7 +742,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     /**
-     * Gets the first ready to be informed coinbase transaction and informs it
+     * Sends the coinbases transactions that should be informed
      */
     protected void updateBridgeBtcCoinbaseTransactions() {
         Map<Sha256Hash, CoinbaseInformation> coinbaseInformationMap = this.fileData.getCoinbaseInformationMap();
