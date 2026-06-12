@@ -3961,7 +3961,7 @@ class BtcToRskClientTest {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         // Mocking the Bridge to indicate the coinbase was not informed, and then it was
         when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(false, true);
-        when(federatorSupport.isBlockHashInBridgeBtcBestChain(any())).thenReturn(true);
+        when(federatorSupport.isBlockHashInformedToBridge(any())).thenReturn(true);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BtcToRskClient client = buildWithFactoryAndSetup(
@@ -4007,7 +4007,7 @@ class BtcToRskClientTest {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         // mocking that the coinbase was not informed
         when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(false);
-        when(federatorSupport.isBlockHashInBridgeBtcBestChain(any())).thenReturn(true);
+        when(federatorSupport.isBlockHashInformedToBridge(any())).thenReturn(true);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BtcToRskClient client = buildWithFactoryAndSetup(
