@@ -455,7 +455,7 @@ class FederatorSupportTest {
     }
 
     @Test
-    void isBlockHashInBridgeBtcBestChain_whenResultFromBridgeIsEmptyByte_returnsFalse() {
+    void isBlockHashInformedToBridge_whenResultFromBridgeIsEmptyByte_returnsFalse() {
         // Arrange
         byte[] emptyBytes = new byte[]{};
         when(bridgeTransactionSender.callTx(
@@ -472,7 +472,7 @@ class FederatorSupportTest {
     }
 
     @Test
-    void isBlockHashInBridgeBtcBestChain_whenResultFromBridgeIsNotEmptyByte_returnsTrue() {
+    void isBlockHashInformedToBridge_whenResultFromBridgeIsNotEmptyByte_returnsTrue() {
         // Arrange
         byte[] notEmptyBytes = new byte[]{1, 2, 3, 4, 5};
         when(bridgeTransactionSender.callTx(
