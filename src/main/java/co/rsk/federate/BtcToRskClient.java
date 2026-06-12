@@ -773,8 +773,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
 
             try {
-                Optional<StoredBlock> storedBlock = getMatchingStoredBlockInMainChain(coinbaseBlockHash);
-                if (storedBlock.isEmpty()) {
+                Optional<StoredBlock> coinbaseStoredBlock = getMatchingStoredBlockInMainChain(coinbaseBlockHash);
+                if (coinbaseStoredBlock.isEmpty()) {
                     logger.debug("[updateBridgeBtcCoinbaseTransactions] Coinbase tx of block {} does not belong to main chain any more. Removing from map",
                         coinbaseBlockHash
                     );
@@ -783,6 +783,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 }
             } catch (BlockStoreException e) {
                 logger.error(e.getMessage(), e);
+                continue;
             }
 
             if (!federatorSupport.isBlockHashInformedToBridge(coinbaseBlockHash)) {
