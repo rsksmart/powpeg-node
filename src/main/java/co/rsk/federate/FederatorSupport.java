@@ -139,7 +139,7 @@ public class FederatorSupport {
         return btcTxHashProcessedHeight.longValue();
     }
 
-    public boolean isBlockHashInBridgeBtcBestChain(Sha256Hash blockHash) {
+    public boolean isBlockHashInformedToBridge(Sha256Hash blockHash) {
         byte[] blockHeaderBytes = this.bridgeTransactionSender.callTx(
             federatorAddress,
             Bridge.GET_BTC_BLOCKCHAIN_BLOCK_HEADER_BY_HASH,

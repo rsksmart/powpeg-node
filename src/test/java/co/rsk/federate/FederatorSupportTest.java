@@ -465,7 +465,7 @@ class FederatorSupportTest {
         ).thenReturn(emptyBytes);
 
         // Act
-        boolean result = federatorSupport.isBlockHashInBridgeBtcBestChain(Sha256Hash.ZERO_HASH);
+        boolean result = federatorSupport.isBlockHashInformedToBridge(Sha256Hash.ZERO_HASH);
 
         // Assert
         assertFalse(result);
@@ -482,7 +482,7 @@ class FederatorSupportTest {
         ).thenReturn(notEmptyBytes);
 
         // Act
-        boolean result = federatorSupport.isBlockHashInBridgeBtcBestChain(Sha256Hash.ZERO_HASH);
+        boolean result = federatorSupport.isBlockHashInformedToBridge(Sha256Hash.ZERO_HASH);
 
         // Assert
         assertTrue(result);

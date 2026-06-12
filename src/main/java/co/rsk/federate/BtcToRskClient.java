@@ -755,7 +755,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         logger.debug("[updateBridgeBtcCoinbaseTransactions] Coinbase txs to send count: {}", coinbaseTxsToSendToBridgeBlockHashes.size());
 
         Iterator<Sha256Hash> coinbaseBlockHashIterator = coinbaseTxsToSendToBridgeBlockHashes.iterator();
-        // Inform coinbases whose block is part of the bridge btc best chain
+        // Inform coinbases whose block was already informed to the Bridge
         while (coinbaseBlockHashIterator.hasNext()) {
             Sha256Hash coinbaseBlockHash = coinbaseBlockHashIterator.next();
             CoinbaseInformation coinbaseInformation = coinbaseInformationMap.get(coinbaseBlockHash);
@@ -772,7 +772,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 continue;
             }
 
-            if (!federatorSupport.isBlockHashInBridgeBtcBestChain(coinbaseBlockHash)) {
+            if (!federatorSupport.isBlockHashInformedToBridge(coinbaseBlockHash)) {
                 logger.debug(
                     "[updateBridgeBtcCoinbaseTransactions] Block {} for coinbase tx {} is not yet informed to Bridge",
                     coinbaseBlockHash,
