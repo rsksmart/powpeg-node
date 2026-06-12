@@ -759,8 +759,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         while (coinbaseBlockHashIterator.hasNext()) {
             Sha256Hash coinbaseBlockHash = coinbaseBlockHashIterator.next();
             CoinbaseInformation coinbaseInformation = coinbaseInformationMap.get(coinbaseBlockHash);
-            Sha256Hash coinbaseTxHash = coinbaseInformation.getCoinbaseTransaction().getTxId();
 
+            Sha256Hash coinbaseTxHash = coinbaseInformation.getCoinbaseTransaction().getTxId();
             if (federatorSupport.hasBlockCoinbaseInformed(coinbaseBlockHash)) {
                 logger.debug(
                     "[updateBridgeBtcCoinbaseTransactions] Coinbase tx {} of block {} was already informed. Removing from map",
@@ -770,6 +770,19 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
                 removeCoinbaseBlockHashFromMap(coinbaseBlockHashIterator);
                 continue;
+            }
+
+            try {
+                Optional<StoredBlock> storedBlock = getMatchingStoredBlockInMainChain(coinbaseBlockHash);
+                if (storedBlock.isEmpty()) {
+                    logger.debug("[updateBridgeBtcCoinbaseTransactions] Coinbase tx of block {} does not belong to main chain any more. Removing from map",
+                        coinbaseBlockHash
+                    );
+                    removeCoinbaseBlockHashFromMap(coinbaseBlockHashIterator);
+                    continue;
+                }
+            } catch (BlockStoreException e) {
+                logger.error(e.getMessage(), e);
             }
 
             if (!federatorSupport.isBlockHashInformedToBridge(coinbaseBlockHash)) {

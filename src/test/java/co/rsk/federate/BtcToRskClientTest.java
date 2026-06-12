@@ -3522,6 +3522,149 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
+        @ParameterizedTest
+        @MethodSource("activeFedArgs")
+        void updateBridgeBtcCoinbaseTransactions_afterNodeRestart_sendsCoinbaseTx(Federation federation) throws Exception {
+            // arrange
+            setUpActiveFedClient(federation);
+            var segwitPeginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(segwitPeginBtcTx, federation.getAddress());
+
+            setUpTx(activeFedClient, segwitPeginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+            Block blockWithPegin = blocks[DEFAULT_BLOCK_WITH_TX_INDEX].getHeader();
+            assertBlockWithTxHashIsInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, blockWithPegin);
+
+            activeFedClient.updateBridgeBtcBlockchain();
+            updateBridgeBestChainHeight();
+
+            activeFedClient.updateBridgeBtcCoinbaseTransactions();
+            Sha256Hash blockHash = blockWithPegin.getHash();
+            CoinbaseInformation coinbaseInformation = getCoinbaseInformation(blockHash);
+            assertCoinbaseTxSentToBridge(coinbaseInformation);
+
+            clearInvocations(federatorSupport);
+            // act & assert
+            restartNode(btcToRskActiveFedClientFileStorage, activeFedClient, federation);
+            // block should still be in the map
+            assertBlockWithTxHashIsInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, blockWithPegin);
+            // and that updating bridge coinbase txs will send it
+            activeFedClient.updateBridgeBtcCoinbaseTransactions();
+            assertCoinbaseTxSentToBridge(coinbaseInformation);
+        }
+
+        @ParameterizedTest
+        @MethodSource("activeFedArgs")
+        void updateBridgeBtcCoinbaseTransactions_whenBridgeHasNotCoinbaseInformed_shouldKeepSendingTx(Federation federation) throws Exception {
+            // arrange
+            setUpActiveFedClient(federation);
+            var segwitPeginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(segwitPeginBtcTx, federation.getAddress());
+
+            setUpTx(activeFedClient, segwitPeginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+            Block blockWithPegin = blocks[DEFAULT_BLOCK_WITH_TX_INDEX].getHeader();
+            Sha256Hash blockHash = blockWithPegin.getHash();
+            CoinbaseInformation coinbaseInformation = getCoinbaseInformation(blockHash);
+            when(federatorSupport.hasBlockCoinbaseInformed(blockHash)).thenReturn(false);
+
+            // act
+            activeFedClient.updateBridgeBtcBlockchain();
+            updateBridgeBestChainHeight();
+            activeFedClient.updateBridgeBtcCoinbaseTransactions();
+            // assert
+            assertCoinbaseTxSentToBridge(coinbaseInformation);
+
+            clearInvocations(federatorSupport);
+            // do it again
+            // act
+            activeFedClient.updateBridgeBtcBlockchain();
+            updateBridgeBestChainHeight();
+            activeFedClient.updateBridgeBtcCoinbaseTransactions();
+            // assert
+            assertCoinbaseTxSentToBridge(coinbaseInformation);
+        }
+
+        @ParameterizedTest
+        @MethodSource("activeFedArgs")
+        void updateBridgeBtcCoinbaseTransactions_whenBridgeHasCoinbaseInformed_shouldRemoveTxFromMap_shouldNotSendTx(Federation federation) throws Exception {
+            // arrange
+            setUpActiveFedClient(federation);
+            var segwitPeginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(segwitPeginBtcTx, federation.getAddress());
+
+            setUpTx(activeFedClient, segwitPeginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+            Block blockWithPegin = blocks[DEFAULT_BLOCK_WITH_TX_INDEX].getHeader();
+            Sha256Hash blockHash = blockWithPegin.getHash();
+            CoinbaseInformation coinbaseInformation = getCoinbaseInformation(blockHash);
+            when(federatorSupport.hasBlockCoinbaseInformed(blockHash)).thenReturn(true);
+
+            // act
+            activeFedClient.updateBridgeBtcBlockchain();
+            updateBridgeBestChainHeight();
+            activeFedClient.updateBridgeBtcCoinbaseTransactions();
+
+            // assert
+            assertCoinbaseTxNotSentToBridge(coinbaseInformation);
+            assertBlockWithTxHashIsNotInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, blockWithPegin);
+        }
+
+        @ParameterizedTest
+        @MethodSource("activeFedArgs")
+        void updateBridgeBtcCoinbaseTransactions_afterReorg_shouldNotSendObsoleteBlockHash_shouldSendCorrectBlockHash(Federation federation) throws Exception {
+            // arrange
+            setUpActiveFedClient(federation);
+            var segwitPeginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(segwitPeginBtcTx, federation.getAddress());
+
+            int blockWithSegwitPeginIndex = 3;
+
+            setUpTx(activeFedClient, segwitPeginBtcTx, blockWithSegwitPeginIndex);
+            Block blockWithPeginBeforeReorg = blocks[blockWithSegwitPeginIndex].getHeader();
+            Sha256Hash blockWithPeginBeforeReorgHash = blockWithPeginBeforeReorg.getHash();
+            activeFedClient.updateBridgeBtcBlockchain();
+            updateBridgeBestChainHeight();
+            activeFedClient.updateBridgeBtcCoinbaseTransactions();
+            when(federatorSupport.hasBlockCoinbaseInformed(blockWithPeginBeforeReorgHash)).thenReturn(true);
+
+            clearInvocations(federatorSupport);
+            // simulate reorg
+            // new chain is one block longer than previous one,
+            int newChainHeight = CHAIN_HEIGHT + 1;
+            // sharing blocks til right before the one that has the segwit pegin
+            int lastSharedBlockIndex = blockWithSegwitPeginIndex - 1;
+            blocks = createForkedBlockchain(blocks, lastSharedBlockIndex, newChainHeight);
+            setUpBlocks();
+            setUpKit();
+            setUpBitcoinWrapper();
+            setUpActiveFedClient(federation);
+
+            // the pegin will be added to a block with another height in the new chain
+            int blockWithSegwitPeginIndexInNewChain = 4;
+
+            setUpTx(activeFedClient, segwitPeginBtcTx, blockWithSegwitPeginIndexInNewChain);
+            Block blockWithPeginInNewChain = blocks[blockWithSegwitPeginIndexInNewChain].getHeader();
+            Sha256Hash blockWithPeginInNewChainHash = blockWithPeginInNewChain.getHash();
+            activeFedClient.updateBridgeBtcBlockchain();
+            updateBridgeBestChainHeight();
+
+            // act
+            activeFedClient.updateBridgeBtcCoinbaseTransactions();
+
+            // assert
+            // obsolete info should not be present in the map any more and tx shouldn't be sent
+            assertBlockWithTxHashIsNotInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, blockWithPeginBeforeReorg);
+            CoinbaseInformation coinbaseInformationBeforeReorg = getCoinbaseInformation(blockWithPeginBeforeReorgHash);
+            assertCoinbaseTxNotSentToBridge(coinbaseInformationBeforeReorg);
+
+            // correct info should be present in the map and tx should be sent
+            assertBlockWithTxHashIsInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, blockWithPeginInNewChain);
+            CoinbaseInformation coinbaseInformationInNewChain = getCoinbaseInformation(blockWithPeginInNewChainHash);
+            assertCoinbaseTxSentToBridge(coinbaseInformationInNewChain);
+        }
+
+        private CoinbaseInformation getCoinbaseInformation(Sha256Hash blockHash) throws IOException {
+            return btcToRskActiveFedClientFileStorage.read(MAINNET_PARAMS).getData().getCoinbaseInformationMap().get(blockHash);
+        }
+
         private void assertWTxIdIsInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
             Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
             assertWTxIdIsInProofsFile(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, tx);
@@ -3659,163 +3802,6 @@ class BtcToRskClientTest {
         verify(federatorSupport, never()).hasBlockCoinbaseInformed(any());
         verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any());
         verify(coinbases, never()).remove(any(Sha256Hash.class));
-    }
-
-    @Test
-    void updateBridgeBtcCoinbaseTransactions_when_coinbase_block_is_not_in_bridge_best_chain_does_nothing() throws Exception {
-        Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
-        Transaction coinbaseTx = getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes());
-        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(coinbaseTx, null, null, null);
-
-        coinbases.put(Sha256Hash.ZERO_HASH, coinbaseInformation);
-
-        // mocking BtcToRskClientFileData so I can verify the spied map
-        BtcToRskClientFileData btcToRskClientFileData = mock(BtcToRskClientFileData.class);
-        when(btcToRskClientFileData.getCoinbaseInformationMap()).thenReturn(coinbases);
-
-        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
-        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
-
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(federatorSupport, btcToRskClientFileStorageMock);
-
-        client.updateBridgeBtcCoinbaseTransactions();
-
-        verify(federatorSupport, times(1)).hasBlockCoinbaseInformed(any());
-        verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any());
-        assertEquals(1, coinbases.size());
-    }
-
-    @Test
-    void updateBridgeBtcCoinbaseTransactions_when_coinbase_already_informed_removes_from_map() throws Exception {
-        ActivationConfig activations = mock(ActivationConfig.class);
-
-        Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
-        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
-            getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes()), null, null, null);
-
-        coinbases.put(Sha256Hash.ZERO_HASH, coinbaseInformation);
-
-        // mocking BtcToRskClientFileData so I can verify the spied map
-        BtcToRskClientFileData btcToRskClientFileData = mock(BtcToRskClientFileData.class);
-        when(btcToRskClientFileData.getCoinbaseInformationMap()).thenReturn(coinbases);
-
-        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
-        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
-
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        // mocking that the coinbase was already informed
-        when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(true);
-        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
-
-        BtcToRskClient client = buildWithFactoryAndSetup(
-            federatorSupport,
-            mock(NodeBlockProcessor.class),
-            activations,
-            mock(BitcoinWrapperImpl.class),
-            bridgeRegTestConstants,
-            btcToRskClientFileStorageMock,
-            mock(BtcLockSenderProvider.class),
-            mock(PeginInstructionsProvider.class),
-            null
-        );
-
-        client.updateBridgeBtcCoinbaseTransactions();
-
-        verify(federatorSupport, times(1)).hasBlockCoinbaseInformed(any());
-        verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any());
-        assertEquals(0, coinbases.size());
-    }
-
-    @Test
-    void updateBridgeBtcCoinbaseTransactions_removes_hash_after_registration() throws Exception {
-        Sha256Hash blockHash = Sha256Hash.ZERO_HASH;
-
-        ActivationConfig activations = mock(ActivationConfig.class);
-
-        Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
-        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
-            getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes()), null, blockHash, null);
-
-        coinbases.put(blockHash, coinbaseInformation);
-
-        // mocking BtcToRskClientFileData so I can verify the spied map
-        BtcToRskClientFileData btcToRskClientFileData = mock(BtcToRskClientFileData.class);
-        when(btcToRskClientFileData.getCoinbaseInformationMap()).thenReturn(coinbases);
-        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
-        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
-
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        // Mocking the Bridge to indicate the coinbase was not informed, and then it was
-        when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(false, true);
-        when(federatorSupport.isBlockHashInformedToBridge(any())).thenReturn(true);
-        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
-
-        BtcToRskClient client = buildWithFactoryAndSetup(
-            federatorSupport,
-            mock(NodeBlockProcessor.class),
-            activations,
-            mock(BitcoinWrapperImpl.class),
-            bridgeRegTestConstants,
-            btcToRskClientFileStorageMock,
-            mock(BtcLockSenderProvider.class),
-            mock(PeginInstructionsProvider.class),
-            null
-        );
-
-        // The first time the coinbase is not there yet, the second time it is
-        client.updateBridgeBtcCoinbaseTransactions();
-        client.updateBridgeBtcCoinbaseTransactions();
-
-        verify(federatorSupport, times(2)).hasBlockCoinbaseInformed(any());
-        verify(federatorSupport, times(1)).sendRegisterCoinbaseTransaction(any());
-        assertEquals(0, coinbases.size());
-    }
-
-    @Test
-    void updateBridgeBtcCoinbaseTransactions_not_removing_from_storage_until_confirmation()
-        throws Exception {
-        Sha256Hash blockHash = Sha256Hash.ZERO_HASH;
-
-        ActivationConfig activations = mock(ActivationConfig.class);
-
-        Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
-        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
-            getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes()), null, blockHash, null);
-
-        coinbases.put(blockHash, coinbaseInformation);
-
-        // mocking BtcToRskClientFileData so I can verify the spied map
-        BtcToRskClientFileData btcToRskClientFileData = mock(BtcToRskClientFileData.class);
-        when(btcToRskClientFileData.getCoinbaseInformationMap()).thenReturn(coinbases);
-        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
-        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
-
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        // mocking that the coinbase was not informed
-        when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(false);
-        when(federatorSupport.isBlockHashInformedToBridge(any())).thenReturn(true);
-        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
-
-        BtcToRskClient client = buildWithFactoryAndSetup(
-            federatorSupport,
-            mock(NodeBlockProcessor.class),
-            activations,
-            mock(BitcoinWrapperImpl.class),
-            bridgeRegTestConstants,
-            btcToRskClientFileStorageMock,
-            mock(BtcLockSenderProvider.class),
-            mock(PeginInstructionsProvider.class),
-            null
-        );
-
-        // Calling updateBridgeBtcCoinbaseTransactions twice but failing to register it keeps the storage in place
-        client.updateBridgeBtcCoinbaseTransactions();
-        client.updateBridgeBtcCoinbaseTransactions();
-
-        verify(federatorSupport, times(2)).hasBlockCoinbaseInformed(any());
-        verify(federatorSupport, times(2)).sendRegisterCoinbaseTransaction(any());
-        assertEquals(1, coinbases.size());
     }
 
     @Test
