@@ -42,16 +42,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import javax.annotation.PreDestroy;
-import org.bitcoinj.core.Block;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PartialMerkleTree;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.StoredBlock;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.Utils;
+
+import org.bitcoinj.core.*;
 import org.bitcoinj.store.BlockStoreException;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
-import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -450,8 +444,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             List<Block> headersToSendToBridgeSubList = headersToSendToBridge.subList(0, to);
             federatorSupport.sendReceiveHeaders(headersToSendToBridgeSubList.toArray(new Block[]{}));
 
-            this.markCoinbasesAsReadyToBeInformed(headersToSendToBridgeSubList);
-
             logger.debug(
                 "[updateBridgeBtcBlockchain] Invoked receiveHeaders with {} blocks. First {}, Last {}.",
                 headersToSendToBridgeSubList.size(),
@@ -462,35 +454,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
 
         return 0;
-    }
-
-    @VisibleForTesting
-    protected void markCoinbasesAsReadyToBeInformed(List<Block> informedBlocks) throws IOException {
-        // Set all coinbases related to the informed block as ready to be informed
-        Map<Sha256Hash, CoinbaseInformation> coinbaseInformationMap = this.fileData.getCoinbaseInformationMap();
-        if (coinbaseInformationMap.isEmpty()) {
-            return;
-        }
-        boolean modified = false;
-        for (Block informedBlock : informedBlocks) {
-            if (coinbaseInformationMap.containsKey(informedBlock.getHash())) {
-                CoinbaseInformation coinbaseInformation = coinbaseInformationMap.get(informedBlock.getHash());
-                coinbaseInformation.setReadyToInform(true);
-                this.fileData.getCoinbaseInformationMap().put(informedBlock.getHash(), coinbaseInformation);
-                modified = true;
-                logger.debug(
-                    "[markCoinbasesAsReadyToBeInformed] Marked coinbase {} for block {} as ready to be informed",
-                    coinbaseInformation.getCoinbaseTransaction().getTxId(),
-                    informedBlock.getHash()
-                );
-            }
-        }
-        if (!modified) {
-            return;
-        }
-        synchronized (this) {
-            this.btcToRskClientFileStorage.write(this.fileData);
-        }
     }
 
     private Optional<StoredBlock> findBridgeBtcBlockchainMatchingAncestor(int bridgeBtcBlockchainBestChainHeight) throws BlockStoreException {
@@ -782,49 +745,43 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
      * Gets the first ready to be informed coinbase transaction and informs it
      */
     protected void updateBridgeBtcCoinbaseTransactions() {
-        Optional<CoinbaseInformation> coinbaseInformationReadyToInform = fileData.getCoinbaseInformationMap()
-            .values()
-            .stream()
-            .filter(CoinbaseInformation::isReadyToInform)
-            .findFirst();
-
-        if (coinbaseInformationReadyToInform.isEmpty()) {
+        Map<Sha256Hash, CoinbaseInformation> coinbaseInformationMap = this.fileData.getCoinbaseInformationMap();
+        if (coinbaseInformationMap.isEmpty()) {
             logger.debug("[updateBridgeBtcCoinbaseTransactions] no coinbase transaction to inform");
             return;
         }
 
-        CoinbaseInformation coinbaseInformation = coinbaseInformationReadyToInform.get();
-        logger.debug(
-            "[updateBridgeBtcCoinbaseTransactions] coinbase transaction {} ready to be informed for block {}",
-            coinbaseInformation.getCoinbaseTransaction().getTxId(),
-            coinbaseInformation.getBlockHash()
-        );
+        // Inform coinbases whose block is part of the bridge btc best chain
+        for (Map.Entry<Sha256Hash, CoinbaseInformation> coinbaseInformationEntry : coinbaseInformationMap.entrySet()) {
+            Sha256Hash coinbaseBlockHash = coinbaseInformationEntry.getKey();
+            CoinbaseInformation coinbaseInformation = coinbaseInformationEntry.getValue();
+            Sha256Hash coinbaseTxHash = coinbaseInformation.getCoinbaseTransaction().getTxId();
 
-        long bestBlockNumber = federatorSupport.getRskBestChainHeight();
-        if (activationConfig.isActive(ConsensusRule.RSKIP143, bestBlockNumber)) {
-            if (!federatorSupport.hasBlockCoinbaseInformed(coinbaseInformation.getBlockHash())) {
+            if (federatorSupport.hasBlockCoinbaseInformed(coinbaseBlockHash)) {
                 logger.debug(
-                    "[updateBridgeBtcCoinbaseTransactions] informing coinbase transaction {}",
-                    coinbaseInformation.getCoinbaseTransaction().getTxId()
+                    "[updateBridgeBtcCoinbaseTransactions] Coinbase tx {} of block {} was already informed. Removing from map",
+                    coinbaseTxHash,
+                    coinbaseBlockHash
                 );
-                federatorSupport.sendRegisterCoinbaseTransaction(coinbaseInformation);
-            } else {
-                logger.debug("[updateBridgeBtcCoinbaseTransactions] coinbase transaction already informed, removing from map");
-                // Remove the coinbase from the map
-                fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
-            }
-        } else {
-            logger.debug("[updateBridgeBtcCoinbaseTransactions] RSKIP-143 is not active. Can't send coinbase transactions.");
-            // Remove the coinbase from the map
-            fileData.getCoinbaseInformationMap().remove(coinbaseInformation.getBlockHash());
-        }
 
-        synchronized (this) {
-            try {
-                this.btcToRskClientFileStorage.write(this.fileData);
-            } catch (IOException e) {
-                logger.error(e.getMessage(), e);
+                fileData.getCoinbaseInformationMap().remove(coinbaseBlockHash);
+                continue;
             }
+
+            if (!federatorSupport.isBlockHashInBridgeBtcBestChain(coinbaseBlockHash)) {
+                logger.debug(
+                    "[updateBridgeBtcCoinbaseTransactions] Block {} for coinbase tx {} is not yet informed to Bridge",
+                    coinbaseBlockHash,
+                    coinbaseTxHash
+                );
+                continue;
+            }
+
+            logger.debug(
+                "[updateBridgeBtcCoinbaseTransactions] Informing coinbase transaction {}",
+                coinbaseTxHash
+            );
+            federatorSupport.sendRegisterCoinbaseTransaction(coinbaseInformation);
         }
     }
 
