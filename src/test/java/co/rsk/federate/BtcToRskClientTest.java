@@ -3864,6 +3864,8 @@ class BtcToRskClientTest {
             setUpTx(activeFedClient, segwitPeginBtcTx, blockWithSegwitPeginIndex);
             Block blockWithPeginBeforeReorg = blocks[blockWithSegwitPeginIndex].getHeader();
             Sha256Hash blockWithPeginBeforeReorgHash = blockWithPeginBeforeReorg.getHash();
+            CoinbaseInformation coinbaseInformationBeforeReorg = getCoinbaseInformation(blockWithPeginBeforeReorgHash);
+
             activeFedClient.updateBridgeBtcBlockchain();
             updateBridgeBestChainHeight();
             activeFedClient.updateBridgeBtcCoinbaseTransactions();
@@ -3896,7 +3898,6 @@ class BtcToRskClientTest {
             // assert
             // obsolete info should not be present in the map any more and tx shouldn't be sent
             assertBlockWithTxHashIsNotInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, blockWithPeginBeforeReorg);
-            CoinbaseInformation coinbaseInformationBeforeReorg = getCoinbaseInformation(blockWithPeginBeforeReorgHash);
             assertCoinbaseTxNotSentToBridge(coinbaseInformationBeforeReorg);
 
             // correct info should be present in the map and tx should be sent
