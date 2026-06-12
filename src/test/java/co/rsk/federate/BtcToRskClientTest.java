@@ -3723,7 +3723,7 @@ class BtcToRskClientTest {
 
         verify(federatorSupport, times(1)).hasBlockCoinbaseInformed(any());
         verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any());
-        verify(coinbases, times(1)).remove(any());
+        assertEquals(0, coinbases.size());
     }
 
     @Test
@@ -3769,7 +3769,7 @@ class BtcToRskClientTest {
 
         verify(federatorSupport, times(2)).hasBlockCoinbaseInformed(any());
         verify(federatorSupport, times(1)).sendRegisterCoinbaseTransaction(any());
-        verify(coinbases, times(1)).remove(blockHash);
+        assertEquals(0, coinbases.size());
     }
 
     @Test
