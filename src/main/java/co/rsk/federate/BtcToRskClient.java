@@ -751,10 +751,14 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             return;
         }
 
+        Set<Sha256Hash> coinbaseTxsToSendToBridgeBlockHashes = coinbaseInformationMap.keySet();
+        logger.debug("[updateBridgeBtcCoinbaseTransactions] Coinbase txs to send count: {}", coinbaseTxsToSendToBridgeBlockHashes.size());
+
+        Iterator<Sha256Hash> coinbaseBlockHashIterator = coinbaseTxsToSendToBridgeBlockHashes.iterator();
         // Inform coinbases whose block is part of the bridge btc best chain
-        for (Map.Entry<Sha256Hash, CoinbaseInformation> coinbaseInformationEntry : coinbaseInformationMap.entrySet()) {
-            Sha256Hash coinbaseBlockHash = coinbaseInformationEntry.getKey();
-            CoinbaseInformation coinbaseInformation = coinbaseInformationEntry.getValue();
+        while (coinbaseBlockHashIterator.hasNext()) {
+            Sha256Hash coinbaseBlockHash = coinbaseBlockHashIterator.next();
+            CoinbaseInformation coinbaseInformation = coinbaseInformationMap.get(coinbaseBlockHash);
             Sha256Hash coinbaseTxHash = coinbaseInformation.getCoinbaseTransaction().getTxId();
 
             if (federatorSupport.hasBlockCoinbaseInformed(coinbaseBlockHash)) {
@@ -764,7 +768,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     coinbaseBlockHash
                 );
 
-                fileData.getCoinbaseInformationMap().remove(coinbaseBlockHash);
+                removeCoinbaseBlockHashFromMap(coinbaseBlockHashIterator);
                 continue;
             }
 
@@ -783,6 +787,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             );
             federatorSupport.sendRegisterCoinbaseTransaction(coinbaseInformation);
         }
+    }
+
+    private void removeCoinbaseBlockHashFromMap(Iterator<Sha256Hash> blockHashIterator) {
+        blockHashIterator.remove();
+        writeToStorage();
     }
 
     /**
