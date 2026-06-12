@@ -454,6 +454,40 @@ class FederatorSupportTest {
         assertEquals(expectedCreationTime.longValue(), result.getEpochSecond());
     }
 
+    @Test
+    void isBlockHashInBridgeBtcBestChain_whenResultFromBridgeIsEmptyByte_returnsFalse() {
+        // Arrange
+        byte[] emptyBytes = new byte[]{};
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_BTC_BLOCKCHAIN_BLOCK_HEADER_BY_HASH),
+            any())
+        ).thenReturn(emptyBytes);
+
+        // Act
+        boolean result = federatorSupport.isBlockHashInBridgeBtcBestChain(Sha256Hash.ZERO_HASH);
+
+        // Assert
+        assertFalse(result);
+    }
+
+    @Test
+    void isBlockHashInBridgeBtcBestChain_whenResultFromBridgeIsNotEmptyByte_returnsTrue() {
+        // Arrange
+        byte[] notEmptyBytes = new byte[]{1, 2, 3, 4, 5};
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_BTC_BLOCKCHAIN_BLOCK_HEADER_BY_HASH),
+            any())
+        ).thenReturn(notEmptyBytes);
+
+        // Act
+        boolean result = federatorSupport.isBlockHashInBridgeBtcBestChain(Sha256Hash.ZERO_HASH);
+
+        // Assert
+        assertTrue(result);
+    }
+
     private Sha256Hash createHash() {
         byte[] bytes = new byte[32];
         bytes[0] = (byte) 1;
