@@ -46,14 +46,6 @@ class CoinbaseInformationTest {
     }
 
     @Test
-    void sets_ready_to_inform() throws Exception {
-        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(getTx(), null, null, null);
-        assertFalse(coinbaseInformation.isReadyToInform());
-        coinbaseInformation.setReadyToInform(true);
-        assertTrue(coinbaseInformation.isReadyToInform());
-    }
-
-    @Test
     void gets_witness_reserved_value() throws Exception {
         Transaction tx = getTx();
         tx.getInput(0).getWitness().setPush(0, Sha256Hash.ZERO_HASH.getBytes());

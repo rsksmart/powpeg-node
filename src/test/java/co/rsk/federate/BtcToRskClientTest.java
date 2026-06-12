@@ -640,52 +640,6 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void when_markCoinbasesAsReadyToBeInformed_coinbaseInformationMap_isEmpty_return() throws Exception {
-        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
-        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, new BtcToRskClientFileData()));
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
-
-        client.markCoinbasesAsReadyToBeInformed(new ArrayList<>());
-
-        verify(btcToRskClientFileStorageMock, never()).write(any());
-    }
-
-    @Test
-    void when_markCoinbasesAsReadyToBeInformed_informedBlocks_isEmpty_return() throws Exception {
-        BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
-        btcToRskClientFileData.getCoinbaseInformationMap().put(Sha256Hash.ZERO_HASH, mock(CoinbaseInformation.class));
-
-        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
-        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
-
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
-
-        client.markCoinbasesAsReadyToBeInformed(new ArrayList<>());
-
-        verify(btcToRskClientFileStorageMock, never()).write(any());
-    }
-
-    @Test
-    void when_markCoinbasesAsReadyToBeInformed_informedBlocks_notEmpty_writeToStorage() throws Exception {
-        BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
-        CoinbaseInformation coinbaseInformation = mock(CoinbaseInformation.class);
-        when(coinbaseInformation.getCoinbaseTransaction()).thenReturn(mock(Transaction.class));
-        btcToRskClientFileData.getCoinbaseInformationMap().put(Sha256Hash.ZERO_HASH, coinbaseInformation);
-
-        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
-        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
-        BtcToRskClient client = createClientWithMocksCustomStorageFiles(null, btcToRskClientFileStorageMock);
-
-        Block block = mock(Block.class);
-        when(block.getHash()).thenReturn(Sha256Hash.ZERO_HASH);
-
-        client.markCoinbasesAsReadyToBeInformed(Collections.singletonList(block));
-
-        verify(coinbaseInformation, times(1)).setReadyToInform(true);
-        verify(btcToRskClientFileStorageMock, times(1)).write(any());
-    }
-
-    @Test
     void updateBlockchainWithoutBlocks() throws Exception {
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
@@ -3711,7 +3665,6 @@ class BtcToRskClientTest {
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
         Transaction coinbaseTx = getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes());
         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(coinbaseTx, null, null, null);
-        coinbaseInformation.setReadyToInform(false);
 
         coinbases.put(Sha256Hash.ZERO_HASH, coinbaseInformation);
 
@@ -3727,58 +3680,18 @@ class BtcToRskClientTest {
 
         client.updateBridgeBtcCoinbaseTransactions();
 
-        verify(federatorSupport, never()).hasBlockCoinbaseInformed(any());
+        verify(federatorSupport, times(1)).hasBlockCoinbaseInformed(any());
         verify(federatorSupport, never()).sendRegisterCoinbaseTransaction(any());
         verify(coinbases, never()).remove(any(Sha256Hash.class));
     }
 
     @Test
-    void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_but_the_fork_is_not_active_doesnt_call_register_and_removes() throws Exception {
-        ActivationConfig activations = mock(ActivationConfig.class);
-        when(activations.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(false);
-
-        Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
-        Transaction coinbaseTx = getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes());
-        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(coinbaseTx, null, null, null);
-        coinbaseInformation.setReadyToInform(true);
-
-        coinbases.put(Sha256Hash.ZERO_HASH, coinbaseInformation);
-
-        // mocking BtcToRskClientFileData so I can verify the spied map
-        BtcToRskClientFileData btcToRskClientFileData = mock(BtcToRskClientFileData.class);
-        when(btcToRskClientFileData.getCoinbaseInformationMap()).thenReturn(coinbases);
-
-        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
-        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
-
-        FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
-
-        BtcToRskClient client = buildWithFactoryAndSetup(
-            federatorSupport,
-            mock(NodeBlockProcessor.class),
-            activations,
-            mock(BitcoinWrapperImpl.class),
-            bridgeRegTestConstants,
-            btcToRskClientFileStorageMock,
-            mock(BtcLockSenderProvider.class),
-            mock(PeginInstructionsProvider.class),
-            null
-        );
-
-        client.updateBridgeBtcCoinbaseTransactions();
-        verify(coinbases, times(1)).remove(any());
-    }
-
-    @Test
     void updateBridgeBtcCoinbaseTransactions_when_coinbase_map_has_readyToBeInformed_coinbases_but_they_were_already_informed_doesnt_call_register_and_removes() throws Exception {
         ActivationConfig activations = mock(ActivationConfig.class);
-        when(activations.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(true);
 
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
             getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes()), null, null, null);
-        coinbaseInformation.setReadyToInform(true);
 
         coinbases.put(Sha256Hash.ZERO_HASH, coinbaseInformation);
 
@@ -3823,7 +3736,6 @@ class BtcToRskClientTest {
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
             getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes()), null, blockHash, null);
-        coinbaseInformation.setReadyToInform(true);
 
         coinbases.put(blockHash, coinbaseInformation);
 
@@ -3836,6 +3748,7 @@ class BtcToRskClientTest {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         // Mocking the Bridge to indicate the coinbase was not informed, and then it was
         when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(false, true);
+        when(federatorSupport.isBlockHashInBridgeBtcBestChain(any())).thenReturn(true);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BtcToRskClient client = buildWithFactoryAndSetup(
@@ -3870,7 +3783,6 @@ class BtcToRskClientTest {
         Map<Sha256Hash, CoinbaseInformation> coinbases = spy(new HashMap<>());
         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
             getCoinbaseTx(true, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH.getBytes()), null, blockHash, null);
-        coinbaseInformation.setReadyToInform(true);
 
         coinbases.put(blockHash, coinbaseInformation);
 
@@ -3883,6 +3795,7 @@ class BtcToRskClientTest {
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         // mocking that the coinbase was not informed
         when(federatorSupport.hasBlockCoinbaseInformed(any())).thenReturn(false);
+        when(federatorSupport.isBlockHashInBridgeBtcBestChain(any())).thenReturn(true);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BtcToRskClient client = buildWithFactoryAndSetup(
