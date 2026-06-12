@@ -3819,6 +3819,37 @@ class BtcToRskClientTest {
             assertCoinbaseTxNotSentToBridge(coinbaseInformation);
             assertBlockWithTxHashIsNotInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, blockWithPegin);
         }
+        @ParameterizedTest
+        @MethodSource("activeFedArgs")
+        void updateBridgeBtcCoinbaseTransactions_whenBlockHeaderNotYetInformedToBridge_shouldNotSendCoinbaseTxUntilItIs(Federation federation) throws Exception {
+            // arrange
+            setUpActiveFedClient(federation);
+            var segwitPeginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(segwitPeginBtcTx, federation.getAddress());
+
+            setUpTx(activeFedClient, segwitPeginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+            Block blockWithPegin = blocks[DEFAULT_BLOCK_WITH_TX_INDEX].getHeader();
+            Sha256Hash blockHash = blockWithPegin.getHash();
+            CoinbaseInformation coinbaseInformation = getCoinbaseInformation(blockHash);
+
+            // simulate the block was not yet informed to the bridge
+            when(federatorSupport.hasBlockCoinbaseInformed(blockHash)).thenReturn(false);
+            when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(false);
+
+            // act
+            activeFedClient.updateBridgeBtcCoinbaseTransactions();
+
+            // assert
+            // coinbase tx should not be sent, and it should still be in the map
+            assertCoinbaseTxNotSentToBridge(coinbaseInformation);
+            assertBlockWithTxHashIsInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, blockWithPegin);
+
+            clearInvocations(federatorSupport);
+            // after block is informed, coinbase should be sent
+            when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(true);
+            activeFedClient.updateBridgeBtcCoinbaseTransactions();
+            assertCoinbaseTxSentToBridge(coinbaseInformation);
+        }
 
         @ParameterizedTest
         @MethodSource("activeFedArgs")
