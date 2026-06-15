@@ -1,31 +1,28 @@
 package co.rsk.federate.watcher;
 
 import co.rsk.federate.BtcToRskClient;
-import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.peg.federation.Federation;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.Objects;
 
 public class FederationWatcherListenerImpl implements FederationWatcherListener {
 
     private static final Logger logger = LoggerFactory.getLogger(FederationWatcherListenerImpl.class);
-    
+
     private final BtcToRskClient btcToRskClientActive;
     private final BtcToRskClient btcToRskClientRetiring;
     private final BtcReleaseClient btcReleaseClient;
-    private final BitcoinWrapper bitcoinWrapper;
 
     public FederationWatcherListenerImpl(
-            BtcToRskClient btcToRskClientActive,
-            BtcToRskClient btcToRskClientRetiring,
-            BtcReleaseClient btcReleaseClient,
-            BitcoinWrapper bitcoinWrapper) {
+        BtcToRskClient btcToRskClientActive,
+        BtcToRskClient btcToRskClientRetiring,
+        BtcReleaseClient btcReleaseClient
+    ) {
         this.btcToRskClientActive = btcToRskClientActive;
         this.btcToRskClientRetiring = btcToRskClientRetiring;
         this.btcReleaseClient = btcReleaseClient;
-        this.bitcoinWrapper = bitcoinWrapper;
     }
 
     @Override
@@ -46,28 +43,25 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
     @Override
     public void onProposedFederationChange(Federation newProposedFederation) {
         if (newProposedFederation == null) {
-            logger.info(
-                "[onProposedFederationChange] Proposed federation was cleared");
+            logger.info("[onProposedFederationChange] Proposed federation was cleared");
             return;
         }
 
         try {
-            // start {@code BtcReleaseClient} with proposed federation
+            // start {@code BtcReleaseClient} with proposed federation,
             // so it can sign svp spend tx
             btcReleaseClient.start(newProposedFederation);
 
-            // add proposed federation to active btc to rsk client so
-            // it can register svp spend tx in the bridge
-            bitcoinWrapper.addFederationListener(newProposedFederation, btcToRskClientActive);
-          
             logger.info(
-                "[onProposedFederationChange] Clients for proposed federation [{}] started with success",
-                newProposedFederation.getAddress());
+                "[onProposedFederationChange] BtcReleaseClient for proposed federation [{}] started with success",
+                newProposedFederation.getAddress()
+            );
         } catch (Exception e) {
             logger.error(
-                "[onProposedFederationChange] Clients for proposed federation [{}] failed to start",
+                "[onProposedFederationChange] BtcReleaseClient for proposed federation [{}] failed to start",
                 newProposedFederation.getAddress(),
-                e);
+                e
+            );
         }
     }
 
@@ -91,7 +85,8 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
             logger.error(
                 "[triggerClientChange] Clients for federation [{}] cannot be changed",
                 newFederation.getAddress(),
-                e);
+                e
+            );
         }
     }
     

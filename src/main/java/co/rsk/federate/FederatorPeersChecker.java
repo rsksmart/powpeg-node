@@ -1,26 +1,22 @@
 package co.rsk.federate;
-import co.rsk.federate.bitcoin.BitcoinPeerFactory;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PeerAddress;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import co.rsk.federate.bitcoin.BitcoinPeerFactory;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PeerAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * Created by ajlopez on 30/12/2016.
- */
 public class FederatorPeersChecker {
-    private static Logger logger = LoggerFactory.getLogger("federator");
-
-    private List<String> peers;
-    private int defaultPort;
-    private NetworkParameters btcParams;
+    private static final Logger logger = LoggerFactory.getLogger(FederatorPeersChecker.class);
+    private final List<String> peers;
+    private final int defaultPort;
+    private final NetworkParameters btcParams;
 
     public FederatorPeersChecker(int defaultPort, List<String> peers, NetworkParameters btcParams) {
         this.defaultPort = defaultPort;
@@ -31,14 +27,18 @@ public class FederatorPeersChecker {
     public List<String> checkPeerAddresses() throws UnknownHostException {
         List<String> messages = new ArrayList<>();
         List<PeerAddress> addresses = this.getPeerAddresses();
-        if (addresses == null || addresses.isEmpty()) {
+        logger.debug("[checkPeerAddresses] Going to check {} peer addresses", addresses.size());
+
+        if (addresses.isEmpty()) {
             messages.add("No Bitcoin Peers");
             return messages;
         }
 
         for (PeerAddress address : addresses) {
             if (!checkPeerAddress(address)) {
-                messages.add("Cannot connect to Bitcoin node " + address.getSocketAddress().getHostName() + ":" + address.getSocketAddress().getPort());
+                String message = "Cannot connect to Bitcoin node " + address.getSocketAddress().getHostName() + ":" + address.getSocketAddress().getPort();
+                logger.warn("[checkPeerAddresses] {}", message);
+                messages.add(message);
             }
         }
 
@@ -46,18 +46,21 @@ public class FederatorPeersChecker {
     }
 
     private boolean checkPeerAddress(PeerAddress address) {
-        InetSocketAddress saddr = address.getSocketAddress();
-        String host = saddr.getHostName();
-        int port = saddr.getPort();
+        logger.debug("[checkPeerAddress] Checking peer address {}", address);
+        InetSocketAddress socketAddress = address.getSocketAddress();
+        String host = socketAddress.getHostName();
+        int port = socketAddress.getPort();
 
         try {
             Socket socket = new Socket(host, port);
             socket.close();
-        }
-        catch (IOException ex) {
-            logger.error("Connecting Bitcoin node", ex);
+        } catch (IOException ex) {
+            String message = "Cannot connect to Bitcoin node " + host + ":" + port;
+            logger.error("[checkPeerAddress] {}", message, ex);
             return false;
         }
+        logger.debug("[checkPeerAddress] Peer address {} is reachable", address);
+
         return true;
     }
 

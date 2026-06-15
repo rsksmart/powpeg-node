@@ -1,17 +1,40 @@
 package co.rsk.federate.signing.hsm.advanceblockchain;
 
-import static co.rsk.federate.signing.HSMCommand.*;
-import static co.rsk.federate.signing.HSMField.*;
+import static co.rsk.federate.signing.HSMCommand.ADVANCE_BLOCKCHAIN;
+import static co.rsk.federate.signing.HSMCommand.BLOCKCHAIN_PARAMETERS;
+import static co.rsk.federate.signing.HSMCommand.BLOCKCHAIN_STATE;
+import static co.rsk.federate.signing.HSMCommand.RESET_ADVANCE_BLOCKCHAIN;
+import static co.rsk.federate.signing.HSMCommand.UPDATE_ANCESTOR_BLOCK;
+import static co.rsk.federate.signing.HSMField.ANCESTOR_BLOCK;
+import static co.rsk.federate.signing.HSMField.BEST_BLOCK;
+import static co.rsk.federate.signing.HSMField.BLOCKS;
+import static co.rsk.federate.signing.HSMField.BROTHERS;
+import static co.rsk.federate.signing.HSMField.CHECKPOINT;
+import static co.rsk.federate.signing.HSMField.IN_PROGRESS;
+import static co.rsk.federate.signing.HSMField.MINIMUM_DIFFICULTY;
+import static co.rsk.federate.signing.HSMField.NETWORK;
+import static co.rsk.federate.signing.HSMField.PARAMETERS;
+import static co.rsk.federate.signing.HSMField.STATE;
+import static co.rsk.federate.signing.HSMField.UPDATING;
 
-import co.rsk.federate.signing.hsm.*;
-import co.rsk.federate.signing.hsm.client.*;
-import co.rsk.federate.signing.hsm.message.*;
+import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
+import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMVersion;
+import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
+import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
+import co.rsk.federate.signing.hsm.client.PowHSMResponseHandler;
+import co.rsk.federate.signing.hsm.message.AdvanceBlockchainMessage;
+import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
+import co.rsk.federate.signing.hsm.message.PowHSMState;
+import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.ethereum.core.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -191,7 +214,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         ObjectNode command = hsmClientProtocol.buildCommand(RESET_ADVANCE_BLOCKCHAIN.getCommand(), hsmVersion);
         this.hsmClientProtocol.send(command);
 
-        logger.trace("[resetAdvanceBlockchain] Sent command to reset Advance Blockchain.");
+        logger.trace("[resetAdvanceBlockchain] Sent command to reset advance blockchain.");
     }
 
     @Override
