@@ -9,9 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Created by ajlopez on 6/2/2016.
- */
 public interface BitcoinWrapper {
     void setup(List<PeerAddress> peerAddresses);
 
