@@ -155,7 +155,7 @@ class PowpegNodeSystemPropertiesTest {
     }
 
     @Test
-    void shouldUpdateBridgeBtcBlockchain_whenCustomConfigNotAvailabe_shouldReturnDefaultConfig() {
+    void shouldUpdateBridgeBtcBlockchain_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
         when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(false);
 
         assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
@@ -172,7 +172,7 @@ class PowpegNodeSystemPropertiesTest {
 
     @Test
     void shouldUpdateBridgeBtcCoinbaseTransactions_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(false);
+        when(config.hasPath(UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS.getPath())).thenReturn(false);
 
         assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
     }
@@ -188,7 +188,7 @@ class PowpegNodeSystemPropertiesTest {
 
     @Test
     void shouldUpdateBridgeBtcTransactions_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(false);
+        when(config.hasPath(UPDATE_BRIDGE_BTC_TRANSACTIONS.getPath())).thenReturn(false);
 
         assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
     }
@@ -237,7 +237,7 @@ class PowpegNodeSystemPropertiesTest {
 
     @Test
     void federatorGasPrice_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath(GAS_PRICE.getPath())).thenReturn(true);
+        when(config.hasPath(GAS_PRICE.getPath())).thenReturn(false);
 
         long defaultValue = GAS_PRICE.getDefaultValue(Long::parseLong);
         assertEquals(defaultValue, powpegNodeSystemProperties.federatorGasPrice());

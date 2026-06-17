@@ -12,6 +12,8 @@ import java.util.List;
 
 public class PowpegNodeSystemProperties extends RskSystemProperties {
 
+    private final String REGTEST = "regtest";
+
     public PowpegNodeSystemProperties(ConfigLoader loader) {
         super(loader);
     }
@@ -31,7 +33,6 @@ public class PowpegNodeSystemProperties extends RskSystemProperties {
     }
 
     public boolean isUpdateBridgeTimerEnabled() {
-        final String REGTEST = "regtest";
         return !netName().equals(REGTEST) ||
             getBoolean(
                 UPDATE_BRIDGE_TIMER_ENABLED.getPath(),
