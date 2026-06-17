@@ -109,7 +109,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             try {
                 service.awaitRunning(timeoutMinutes, TimeUnit.MINUTES);
             } catch (TimeoutException e) {
-                logger.warn("[start] BitcoinWrapper not yet running after {} minutes", timeoutMinutes, e);
+                logger.warn("[start] BitcoinWrapper not yet running after {} minutes. {}", timeoutMinutes, e.getMessage());
                 // If no peers after the timeout value, then probably the peer address is wrong or the network is not reachable
                 checkPeers();
                 checkChainHeight();
