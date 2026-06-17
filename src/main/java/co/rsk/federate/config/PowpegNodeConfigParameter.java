@@ -22,6 +22,7 @@ public enum PowpegNodeConfigParameter {
     // periods, most likely the transaction was signed by other pegnatories.
     BTC_INIT_MAX_DEPTH("federator.pegoutStorageInitializationDepth", "6000"),
     BTC_PEER_ADDRESSES("federator.bitcoinPeerAddresses", ""),
+    BTC_WRAPPER_STARTUP_TIMEOUT("federator.bitcoinWrapperStartupTimeoutMinutes", "10"),
     // The time to live (TTL) duration for the peg-out signed cache,
     // specifies the validity period for the signed peg-outs.
     PEGOUT_CACHE_TTL("federator.pegoutSignedCacheTtlInMinutes", "30"),
