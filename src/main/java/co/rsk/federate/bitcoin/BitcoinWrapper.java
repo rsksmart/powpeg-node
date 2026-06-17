@@ -1,18 +1,21 @@
 package co.rsk.federate.bitcoin;
 
 import co.rsk.peg.federation.Federation;
-import org.bitcoinj.core.*;
-import org.bitcoinj.core.listeners.NewBestBlockListener;
-import org.bitcoinj.store.BlockStoreException;
-
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.listeners.NewBestBlockListener;
+import org.bitcoinj.store.BlockStoreException;
 
 public interface BitcoinWrapper {
     void setup(List<PeerAddress> peerAddresses);
 
-    void start();
+    void start(Duration timeout);
 
     void stop();
 
