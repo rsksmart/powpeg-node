@@ -164,47 +164,20 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
     }
 
     private Federation buildFederation(FederationArgs federationArgs, Address expectedFederationAddress) {
-        return tryBuildingStandardMultiSigFederation(federationArgs, expectedFederationAddress)
-            .or(() -> tryBuildingP2shP2wshErpFederation(federationArgs,
-                expectedFederationAddress))
-            .orElseThrow(() ->
-                new IllegalStateException(
-                    String.format(
-                        "Cannot determine federation type for federation with address %s. Tried: standard multiSig, and P2SH-P2WSH ERP federations.",
-                        expectedFederationAddress
-                    )
-                )
-            );
-    }
+        Federation federation = FederationFactory.buildP2shP2wshErpFederation(
+            federationArgs,
+            federationConstants.getErpFedPubKeysList(),
+            federationConstants.getErpFedActivationDelay()
+        );
 
-    private Optional<Federation> tryBuildingStandardMultiSigFederation(FederationArgs federationArgs, Address expectedFederationAddress) {
-        Federation standardMultiSigFederation = FederationFactory.buildStandardMultiSigFederation(federationArgs);
-        if (!standardMultiSigFederation.getAddress().equals(expectedFederationAddress)) {
-            logger.debug("[tryBuildingStandardMultiSigFederation] Expected federation is not a standard multiSig one.");
-            return Optional.empty();
+        if (!federation.getAddress().equals(expectedFederationAddress)) {
+            throw new IllegalStateException(String.format(
+                "Federation address %s does not match expected address %s",
+                federation.getAddress(),
+                expectedFederationAddress
+            ));
         }
 
-        logger.debug("[tryBuildingStandardMultiSigFederation] Expected federation is a standard multiSig one.");
-        return Optional.of(standardMultiSigFederation);
-    }
-
-    private Optional<Federation> tryBuildingP2shP2wshErpFederation(FederationArgs federationArgs, Address expectedFederationAddress) {
-        ErpFederation p2shP2wshErpFederation;
-        try {
-            p2shP2wshErpFederation = FederationFactory.buildP2shP2wshErpFederation(
-                federationArgs, federationConstants.getErpFedPubKeysList(),
-                federationConstants.getErpFedActivationDelay());
-        } catch (ErpFederationCreationException | ScriptCreationException e) {
-            logger.debug("[tryBuildingP2shP2wshErpFederation] Failed to build p2sh-p2wsh erp federation.", e);
-            return Optional.empty();
-        }
-
-        if (!p2shP2wshErpFederation.getAddress().equals(expectedFederationAddress)) {
-            logger.debug("[tryBuildingP2shP2wshErpFederation] Expected federation is not a p2sh-p2wsh erp one.");
-            return Optional.empty();
-        }
-
-        logger.debug("[tryBuildingP2shP2wshErpFederation] Expected federation is a p2sh-p2wsh erp one.");
-        return Optional.of(p2shP2wshErpFederation);
+        return federation;
     }
 }
