@@ -47,9 +47,7 @@ import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.util.ByteUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.internal.util.MockUtil;
 import org.spongycastle.util.encoders.Hex;
 
@@ -1886,24 +1884,14 @@ class BtcToRskClientTest {
 
         // and we will test with standard multisig and p2sh-p2wsh erp federations
 
-        private static Stream<Federation> activeFedArgs() {
-            final Federation standardMultisigFederation = TestUtils.createStandardMultisigFederation(
-                MAINNET_BTC_PARAMS,
-                9
-            );
-            final Federation p2shP2wshErpFederation = TestUtils.createP2shP2wshErpFederation(
+        // LEGACY PEGIN
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2pkh_shouldBeInformed() throws Exception {
+            // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
                 MAINNET_BTC_PARAMS,
                 20
             );
-
-            return Stream.of(standardMultisigFederation, p2shP2wshErpFederation);
-        }
-
-        // LEGACY PEGIN
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2pkh_shouldBeInformed(Federation federation) throws Exception {
-            // arrange
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -1917,10 +1905,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2pkh_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2pkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOutputToFedBelowMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -1934,10 +1925,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2wpkh_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2wpkh_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -1951,10 +1945,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wpkh_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wpkh_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -1968,10 +1965,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wpkh_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wpkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOutputToFedBelowMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -1985,10 +1985,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2shMultiSig_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shMultiSig_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -2002,10 +2005,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2shMultiSig_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOutputToFedBelowMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -2019,10 +2025,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wshMultiSig_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wshMultiSig_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -2036,10 +2045,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2shP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOutputToFedBelowMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -2053,10 +2065,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_legacyPeginFromP2wshMultiSig_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_legacyPeginFromP2wshMultiSig_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -2071,10 +2086,13 @@ class BtcToRskClientTest {
         }
 
         // PEGIN V1
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2pkh_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2pkh_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2089,10 +2107,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2pkh_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2pkh_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2107,10 +2128,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2pkh_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2pkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2125,10 +2149,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2pkh_invalidPayload_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2pkh_invalidPayload_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
@@ -2143,10 +2170,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2161,10 +2191,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2179,10 +2212,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2197,10 +2233,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2215,10 +2254,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_invalidPayload_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_invalidPayload_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
@@ -2233,10 +2275,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_invalidPayload_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wpkh_invalidPayload_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
@@ -2251,10 +2296,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wpkh_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2269,10 +2317,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wpkh_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2287,10 +2338,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wpkh_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2305,10 +2359,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wpkh_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2323,10 +2380,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wpkh_invalidPayload_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_invalidPayload_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
@@ -2341,10 +2401,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wpkh_invalidPayload_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wpkh_invalidPayload_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
@@ -2359,10 +2422,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2377,10 +2443,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2395,10 +2464,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2413,10 +2485,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2431,10 +2506,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_invalidPayload_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_invalidPayload_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
@@ -2449,10 +2527,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_invalidPayload_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shMultiSig_invalidPayload_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
@@ -2467,10 +2548,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2485,10 +2569,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2503,10 +2590,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2521,10 +2611,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2539,10 +2632,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_invalidPayload_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_invalidPayload_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
@@ -2557,10 +2653,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_invalidPayload_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2shP2wshMultiSig_invalidPayload_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
@@ -2575,10 +2674,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2593,10 +2695,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2611,10 +2716,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutput(peginBtcTx);
@@ -2629,10 +2737,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputWithRefundAddress(peginBtcTx);
@@ -2647,10 +2758,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_invalidPayload_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_invalidPayload_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayload(peginBtcTx);
@@ -2665,10 +2779,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_invalidPayload_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginV1FromP2wshMultiSig_invalidPayload_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputInvalidPayloadWithRefundAddress(peginBtcTx);
@@ -2684,10 +2801,13 @@ class BtcToRskClientTest {
         }
 
         // PEGIN WITH INSTRUCTIONS - UNKNOWN PROTOCOL VERSION
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -2702,10 +2822,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -2720,10 +2843,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -2738,10 +2864,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2pkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -2756,10 +2885,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -2774,10 +2906,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -2792,10 +2927,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -2810,10 +2948,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wpkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -2828,10 +2969,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -2846,10 +2990,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -2864,10 +3011,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -2882,10 +3032,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wpkh_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -2900,10 +3053,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -2918,10 +3074,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -2936,10 +3095,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -2954,10 +3116,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -2972,10 +3137,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -2990,10 +3158,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_withRefundAddress_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_withRefundAddress_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -3008,10 +3179,13 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -3026,10 +3200,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2shP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2shP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -3044,10 +3221,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -3062,10 +3242,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -3080,10 +3263,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersion(peginBtcTx);
@@ -3098,10 +3284,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_peginWithInstructionsFromP2wshMultiSig_unknownProtocolVersion_amountBelowMinimum_withRefundAddress_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
             addOpReturnOutputUnknownProtocolVersionWithRefundAddress(peginBtcTx);
@@ -3116,10 +3305,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(peginBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_pegoutTx_withoutChangeToFed_shouldNotBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_pegoutTx_withoutChangeToFed_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             co.rsk.bitcoinj.core.Address userAddress = BitcoinTestUtils.createP2PKHAddress(
                 MAINNET_BTC_PARAMS,
@@ -3142,10 +3334,13 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(pegoutBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_pegoutTx_withChangeToFed_shouldBeInformed(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_pegoutTx_withChangeToFed_shouldBeInformed() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var userAddress = BitcoinTestUtils.createP2PKHAddress(
                 MAINNET_BTC_PARAMS,
@@ -3172,30 +3367,17 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(pegoutBtcTx);
         }
 
-        private static Stream<Arguments> retiringAndActiveFedsArgs() {
-            final Federation standardMultiSigFed = TestUtils.createStandardMultisigFederation(
+        @Test
+        void updateBridgeBtcTransactions_migrationTx_shouldBeInformed() throws Exception {
+            // arrange
+            Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
                 MAINNET_BTC_PARAMS,
                 9
             );
-            final Federation firstP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
-                MAINNET_BTC_PARAMS,
-                9
-            );
-            final Federation secondP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+            Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
                 MAINNET_BTC_PARAMS,
                 20
             );
-
-            return Stream.of(
-                Arguments.of(standardMultiSigFed, firstP2shP2wshErpFed),
-                Arguments.of(firstP2shP2wshErpFed, secondP2shP2wshErpFed)
-            );
-        }
-
-        @ParameterizedTest
-        @MethodSource("retiringAndActiveFedsArgs")
-        void updateBridgeBtcTransactions_migrationTx_shouldBeInformed(Federation retiringFederation, Federation activeFederation) throws Exception {
-            // arrange
             setUpRetiringFedClient(retiringFederation);
             setUpActiveFedClient(activeFederation);
             var migrationBtcTx = createMigrationTx(MAINNET_BTC_PARAMS, retiringFederation, activeFederation);
@@ -3208,10 +3390,17 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(migrationBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("retiringAndActiveFedsArgs")
-        void updateBridgeBtcTransactions_migrationTxBelowMinimumPeginValue_shouldBeInformed(Federation retiringFederation, Federation activeFederation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_migrationTxBelowMinimumPeginValue_shouldBeInformed() throws Exception {
             // arrange
+            Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpRetiringFedClient(retiringFederation);
             setUpActiveFedClient(activeFederation);
             var migrationBtcTx = createMigrationTxBelowMinimumPeginValue(MAINNET_BTC_PARAMS, retiringFederation, activeFederation);
@@ -3224,10 +3413,17 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(migrationBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("retiringAndActiveFedsArgs")
-        void updateBridgeBtcTransactions_migrationTx_clientForRetiringFed_shouldNotBeInformed(Federation retiringFederation, Federation activeFederation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_migrationTx_clientForRetiringFed_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpRetiringFedClient(retiringFederation);
             setUpActiveFedClient(activeFederation);
 
@@ -3243,10 +3439,6 @@ class BtcToRskClientTest {
         }
 
         private static Stream<Arguments> activeAndNotActiveFedsArgs() {
-            final Federation activeStandardMultiSigFed = TestUtils.createStandardMultisigFederation(
-                MAINNET_BTC_PARAMS,
-                9
-            );
             final Federation activeSegwitFed = TestUtils.createP2shP2wshErpFederation(
                 MAINNET_BTC_PARAMS,
                 9
@@ -3257,15 +3449,21 @@ class BtcToRskClientTest {
             );
 
             return Stream.of(
-                Arguments.of(activeStandardMultiSigFed, notActiveFed),
                 Arguments.of(activeSegwitFed, notActiveFed)
             );
         }
 
-        @ParameterizedTest
-        @MethodSource("activeAndNotActiveFedsArgs")
-        void updateBridgeBtcTransactions_svpFundTx_shouldBeInformed(Federation activeFederation, Federation notActiveFederation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_svpFundTx_shouldBeInformed() throws Exception {
             // arrange
+            Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            Federation notActiveFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpProposedFed(notActiveFederation);
             setUpActiveFedClient(activeFederation);
 
@@ -3279,10 +3477,17 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(svpFundBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeAndNotActiveFedsArgs")
-        void updateBridgeBtcTransactions_svpSpendTx_shouldBeInformed(Federation activeFederation, Federation notActiveFederation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_svpSpendTx_shouldBeInformed() throws Exception {
             // arrange
+            Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            Federation notActiveFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpProposedFed(notActiveFederation);
             setUpActiveFedClient(activeFederation);
 
@@ -3296,10 +3501,17 @@ class BtcToRskClientTest {
             assertTxSentToBridgeByActiveFedClient(svpSpendBtcTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeAndNotActiveFedsArgs")
-        void updateBridgeBtcTransactions_svpSpendTx_clientForRetiringFed_shouldNotBeInformed(Federation notActiveFederation, Federation activeFederation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_svpSpendTx_clientForRetiringFed_shouldNotBeInformed() throws Exception {
             // arrange
+            Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            Federation notActiveFederation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(activeFederation);
             setUpRetiringFedClient(notActiveFederation);
 
@@ -3321,10 +3533,17 @@ class BtcToRskClientTest {
          * With separate proof files per client, both federations' pending txs must remain stored
          * after both clients process the same block
          */
-        @ParameterizedTest
-        @MethodSource("retiringAndActiveFedsArgs")
-        void updateBridgeBtcTransactions_clientForBothFeds_sharedStorage_shouldNotSendTx(Federation retiringFed, Federation activeFed) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_clientForBothFeds_sharedStorage_shouldNotSendTx() throws Exception {
             // arrange
+            Federation retiringFed = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            Federation activeFed = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             // 1. Set up clients with shared storage
             String fileCustomizer = "shared";
             btcToRskActiveFedClientFileStorage = buildClientFileStorageInfo(fileCustomizer);
@@ -3348,10 +3567,18 @@ class BtcToRskClientTest {
             assertTxNotSentToBridge(btcTx2);
         }
 
-        @ParameterizedTest
-        @MethodSource("retiringAndActiveFedsArgs")
-        void updateBridgeBtcTransactions_clientForBothFeds_separateStorage_shouldSendTx(Federation retiringFed, Federation activeFed) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_clientForBothFeds_separateStorage_shouldSendTx() throws Exception {
             // arrange
+            // arrange
+            Federation retiringFed = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                9
+            );
+            Federation activeFed = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             // 1. Set up clients with separate storage
             String fileCustomizerForActiveFed = "active";
             btcToRskActiveFedClientFileStorage = buildClientFileStorageInfo(fileCustomizerForActiveFed);
@@ -3454,10 +3681,13 @@ class BtcToRskClientTest {
             retiringFedClient.start(retiringFed);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_txAlreadyProcessed_shouldNotBeInformed_rightAfterBtcToRskMinimumAcceptableConfirmationsOnRsk_shouldBeRemovedFromProofsFile(Federation federation) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_txAlreadyProcessed_shouldNotBeInformed_rightAfterBtcToRskMinimumAcceptableConfirmationsOnRsk_shouldBeRemovedFromProofsFile() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
@@ -3565,12 +3795,13 @@ class BtcToRskClientTest {
             assertWTxIdIsNotInProofsFile(testnetParams, btcToRskActiveFedClientFileStorage, peginTx);
         }
 
-        @ParameterizedTest
-        @MethodSource("activeFedArgs")
-        void updateBridgeBtcTransactions_whenOneAppearanceHashNotInBlockStore_shouldBeInformedWithBestChainProof(
-            Federation federation
-        ) throws Exception {
+        @Test
+        void updateBridgeBtcTransactions_whenOneAppearanceHashNotInBlockStore_shouldBeInformedWithBestChainProof() throws Exception {
             // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
             setUpActiveFedClient(federation);
             var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());

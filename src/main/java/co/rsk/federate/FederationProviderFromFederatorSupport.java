@@ -23,7 +23,6 @@ import static co.rsk.peg.federation.FederationMember.KeyType;
 import co.rsk.bitcoinj.core.Address;
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.NetworkParameters;
-import co.rsk.peg.bitcoin.ScriptCreationException;
 import co.rsk.peg.federation.*;
 import co.rsk.peg.federation.constants.FederationConstants;
 import java.time.Instant;
@@ -177,6 +176,7 @@ public class FederationProviderFromFederatorSupport implements FederationProvide
                 expectedFederationAddress
             ));
         }
+        logger.trace("[buildFederation] Federation built successfully with address {}", federation.getAddress());
 
         return federation;
     }
