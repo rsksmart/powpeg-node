@@ -417,7 +417,7 @@ public class FedNodeRunner implements NodeRunner {
             kit
         );
         wrapper.setup(federatorSupport.getBitcoinPeerAddresses());
-        wrapper.start();
+        wrapper.start(config.getBitcoinWrapperStartupTimeout());
 
         return wrapper;
     }

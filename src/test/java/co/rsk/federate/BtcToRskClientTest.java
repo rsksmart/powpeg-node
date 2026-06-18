@@ -33,6 +33,7 @@ import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -1750,7 +1751,7 @@ class BtcToRskClientTest {
 
             List<PeerAddress> peerAddresses = Collections.emptyList();
             bitcoinWrapper.setup(peerAddresses);
-            bitcoinWrapper.start();
+            bitcoinWrapper.start(Duration.ofMinutes(10));
         }
 
         private void setUpActiveFedClient(Federation activeFederation) throws Exception {
@@ -4376,7 +4377,6 @@ class BtcToRskClientTest {
     }
 
     private PowpegNodeSystemProperties getMockedFedNodeSystemProperties(boolean defaultBooleanConfigValue) {
-
         PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
         when(config.getAmountOfHeadersToSend()).thenReturn(100);
         when(config.isUpdateBridgeTimerEnabled()).thenReturn(defaultBooleanConfigValue);

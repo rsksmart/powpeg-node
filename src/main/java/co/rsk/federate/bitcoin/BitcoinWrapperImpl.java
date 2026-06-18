@@ -102,12 +102,11 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
         Context.propagate(btcContext);
 
         long timeoutMinutes = timeout.toMinutes();
-
         logger.info("[start] Starting BitcoinWrapper. Will check progress every {} minutes.", timeoutMinutes);
         com.google.common.util.concurrent.Service service = kit.startAsync();
         while (!service.isRunning()) {
             try {
-                service.awaitRunning(timeoutMinutes, TimeUnit.MINUTES);
+                service.awaitRunning(timeout.toMillis(), TimeUnit.MILLISECONDS); // Passing as milliseconds so it can be tested with < 1 minute values
             } catch (TimeoutException e) {
                 logger.warn("[start] BitcoinWrapper not yet running after {} minutes. {}", timeoutMinutes, e.getMessage());
                 // If no peers after the timeout value, then probably the peer address is wrong or the network is not reachable
