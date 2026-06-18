@@ -88,6 +88,13 @@ public class PowpegNodeSystemProperties extends RskSystemProperties {
             : new ArrayList<>();
     }
 
+    public Duration getBitcoinWrapperStartupTimeout() {
+        return Duration.ofMinutes(getInt(
+            BTC_WRAPPER_STARTUP_TIMEOUT.getPath(),
+            BTC_WRAPPER_STARTUP_TIMEOUT.getDefaultValue(Integer::parseInt)
+        ));
+    }
+
     public Duration getPegoutSignedCacheTtl() {
         return Duration.ofMinutes(getInt(
             PEGOUT_CACHE_TTL.getPath(),

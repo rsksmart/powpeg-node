@@ -45,8 +45,14 @@ public class Kit extends WalletAppKit {
 
     @Override
     protected void onSetupCompleted() {
-        logger.debug("[onSetupCompleted] Setup completed");
+        logger.debug("[onSetupCompleted] Completing setup");
         Context.propagate(btcContext);
+        vPeerGroup.addConnectedEventListener((peer, peerCount) ->
+            logger.info("[onSetupCompleted] Bitcoin peer connected: {} ({} connected)", peer.getAddress(), peerCount)
+        );
+        vPeerGroup.addDisconnectedEventListener((peer, peerCount) ->
+            logger.warn("[onSetupCompleted] Bitcoin peer disconnected: {} ({} remaining)", peer.getAddress(), peerCount)
+        );
         vPeerGroup.addBlocksDownloadedEventListener(blockListener);
         if(!vWallet.isConsistent()) {
             logger.warn("[onSetupCompleted] Wallet database is in an inconsistent state, starting to reset it");
@@ -56,6 +62,7 @@ public class Kit extends WalletAppKit {
         vWallet.addCoinsSentEventListener(coinsSentListener);
         vPeerGroup.setDownloadTxDependencies(0);
         vChain.addNewBestBlockListener(newBestBlockListener);
+        logger.debug("[onSetupCompleted] Setup completed");
     }
 
     @Override

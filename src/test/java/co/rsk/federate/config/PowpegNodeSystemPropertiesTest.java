@@ -10,17 +10,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import co.rsk.config.ConfigLoader;
+import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.signing.config.SignerType;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigObject;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import co.rsk.config.ConfigLoader;
-import co.rsk.federate.signing.config.SignerConfig;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigObject;
 import org.bitcoinj.core.NetworkParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,10 @@ class PowpegNodeSystemPropertiesTest {
     @ParameterizedTest
     @MethodSource("updateBridgeTimerEnabledProvider")
     void isUpdateBridgeTimerEnabled_whenGivenNetworkConfigNameAndCustomConfigVariations_shouldReturnEnabled(
-            String networkConfigName, boolean hasPath, boolean customValue) {
+        String networkConfigName,
+        boolean hasPath,
+        boolean customValue
+    ) {
         when(config.getString("blockchain.config.name")).thenReturn(networkConfigName);
         when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(hasPath);
         if (hasPath) {
@@ -155,7 +158,7 @@ class PowpegNodeSystemPropertiesTest {
     }
 
     @Test
-    void shouldUpdateBridgeBtcBlockchain_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
+    void shouldUpdateBridgeBtcBlockchain_whenCustomConfigNotAvailabe_shouldReturnDefaultConfig() {
         when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(false);
 
         assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcBlockchain());
@@ -172,7 +175,7 @@ class PowpegNodeSystemPropertiesTest {
 
     @Test
     void shouldUpdateBridgeBtcCoinbaseTransactions_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath(UPDATE_BRIDGE_BTC_COINBASE_TRANSACTIONS.getPath())).thenReturn(false);
+        when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(false);
 
         assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcCoinbaseTransactions());
     }
@@ -188,7 +191,7 @@ class PowpegNodeSystemPropertiesTest {
 
     @Test
     void shouldUpdateBridgeBtcTransactions_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath(UPDATE_BRIDGE_BTC_TRANSACTIONS.getPath())).thenReturn(false);
+        when(config.hasPath(UPDATE_BRIDGE_BTC_BLOCKCHAIN.getPath())).thenReturn(false);
 
         assertTrue(powpegNodeSystemProperties.shouldUpdateBridgeBtcTransactions());
     }
@@ -237,7 +240,7 @@ class PowpegNodeSystemPropertiesTest {
 
     @Test
     void federatorGasPrice_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath(GAS_PRICE.getPath())).thenReturn(false);
+        when(config.hasPath(GAS_PRICE.getPath())).thenReturn(true);
 
         long defaultValue = GAS_PRICE.getDefaultValue(Long::parseLong);
         assertEquals(defaultValue, powpegNodeSystemProperties.federatorGasPrice());
@@ -258,6 +261,23 @@ class PowpegNodeSystemPropertiesTest {
 
         List<String> defaultValue = new ArrayList<>();
         assertEquals(defaultValue, powpegNodeSystemProperties.bitcoinPeerAddresses());
+    }
+
+    @Test
+    void bitcoinWrapperStartTimeout_whenCustomConfigAvailable_shouldReturnCustomConfig() {
+        int customValue = 60;
+        when(config.hasPath(BTC_WRAPPER_STARTUP_TIMEOUT.getPath())).thenReturn(true);
+        when(config.getInt(BTC_WRAPPER_STARTUP_TIMEOUT.getPath())).thenReturn(customValue);
+
+        assertEquals(Duration.ofMinutes(customValue), powpegNodeSystemProperties.getBitcoinWrapperStartupTimeout());
+    }
+
+    @Test
+    void bitcoinWrapperStartTimeout_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
+        when(config.hasPath(BTC_WRAPPER_STARTUP_TIMEOUT.getPath())).thenReturn(false);
+
+        int defaultValue = BTC_WRAPPER_STARTUP_TIMEOUT.getDefaultValue(Integer::parseInt);
+        assertEquals(Duration.ofMinutes(defaultValue), powpegNodeSystemProperties.getBitcoinWrapperStartupTimeout());
     }
 
     @Test
@@ -354,6 +374,7 @@ class PowpegNodeSystemPropertiesTest {
     private static Stream<Arguments> powpegNodeConfigParameterProvider() {
         return Stream.of(
             Arguments.of(SIGNERS),
-            Arguments.of(GAS_PRICE_PROVIDER));
+            Arguments.of(GAS_PRICE_PROVIDER)
+        );
     }
 }

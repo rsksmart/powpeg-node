@@ -5,7 +5,10 @@ import co.rsk.bitcoinj.wallet.Wallet;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.peg.*;
 import co.rsk.peg.federation.Federation;
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.bitcoinj.core.*;
 import org.bitcoinj.core.TransactionConfidence.ConfidenceType;
 import org.bitcoinj.core.listeners.BlocksDownloadedEventListener;
@@ -95,11 +98,44 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     }
 
     @Override
-    public void start() {
+    public void start(Duration timeout) {
         Context.propagate(btcContext);
-        kit.startAsync().awaitRunning();
+
+        long timeoutMinutes = timeout.toMinutes();
+        logger.info("[start] Starting BitcoinWrapper. Will check progress every {} minutes.", timeoutMinutes);
+        com.google.common.util.concurrent.Service service = kit.startAsync();
+        while (!service.isRunning()) {
+            try {
+                service.awaitRunning(timeout.toMillis(), TimeUnit.MILLISECONDS); // Passing as milliseconds so it can be tested with < 1 minute values
+            } catch (TimeoutException e) {
+                logger.warn("[start] BitcoinWrapper not yet running after {} minutes. {}", timeoutMinutes, e.getMessage());
+                // If no peers after the timeout value, then probably the peer address is wrong or the network is not reachable
+                checkPeers();
+                checkChainHeight();
+            }
+        }
         running = true;
-        logger.debug("[start] BitcoinWrapper started");
+        logger.info("[start] BitcoinWrapper started successfully");
+    }
+
+    private void checkPeers() {
+        int connectedPeers = kit.peerGroup() != null ? kit.peerGroup().numConnectedPeers() : 0;
+        logger.debug("[checkPeers] {} Bitcoin peers connected", connectedPeers);
+        if (connectedPeers == 0) {
+            String message = "No Bitcoin peers connected. Check peer address and network parameters";
+            logger.error("[checkPeers] {}", message);
+            throw new RuntimeException(message);
+        }
+    }
+
+    private void checkChainHeight() {
+        int currentChainHeight = kit.chain() != null ? kit.chain().getBestChainHeight() : -1;
+        int peerChainHeight = kit.peerGroup().getMostCommonChainHeight();
+        logger.debug(
+            "[checkChainHeight] Syncing... local height: {}, peer height: {}",
+            currentChainHeight,
+            peerChainHeight
+        );
     }
 
     @Override
