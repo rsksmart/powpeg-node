@@ -47,7 +47,6 @@ import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.util.ByteUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.provider.Arguments;
 import org.mockito.internal.util.MockUtil;
 import org.spongycastle.util.encoders.Hex;
 
@@ -3436,21 +3435,6 @@ class BtcToRskClientTest {
 
             // assert
             assertTxNotSentToBridge(migrationBtcTx);
-        }
-
-        private static Stream<Arguments> activeAndNotActiveFedsArgs() {
-            final Federation activeSegwitFed = TestUtils.createP2shP2wshErpFederation(
-                MAINNET_BTC_PARAMS,
-                9
-            );
-            final Federation notActiveFed = TestUtils.createP2shP2wshErpFederation(
-                MAINNET_BTC_PARAMS,
-                20
-            );
-
-            return Stream.of(
-                Arguments.of(activeSegwitFed, notActiveFed)
-            );
         }
 
         @Test

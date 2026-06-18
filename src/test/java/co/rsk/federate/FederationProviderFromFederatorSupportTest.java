@@ -229,16 +229,6 @@ class FederationProviderFromFederatorSupportTest {
         assertFalse(result.isPresent());
     }
 
-    private static Federation createStandardMultiSigFederation() {
-        Integer[] privateKeys = IntStream.iterate(1000, n -> n <= 5000, n -> n + 1000)
-            .boxed()
-            .toArray(Integer[]::new);
-        List<FederationMember> federationMembers = getFederationMembersFromPks(privateKeys);
-        FederationArgs federationArgs = new FederationArgs(federationMembers, creationTime, 0L,
-            networkParameters);
-        return FederationFactory.buildStandardMultiSigFederation(federationArgs);
-    }
-
     private static ErpFederation createP2shP2wshErpFederation() {
         Integer[] privateKeys = IntStream.iterate(1000, n -> n <= 20000, n -> n + 1000)
             .boxed()
