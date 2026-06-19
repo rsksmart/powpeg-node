@@ -358,6 +358,29 @@ java -cp /<PATH-TO-POW-PEG-SOURCE-CODE>/build/libs/<JAR-NAME>.jar -Drsk.conf.fil
 If you want to specify a directory to save the logs, add -Dlogback.configurationFile=/<PATH-TO-LOG-DIR>/logback.xml to the command.
 
 ---
+
+## Generate reproducible build from branch
+
+To generate a reproducible build from the current branch, use the Dockerfile in the root:
+
+```bash
+$ docker build -t powpeg-node-local .
+$ cid=$(docker run -d powpeg-node-local /bin/true)
+$ docker cp "$cid":/var/lib/rsk/. ./artifacts/
+$ docker rm "$cid"
+$ cd artifacts/
+$ sha256sum * | grep -v javadoc.jar
+```
+
+This will print the sha256sum from the artifacts, for example:
+
+```
+6e6bbd7e5f37f2d114f2e9246350d7e623d921f7041dd7e7a99ab7cc51864194  federate-node-SNAPSHOT-9.1.0.0-all.jar
+ad954cc543147b40e5fef8ea319ebea2a6fa183961cbef811b480e26e1d3e1e6  federate-node-SNAPSHOT-9.1.0.0.jar
+18394152a87c4182c5893d7886e1dc80d6a319b2df5a5f9131d25a9b38dba76b  federate-node-SNAPSHOT-9.1.0.0-sources.jar
+```
+
+---
 ## Report Security Vulnerabilities
 
 We have a [vulnerability reporting guideline](SECURITY.md) for details on how to contact us to report a vulnerability.
