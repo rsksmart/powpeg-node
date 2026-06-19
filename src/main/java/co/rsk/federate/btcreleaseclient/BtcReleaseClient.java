@@ -523,7 +523,7 @@ public class BtcReleaseClient {
         });
     }
 
-    protected Script extractStandardRedeemScript(Script redeemScript) {
+    private Script extractStandardRedeemScript(Script redeemScript) {
         RedeemScriptParser redeemScriptParser = RedeemScriptParserFactory.get(redeemScript.getChunks());
         List<ScriptChunk> defaultRedeemScriptChunks = redeemScriptParser.extractStandardRedeemScriptChunks();
         return new ScriptBuilder().addChunks(defaultRedeemScriptChunks).build();

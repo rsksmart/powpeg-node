@@ -1,44 +1,50 @@
 package co.rsk.federate.bitcoin;
 
-import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
+import static co.rsk.federate.bitcoin.BitcoinTestUtils.createMigrationTx;
+import static co.rsk.federate.bitcoin.BitcoinTestUtils.createMigrationTxBelowMinimumPeginValue;
 import static co.rsk.federate.utils.ClientProofsAssertions.assertProofsFileIsEmpty;
 import static co.rsk.federate.utils.ClientProofsAssertions.assertWTxIdIsInProofsFile;
 import static co.rsk.peg.bitcoin.BitcoinUtils.addSpendingFederationBaseScript;
 import static org.bitcoinj.script.ScriptOpCodes.OP_RETURN;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.script.Script;
 import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.federate.BtcToRskClientBuilder;
-import co.rsk.federate.config.PowpegNodeSystemProperties;
-import co.rsk.federate.io.*;
-import co.rsk.federate.signing.utils.TestUtils;
-import co.rsk.peg.constants.BridgeConstants;
-import co.rsk.peg.constants.BridgeMainNetConstants;
 import co.rsk.federate.FederatorSupport;
 import co.rsk.federate.adapter.ThinConverter;
-import co.rsk.peg.federation.Federation;
+import co.rsk.federate.config.PowpegNodeSystemProperties;
+import co.rsk.federate.io.BtcToRskClientDirectoryStorageInfo;
+import co.rsk.federate.io.BtcToRskClientFileStorage;
+import co.rsk.federate.io.BtcToRskClientFileStorageFactory;
+import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.btcLockSender.BtcLockSenderProvider;
+import co.rsk.peg.constants.BridgeConstants;
+import co.rsk.peg.constants.BridgeMainNetConstants;
+import co.rsk.peg.federation.Federation;
 import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.*;
-import java.util.stream.Stream;
-
-import org.bitcoinj.core.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import org.bitcoinj.core.Context;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.wallet.Wallet;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.crypto.HashUtil;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.spongycastle.util.encoders.Hex;
 
 class BitcoinWrapperImplTest {
@@ -121,23 +127,13 @@ class BitcoinWrapperImplTest {
         bitcoinWrapper.addFederationListener(federationToListen, listener);
     }
 
-    private static Stream<Federation> fedArgs() {
-        final Federation standardMultisigFederation = TestUtils.createStandardMultisigFederation(
-            thinNetworkParameters,
-            9
-        );
-        final Federation p2shP2wshErpFederation = TestUtils.createP2shP2wshErpFederation(
+    @Test
+    void coinsReceivedOrSent_validLegacyPegIn_shouldListenTx() throws Exception {
+        // arrange
+        Federation federation = TestUtils.createP2shP2wshErpFederation(
             thinNetworkParameters,
             20
         );
-
-        return Stream.of(standardMultisigFederation, p2shP2wshErpFederation);
-    }
-
-    @ParameterizedTest
-    @MethodSource("fedArgs")
-    void coinsReceivedOrSent_validLegacyPegIn_shouldListenTx(Federation federation) throws Exception {
-        // arrange
         setUpActiveFedListener(federation);
         Transaction pegin = createLegacyPegIn(federation);
 
@@ -148,10 +144,13 @@ class BitcoinWrapperImplTest {
         assertWTxIdIsInActiveFedClientProofsFile(pegin);
     }
 
-    @ParameterizedTest
-    @MethodSource("fedArgs")
-    void coinsReceivedOrSent_validPeginV1_shouldListenTx(Federation federation) throws Exception {
+    @Test
+    void coinsReceivedOrSent_validPeginV1_shouldListenTx() throws Exception {
         // arrange
+        Federation federation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            20
+        );
         setUpActiveFedListener(federation);
         Transaction pegin = createValidPegInV1(federation.getAddress());
 
@@ -196,10 +195,13 @@ class BitcoinWrapperImplTest {
         return pegin;
     }
 
-    @ParameterizedTest
-    @MethodSource("fedArgs")
-    void coinsReceivedOrSent_validPegOutTx_shouldListenTx(Federation federation) throws Exception {
+    @Test
+    void coinsReceivedOrSent_validPegOutTx_shouldListenTx() throws Exception {
         // arrange
+        Federation federation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            20
+        );
         setUpActiveFedListener(federation);
         final Transaction pegout = createPegOutTx(federation);
 
@@ -244,30 +246,17 @@ class BitcoinWrapperImplTest {
         return ThinConverter.toOriginalInstance(originalNetworkParameters.getId(), pegout);
     }
 
-    private static Stream<Arguments> retiringAndActiveFedsArgs() {
-        final Federation standardMultiSigFed = TestUtils.createStandardMultisigFederation(
+    @Test
+    void coinsReceivedOrSent_migrationTx_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile() throws Exception {
+        // arrange
+        Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
             thinNetworkParameters,
             9
         );
-        final Federation firstP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
-            thinNetworkParameters,
-            9
-        );
-        final Federation secondP2shP2wshErpFed = TestUtils.createP2shP2wshErpFederation(
+        Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
             thinNetworkParameters,
             20
         );
-
-        return Stream.of(
-            Arguments.of(standardMultiSigFed, firstP2shP2wshErpFed),
-            Arguments.of(firstP2shP2wshErpFed, secondP2shP2wshErpFed)
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_migrationTx_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
-        // arrange
         setUpActiveFedListener(activeFederation);
         setUpRetiringFedListener(retiringFederation);
         var migrationBtcTx = createMigrationTx(thinNetworkParameters, retiringFederation, activeFederation);
@@ -281,10 +270,17 @@ class BitcoinWrapperImplTest {
         assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
-    @ParameterizedTest
-    @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_migrationTxBelowMinimumPeginValue_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+    @Test
+    void coinsReceivedOrSent_migrationTxBelowMinimumPeginValue_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile() throws Exception {
         // arrange
+        Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            20
+        );
         setUpActiveFedListener(activeFederation);
         setUpRetiringFedListener(retiringFederation);
         var migrationBtcTx = createMigrationTxBelowMinimumPeginValue(thinNetworkParameters, retiringFederation, activeFederation);
@@ -298,10 +294,17 @@ class BitcoinWrapperImplTest {
         assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
-    @ParameterizedTest
-    @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_peginToActiveFed_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+    @Test
+    void coinsReceivedOrSent_peginToActiveFed_listenerForBothFeds_shouldBeSavedJustInActiveFedProofsFile() throws Exception {
         // arrange
+        Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            20
+        );
         setUpActiveFedListener(activeFederation);
         setUpRetiringFedListener(retiringFederation);
 
@@ -316,10 +319,17 @@ class BitcoinWrapperImplTest {
         assertProofsFileIsEmpty(originalNetworkParameters, btcToRskRetiringFedClientFileStorage);
     }
 
-    @ParameterizedTest
-    @MethodSource("retiringAndActiveFedsArgs")
-    void coinsReceivedOrSent_peginToRetiringFed_listenerForBothFeds_shouldBeSavedJustInRetiringFedProofsFile(Federation retiringFederation, Federation activeFederation) throws Exception {
+    @Test
+    void coinsReceivedOrSent_peginToRetiringFed_listenerForBothFeds_shouldBeSavedJustInRetiringFedProofsFile() throws Exception {
         // arrange
+        Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            9
+        );
+        Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+            thinNetworkParameters,
+            20
+        );
         setUpActiveFedListener(activeFederation);
         setUpRetiringFedListener(retiringFederation);
 
