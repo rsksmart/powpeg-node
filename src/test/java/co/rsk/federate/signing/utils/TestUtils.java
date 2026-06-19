@@ -42,6 +42,7 @@ public final class TestUtils {
         "02370a9838e4d15708ad14a104ee5606b36caaaaf739d833e67770ce9fd9b3ec80"
     ).map(hex -> BtcECKey.fromPublicOnly(Hex.decode(hex))).toList();
     private static final long ERP_FED_ACTIVATION_DELAY = 52_560; // 1 year in BTC blocks (considering 1 block every 10 minutes)
+    private static final Instant FED_CREATION_TIME = Instant.ofEpochSecond(1781877536);
 
     private TestUtils() {
     }
@@ -114,7 +115,7 @@ public final class TestUtils {
         List<FederationMember> federationMembers = FederationMember.getFederationMembersFromKeys(federationPrivatekeys);
         FederationArgs federationArgs = new FederationArgs(
             federationMembers,
-            Instant.now(),
+            FED_CREATION_TIME,
             CREATION_BLOCK_NUMBER,
             params
         );
@@ -134,18 +135,35 @@ public final class TestUtils {
 
     public static Federation createP2shP2wshErpFederation(NetworkParameters params, List<BtcECKey> keys) {
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
-        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, params);
-        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, ERP_FED_PUB_KEYS_LIST,
-            ERP_FED_ACTIVATION_DELAY);
+        FederationArgs federationArgs = new FederationArgs(
+            members,
+            FED_CREATION_TIME,
+            CREATION_BLOCK_NUMBER,
+            params
+        );
+
+        return FederationFactory.buildP2shP2wshErpFederation(
+            federationArgs,
+            ERP_FED_PUB_KEYS_LIST,
+            ERP_FED_ACTIVATION_DELAY
+        );
     }
 
     public static Federation createP2shP2wshErpFederation(BridgeConstants constants, List<BtcECKey> keys) {
         List<FederationMember> members = FederationMember.getFederationMembersFromKeys(keys);
-        FederationArgs federationArgs = new FederationArgs(members, Instant.now(), CREATION_BLOCK_NUMBER, constants.getBtcParams());
+        FederationArgs federationArgs = new FederationArgs(
+            members,
+            FED_CREATION_TIME,
+            CREATION_BLOCK_NUMBER,
+            constants.getBtcParams()
+        );
 
         FederationConstants federationConstants = constants.getFederationConstants();
-        return FederationFactory.buildP2shP2wshErpFederation(federationArgs, federationConstants.getErpFedPubKeysList(),
-            federationConstants.getErpFedActivationDelay());
+        return FederationFactory.buildP2shP2wshErpFederation(
+            federationArgs,
+            federationConstants.getErpFedPubKeysList(),
+            federationConstants.getErpFedActivationDelay()
+        );
     }
 
     public static List<BtcECKey> getFederationPrivateKeys(long amountOfMembers) {

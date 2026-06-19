@@ -26,7 +26,10 @@ class SignerMessageBuilderV1Test {
     void createHSMVersion1Message() {
         NetworkParameters params = RegTestParams.get();
         final BridgeConstants bridgeMainNetConstants = BridgeMainNetConstants.getInstance();
-        final Federation activeFederation = TestUtils.createStandardMultisigFederation(bridgeMainNetConstants.getBtcParams(), 9);
+        final Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+            bridgeMainNetConstants.getBtcParams(),
+            20
+        );
 
         // Create a tx from the Fed to a random btc address
         BtcTransaction releaseTx1 = new BtcTransaction(params);

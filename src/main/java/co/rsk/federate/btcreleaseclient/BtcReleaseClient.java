@@ -523,16 +523,13 @@ public class BtcReleaseClient {
         });
     }
 
-    protected Script extractStandardRedeemScript(Script redeemScript) {
+    private Script extractStandardRedeemScript(Script redeemScript) {
         RedeemScriptParser redeemScriptParser = RedeemScriptParserFactory.get(redeemScript.getChunks());
         List<ScriptChunk> defaultRedeemScriptChunks = redeemScriptParser.extractStandardRedeemScriptChunks();
         return new ScriptBuilder().addChunks(defaultRedeemScriptChunks).build();
     }
 
     private Script extractDefaultRedeemScript(Federation federation) {
-        if (federation instanceof ErpFederation erpFederation) {
-            return erpFederation.getDefaultRedeemScript();
-        }
-        return federation.getRedeemScript();
+        return ((ErpFederation) federation).getDefaultRedeemScript();
     }
 }
