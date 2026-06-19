@@ -1873,15 +1873,15 @@ class BtcToRskClientTest {
             return blockWithTx;
         }
 
-        // the tests will be set in this order:
-        // legacy pay-to-pub-key: p2pkh
-        // bech32 pay-to-script-pub-key: p2shP2wpkh
-        // bech32 pay-to-pub-key: p2wpkh
-        // multisig: p2sh
-        // pay-to-bech32-multisig: p2shP2wsh
-        // bech32 multisig: p2wsh
-
-        // and we will test with standard multisig and p2sh-p2wsh erp federations
+        /*
+        the tests will be set in this order:
+        * legacy pay-to-pub-key: p2pkh
+        * bech32 pay-to-script-pub-key: p2shP2wpkh
+        * bech32 pay-to-pub-key: p2wpkh
+        * multisig: p2sh
+        * pay-to-bech32-multisig: p2shP2wsh
+        * bech32 multisig: p2wsh
+         */
 
         // LEGACY PEGIN
         @Test
@@ -3553,7 +3553,6 @@ class BtcToRskClientTest {
 
         @Test
         void updateBridgeBtcTransactions_clientForBothFeds_separateStorage_shouldSendTx() throws Exception {
-            // arrange
             // arrange
             Federation retiringFed = TestUtils.createP2shP2wshErpFederation(
                 MAINNET_BTC_PARAMS,

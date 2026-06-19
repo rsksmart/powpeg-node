@@ -220,14 +220,6 @@ class FederationProviderFromFederatorSupportTest {
         // Assert
         assertFalse(result.isPresent());
     }
-  
-    @Test
-    void getProposedFederationAddress_whenRSKIP419IsNotActivated_shouldReturnEmptyOptional() {
-        // Act
-        Optional<Address> result = federationProvider.getProposedFederationAddress();
-        // Assert
-        assertFalse(result.isPresent());
-    }
 
     private static ErpFederation createP2shP2wshErpFederation() {
         Integer[] privateKeys = IntStream.iterate(1000, n -> n <= 20000, n -> n + 1000)
