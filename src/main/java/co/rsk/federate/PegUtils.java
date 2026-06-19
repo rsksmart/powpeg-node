@@ -1,7 +1,14 @@
 package co.rsk.federate;
 
-import co.rsk.bitcoinj.core.*;
-import co.rsk.bitcoinj.script.*;
+import co.rsk.bitcoinj.core.BtcTransaction;
+import co.rsk.bitcoinj.core.Coin;
+import co.rsk.bitcoinj.core.ScriptException;
+import co.rsk.bitcoinj.core.TransactionOutput;
+import co.rsk.bitcoinj.script.RedeemScriptParser;
+import co.rsk.bitcoinj.script.RedeemScriptParserFactory;
+import co.rsk.bitcoinj.script.Script;
+import co.rsk.bitcoinj.script.ScriptBuilder;
+import co.rsk.bitcoinj.script.ScriptChunk;
 import co.rsk.bitcoinj.wallet.Wallet;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.bitcoin.BitcoinUtils;
@@ -9,10 +16,10 @@ import co.rsk.peg.btcLockSender.BtcLockSender;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
+import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 public class PegUtils {
     public static final Coin MINIMUM_PEGIN_TX_VALUE = Coin.valueOf(500_000);
@@ -38,7 +45,7 @@ public class PegUtils {
             return false;
         }
 
-        Script defaultProposedFederationP2SHScript = getFederationStandardP2SHScript(proposedFederation);
+        Script defaultProposedFederationP2SHScript = ((ErpFederation) proposedFederation).getDefaultP2SHScript();
         int proposedFedInputIndex = 0;
         int flyoverProposedFedInputIndex = 1;
 
@@ -62,7 +69,7 @@ public class PegUtils {
     }
 
     public static boolean isPegOutTx(BtcTransaction btcTx, Federation activeFederation) {
-        Script fedStandardP2SHScript = getFederationStandardP2SHScript(activeFederation);
+        Script fedStandardP2SHScript = ((ErpFederation) activeFederation).getDefaultP2SHScript();
         int inputsSize = btcTx.getInputs().size();
         for (int i = 0; i < inputsSize; i++) {
             if (isInputFromScript(fedStandardP2SHScript, btcTx, i)) {
@@ -93,14 +100,6 @@ public class PegUtils {
         Script p2shOutputScript = ScriptBuilder.createP2SHOutputScript(redeemScript);
         Script p2wshOutputScript = ScriptBuilder.createP2SHP2WSHOutputScript(redeemScript);
         return expectedSpendingScript.equals(p2shOutputScript) || expectedSpendingScript.equals(p2wshOutputScript);
-    }
-
-    private static Script getFederationStandardP2SHScript(Federation federation) {
-        if (!(federation instanceof ErpFederation)) {
-            return federation.getP2SHScript();
-        }
-
-        return ((ErpFederation) federation).getDefaultP2SHScript();
     }
 
     private static boolean allTxOutputsAreToFed(BtcTransaction btcTx, Federation federation) {
