@@ -11,7 +11,11 @@ USER rsk
 WORKDIR /home/rsk
 COPY --chown=rsk:rsk . ./
 
-RUN ./gradlew --no-daemon clean build -x test && \
+RUN gpg --keyserver https://secchannel.rsk.co/SUPPORT.asc --recv-keys 1DC9157991323D23FD37BAA7A6DBEAC640C5A14B && \
+    gpg --verify --output SHA256SUMS SHA256SUMS.asc && \
+    sha256sum --check SHA256SUMS && \
+    ./configure.sh && \
+    ./gradlew --no-daemon clean build -x test && \
     mkdir -p artifacts && \
     cp build/libs/federate-node-*.jar artifacts/
 
