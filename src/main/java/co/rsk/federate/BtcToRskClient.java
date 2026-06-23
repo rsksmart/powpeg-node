@@ -396,7 +396,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
     }
 
-    protected int updateBridgeBtcBlockchain() throws BlockStoreException, IOException {
+    protected int updateBridgeBtcBlockchain() throws BlockStoreException {
         int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBlockchainBestChainHeight();
         int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
         if (federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight) {
@@ -436,12 +436,17 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 return 0;
             }
             headersToSendToBridge = Lists.reverse(headersToSendToBridge);
-            logger.debug(
-                "[updateBridgeBtcBlockchain] Headers missing in the bridge {}.",
-                headersToSendToBridge.size()
-            );
-            int to = Math.min(amountOfHeadersToSend, headersToSendToBridge.size());
-            List<Block> headersToSendToBridgeSubList = headersToSendToBridge.subList(0, to);
+
+            // Only send the headers that are not already known to the Bridge
+            int startIndex = findStartIndex(headersToSendToBridge);
+            if (startIndex >= headersToSendToBridge.size()) {
+                logger.debug("[updateBridgeBtcBlockchain] All headers already known to Bridge, nothing to send.");
+                return 0;
+            }
+
+            int to = Math.min(startIndex + amountOfHeadersToSend, headersToSendToBridge.size());
+            List<Block> headersToSendToBridgeSubList = headersToSendToBridge.subList(startIndex, to);
+
             federatorSupport.sendReceiveHeaders(headersToSendToBridgeSubList.toArray(new Block[]{}));
 
             logger.debug(
@@ -450,10 +455,28 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 headersToSendToBridgeSubList.get(0).getHash(),
                 headersToSendToBridgeSubList.get(headersToSendToBridgeSubList.size()-1).getHash()
             );
+
             return headersToSendToBridgeSubList.size();
         }
 
         return 0;
+    }
+
+    private int findStartIndex(List<Block> headersToSendToBridge) {
+        // Binary search
+        int low = 0;
+        int high = headersToSendToBridge.size();
+        while (low < high) {
+            int mid = (low + high) / 2;
+            Sha256Hash midHash = headersToSendToBridge.get(mid).getHash();
+            if (federatorSupport.isBlockHashInformedToBridge(midHash)) {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+
+        return low;
     }
 
     private Optional<StoredBlock> findBridgeBtcBlockchainMatchingAncestor(int bridgeBtcBlockchainBestChainHeight) throws BlockStoreException {
