@@ -378,13 +378,16 @@ public class BtcReleaseClient {
                 pegoutBtcTxHash
             );
             return Optional.of(releaseToSignCreationInformation);
-        } catch (FederatorAlreadySignedException | FederationCantSignException | HSMReleaseCreationInformationException e) {
+        } catch (FederatorAlreadySignedException e) {
+            logger.info("[tryGetReleaseInformation] {}", e.getMessage());
+        } catch (FederationCantSignException | HSMReleaseCreationInformationException e) {
             String message = String.format(
                 "[tryGetReleaseInformation] There was an error trying to process pegout with btcTxHash %s",
                 pegoutBtcTxHash
             );
             logger.error(message, e);
         }
+
         return Optional.empty();
     }
 
