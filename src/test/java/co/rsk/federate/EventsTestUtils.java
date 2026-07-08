@@ -8,10 +8,9 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.peg.BridgeEvents;
 import co.rsk.peg.pegin.RejectedPeginReason;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+
+import java.util.*;
+
 import org.ethereum.core.CallTransaction;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.vm.DataWord;
@@ -21,6 +20,29 @@ import org.ethereum.vm.PrecompiledContracts;
 public final class EventsTestUtils {
 
     private EventsTestUtils() {
+    }
+
+    private static final byte[] BRIDGE_ADDRESS = PrecompiledContracts.BRIDGE_ADDR.getBytes();
+
+    public static List<DataWord> buildCustomTopics(CallTransaction.Function event, List<byte[]> topicsToAdd) {
+        List<DataWord> topics = new ArrayList<>();
+
+        byte[] eventSignature = event.encodeSignatureLong();
+        topics.add(DataWord.valueOf(eventSignature));
+        for (byte[] topicToAdd : topicsToAdd) {
+            topics.add(DataWord.valueOf(topicToAdd));
+        }
+
+        return topics;
+    }
+
+    public static List<DataWord> buildEncodedTopics(CallTransaction.Function bridgeEvent, Object... args) {
+        byte[][] encodedTopicsInBytes = bridgeEvent.encodeEventTopics(args);
+        return LogInfo.byteArrayToList(encodedTopicsInBytes);
+    }
+
+    public static byte[] buildEncodedData(CallTransaction.Function bridgeEvent, Object... args) {
+        return bridgeEvent.encodeEventData(args);
     }
 
     public static LogInfo createPegoutTransactionCreatedLog(
@@ -62,24 +84,19 @@ public final class EventsTestUtils {
     }
 
     public static LogInfo createReleaseRequestedLog(
-        Keccak256 pegoutRskTxHash,
+        Keccak256 pegoutCreationRskTxHash,
         Sha256Hash pegoutBtcTxHash,
         Coin amount
     ) {
         CallTransaction.Function releaseRequestedEvent = BridgeEvents.RELEASE_REQUESTED.getEvent();
+        List<DataWord> topics = buildEncodedTopics(releaseRequestedEvent, pegoutCreationRskTxHash.getBytes(), pegoutBtcTxHash.getBytes());
+        byte[] data = buildEncodedData(releaseRequestedEvent, amount.getValue());
 
-        byte[] releaseRequestedSignatureTopic = releaseRequestedEvent.encodeSignatureLong();
-        List<DataWord> topics = new ArrayList<>();
-        topics.add(DataWord.valueOf(releaseRequestedSignatureTopic));
-        topics.add(DataWord.valueOf(pegoutRskTxHash.getBytes()));
-        topics.add(DataWord.valueOf(pegoutBtcTxHash.getBytes()));
+        return buildLogInfoFrom(BRIDGE_ADDRESS, topics, data);
+    }
 
-        byte[] encodedData = releaseRequestedEvent.encodeEventData(amount.getValue());
-
-        return new LogInfo(
-            PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-            topics, encodedData
-        );
+    public static LogInfo buildLogInfoFrom(byte[] sender, List<DataWord> topics, byte[] data) {
+        return new LogInfo(sender, topics, data);
     }
 
     public static LogInfo createUpdateCollectionsLog(RskAddress senderAddress) {
