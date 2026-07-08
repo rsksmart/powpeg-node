@@ -52,7 +52,7 @@ public class ReleaseCreationInformationGetter {
                     "Rsk transaction %s where the pegout was created could not be found in best chain",
                     pegoutCreationRskTxHash
                 );
-                logger.error("[getReleaseCreationInformation] {}", message);
+                logger.error("[getTxInfoToSign] {}", message);
                 return new HSMReleaseCreationInformationException(message);
             });
 
