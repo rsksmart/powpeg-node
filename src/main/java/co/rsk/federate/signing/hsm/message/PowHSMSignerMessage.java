@@ -18,19 +18,26 @@
 
 package co.rsk.federate.signing.hsm.message;
 
-import static co.rsk.federate.signing.HSMField.*;
+import static co.rsk.federate.signing.HSMField.INPUT;
+import static co.rsk.federate.signing.HSMField.OUTPOINT_VALUE;
+import static co.rsk.federate.signing.HSMField.SIGHASH_COMPUTATION_MODE;
+import static co.rsk.federate.signing.HSMField.TX;
+import static co.rsk.federate.signing.HSMField.WITNESS_SCRIPT;
 
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionWitness;
-import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.trie.Trie;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import org.ethereum.core.TransactionReceipt;
 import org.spongycastle.util.encoders.Hex;
 

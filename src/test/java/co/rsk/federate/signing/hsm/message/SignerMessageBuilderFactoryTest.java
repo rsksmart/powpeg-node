@@ -83,7 +83,8 @@ class SignerMessageBuilderFactoryTest {
                 block,
                 mock(TransactionReceipt.class),
                 Keccak256.ZERO_HASH,
-                tx
+                tx,
+                Collections.emptyList()
             ),
             0
         );

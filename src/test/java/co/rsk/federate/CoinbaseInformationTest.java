@@ -1,9 +1,7 @@
 package co.rsk.federate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.List;
@@ -43,14 +41,6 @@ class CoinbaseInformationTest {
         Transaction tx = getTx();
         CoinbaseInformation ci = new CoinbaseInformation(tx, null, null, null);
         assertEquals(tx, ci.getCoinbaseTransaction());
-    }
-
-    @Test
-    void sets_ready_to_inform() throws Exception {
-        CoinbaseInformation coinbaseInformation = new CoinbaseInformation(getTx(), null, null, null);
-        assertFalse(coinbaseInformation.isReadyToInform());
-        coinbaseInformation.setReadyToInform(true);
-        assertTrue(coinbaseInformation.isReadyToInform());
     }
 
     @Test

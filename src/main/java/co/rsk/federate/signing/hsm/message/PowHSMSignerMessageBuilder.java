@@ -1,14 +1,11 @@
 package co.rsk.federate.signing.hsm.message;
 
 import co.rsk.bitcoinj.core.Sha256Hash;
-import co.rsk.bitcoinj.core.Coin;
 import co.rsk.core.bc.BlockHashesHelper;
 import co.rsk.core.bc.BlockHashesHelperException;
 import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.trie.Trie;
 import java.util.List;
-import org.ethereum.core.Block;
-import org.ethereum.core.TransactionReceipt;
 import org.ethereum.db.ReceiptStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +13,7 @@ import org.slf4j.LoggerFactory;
 public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
     private static final Logger logger = LoggerFactory.getLogger(PowHSMSignerMessageBuilder.class);
     private final ReceiptStore receiptStore;
-    private final TransactionReceipt txReceipt;
-    private final Block rskBlock;
-    private final List<Coin> outpointValues;
+    private final ReleaseCreationInformation releaseCreationInformation;
 
     private List<Trie> receiptMerkleProof;
     private boolean envelopeCreated;
@@ -29,12 +24,9 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
         SigHashCalculator sigHashCalculator
     ) {
         super(releaseCreationInformation.getPegoutBtcTx(), sigHashCalculator);
-
-        this.txReceipt = releaseCreationInformation.getTransactionReceipt();
-        this.rskBlock = releaseCreationInformation.getPegoutCreationBlock();
         this.receiptStore = receiptStore;
+        this.releaseCreationInformation = releaseCreationInformation;
         this.envelopeCreated = false;
-        this.outpointValues = releaseCreationInformation.getUtxoOutpointValues();
     }
 
     private void buildMessageEnvelope() throws BlockHashesHelperException {
@@ -43,9 +35,9 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
         }
 
         receiptMerkleProof = BlockHashesHelper.calculateReceiptsTrieRootFor(
-            rskBlock,
+            releaseCreationInformation.getPegoutCreationBlock(),
             receiptStore,
-            txReceipt.getTransaction().getHash()
+            releaseCreationInformation.getPegoutCreationRskTxHash()
         );
         envelopeCreated = true;
     }
@@ -63,10 +55,10 @@ public class PowHSMSignerMessageBuilder extends SignerMessageBuilder {
         return new PowHSMSignerMessage(
             unsignedBtcTx,
             inputIndex,
-            txReceipt,
+            releaseCreationInformation.getTransactionReceipt(),
             receiptMerkleProof,
             sigHash,
-            outpointValues
+            releaseCreationInformation.getUtxoOutpointValues()
         );
     }
 }
