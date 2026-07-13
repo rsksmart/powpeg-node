@@ -1,6 +1,8 @@
 package co.rsk.federate.signing.utils;
 
 import static co.rsk.peg.bitcoin.BitcoinUtils.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,9 +31,12 @@ import co.rsk.peg.federation.constants.FederationConstants;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
+import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.core.*;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.crypto.HashUtil;
+import org.ethereum.db.TransactionInfo;
+import org.ethereum.vm.LogInfo;
 
 public final class TestUtils {
     private static final long CREATION_BLOCK_NUMBER = 0;
@@ -47,14 +52,54 @@ public final class TestUtils {
     private TestUtils() {
     }
 
-    public static Block createBlock(List<Transaction> rskTxs) {
-        int blockNumber = 1;
+    public static TransactionReceipt buildTxReceiptForRskTx(Keccak256 rskTxHash) {
+        List<LogInfo> logInfoList = new ArrayList<>();
+        byte[] notNullBytes = new byte[]{0x01};
+        Bloom bloom = mock(Bloom.class);
+
+        return new TransactionReceipt(
+            rskTxHash.getBytes(),
+            notNullBytes,
+            notNullBytes,
+            bloom,
+            logInfoList,
+            notNullBytes
+        );
+    }
+
+    public static void addLogToRskTxReceipt(TransactionReceipt txReceipt, LogInfo logToAdd) {
+        List<LogInfo> logs = txReceipt.getLogInfoList();
+        logs.add(logToAdd);
+
+        txReceipt.setLogInfoList(logs);
+    }
+
+    public static TransactionInfo buildTxInfo(TransactionReceipt txReceipt, Keccak256 pegoutCreationRskBlockHash, int index) {
+        return new TransactionInfo(
+            txReceipt,
+            pegoutCreationRskBlockHash.getBytes(),
+            index
+        );
+    }
+
+    public static Block createBlockWithTxs(List<Transaction> rskTxs) {
         int parentBlockNumber = 0;
-        BlockHeader blockHeader = new BlockHeaderBuilder(mock(ActivationConfig.class))
+        Keccak256 parentBlockHash = TestUtils.createHash(parentBlockNumber);
+        int blockNumber = 1;
+
+        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
+        when(activations.isActive(any(ConsensusRule.class))).thenReturn(true);
+        ActivationConfig activationConfig = mock(ActivationConfig.class);
+        when(activationConfig.forBlock(anyLong())).thenReturn(activations);
+        when(activationConfig.isActive(any(ConsensusRule.class), anyLong())).thenReturn(true);
+
+        List<BlockHeader> uncles = Collections.emptyList();
+
+        BlockHeader blockHeader = new BlockHeaderBuilder(activationConfig)
             .setNumber(blockNumber)
-            .setParentHashFromKeccak256(TestUtils.createHash(parentBlockNumber))
+            .setParentHashFromKeccak256(parentBlockHash)
             .build();
-        return new Block(blockHeader, rskTxs, Collections.emptyList(), true, true);
+        return new Block(blockHeader, rskTxs, uncles, true, true);
     }
 
     public static Keccak256 createHash(int nHash) {

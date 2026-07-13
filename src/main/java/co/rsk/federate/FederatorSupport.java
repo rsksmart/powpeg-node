@@ -139,6 +139,15 @@ public class FederatorSupport {
         return btcTxHashProcessedHeight.longValue();
     }
 
+    public boolean isBlockHashInformedToBridge(Sha256Hash blockHash) {
+        byte[] blockHeaderBytes = this.bridgeTransactionSender.callTx(
+            federatorAddress,
+            Bridge.GET_BTC_BLOCKCHAIN_BLOCK_HEADER_BY_HASH,
+            new Object[]{ blockHash.getBytes() }
+        );
+        return blockHeaderBytes.length > 0;
+    }
+
     public void sendRegisterBtcTransaction(org.bitcoinj.core.Transaction tx, int blockHeight, PartialMerkleTree pmt) {
         logger.debug(
             "[sendRegisterBtcTransaction] About to send to the bridge btc tx {} (wtxid: {}). Block height {}",

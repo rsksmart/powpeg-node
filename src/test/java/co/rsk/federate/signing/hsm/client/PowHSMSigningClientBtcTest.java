@@ -8,7 +8,7 @@ import static co.rsk.federate.signing.HSMCommand.SIGN;
 import static co.rsk.federate.signing.HSMField.*;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.INTERVAL_BETWEEN_ATTEMPTS;
 import static co.rsk.federate.signing.hsm.config.PowHSMConfigParameter.MAX_ATTEMPTS;
-import static co.rsk.federate.signing.utils.TestUtils.createBlock;
+import static co.rsk.federate.signing.utils.TestUtils.createBlockWithTxs;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -84,7 +84,7 @@ class PowHSMSigningClientBtcTest {
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
 
-        pegoutCreationBlock = createBlock(Collections.singletonList(pegoutCreationRskTx));
+        pegoutCreationBlock = createBlockWithTxs(Collections.singletonList(pegoutCreationRskTx));
 
         pegoutCreationRskTxReceipt = new TransactionReceipt();
         pegoutCreationRskTxReceipt.setLogInfoList(Collections.emptyList());
@@ -250,9 +250,18 @@ class PowHSMSigningClientBtcTest {
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
+        List<Coin> outpointValues = new ArrayList<>();
+        for (int i=0; i < pegoutBtcTx.getInputs().size(); i++) {
+            TransactionInput input = pegoutBtcTx.getInput(i);
+            outpointValues.add(input.getValue());
+        }
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
-            pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx);
+            pegoutCreationBlock,
+            pegoutCreationRskTxReceipt,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            outpointValues
+        );
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
 
@@ -286,9 +295,18 @@ class PowHSMSigningClientBtcTest {
         pegoutCreationRskTxReceipt.setLogInfoList(logs);
         pegoutCreationRskTxReceipt.setTransaction(pegoutCreationRskTx);
 
+        List<Coin> outpointValues = new ArrayList<>();
+        for (int i=0; i < pegoutBtcTx.getInputs().size(); i++) {
+            TransactionInput input = pegoutBtcTx.getInput(i);
+            outpointValues.add(input.getValue());
+        }
         ReleaseCreationInformation releaseCreationInformation = new ReleaseCreationInformation(
-            pegoutCreationBlock, pegoutCreationRskTxReceipt, pegoutCreationRskTx.getHash(),
-            pegoutBtcTx);
+            pegoutCreationBlock,
+            pegoutCreationRskTxReceipt,
+            pegoutCreationRskTx.getHash(),
+            pegoutBtcTx,
+            outpointValues
+        );
 
         client = new PowHSMSigningClientBtc(hsmClientProtocol, hsmVersion);
 

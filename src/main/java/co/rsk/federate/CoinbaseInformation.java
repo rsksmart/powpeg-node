@@ -16,15 +16,12 @@ public class CoinbaseInformation {
     private final Sha256Hash blockHash;
     private final PartialMerkleTree pmt;
 
-    private boolean readyToInform;
-
     public CoinbaseInformation(Transaction coinbaseTransaction, Sha256Hash witnessRoot, Sha256Hash blockHash, PartialMerkleTree pmt) throws Exception {
         checkCoinbase(coinbaseTransaction);
         this.coinbaseTransaction = coinbaseTransaction;
         this.witnessRoot = witnessRoot;
         this.blockHash = blockHash;
         this.pmt = pmt;
-        this.readyToInform = false;
     }
 
     public byte[] getSerializedCoinbaseTransactionWithoutWitness() {
@@ -49,14 +46,6 @@ public class CoinbaseInformation {
 
     public PartialMerkleTree getPmt() {
         return pmt;
-    }
-
-    public boolean isReadyToInform() {
-        return readyToInform;
-    }
-
-    public void setReadyToInform(boolean readyToInform) {
-        this.readyToInform = readyToInform;
     }
 
     public byte[] getCoinbaseWitnessReservedValue() {
