@@ -1697,6 +1697,9 @@ class BtcToRskClientTest {
                 Sha256Hash blockHash = blocks[i].getHeader().getHash();
                 when(federatorSupport.getBtcBlockchainBlockHashAtDepth(i)).thenReturn(blockHash);
                 when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(true);
+                // Segwit txs are only registered once their block's coinbase is informed, so default to
+                // informed; tests exercising the coinbase informing flow re-stub this to false.
+                when(federatorSupport.hasBlockCoinbaseInformed(blockHash)).thenReturn(true);
             }
         }
 
@@ -1913,6 +1916,61 @@ class BtcToRskClientTest {
             addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
 
             setUpTx(activeFedClient, peginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+
+            // act
+            activeFedClient.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_segwitPegin_coinbaseNotInformed_shouldPostponeRegistration() throws Exception {
+            // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
+            setUpActiveFedClient(federation);
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
+
+            setUpTx(activeFedClient, peginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+
+            // the Bridge cannot validate a segwit tx registration until the coinbase of its block,
+            // holding the witness commitment, is registered
+            Sha256Hash blockWithTxHash = blocks[DEFAULT_BLOCK_WITH_TX_INDEX].getHeader().getHash();
+            when(federatorSupport.hasBlockCoinbaseInformed(blockWithTxHash)).thenReturn(false);
+
+            // act
+            activeFedClient.updateBridgeBtcTransactions();
+
+            // assert
+            assertTxNotSentToBridge(peginBtcTx);
+            // the tx should stay pending so it is retried once the coinbase is registered
+            assertWTxIdIsInActiveFedClientTxsToBeSentMap(peginBtcTx);
+        }
+
+        @Test
+        void updateBridgeBtcTransactions_segwitPegin_coinbaseInformedAfterPostponing_shouldBeInformed() throws Exception {
+            // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(
+                MAINNET_BTC_PARAMS,
+                20
+            );
+            setUpActiveFedClient(federation);
+            var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
+
+            setUpTx(activeFedClient, peginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+
+            Sha256Hash blockWithTxHash = blocks[DEFAULT_BLOCK_WITH_TX_INDEX].getHeader().getHash();
+            when(federatorSupport.hasBlockCoinbaseInformed(blockWithTxHash)).thenReturn(false);
+            // registration is postponed while the coinbase is not informed
+            activeFedClient.updateBridgeBtcTransactions();
+            assertTxNotSentToBridge(peginBtcTx);
+
+            when(federatorSupport.hasBlockCoinbaseInformed(blockWithTxHash)).thenReturn(true);
 
             // act
             activeFedClient.updateBridgeBtcTransactions();
@@ -3749,6 +3807,7 @@ class BtcToRskClientTest {
             setUpTx(activeFedClient, segwitPeginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
             Block blockWithPegin = blocks[DEFAULT_BLOCK_WITH_TX_INDEX].getHeader();
             assertBlockWithTxHashIsInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage, blockWithPegin);
+            when(federatorSupport.hasBlockCoinbaseInformed(blockWithPegin.getHash())).thenReturn(false);
 
             activeFedClient.updateBridgeBtcBlockchain();
             updateBridgeBestChainHeight();
@@ -3880,6 +3939,7 @@ class BtcToRskClientTest {
             Block blockWithPeginBeforeReorg = blocks[blockWithSegwitPeginIndex].getHeader();
             Sha256Hash blockWithPeginBeforeReorgHash = blockWithPeginBeforeReorg.getHash();
             CoinbaseInformation coinbaseInformationBeforeReorg = getCoinbaseInformation(blockWithPeginBeforeReorgHash);
+            when(federatorSupport.hasBlockCoinbaseInformed(blockWithPeginBeforeReorgHash)).thenReturn(false);
 
             activeFedClient.updateBridgeBtcBlockchain();
             updateBridgeBestChainHeight();
@@ -3904,6 +3964,7 @@ class BtcToRskClientTest {
             setUpTx(activeFedClient, segwitPeginBtcTx, blockWithSegwitPeginIndexInNewChain);
             Block blockWithPeginInNewChain = blocks[blockWithSegwitPeginIndexInNewChain].getHeader();
             Sha256Hash blockWithPeginInNewChainHash = blockWithPeginInNewChain.getHash();
+            when(federatorSupport.hasBlockCoinbaseInformed(blockWithPeginInNewChainHash)).thenReturn(false);
             activeFedClient.updateBridgeBtcBlockchain();
             updateBridgeBestChainHeight();
 

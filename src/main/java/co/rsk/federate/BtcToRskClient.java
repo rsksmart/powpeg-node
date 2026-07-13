@@ -622,6 +622,21 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         continue;
                     }
 
+                    // A segwit tx is registered with a wtxid-based pmt, which the Bridge can only
+                    // validate against the witness commitment in the block's registered coinbase.
+                    // Until the coinbase is registered, the Bridge would reject the registration,
+                    // so keep the tx in the list and retry on a future updateBridge run.
+                    Sha256Hash txBlockHash = txStoredBlock.getHeader().getHash();
+                    if (tx.hasWitnesses() && !federatorSupport.hasBlockCoinbaseInformed(txBlockHash)) {
+                        logger.debug(
+                            "[updateBridgeBtcTransactions] Coinbase of block {} not yet informed to the Bridge. Postponing registration of segwit tx {} (wtxid: {})",
+                            txBlockHash,
+                            txId,
+                            wTxId
+                        );
+                        continue;
+                    }
+
                     sendTx(tx, txStoredBlock, pmt.get());
                     numberOfTxsSent++;
                     // Sent a maximum of 40 registerBtcTransaction txs per federator
