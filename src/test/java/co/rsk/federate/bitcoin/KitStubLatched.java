@@ -12,7 +12,7 @@ import org.bitcoinj.wallet.Wallet;
  * A KitStub variant whose startUp() blocks until released, allowing tests to
  * trigger the timeout logic in BitcoinWrapperImpl.start().
  */
-public class BlockingKitStub extends KitStub {
+public class KitStubLatched extends KitStub {
 
     private static final int STARTUP_LATCH_TIMEOUT_SECONDS = 10;
 
@@ -20,7 +20,7 @@ public class BlockingKitStub extends KitStub {
     private PeerGroup mockPeerGroup;
     private BlockChain mockChain;
 
-    public BlockingKitStub(Context btcContext, File directory, String filePrefix, Wallet wallet) {
+    public KitStubLatched(Context btcContext, File directory, String filePrefix, Wallet wallet) {
         super(btcContext, directory, filePrefix, wallet);
     }
 
@@ -38,9 +38,13 @@ public class BlockingKitStub extends KitStub {
     }
 
     @Override
-    protected void startUp() throws InterruptedException {
-        // Bounded wait so a leaked service thread does not hang the test suite.
-        startLatch.await(STARTUP_LATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    protected void startUp() {
+        try {
+            // Bounded wait so a leaked service thread does not hang the test suite.
+            startLatch.await(STARTUP_LATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupt status
+        }
     }
 
     @Override
