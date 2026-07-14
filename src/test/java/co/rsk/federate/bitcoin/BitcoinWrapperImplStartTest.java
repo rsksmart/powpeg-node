@@ -29,12 +29,12 @@ class BitcoinWrapperImplStartTest {
     @TempDir
     private Path tempDir;
 
-    private BlockingKitStub blockingKit;
+    private KitStubLatched blockingKit;
 
     @BeforeEach
     void setUp() {
         File directory = tempDir.toFile();
-        blockingKit = new BlockingKitStub(BTC_CONTEXT, directory, "test", mock(Wallet.class));
+        blockingKit = new KitStubLatched(BTC_CONTEXT, directory, "test", mock(Wallet.class));
     }
 
     @AfterEach
@@ -55,17 +55,15 @@ class BitcoinWrapperImplStartTest {
     }
 
     @Test
-    void start_noPeersAfterTimeout_throwsRuntimeException() {
-        // Arrange: kit blocks and peerGroup() returns null → checkPeers() counts 0 peers.
+    void start_noPeersAfterTimeout_throwsISE() {
+        // Arrange: kit blocks and peerGroup() returns null → checkConnection() counts 0 peers.
         blockingKit.setMockPeerGroup(null);
         BitcoinWrapperImpl wrapper = new BitcoinWrapperImpl(BTC_CONTEXT, blockingKit);
         wrapper.setup(Collections.emptyList());
 
         // Act & Assert
-        RuntimeException ex = assertThrows(
-            RuntimeException.class,
-            () -> wrapper.start(Duration.ofMillis(100))
-        );
+        Duration duration = Duration.ofMillis(100);
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> wrapper.start(duration));
         assertTrue(
             ex.getMessage().contains("No Bitcoin peers connected"),
             "Expected 'No Bitcoin peers connected' in message but got: " + ex.getMessage()
@@ -83,7 +81,7 @@ class BitcoinWrapperImplStartTest {
         BitcoinWrapperImpl wrapper = new BitcoinWrapperImpl(BTC_CONTEXT, blockingKit);
         wrapper.setup(Collections.emptyList());
 
-        // Run start() on a background thread so we can release the kit mid-flight.
+        // Run start() on a background thread, so we can release the kit mid-flight.
         CompletableFuture<Void> startFuture = CompletableFuture.runAsync(
             () -> wrapper.start(Duration.ofMillis(100))
         );

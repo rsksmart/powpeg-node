@@ -9,6 +9,8 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import com.google.common.util.concurrent.Service;
 import org.bitcoinj.core.*;
 import org.bitcoinj.core.TransactionConfidence.ConfidenceType;
 import org.bitcoinj.core.listeners.BlocksDownloadedEventListener;
@@ -101,38 +103,36 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     public void start(Duration timeout) {
         Context.propagate(btcContext);
 
-        long timeoutMinutes = timeout.toMinutes();
-        logger.info("[start] Starting BitcoinWrapper. Will check progress every {} minutes.", timeoutMinutes);
-        com.google.common.util.concurrent.Service service = kit.startAsync();
+        long timeoutMillis = timeout.toMillis();
+        logger.info("[start] Starting BitcoinWrapper. Will check progress every {} milliseconds.", timeoutMillis);
+        Service service = kit.startAsync();
         while (!service.isRunning()) {
             try {
-                service.awaitRunning(timeout.toMillis(), TimeUnit.MILLISECONDS); // Passing as milliseconds so it can be tested with < 1 minute values
+                service.awaitRunning(timeoutMillis, TimeUnit.MILLISECONDS); // Passing as milliseconds, so it can be tested with < 1 minute values
             } catch (TimeoutException e) {
-                logger.warn("[start] BitcoinWrapper not yet running after {} minutes. {}", timeoutMinutes, e.getMessage());
-                // If no peers after the timeout value, then probably the peer address is wrong or the network is not reachable
-                checkPeers();
-                checkChainHeight();
+                logger.warn("[start] BitcoinWrapper not yet running after {} milliseconds. {}", timeoutMillis, e.getMessage());
+                checkConnection();
             }
         }
         running = true;
         logger.info("[start] BitcoinWrapper started successfully");
     }
 
-    private void checkPeers() {
-        int connectedPeers = kit.peerGroup() != null ? kit.peerGroup().numConnectedPeers() : 0;
-        logger.debug("[checkPeers] {} Bitcoin peers connected", connectedPeers);
+    private void checkConnection() {
+        PeerGroup peerGroup = kit.peerGroup();
+        int connectedPeers = peerGroup != null ? peerGroup.numConnectedPeers() : 0;
+        // If no peers after the timeout value, then probably the peer address is wrong or the network is not reachable
         if (connectedPeers == 0) {
             String message = "No Bitcoin peers connected. Check peer address and network parameters";
-            logger.error("[checkPeers] {}", message);
-            throw new RuntimeException(message);
+            logger.error("[checkConnection] {}", message);
+            throw new IllegalStateException(message);
         }
-    }
+        logger.debug("[checkConnection] {} Bitcoin peers connected", connectedPeers);
 
-    private void checkChainHeight() {
         int currentChainHeight = kit.chain() != null ? kit.chain().getBestChainHeight() : -1;
-        int peerChainHeight = kit.peerGroup().getMostCommonChainHeight();
+        int peerChainHeight = peerGroup.getMostCommonChainHeight();
         logger.debug(
-            "[checkChainHeight] Syncing... local height: {}, peer height: {}",
+            "[checkConnection] Syncing... local height: {}, peer height: {}",
             currentChainHeight,
             peerChainHeight
         );
