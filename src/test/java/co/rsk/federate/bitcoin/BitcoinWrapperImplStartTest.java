@@ -12,6 +12,8 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerGroup;
@@ -71,7 +73,7 @@ class BitcoinWrapperImplStartTest {
     }
 
     @Test
-    void start_peersConnectedAndSyncing_eventuallyCompletes() throws Exception {
+    void start_peersConnectedAndSyncing_eventuallyCompletes() {
         // Arrange: kit blocks initially; peerGroup shows 1 connected peer.
         PeerGroup mockPeerGroup = mock(PeerGroup.class);
         when(mockPeerGroup.numConnectedPeers()).thenReturn(1);
@@ -86,12 +88,14 @@ class BitcoinWrapperImplStartTest {
             () -> wrapper.start(Duration.ofMillis(100))
         );
 
-        // Let at least one timeout cycle fire (checkPeers passes, checkChainHeight logs),
-        // then release the kit to simulate block download completing.
-        Thread.sleep(250);
+        // start() must still be blocked in the timeout loop while the kit is unreleased.
+        // This also proves the wrapper is genuinely waiting, not completing instantly.
+        assertThrows(TimeoutException.class, () -> startFuture.get(300, TimeUnit.MILLISECONDS));
+
+        // Act: service can now reach RUNNING
         blockingKit.release();
 
-        // Assert: start() completes without throwing within a generous bound.
+        // Assert
         assertDoesNotThrow(() -> startFuture.get(5, TimeUnit.SECONDS));
     }
 }
