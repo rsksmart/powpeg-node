@@ -15,7 +15,7 @@ import org.bitcoinj.store.BlockStoreException;
 public interface BitcoinWrapper {
     void setup(List<PeerAddress> peerAddresses);
 
-    void start(Duration timeout);
+    void start(Duration progressCheckInterval);
 
     void stop();
 

@@ -10,12 +10,14 @@ import java.io.File;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.wallet.Wallet;
 import org.junit.jupiter.api.*;
@@ -57,11 +59,12 @@ class BitcoinWrapperImplStartTest {
     }
 
     @Test
-    void start_noPeersAfterTimeout_throwsISE() {
+    void start_noPeersAfterCheckInterval_throwsISE() {
         // Arrange: kit blocks and peerGroup() returns null → checkConnection() counts 0 peers.
         blockingKit.setMockPeerGroup(null);
         BitcoinWrapperImpl wrapper = new BitcoinWrapperImpl(BTC_CONTEXT, blockingKit);
-        wrapper.setup(Collections.emptyList());
+        List<PeerAddress> peers = Collections.emptyList();
+        wrapper.setup(peers);
 
         // Act & Assert
         Duration duration = Duration.ofMillis(100);
@@ -84,12 +87,13 @@ class BitcoinWrapperImplStartTest {
         wrapper.setup(Collections.emptyList());
 
         // Run start() on a background thread, so we can release the kit mid-flight.
+        // since node has connected peers, it won't throw
+        Duration checkInterval = Duration.ofMillis(100);
         CompletableFuture<Void> startFuture = CompletableFuture.runAsync(
-            () -> wrapper.start(Duration.ofMillis(100))
+            () -> wrapper.start(checkInterval)
         );
 
         // start() must still be blocked in the timeout loop while the kit is unreleased.
-        // This also proves the wrapper is genuinely waiting, not completing instantly.
         assertThrows(TimeoutException.class, () -> startFuture.get(300, TimeUnit.MILLISECONDS));
 
         // Act: service can now reach RUNNING

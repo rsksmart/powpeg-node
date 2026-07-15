@@ -100,17 +100,17 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     }
 
     @Override
-    public void start(Duration timeout) {
+    public void start(Duration progressCheckInterval) {
         Context.propagate(btcContext);
 
-        long timeoutMillis = timeout.toMillis();
-        logger.info("[start] Starting BitcoinWrapper. Will check progress every {} milliseconds.", timeoutMillis);
+        long progressCheckIntervalMillis = progressCheckInterval.toMillis();
+        logger.info("[start] Starting BitcoinWrapper. Will check progress every {} milliseconds.", progressCheckIntervalMillis);
         Service service = kit.startAsync();
         while (!service.isRunning()) {
             try {
-                service.awaitRunning(timeoutMillis, TimeUnit.MILLISECONDS); // Passing as milliseconds, so it can be tested with < 1 minute values
+                service.awaitRunning(progressCheckIntervalMillis, TimeUnit.MILLISECONDS); // Passing as milliseconds, so it can be tested with < 1 minute values
             } catch (TimeoutException e) {
-                logger.warn("[start] BitcoinWrapper not yet running after {} milliseconds. {}", timeoutMillis, e.getMessage());
+                logger.warn("[start] BitcoinWrapper not yet running after {} milliseconds. {}", progressCheckIntervalMillis, e.getMessage());
                 checkConnection();
             }
         }
@@ -121,7 +121,7 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
     private void checkConnection() {
         PeerGroup peerGroup = kit.peerGroup();
         int connectedPeers = peerGroup != null ? peerGroup.numConnectedPeers() : 0;
-        // If no peers after the timeout value, then probably the peer address is wrong or the network is not reachable
+        // If no peers after the waiting interval, then probably the peer address is wrong or the network is not reachable
         if (connectedPeers == 0) {
             String message = "No Bitcoin peers connected. Check peer address and network parameters";
             logger.error("[checkConnection] {}", message);

@@ -264,20 +264,20 @@ class PowpegNodeSystemPropertiesTest {
     }
 
     @Test
-    void bitcoinWrapperStartTimeout_whenCustomConfigAvailable_shouldReturnCustomConfig() {
+    void bitcoinWrapperStartupCheckInterval_whenCustomConfigAvailable_shouldReturnCustomConfig() {
         int customValue = 60;
-        when(config.hasPath(BTC_WRAPPER_STARTUP_TIMEOUT.getPath())).thenReturn(true);
-        when(config.getInt(BTC_WRAPPER_STARTUP_TIMEOUT.getPath())).thenReturn(customValue);
+        when(config.hasPath(BTC_WRAPPER_STARTUP_CHECK_INTERVAL.getPath())).thenReturn(true);
+        when(config.getInt(BTC_WRAPPER_STARTUP_CHECK_INTERVAL.getPath())).thenReturn(customValue);
 
-        assertEquals(Duration.ofMinutes(customValue), powpegNodeSystemProperties.getBitcoinWrapperStartupTimeout());
+        assertEquals(Duration.ofMinutes(customValue), powpegNodeSystemProperties.getBitcoinWrapperStartupCheckInterval());
     }
 
     @Test
-    void bitcoinWrapperStartTimeout_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
-        when(config.hasPath(BTC_WRAPPER_STARTUP_TIMEOUT.getPath())).thenReturn(false);
+    void bitcoinWrapperStartupCheckInterval_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
+        when(config.hasPath(BTC_WRAPPER_STARTUP_CHECK_INTERVAL.getPath())).thenReturn(false);
 
-        int defaultValue = BTC_WRAPPER_STARTUP_TIMEOUT.getDefaultValue(Integer::parseInt);
-        assertEquals(Duration.ofMinutes(defaultValue), powpegNodeSystemProperties.getBitcoinWrapperStartupTimeout());
+        int defaultValue = BTC_WRAPPER_STARTUP_CHECK_INTERVAL.getDefaultValue(Integer::parseInt);
+        assertEquals(Duration.ofMinutes(defaultValue), powpegNodeSystemProperties.getBitcoinWrapperStartupCheckInterval());
     }
 
     @Test

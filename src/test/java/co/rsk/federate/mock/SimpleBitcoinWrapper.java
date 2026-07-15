@@ -27,7 +27,7 @@ public class SimpleBitcoinWrapper implements BitcoinWrapper {
     public void setup(List<PeerAddress> peerAddresses) {}
 
     @Override
-    public void start(Duration timeout) {}
+    public void start(Duration progressCheckInterval) {}
 
     @Override
     public void stop() {}
