@@ -399,70 +399,74 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     protected int updateBridgeBtcBlockchain() throws BlockStoreException {
         int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBlockchainBestChainHeight();
         int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
-        if (federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight) {
-            logger.debug(
-                "[updateBridgeBtcBlockchain] BTC blockchain height - Federator : {}, Bridge : {}.",
-                bitcoinWrapper.getBestChainHeight(),
-                bridgeBtcBlockchainBestChainHeight
-            );
-            // Federator's blockchain has more blocks than bridge's blockchain - go and try to
-            // update the bridge with the latest.
 
-            // First, find the common ancestor that is in the federator's bestchain
-            // using block depth incremental search
-            Optional<StoredBlock> commonAncestorOpt = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
-            if (commonAncestorOpt.isEmpty()) {
-                throw new BlockStoreException("No best chain block found");
-            }
-            StoredBlock commonAncestor = commonAncestorOpt.get();
-
-            logger.debug(
-                "[updateBridgeBtcBlockchain] Matched block {}.",
-                commonAncestor.getHeader().getHash()
-            );
-
-            // We found a common ancestor. Send receiveHeaders with the blocks it is missing.
-            StoredBlock current = bitcoinWrapper.getChainHead();
-            List<Block> headersToSendToBridge = new LinkedList<>();
-            while (!current.equals(commonAncestor)) {
-                headersToSendToBridge.add(current.getHeader());
-                current = bitcoinWrapper.getBlock(current.getHeader().getPrevBlockHash());
-            }
-            if (headersToSendToBridge.isEmpty()) {
-                logger.debug(
-                    "[updateBridgeBtcBlockchain] Bridge was just updated, no new blocks to send, matchedBlock: {}.",
-                    commonAncestor.getHeader().getHash()
-                );
-                return 0;
-            }
-            headersToSendToBridge = Lists.reverse(headersToSendToBridge);
-
-            // Only send the headers that are not already known to the Bridge
-            int startIndex = findStartIndex(headersToSendToBridge);
-            if (startIndex >= headersToSendToBridge.size()) {
-                logger.debug("[updateBridgeBtcBlockchain] All headers already known to Bridge, nothing to send.");
-                return 0;
-            }
-
-            int to = Math.min(startIndex + amountOfHeadersToSend, headersToSendToBridge.size());
-            List<Block> headersToSendToBridgeSubList = headersToSendToBridge.subList(startIndex, to);
-
-            federatorSupport.sendReceiveHeaders(headersToSendToBridgeSubList.toArray(new Block[]{}));
-
-            logger.debug(
-                "[updateBridgeBtcBlockchain] Invoked receiveHeaders with {} blocks. First {}, Last {}.",
-                headersToSendToBridgeSubList.size(),
-                headersToSendToBridgeSubList.get(0).getHash(),
-                headersToSendToBridgeSubList.get(headersToSendToBridgeSubList.size()-1).getHash()
-            );
-
-            return headersToSendToBridgeSubList.size();
+        boolean shouldUpdateBridge = federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight;
+        if (!shouldUpdateBridge) {
+            return 0;
         }
 
-        return 0;
+        logger.debug(
+            "[updateBridgeBtcBlockchain] BTC blockchain height - Federator : {}, Bridge : {}.",
+            federatorBtcBlockchainBestChainHeight,
+            bridgeBtcBlockchainBestChainHeight
+        );
+        // Federator's blockchain has more blocks than bridge's blockchain - go and try to
+        // update the bridge with the latest.
+
+        // First, find the common ancestor that is in the federator's bestchain
+        // using block depth incremental search
+        Optional<StoredBlock> commonAncestorOpt = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
+        if (commonAncestorOpt.isEmpty()) {
+            throw new BlockStoreException("No best chain block found");
+        }
+        StoredBlock commonAncestor = commonAncestorOpt.get();
+
+        logger.debug(
+            "[updateBridgeBtcBlockchain] Matched block {}.",
+            commonAncestor.getHeader().getHash()
+        );
+
+        // We found a common ancestor. Send receiveHeaders with the blocks it is missing.
+        StoredBlock currentBlock = bitcoinWrapper.getChainHead();
+        List<Block> totalHeadersToSendToBridge = new LinkedList<>();
+        while (!currentBlock.equals(commonAncestor)) {
+            Block currentBlockHeader = currentBlock.getHeader();
+            totalHeadersToSendToBridge.add(currentBlockHeader);
+            currentBlock = bitcoinWrapper.getBlock(currentBlockHeader.getPrevBlockHash());
+        }
+        if (totalHeadersToSendToBridge.isEmpty()) {
+            logger.debug(
+                "[updateBridgeBtcBlockchain] Bridge was just updated, no new blocks to send, matchedBlock: {}.",
+                commonAncestor.getHeader().getHash()
+            );
+            return 0;
+        }
+        totalHeadersToSendToBridge = Lists.reverse(totalHeadersToSendToBridge);
+
+        // Only send the headers that are not already known to the Bridge
+        int startIndex = findFirstUnknownHeader(totalHeadersToSendToBridge);
+        int totalHeadersToSendToBridgeCount = totalHeadersToSendToBridge.size();
+        if (startIndex == totalHeadersToSendToBridgeCount) {
+            logger.debug("[updateBridgeBtcBlockchain] All headers already known to Bridge, nothing to send.");
+            return 0;
+        }
+
+        int to = Math.min(startIndex + amountOfHeadersToSend, totalHeadersToSendToBridgeCount);
+        List<Block> headersToSendToBridge = totalHeadersToSendToBridge.subList(startIndex, to);
+        federatorSupport.sendReceiveHeaders(headersToSendToBridge.toArray(new Block[]{}));
+
+        int headersToSendToBridgeCount = headersToSendToBridge.size();
+        logger.debug(
+            "[updateBridgeBtcBlockchain] Invoked receiveHeaders with {} blocks. First {}, Last {}.",
+            headersToSendToBridgeCount,
+            headersToSendToBridge.get(0).getHash(),
+            headersToSendToBridge.get(headersToSendToBridgeCount - 1).getHash()
+        );
+
+        return headersToSendToBridgeCount;
     }
 
-    private int findStartIndex(List<Block> headersToSendToBridge) {
+    private int findFirstUnknownHeader(List<Block> headersToSendToBridge) {
         // Binary search
         int low = 0;
         int high = headersToSendToBridge.size();
