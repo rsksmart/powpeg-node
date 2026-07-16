@@ -813,11 +813,14 @@ class BtcToRskClientTest {
         assertNotNull(headers);
         // Search depth should go down to the maximum depth (height - inital height = 200 - 10 = 190)
         // That means depth should be called with: 0, 1, 2, 4, 8, 16, 32, 64, 128, 190.
-        // At the end, blockchain should be updated with 225 - 10 = 215 blocks.
         Stream.of(0, 1, 2, 4, 8, 16, 32, 64, 128, 190).forEach(depth ->
             verify(federatorSupport, times(1)).getBtcBlockchainBlockHashAtDepth(depth)
         );
-        assertEquals(amountOfHeadersToSend, headers.length);
+        // The exponential search finds the common ancestor at height 10, but blocks 11...FORK_HEIGHT
+        // are shared with the Bridge's chain (already registered), so starting index skips them and
+        // only the new fork blocks (FORK_HEIGHT+1 ... FEDERATOR_HEIGHT) are informed.
+        int expectedInformedHeaders = FEDERATOR_HEIGHT - FORK_HEIGHT; // 225 - 20 = 205
+        assertEquals(expectedInformedHeaders, headers.length);
 
         // Only one receive headers invocation
         assertEquals(1, federatorSupport.getSendReceiveHeadersInvocations());
@@ -3942,6 +3945,10 @@ class BtcToRskClientTest {
                 assertCoinbaseTxSentToBridge(coinbaseInformationInNewChain);
             }
 
+            private CoinbaseInformation getCoinbaseInformation(Sha256Hash blockHash) throws IOException {
+                return btcToRskActiveFedClientFileStorage.read(MAINNET_PARAMS).getData().getCoinbaseInformationMap().get(blockHash);
+            }
+
             private void assertCoinbaseTxSentToBridge(CoinbaseInformation coinbaseInformation) {
                 verify(federatorSupport).sendRegisterCoinbaseTransaction(coinbaseInformation);
             }
@@ -3951,16 +3958,86 @@ class BtcToRskClientTest {
             }
         }
 
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_METHOD)
+        class UpdateBridgeBtcBlockchain {
+
+            @Test
+            void updateBridgeBtcBlockchain_acrossSuccessiveCalls_shouldKeepInformingNewHeadersUntilChainIsFullyInformed() throws Exception {
+                // Scenario: the Bridge already has a full batch (maxAmountOfHeadersToSend) of headers
+                // past the common ancestor (genesis block) registered. Each call should inform *new* headers
+                // until the whole fork is registered.
+                // arrange
+                int chainHeight = 230;
+                int maxAmountOfHeadersToSend = 100; // builder default
+                int lastInformedHeader = 100;
+
+                blocks = createBlockchain(chainHeight);
+                setUpBlocks();
+                setUpKit();
+                setUpBitcoinWrapper();
+                Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
+                setUpActiveFedClient(federation);
+
+                // the Bridge has maxAmountOfHeadersToSend headers informed past the common ancestor,
+                // meaning we have chainHeight - lastInformedHeader = 130 headers to inform.
+                markHeadersAsInformed(1, lastInformedHeader);
+                int firstCallFirstHeaderToSend = lastInformedHeader + 1;
+                markHeadersAsNotInformed(firstCallFirstHeaderToSend, chainHeight);
+
+                // first call: informs the first batch (capped at maxAmountOfHeadersToSend)
+                int firstCallSentHeadersCount = activeFedClient.updateBridgeBtcBlockchain();
+                assertEquals(maxAmountOfHeadersToSend, firstCallSentHeadersCount);
+                // sent headers will be from 101 to 200 (=101+100-1) headers (totalling maxAmountOfHeadersToSend)
+                int firstCallLastHeaderToSend = firstCallFirstHeaderToSend + maxAmountOfHeadersToSend - 1;
+                Block[] firstCallExpectedHeadersSent = getHeaders(firstCallFirstHeaderToSend, firstCallLastHeaderToSend);
+                verify(federatorSupport).sendReceiveHeaders(firstCallExpectedHeadersSent);
+
+                clearInvocations(federatorSupport);
+                // simulate the first batch is now registered in the Bridge
+                markHeadersAsInformed(firstCallFirstHeaderToSend, firstCallLastHeaderToSend);
+
+                // second call: resumes from the first still-missing header, informing the remainder (chainHeight - firstCallLastHeaderToSend)
+                int secondCallSentHeadersCount = activeFedClient.updateBridgeBtcBlockchain();
+                assertEquals(chainHeight - firstCallLastHeaderToSend, secondCallSentHeadersCount);
+                // sent headers will be from 201 to 230 (chain height) headers
+                int secondCallFirstHeaderToSend = firstCallLastHeaderToSend + 1;
+                Block[] secondCallExpectedHeadersSent = getHeaders(secondCallFirstHeaderToSend, chainHeight);
+                verify(federatorSupport).sendReceiveHeaders(secondCallExpectedHeadersSent);
+
+                clearInvocations(federatorSupport);
+                // simulate the second batch is now registered too and that bridge is up-to-date
+                markHeadersAsInformed(secondCallFirstHeaderToSend, chainHeight);
+                when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(chainHeight);
+
+                // third call: the whole fork is known, nothing left to inform
+                int thirdCallSentHeadersCount = activeFedClient.updateBridgeBtcBlockchain();
+                assertEquals(0, thirdCallSentHeadersCount);
+                verify(federatorSupport, never()).sendReceiveHeaders(any(Block[].class));
+            }
+
+            private void markHeadersAsNotInformed(int fromHeight, int toHeight) {
+                for (int height = fromHeight; height <= toHeight; height++) {
+                    Sha256Hash blockHash = blocks[height].getHeader().getHash();
+                    when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(false);
+                }
+            }
+
+            private Block[] getHeaders(int fromHeight, int toHeight) {
+                List<Block> headers = new ArrayList<>();
+                for (int height = fromHeight; height <= toHeight; height++) {
+                    headers.add(blocks[height].getHeader());
+                }
+                return headers.toArray(new Block[]{});
+            }
+        }
+
         private void markHeadersAsInformed(int fromHeight, int toHeight) {
             for (int i = fromHeight; i <= toHeight; i++) {
                 Sha256Hash blockHash = blocks[i].getHeader().getHash();
                 when(federatorSupport.getBtcBlockchainBlockHashAtDepth(i)).thenReturn(blockHash);
                 when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(true);
             }
-        }
-
-        private CoinbaseInformation getCoinbaseInformation(Sha256Hash blockHash) throws IOException {
-            return btcToRskActiveFedClientFileStorage.read(MAINNET_PARAMS).getData().getCoinbaseInformationMap().get(blockHash);
         }
 
         private void assertWTxIdIsInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
