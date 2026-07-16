@@ -428,7 +428,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
         // We found a common ancestor. Send receiveHeaders with the blocks it is missing.
         StoredBlock currentBlock = bitcoinWrapper.getChainHead();
-        List<Block> totalHeadersToSendToBridge = new LinkedList<>();
+        List<Block> totalHeadersToSendToBridge = new ArrayList<>();
         while (!currentBlock.equals(commonAncestor)) {
             Block currentBlockHeader = currentBlock.getHeader();
             totalHeadersToSendToBridge.add(currentBlockHeader);
