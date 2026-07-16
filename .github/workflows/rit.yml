@@ -174,7 +174,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
             NOTIFICATION_TITLE="PR #${GITHUB_EVENT_PULL_REQUEST_NUMBER}"
             NOTIFICATION_SUBTITLE=$(sanitize "$GITHUB_EVENT_PULL_REQUEST_TITLE")
-            # A PR title made up entirely of characters sanitize() strips (e.g. only emoji)
+            # A PR title made up entirely of characters sanitize() replaces with spaces (e.g. only emoji)
             # would otherwise produce an empty string, which Slack's Block Kit rejects (text
             # objects require a minimum length of 1), failing this step and misreporting a
             # successful run as failed.
