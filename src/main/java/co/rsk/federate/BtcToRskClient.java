@@ -401,15 +401,16 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
 
         boolean shouldUpdateBridge = federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight;
+        logger.debug(
+            "[updateBridgeBtcBlockchain] BTC blockchain height - Federator: {}, Bridge: {}. Should we update bridge? {}",
+            federatorBtcBlockchainBestChainHeight,
+            bridgeBtcBlockchainBestChainHeight,
+            shouldUpdateBridge
+        );
         if (!shouldUpdateBridge) {
             return 0;
         }
 
-        logger.debug(
-            "[updateBridgeBtcBlockchain] BTC blockchain height - Federator : {}, Bridge : {}.",
-            federatorBtcBlockchainBestChainHeight,
-            bridgeBtcBlockchainBestChainHeight
-        );
         // Federator's blockchain has more blocks than bridge's blockchain - go and try to
         // update the bridge with the latest.
 
