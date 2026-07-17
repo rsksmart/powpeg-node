@@ -3962,12 +3962,20 @@ class BtcToRskClientTest {
         @TestInstance(TestInstance.Lifecycle.PER_METHOD)
         class UpdateBridgeBtcBlockchain {
 
+            void setUpClient() throws Exception {
+                Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
+                setUpActiveFedClient(federation);
+            }
+
             @Test
             void updateBridgeBtcBlockchain_acrossSuccessiveCalls_shouldKeepInformingNewHeadersUntilChainIsFullyInformed() throws Exception {
-                // Scenario: the Bridge already has a full batch (maxAmountOfHeadersToSend) of headers
-                // past the common ancestor (genesis block) registered. Each call should inform *new* headers
-                // until the whole fork is registered.
-                // arrange
+                // Scenario: the Bridge is stuck on a shorter, divergent fork, so the common ancestor
+                // with this fed is the genesis block. Headers 1...lastInformedHeader were already informed
+                // in prior cycles, which the Bridge stores as non-best fork headers ABOVE the ancestor.
+                // Each call should skip the already-registered headers and inform the next batch of new
+                // ones, until the whole chain is registered and the Bridge reorgs to it.
+
+                // setup fed best chain
                 int chainHeight = 230;
                 int maxAmountOfHeadersToSend = 100; // builder default
                 int lastInformedHeader = 100;
@@ -3976,11 +3984,20 @@ class BtcToRskClientTest {
                 setUpBlocks();
                 setUpKit();
                 setUpBitcoinWrapper();
-                Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
-                setUpActiveFedClient(federation);
+                setUpClient();
 
-                // the Bridge has maxAmountOfHeadersToSend headers informed past the common ancestor,
-                // meaning we have chainHeight - lastInformedHeader = 130 headers to inform.
+                // setup bridge fork
+                int bridgeForkHeight = 3;
+                when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(bridgeForkHeight);
+                int commonAncestorHeight = 0;
+                StoredBlock[] bridgeFork = createForkedBlockchain(blocks, commonAncestorHeight, bridgeForkHeight);
+                for (int depth = 0; depth <= bridgeForkHeight; depth++) {
+                    Sha256Hash forkBlockHash = bridgeFork[bridgeForkHeight - depth].getHeader().getHash();
+                    when(federatorSupport.getBtcBlockchainBlockHashAtDepth(depth)).thenReturn(forkBlockHash);
+                }
+
+                // headers 1...lastInformedHeader were already informed (stored as non-best forks
+                // above the ancestor); the rest are still missing.
                 markHeadersAsInformed(1, lastInformedHeader);
                 int firstCallFirstHeaderToSend = lastInformedHeader + 1;
                 markHeadersAsNotInformed(firstCallFirstHeaderToSend, chainHeight);
@@ -4035,7 +4052,6 @@ class BtcToRskClientTest {
         private void markHeadersAsInformed(int fromHeight, int toHeight) {
             for (int i = fromHeight; i <= toHeight; i++) {
                 Sha256Hash blockHash = blocks[i].getHeader().getHash();
-                when(federatorSupport.getBtcBlockchainBlockHashAtDepth(i)).thenReturn(blockHash);
                 when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(true);
             }
         }
