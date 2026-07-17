@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -413,7 +412,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
         // Federator's blockchain has more blocks than bridge's blockchain - go and try to
         // update the bridge with the latest.
-
         // First, find the common ancestor that is in the federator's bestchain
         // using block depth incremental search
         Optional<StoredBlock> commonAncestorOpt = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
@@ -423,7 +421,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         StoredBlock commonAncestor = commonAncestorOpt.get();
 
         logger.debug(
-            "[updateBridgeBtcBlockchain] Matched block {}.",
+            "[updateBridgeBtcBlockchain] Common ancestor is {}.",
             commonAncestor.getHeader().getHash()
         );
 
@@ -435,25 +433,18 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             totalHeadersToSendToBridge.add(currentBlockHeader);
             currentBlock = bitcoinWrapper.getBlock(currentBlockHeader.getPrevBlockHash());
         }
-        if (totalHeadersToSendToBridge.isEmpty()) {
-            logger.debug(
-                "[updateBridgeBtcBlockchain] Bridge was just updated, no new blocks to send, matchedBlock: {}.",
-                commonAncestor.getHeader().getHash()
-            );
-            return 0;
-        }
         totalHeadersToSendToBridge = Lists.reverse(totalHeadersToSendToBridge);
 
         // Only send the headers that are not already known to the Bridge
-        int startIndex = findFirstUnknownHeader(totalHeadersToSendToBridge);
-        int totalHeadersToSendToBridgeCount = totalHeadersToSendToBridge.size();
-        if (startIndex == totalHeadersToSendToBridgeCount) {
-            logger.debug("[updateBridgeBtcBlockchain] All headers already known to Bridge, nothing to send.");
+        int from = findFirstUnknownHeader(totalHeadersToSendToBridge);
+        if (from == totalHeadersToSendToBridge.size()) {
+            logger.debug(
+                "[updateBridgeBtcBlockchain] All headers already registered; nothing to inform"
+            );
             return 0;
         }
-
-        int to = Math.min(startIndex + amountOfHeadersToSend, totalHeadersToSendToBridgeCount);
-        List<Block> headersToSendToBridge = totalHeadersToSendToBridge.subList(startIndex, to);
+        int to = Math.min(from + amountOfHeadersToSend, totalHeadersToSendToBridge.size());
+        List<Block> headersToSendToBridge = totalHeadersToSendToBridge.subList(from, to);
         federatorSupport.sendReceiveHeaders(headersToSendToBridge.toArray(new Block[]{}));
 
         int headersToSendToBridgeCount = headersToSendToBridge.size();
