@@ -4008,7 +4008,7 @@ class BtcToRskClientTest {
                 clearInvocations(federatorSupport);
                 // simulate the second batch is now registered too and that bridge is up-to-date
                 markHeadersAsInformed(secondCallFirstHeaderToSend, chainHeight);
-                when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(chainHeight);
+                updateBridgeBestChainHeight();
 
                 // third call: the whole fork is known, nothing left to inform
                 int thirdCallSentHeadersCount = activeFedClient.updateBridgeBtcBlockchain();
