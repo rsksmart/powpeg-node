@@ -19,7 +19,7 @@ public class AdvanceBlockchainMessage {
     }
 
     public List<String> getParsedBlockHeaders() {
-        return this.parsedHeaders.stream().map(ParsedHeader::getBlockHeader).collect(Collectors.toList());
+        return this.parsedHeaders.stream().map(ParsedHeader::getBlockHeader).toList();
     }
 
     public String[] getParsedBrothers(String blockHeader) throws HSMBlockchainBookkeepingRelatedException {
@@ -38,7 +38,7 @@ public class AdvanceBlockchainMessage {
             .map(block -> new ParsedHeader(
                 block.getHeader(),
                 filterBrothers(brothersByParentHash.getOrDefault(block.getParentHash(), Collections.emptyList()))
-            )).collect(Collectors.toList());
+            )).toList();
     }
 
     private Map<Keccak256, List<BlockHeader>> groupBrothersByParentHash(List<Block> blocks) {
@@ -56,6 +56,6 @@ public class AdvanceBlockchainMessage {
             .sorted((brother1, brother2) ->
                 brother2.getDifficulty().asBigInteger().compareTo(brother1.getDifficulty().asBigInteger()))
             .limit(BROTHERS_LIMIT_PER_BLOCK_HEADER)
-            .collect(Collectors.toList());
+            .toList();
     }
 }
