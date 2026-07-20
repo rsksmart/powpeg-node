@@ -204,7 +204,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         String bestBlockHash = state.get(BEST_BLOCK.getFieldName()).asText();
         String ancestorBlockHash = state.get(ANCESTOR_BLOCK.getFieldName()).asText();
 
-        logger.trace("[getHSMPointer] HSM State: BestBlock: {}, ancestor: {}, inProgress:{}", bestBlockHash, ancestorBlockHash, inProgress);
+        logger.trace("[getPowHSMState] HSM State: BestBlock: {}, ancestor: {}, inProgress:{}", bestBlockHash, ancestorBlockHash, inProgress);
 
         return new PowHSMState(bestBlockHash, ancestorBlockHash, inProgress);
     }

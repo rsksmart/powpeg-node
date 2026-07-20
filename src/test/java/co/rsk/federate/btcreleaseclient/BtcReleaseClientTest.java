@@ -80,12 +80,13 @@ class BtcReleaseClientTest {
     private ECDSASigner signer;
 
     @BeforeEach
-    void setup() {
+    void setup() throws SignerException {
         constants = Constants.mainnet();
         receiptStore = mock(ReceiptStore.class);
         blockStore = mock(BlockStore.class);
         federatorSupport = mock(FederatorSupport.class);
         signer = mock(ECDSASigner.class);
+        doReturn(1).when(signer).getVersionForKeyId(any(KeyId.class));
 
         long blockNumber = 5_000L;
         when(bestBlock.getNumber()).thenReturn(blockNumber);
@@ -1992,7 +1993,7 @@ class BtcReleaseClientTest {
             nodeBlockProcessor
         );
         btcReleaseClient.setup(
-            mock(ECDSASigner.class),
+            signer,
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class)
@@ -2033,7 +2034,7 @@ class BtcReleaseClientTest {
             nodeBlockProcessor
         );
         btcReleaseClient.setup(
-            mock(ECDSASigner.class),
+            signer,
             mock(SignerMessageBuilderFactory.class),
             mock(ReleaseCreationInformationGetter.class),
             mock(ReleaseRequirementsEnforcer.class)

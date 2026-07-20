@@ -457,7 +457,7 @@ class HSMBookkeepingServiceTest {
         Mockito.verifyNoInteractions(mockListener);
 
         Thread.sleep(150); // delay for next call
-        // getHSMPointer() is called twice for the first call and once for the second call
+        // getPowHSMState() is called twice for the first call and once for the second call
         verify(mockHsmBookkeepingClient, times(3)).getPowHSMState();
     }
 

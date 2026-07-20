@@ -390,7 +390,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getHSMPointer_ok() throws HSMClientException, JsonRpcException {
+    void getPowHSMState_ok() throws HSMClientException, JsonRpcException {
         Keccak256 bestBlockHash = TestUtils.createHash(1);
         Keccak256 ancestorBlockHash = TestUtils.createHash(2);
         Keccak256 newestValidBlock = TestUtils.createHash(3);
@@ -405,7 +405,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getHSMPointer_missing_data() throws JsonRpcException {
+    void getPowHSMState_missing_data() throws JsonRpcException {
         ObjectNode state = new ObjectMapper().createObjectNode();
         Keccak256 bestBlockHash = Keccak256.ZERO_HASH;
         state.put(BEST_BLOCK.getFieldName(), bestBlockHash.toHexString());
@@ -419,7 +419,7 @@ class HsmBookkeepingClientImplTest {
     }
 
     @Test
-    void getHSMPointer_generic_error_response() throws JsonRpcException {
+    void getPowHSMState_generic_error_response() throws JsonRpcException {
 
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.V2_DEVICE_ERROR));
 
