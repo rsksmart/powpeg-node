@@ -34,15 +34,12 @@ public class ConfirmedBlocksProvider {
     }
 
     public List<Block> getConfirmedBlocks(Keccak256 startingPoint) {
-        List<Block> potentialBlocks = new ArrayList<>();
-        List<Block> confirmedBlocks = new ArrayList<>();
-        BigInteger accumulatedDifficulty = BigInteger.ZERO;
-
         Block initialBlock = blockStore.getBlockByHash(startingPoint.getBytes());
+        long initialBlockNumber = initialBlock.getNumber();
         Block bestBlock = blockStore.getBestBlock();
         logger.trace(
             "[getConfirmedBlocks] Initial block height is {} and RSK best block height {}. Using HSM version {}, difficulty target {}, difficulty cap {}, sending max {} elements",
-            initialBlock.getNumber(),
+            initialBlockNumber,
             bestBlock.getNumber(),
             hsmVersion,
             minimumAccumulatedDifficulty,
@@ -50,27 +47,33 @@ public class ConfirmedBlocksProvider {
             maximumElementsToSendHSM
         );
 
-        int lastIndexToConfirmBlock = 0;
-        Block blockToProcess = blockStore.getChainBlockByNumber(initialBlock.getNumber() + 1);
+        List<Block> blocksInWindow = new ArrayList<>();
+        int proofBlocksCount = 0;
+        BigInteger accumulatedDifficulty = BigInteger.ZERO;
+        List<Block> confirmedBlocks = new ArrayList<>();
+
+        Block blockToProcess = blockStore.getChainBlockByNumber(initialBlockNumber + 1);
         while (blockToProcess != null && confirmedBlocks.size() < maximumElementsToSendHSM) {
-            potentialBlocks.add(blockToProcess);
-            BigInteger difficultyToConsider = getBlockDifficultyToConsider(blockToProcess);
+            blocksInWindow.add(blockToProcess);
+            BigInteger difficultyToConsider = getBlockTotalDifficulty(blockToProcess, initialBlockNumber);
             accumulatedDifficulty = accumulatedDifficulty.add(difficultyToConsider);
 
-            if (accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0) { // Enough difficulty accumulated
+            boolean enoughDifficulty = accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0;
+            if (enoughDifficulty) {
                 logger.trace(
                     "[getConfirmedBlocks] Accumulated enough difficulty {} with {} blocks",
                     accumulatedDifficulty,
-                    potentialBlocks.size()
+                    blocksInWindow.size()
                 );
 
-                // The first block was confirmed. Add it to confirm, subtract its difficulty from the accumulated and from the potentials list
-                Block confirmedBlock = potentialBlocks.get(0);
+                // The block was confirmed. Add it to confirmed blocks list,
+                // subtract its difficulty from the accumulated and remove it from the proof blocks list
+                Block confirmedBlock = blocksInWindow.get(0);
                 confirmedBlocks.add(confirmedBlock);
-                BigInteger confirmedBlockDifficultyToConsider = getBlockDifficultyToConsider(confirmedBlock);
-                accumulatedDifficulty = accumulatedDifficulty.subtract(confirmedBlockDifficultyToConsider);
-                potentialBlocks.remove(confirmedBlock);
-                lastIndexToConfirmBlock = potentialBlocks.size();
+                BigInteger confirmedBlockTotalDifficulty = getBlockTotalDifficulty(confirmedBlock, initialBlockNumber);
+                accumulatedDifficulty = accumulatedDifficulty.subtract(confirmedBlockTotalDifficulty);
+                blocksInWindow.remove(confirmedBlock);
+                proofBlocksCount = blocksInWindow.size();
 
                 logger.trace(
                     "[getConfirmedBlocks] Confirmed block {} (height {})",
@@ -85,33 +88,30 @@ public class ConfirmedBlocksProvider {
         if (confirmedBlocks.isEmpty()) {
             return confirmedBlocks;
         }
-        // Adding the proof of the confirmed elements from the potential elements
-        potentialBlocks = potentialBlocks.subList(0, lastIndexToConfirmBlock);
-        confirmedBlocks.addAll(potentialBlocks);
-        logger.debug("[getConfirmedBlocks] Added {} extra blocks as proof", potentialBlocks.size());
+        // Adding the proof of the confirmed elements from the blocks remaining in the window
+        blocksInWindow = blocksInWindow.subList(0, proofBlocksCount);
+        confirmedBlocks.addAll(blocksInWindow);
+        logger.debug("[getConfirmedBlocks] Added {} extra blocks as proof", blocksInWindow.size());
 
         return confirmedBlocks;
     }
 
-    protected BigInteger getBlockDifficultyToConsider(Block block) {
+    protected BigInteger getBlockTotalDifficulty(Block block, long uncleHeightThreshold) {
         logger.trace(
-            "[getBlockDifficultyToConsider] Get difficulty for block {} at height {}",
+            "[getBlockTotalDifficulty] Get total difficulty for block {} at height {}",
             block.getHash(),
             block.getNumber()
         );
 
-        BigInteger blockTotalDifficulty = block.getDifficulty().asBigInteger();
-
-        BigInteger blockDifficultyToConsider = difficultyCap.min(blockTotalDifficulty);
-        BigInteger unclesDifficultyToConsider = block.getUncleList().stream()
+        BigInteger blockDifficulty = difficultyCap.min(block.getDifficulty().asBigInteger());
+        // Each block uncle is sent to the HSM as a brother of the respective canonical block
+        // it shares a parent with, which is part of the set being sent only when the
+        // original block's uncle is above the HSM best block.
+        // So only those uncles can be delivered as brothers and counted.
+        BigInteger unclesDifficulty = block.getUncleList().stream()
+            .filter(uncle -> uncle.getNumber() > uncleHeightThreshold)
             .map(uncle -> difficultyCap.min(uncle.getDifficulty().asBigInteger()))
             .reduce(BigInteger.ZERO, BigInteger::add);
-
-        logger.trace(
-            "[getBlockDifficultyToConsider] Block difficulty {}, considering {}",
-            blockTotalDifficulty,
-            blockDifficultyToConsider
-        );
-        return blockDifficultyToConsider.add(unclesDifficultyToConsider);
+        return blockDifficulty.add(unclesDifficulty);
     }
 }
