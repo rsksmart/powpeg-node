@@ -196,7 +196,7 @@ class ConfirmedBlocksProviderTest {
         );
 
         // act
-        BigInteger consideredDifficulty = confirmedBlocksProvider.getBlockDifficultyToConsider(block);
+        BigInteger consideredDifficulty = confirmedBlocksProvider.getBlockTotalDifficulty(block, 1);
 
         // assert
         // Pow HSM considers brothers difficulty
