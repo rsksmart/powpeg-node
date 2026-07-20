@@ -23,6 +23,8 @@ import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
 import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
 import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.federate.signing.hsm.message.HSMReleaseCreationInformationException;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
@@ -98,6 +100,7 @@ public class BtcReleaseClient {
 
     private PeerGroup peerGroup;
     private ECDSASigner signer;
+    private HSMVersion signerVersion;
     private BtcReleaseEthereumListener blockListener;
     private SignerMessageBuilderFactory signerMessageBuilderFactory;
     private ReleaseCreationInformationGetter releaseCreationInformationGetter;
@@ -128,6 +131,14 @@ public class BtcReleaseClient {
     ) throws BtcReleaseClientException {
         this.signer = signer;
         logger.debug("[setup] Signer: {}", signer.getClass());
+        try {
+            int version = signer.getVersionForKeyId(BTC.getKeyId());
+            this.signerVersion = HSMVersion.fromNumber(version);
+            logger.info("[setup] Signer version: {}", signerVersion.getNumber());
+        } catch (SignerException | HSMUnsupportedVersionException e) {
+            logger.error("[setup] Wrong signer version");
+            throw new BtcReleaseClientException("Error configuring signer", e);
+        }
 
         org.bitcoinj.core.Context btcContext = new org.bitcoinj.core.Context(
             ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString()));
@@ -201,7 +212,7 @@ public class BtcReleaseClient {
     private class BtcReleaseEthereumListener extends EthereumListenerAdapter {
         @Override
         public void onBestBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (!shouldProcessPegouts()) {
+            if (shouldSkipProcessingPegouts()) {
                 logger.warn("[onBestBlock] Node is not ready to process pegouts");
                 return;
             }
@@ -222,7 +233,7 @@ public class BtcReleaseClient {
 
         @Override
         public void onBlock(org.ethereum.core.Block block, List<TransactionReceipt> receipts) {
-            if (!shouldProcessPegouts()) {
+            if (shouldSkipProcessingPegouts()) {
                 logger.warn("[onBlock] Node is not ready to process pegouts");
                 return;
             }
@@ -240,7 +251,7 @@ public class BtcReleaseClient {
             pegoutTxs.forEach(BtcReleaseClient.this::onBtcRelease);
         }
 
-        private boolean shouldProcessPegouts() {
+        private boolean shouldSkipProcessingPegouts() {
             boolean hasBetterBlockToSync = nodeBlockProcessor.hasBetterBlockToSync();
             logger.trace(
                 "[shouldProcessPegouts] isPegoutEnabled: {}, hasBetterBlockToSync: {}",
@@ -248,7 +259,7 @@ public class BtcReleaseClient {
                 hasBetterBlockToSync
             );
 
-            return isPegoutEnabled && !hasBetterBlockToSync;
+            return !isPegoutEnabled || hasBetterBlockToSync;
         }
 
         /**
@@ -303,9 +314,12 @@ public class BtcReleaseClient {
     }
 
     protected void processReleases(Set<Map.Entry<Keccak256, BtcTransaction>> pegouts) {
+        if (shouldSkipSigningPegouts()) {
+            logger.warn("[onBestBlock] Node is not ready to sign pegouts");
+            return;
+        }
         try {
             logger.info("[processReleases] Starting signing process with {} pegouts", pegouts.size());
-            int version = signer.getVersionForKeyId(BTC.getKeyId());
             // Get pegout information and store it in a new list
             List<ReleaseCreationInformation> pegoutsReadyToSign = new ArrayList<>();
             for (Map.Entry<Keccak256, BtcTransaction> pegout : pegouts) {
@@ -325,12 +339,32 @@ public class BtcReleaseClient {
             pegoutsReadyToSign.sort((a, b) -> (int) (b.getPegoutCreationBlock().getNumber() - a.getPegoutCreationBlock().getNumber()));
             // Sign only the first element
             if (!pegoutsReadyToSign.isEmpty()) {
-                signRelease(version, pegoutsReadyToSign.get(0));
+                signRelease(signerVersion.getNumber(), pegoutsReadyToSign.get(0));
             }
         } catch (Exception e) {
             logger.error("[processReleases] There was an error trying to process pegouts", e);
         }
         logger.trace("[processReleases] Finished processing pegouts");
+    }
+
+    private boolean shouldSkipSigningPegouts() {
+        try {
+            return isUpdatingState();
+        } catch (HSMClientException e) {
+            logger.error("[shouldSkipSigningPegouts] Error getting state");
+            return true;
+        }
+    }
+
+    private boolean isUpdatingState() throws HSMClientException {
+        if (!signerVersion.isPowHSM()) {
+            logger.info("[isUpdatingState] not powHSM; no state being updated");
+            return false;
+        }
+
+        boolean isEnforcing = releaseRequirementsEnforcer.isUpdatingState();
+        logger.info("[isUpdatingState] Is powHSM state in progress? : {}", isEnforcing);
+        return isEnforcing;
     }
 
     private boolean pegoutIsUnprocessable(Keccak256 pegoutCreationRskTxHash) {
