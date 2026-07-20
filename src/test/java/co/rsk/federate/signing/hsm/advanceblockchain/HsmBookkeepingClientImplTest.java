@@ -398,7 +398,7 @@ class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildBlockchainStateRequest(hsmVersion)))
             .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
-        PowHSMState powHsmState = hsmBookkeepingClient.getHSMPointer();
+        PowHSMState powHsmState = hsmBookkeepingClient.getPowHSMState();
         assertEquals(bestBlockHash, powHsmState.getBestBlockHash());
         assertEquals(ancestorBlockHash, powHsmState.getAncestorBlockHash());
         assertFalse(powHsmState.isInProgress());
@@ -415,7 +415,7 @@ class HsmBookkeepingClientImplTest {
 
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(response);
 
-        assertThrows(HSMInvalidResponseException.class, () -> hsmBookkeepingClient.getHSMPointer());
+        assertThrows(HSMInvalidResponseException.class, () -> hsmBookkeepingClient.getPowHSMState());
     }
 
     @Test
@@ -423,7 +423,7 @@ class HsmBookkeepingClientImplTest {
 
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.V2_DEVICE_ERROR));
 
-        assertThrows(HSMDeviceNotReadyException.class, () -> hsmBookkeepingClient.getHSMPointer());
+        assertThrows(HSMDeviceNotReadyException.class, () -> hsmBookkeepingClient.getPowHSMState());
     }
 
     @Test
