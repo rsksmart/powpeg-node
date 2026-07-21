@@ -1826,6 +1826,73 @@ class BtcToRskClientTest {
             return blockWithTx;
         }
 
+        @Test
+        void updateBridgeBtcBlockchain_whenNoCommonAncestorFound_throwsBlockStoreException() throws Exception {
+            Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
+            setUpActiveFedClient(federation);
+
+            // none of the Bridge's blocks are on the federator's chain, so no common ancestor is found
+            when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(0);
+            when(federatorSupport.getBtcBlockchainBlockHashAtDepth(anyInt())).thenReturn(Sha256Hash.ZERO_HASH);
+
+            assertThrows(BlockStoreException.class, () -> activeFedClient.updateBridgeBtcBlockchain());
+        }
+
+        @Test
+        void onTransaction_whenStorageWriteFails_doesNotPropagateAndKeepsProofInMemory() throws Exception {
+            Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
+            BtcToRskClientFileStorage failingStorage = spy(btcToRskActiveFedClientFileStorage);
+            doThrow(new IOException("simulated write failure")).when(failingStorage).write(any());
+            BtcToRskClient client = buildClient(failingStorage, federation);
+
+            var peginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, peginBtcTx);
+
+            // The write failure is caught and logged, not propagated, and the proof stays in memory
+            assertDoesNotThrow(() -> client.onTransaction(tx));
+            assertTrue(client.getTransactionsToSendToRsk().containsKey(tx.getWTxId()));
+        }
+
+        @Test
+        void stop_whenClientNotStarted_doesNotThrow() throws Exception {
+            Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
+            setUpActiveFedClient(federation);
+
+            // client was built but never started, so there's no running timer to shut down
+            assertDoesNotThrow(() -> activeFedClient.stop());
+        }
+
+        @Test
+        void updateBridge_afterStartAndStop_doesNothing() throws Exception {
+            // arrange
+            Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
+            setUpActiveFed(federation);
+            when(federatorSupport.getFederationMember()).thenReturn(federation.getMembers().get(0));
+
+            BtcToRskClient client = spy(BtcToRskClientBuilder.builder()
+                .withBitcoinWrapper(bitcoinWrapper)
+                .withFederatorSupport(federatorSupport)
+                .withFederation(federation)
+                .withBridgeConstants(BRIDGE_MAINNET_CONSTANTS)
+                .withBtcToRskClientFileStorage(btcToRskActiveFedClientFileStorage)
+                .withBtcLockSenderProvider(btcLockSenderProvider)
+                .withPeginInstructionsProvider(peginInstructionsProvider)
+                .withActivationConfig(activationConfig)
+                .build());
+
+            // act
+            client.start(federation);
+            client.stop();
+            client.updateBridge();
+
+            // assert
+            // after stop(), federationToListen is null, so updateBridge short-circuits and does nothing
+            verify(client, never()).updateBridgeBtcBlockchain();
+            verify(client, never()).updateBridgeBtcCoinbaseTransactions();
+            verify(client, never()).updateBridgeBtcTransactions();
+            verify(federatorSupport, never()).sendUpdateCollections();
+        }
+
         @Nested
         @TestInstance(TestInstance.Lifecycle.PER_METHOD)
         class UpdateBridgeBtcTransactions {
@@ -4057,11 +4124,15 @@ class BtcToRskClientTest {
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(true);
 
-        BtcToRskClient btcToRskClient = spy(buildWithFactory(mock(FederatorSupport.class), nodeBlockProcessor));
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        BtcToRskClient btcToRskClient = spy(buildWithFactory(federatorSupport, nodeBlockProcessor));
 
         btcToRskClient.updateBridge();
 
         verify(btcToRskClient, never()).updateBridgeBtcBlockchain();
+        verify(btcToRskClient, never()).updateBridgeBtcCoinbaseTransactions();
+        verify(btcToRskClient, never()).updateBridgeBtcTransactions();
+        verify(federatorSupport, never()).sendUpdateCollections();
     }
 
     @Test
