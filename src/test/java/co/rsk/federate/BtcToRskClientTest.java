@@ -1619,7 +1619,7 @@ class BtcToRskClientTest {
 
     @Nested
     @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-    class UpdateBridge {
+    class UpdateBridgeTests {
         private static final NetworkParameters MAINNET_PARAMS = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING);
         private static final Context MAINNET_CONTEXT = new Context(MAINNET_PARAMS);
         private static final int CHAIN_HEIGHT = 4;
@@ -3889,10 +3889,10 @@ class BtcToRskClientTest {
             }
         }
 
-        private void markHeadersAsInformed(int fromHeight, int toHeight) {
-            for (int i = fromHeight; i <= toHeight; i++) {
-                Sha256Hash blockHash = blocks[i].getHeader().getHash();
-                when(federatorSupport.getBtcBlockchainBlockHashAtDepth(i)).thenReturn(blockHash);
+        private void markHeadersAsInformed(int fromDepth, int toDepth) {
+            for (int depth = fromDepth; depth <= toDepth; depth++) {
+                Sha256Hash blockHash = blocks[depth].getHeader().getHash();
+                when(federatorSupport.getBtcBlockchainBlockHashAtDepth(depth)).thenReturn(blockHash);
                 when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(true);
             }
         }
