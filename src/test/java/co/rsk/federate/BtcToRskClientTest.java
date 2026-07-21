@@ -811,11 +811,14 @@ class BtcToRskClientTest {
         assertNotNull(headers);
         // Search depth should go down to the maximum depth (height - inital height = 200 - 10 = 190)
         // That means depth should be called with: 0, 1, 2, 4, 8, 16, 32, 64, 128, 190.
-        // At the end, blockchain should be updated with 225 - 10 = 215 blocks.
         Stream.of(0, 1, 2, 4, 8, 16, 32, 64, 128, 190).forEach(depth ->
             verify(federatorSupport, times(1)).getBtcBlockchainBlockHashAtDepth(depth)
         );
-        assertEquals(amountOfHeadersToSend, headers.length);
+        // The exponential search finds the common ancestor at height 10, but blocks 11...FORK_HEIGHT
+        // are shared with the Bridge's chain (already registered), so starting index skips them and
+        // only the new fork blocks (FORK_HEIGHT+1 ... FEDERATOR_HEIGHT) are informed.
+        int expectedInformedHeaders = FEDERATOR_HEIGHT - FORK_HEIGHT; // 225 - 20 = 205
+        assertEquals(expectedInformedHeaders, headers.length);
 
         // Only one receive headers invocation
         assertEquals(1, federatorSupport.getSendReceiveHeadersInvocations());
@@ -3880,6 +3883,10 @@ class BtcToRskClientTest {
                 assertCoinbaseTxSentToBridge(coinbaseInformationInNewChain);
             }
 
+            private CoinbaseInformation getCoinbaseInformation(Sha256Hash blockHash) throws IOException {
+                return btcToRskActiveFedClientFileStorage.read(MAINNET_PARAMS).getData().getCoinbaseInformationMap().get(blockHash);
+            }
+
             private void assertCoinbaseTxSentToBridge(CoinbaseInformation coinbaseInformation) {
                 verify(federatorSupport).sendRegisterCoinbaseTransaction(coinbaseInformation);
             }
@@ -3895,10 +3902,6 @@ class BtcToRskClientTest {
                 when(federatorSupport.getBtcBlockchainBlockHashAtDepth(depth)).thenReturn(blockHash);
                 when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(true);
             }
-        }
-
-        private CoinbaseInformation getCoinbaseInformation(Sha256Hash blockHash) throws IOException {
-            return btcToRskActiveFedClientFileStorage.read(MAINNET_PARAMS).getData().getCoinbaseInformationMap().get(blockHash);
         }
 
         private void assertWTxIdIsInActiveFedClientProofsFile(BtcTransaction btcTx) throws IOException {
