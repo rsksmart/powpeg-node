@@ -892,7 +892,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     private void setConfigVariables(PowpegNodeSystemProperties config) {
         this.activationConfig = config.getActivationConfig();
         this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
-        this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
         this.amountOfHeadersToSend = config.getAmountOfHeadersToSend();
         this.shouldUpdateBridgeBtcBlockchain = config.shouldUpdateBridgeBtcBlockchain();
         this.shouldUpdateBridgeBtcCoinbaseTransactions = config.shouldUpdateBridgeBtcCoinbaseTransactions();
