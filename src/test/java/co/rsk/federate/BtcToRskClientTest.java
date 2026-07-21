@@ -98,13 +98,17 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void start_withNoFederationMember_doesntThrowError() throws Exception {
+    void start_withNoFederationMember_throwsISE() throws Exception {
         BitcoinWrapper bw = new SimpleBitcoinWrapper();
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
+        Federation federation = mock(Federation.class);
+        FederationMember fedMember = activeFederation.getMembers().get(0);
 
-        fh.setMember(activeFederationMember);
-        BtcToRskClient client = createClientWithMocks(bw, fh);
-        assertDoesNotThrow(() -> client.start(activeFederation));
+        fh.setMember(fedMember);
+        when(federation.isMember(fedMember)).thenReturn(false);
+
+        BtcToRskClient client = createClientWithMocksCustomFederation(bw, fh, federation);
+        assertThrows(IllegalStateException.class, () -> client.start(federation));
     }
 
     @Test
@@ -222,13 +226,10 @@ class BtcToRskClientTest {
         assertEquals(2, txs.size());
 
         List<Proof> proofs1 = txs.get(tx1.getWTxId());
-
         assertNotNull(proofs1);
         assertTrue(proofs1.isEmpty());
 
         List<Proof> proofs2 = txs.get(tx2.getWTxId());
-
-        tx1.getWTxId();
         assertNotNull(proofs2);
         assertTrue(proofs2.isEmpty());
     }
@@ -1450,14 +1451,6 @@ class BtcToRskClientTest {
         bitcoinWrapper.setTransactions(txs);
         bitcoinWrapper.setBlocks(blocks);
 
-        ActivationConfig activationsConfig = mock(ActivationConfig.class);
-        ActivationConfig.ForBlock activations = mock(ActivationConfig.ForBlock.class);
-        doReturn(activations).when(activationsConfig).forBlock(anyLong());
-        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP89);
-        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP143);
-        doReturn(true).when(activations).isActive(ConsensusRule.RSKIP170);
-        doReturn(true).when(activationsConfig).isActive(eq(ConsensusRule.RSKIP170), anyLong());
-
         PeginInstructionsProvider peginInstructionsProvider = mock(PeginInstructionsProvider.class);
         when(peginInstructionsProvider.buildPeginInstructions(any())).thenThrow(PeginInstructionsException.class);
 
@@ -1466,6 +1459,7 @@ class BtcToRskClientTest {
             .withBitcoinWrapper(bitcoinWrapper)
             .withFederatorSupport(federatorSupport)
             .withBridgeConstants(bridgeRegTestConstants)
+            .withPeginInstructionsProvider(peginInstructionsProvider)
             .withFederation(activeFederation)
             .build();
 
@@ -1512,6 +1506,7 @@ class BtcToRskClientTest {
             .withFederatorSupport(federatorSupport)
             .withBridgeConstants(bridgeRegTestConstants)
             .withBtcLockSenderProvider(btcLockSenderProvider)
+            .withPeginInstructionsProvider(peginInstructionsProvider)
             .withFederation(activeFederation)
             .build();
 
@@ -1787,8 +1782,7 @@ class BtcToRskClientTest {
         }
 
         private BtcToRskClient buildClient(BtcToRskClientFileStorage btcToRskClientFileStorage, Federation federationToListen) throws Exception {
-            btcToRskClientBuilder = BtcToRskClientBuilder.builder();
-            return btcToRskClientBuilder
+            return BtcToRskClientBuilder.builder()
                 .withBitcoinWrapper(bitcoinWrapper)
                 .withFederatorSupport(federatorSupport)
                 .withFederation(federationToListen)
@@ -4059,7 +4053,7 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void updateBridge_when_hasBetterBlockToSync_does_not_update_headers() throws IOException, BlockStoreException {
+    void updateBridge_when_hasBetterBlockToSync_does_not_update_headers() throws BlockStoreException {
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(true);
 
