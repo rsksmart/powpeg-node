@@ -396,7 +396,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
     }
 
-    protected int updateBridgeBtcBlockchain() throws BlockStoreException, IOException {
+    protected int updateBridgeBtcBlockchain() throws BlockStoreException {
         int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBlockchainBestChainHeight();
         int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
         if (federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight) {
