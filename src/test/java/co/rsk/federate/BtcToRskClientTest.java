@@ -4033,9 +4033,9 @@ class BtcToRskClientTest {
                 verify(federatorSupport, never()).sendReceiveHeaders(any(Block[].class));
             }
 
-            private void markHeadersAsNotInformed(int fromDepth, int toDepth) {
-                for (int depth = fromDepth; depth <= toDepth; depth++) {
-                    Sha256Hash blockHash = blocks[depth].getHeader().getHash();
+            private void markHeadersAsNotInformed(int fromHeight, int toHeight) {
+                for (int height = fromHeight; height <= toHeight; height++) {
+                    Sha256Hash blockHash = blocks[height].getHeader().getHash();
                     when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(false);
                 }
             }
@@ -4049,10 +4049,9 @@ class BtcToRskClientTest {
             }
         }
 
-        private void markHeadersAsInformed(int fromDepth, int toDepth) {
-            for (int depth = fromDepth; depth <= toDepth; depth++) {
-                Sha256Hash blockHash = blocks[depth].getHeader().getHash();
-                when(federatorSupport.getBtcBlockchainBlockHashAtDepth(depth)).thenReturn(blockHash);
+        private void markHeadersAsInformed(int fromHeight, int toHeight) {
+            for (int height = fromHeight; height <= toHeight; height++) {
+                Sha256Hash blockHash = blocks[height].getHeader().getHash();
                 when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(true);
             }
         }
