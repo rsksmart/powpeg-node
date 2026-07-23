@@ -9,8 +9,8 @@ import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.wallet.Wallet;
 
 /**
- * A KitStub variant whose startUp() blocks until released, allowing tests to
- * trigger the timeout logic in BitcoinWrapperImpl.start().
+ * A KitStub variant whose startUp() blocks until released (or until a safety timeout elapses),
+ * allowing tests to trigger the timeout logic in BitcoinWrapperImpl.start().
  */
 public class KitStubLatched extends KitStub {
 

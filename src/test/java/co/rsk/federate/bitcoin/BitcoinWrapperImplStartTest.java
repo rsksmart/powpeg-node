@@ -29,7 +29,7 @@ class BitcoinWrapperImplStartTest {
     private static final NetworkParameters NETWORK_PARAMS =
         ThinConverter.toOriginalInstance(BRIDGE_CONSTANTS.getBtcParamsString());
     private static final Context BTC_CONTEXT = new Context(NETWORK_PARAMS);
-    private final Duration PROGRESS_CHECK_INTERVAL = Duration.ofMillis(100);
+    private static final Duration PROGRESS_CHECK_INTERVAL = Duration.ofMillis(100);
 
     @TempDir
     private Path tempDir;
@@ -61,7 +61,7 @@ class BitcoinWrapperImplStartTest {
 
     @Test
     void start_noPeersAfterCheckInterval_throwsISE() {
-        // Arrange: kit blocks and peerGroup() returns null → checkConnection() counts 0 peers.
+        // Arrange: kit blocks and peerGroup() returns null → checkPeers() counts 0 peers.
         blockingKit.setMockPeerGroup(null);
         BitcoinWrapperImpl wrapper = new BitcoinWrapperImpl(BTC_CONTEXT, blockingKit);
         List<PeerAddress> peers = Collections.emptyList();
