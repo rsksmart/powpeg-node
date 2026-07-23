@@ -29,6 +29,7 @@ class BitcoinWrapperImplStartTest {
     private static final NetworkParameters NETWORK_PARAMS =
         ThinConverter.toOriginalInstance(BRIDGE_CONSTANTS.getBtcParamsString());
     private static final Context BTC_CONTEXT = new Context(NETWORK_PARAMS);
+    private final Duration PROGRESS_CHECK_INTERVAL = Duration.ofMillis(100);
 
     @TempDir
     private Path tempDir;
@@ -55,7 +56,7 @@ class BitcoinWrapperImplStartTest {
         wrapper.setup(Collections.emptyList());
 
         // Act & Assert
-        assertDoesNotThrow(() -> wrapper.start(Duration.ofMillis(100)));
+        assertDoesNotThrow(() -> wrapper.start(PROGRESS_CHECK_INTERVAL));
     }
 
     @Test
@@ -67,8 +68,7 @@ class BitcoinWrapperImplStartTest {
         wrapper.setup(peers);
 
         // Act & Assert
-        Duration duration = Duration.ofMillis(100);
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> wrapper.start(duration));
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> wrapper.start(PROGRESS_CHECK_INTERVAL));
         assertTrue(
             ex.getMessage().contains("No Bitcoin peers connected"),
             "Expected 'No Bitcoin peers connected' in message but got: " + ex.getMessage()
@@ -88,9 +88,8 @@ class BitcoinWrapperImplStartTest {
 
         // Run start() on a background thread, so we can release the kit mid-flight.
         // since node has connected peers, it won't throw
-        Duration checkInterval = Duration.ofMillis(100);
         CompletableFuture<Void> startFuture = CompletableFuture.runAsync(
-            () -> wrapper.start(checkInterval)
+            () -> wrapper.start(PROGRESS_CHECK_INTERVAL)
         );
 
         // start() must still be blocked in the timeout loop while the kit is unreleased.
