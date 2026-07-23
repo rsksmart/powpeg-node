@@ -7,6 +7,7 @@ import co.rsk.bitcoinj.core.StoredBlock;
 import co.rsk.peg.constants.BridgeConstants;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 public class ThinConverter {
 
@@ -56,9 +57,7 @@ public class ThinConverter {
     }
 
     public static Context toThinInstance(org.bitcoinj.core.Context context) {
-        if (context == null) {
-            return null;
-        }
+        Objects.requireNonNull(context, "Bitcoinj context cannot be null");
 
         return new Context(
             NetworkParameters.fromID(context.getParams().getId()),
