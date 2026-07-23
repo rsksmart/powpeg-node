@@ -1,5 +1,6 @@
 package co.rsk.federate.signing.hsm.requirements;
 
+import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMUnsupportedVersionException;
 import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformation;
@@ -30,6 +31,10 @@ public class ReleaseRequirementsEnforcer {
 
         logger.trace("[enforce] Pow HSM requires ancestor in position. ENFORCING");
         enforceReleaseRequirements(releaseCreationInformation);
+    }
+
+    public boolean isUpdatingState() throws HSMClientException {
+        return ancestorBlockUpdater.isInProgress();
     }
 
     private void enforceReleaseRequirements(ReleaseCreationInformation releaseCreationInformation) throws ReleaseRequirementsEnforcerException {

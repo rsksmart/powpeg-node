@@ -1,6 +1,7 @@
 package co.rsk.federate.signing.hsm.requirements;
 
 import co.rsk.crypto.Keccak256;
+import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
@@ -27,13 +28,18 @@ public class AncestorBlockUpdater {
         this.blockStore = blockStore;
     }
 
+    public boolean isInProgress() throws HSMClientException {
+        PowHSMState powHSMState = hsmBookkeepingClient.getPowHSMState();
+        return powHSMState.isInProgress();
+    }
+
     public void ensureAncestorBlockInPosition(Block targetBlock) throws Exception {
         try {
-            PowHSMState hsmPointer = hsmBookkeepingClient.getHSMPointer();
-            if (!hsmPointer.getAncestorBlockHash().equals(targetBlock.getHash())) {
-                moveAncestorBlockToPosition(hsmPointer, targetBlock);
-                hsmPointer = hsmBookkeepingClient.getHSMPointer();
-                if (!hsmPointer.getAncestorBlockHash().equals(targetBlock.getHash())) {
+            PowHSMState powHSMState = hsmBookkeepingClient.getPowHSMState();
+            if (!powHSMState.getAncestorBlockHash().equals(targetBlock.getHash())) {
+                moveAncestorBlockToPosition(powHSMState, targetBlock);
+                powHSMState = hsmBookkeepingClient.getPowHSMState();
+                if (!powHSMState.getAncestorBlockHash().equals(targetBlock.getHash())) {
                     logger.warn(
                         "[ensureAncestorBlockInPosition] Failed to update ancestor block in signer. BlockHash: {}",
                         targetBlock.getHash()
@@ -141,5 +147,4 @@ public class AncestorBlockUpdater {
 
         hsmBookkeepingClient.updateAncestorBlock(new UpdateAncestorBlockMessage(blockHeaders));
     }
-
 }

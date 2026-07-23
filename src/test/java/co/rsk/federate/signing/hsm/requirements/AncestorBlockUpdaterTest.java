@@ -39,7 +39,7 @@ class AncestorBlockUpdaterTest {
 
         PowHSMState state = new PowHSMState(block.getHash().toHexString(), block.getHash().toHexString(), false);
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
-        when(signer.getHSMPointer()).thenReturn(state);
+        when(signer.getPowHSMState()).thenReturn(state);
 
         AncestorBlockUpdater ancestorBlockUpdater = new AncestorBlockUpdater(
                 mock(BlockStore.class),
@@ -49,7 +49,7 @@ class AncestorBlockUpdaterTest {
         ancestorBlockUpdater.ensureAncestorBlockInPosition(block);
 
         // As the target block and the ancestor match, there should be just one call to the pointer.
-        verify(signer, times(1)).getHSMPointer();
+        verify(signer, times(1)).getPowHSMState();
     }
 
     @Test
@@ -76,7 +76,7 @@ class AncestorBlockUpdaterTest {
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
         // HsmPointer initially returns a different ancestor and then it changes
-        when(signer.getHSMPointer()).thenReturn(initialState).thenReturn(secondState);
+        when(signer.getPowHSMState()).thenReturn(initialState).thenReturn(secondState);
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(initialAncestorBlockHash.getBytes())).thenReturn(initialAncestorBlock);
@@ -89,7 +89,7 @@ class AncestorBlockUpdaterTest {
         ancestorBlockUpdater.ensureAncestorBlockInPosition(targetBlock);
 
         // As the target block and the ancestor don't match, there should be two calls to the pointer.
-        verify(signer, times(2)).getHSMPointer();
+        verify(signer, times(2)).getPowHSMState();
     }
 
     @Test
@@ -104,7 +104,7 @@ class AncestorBlockUpdaterTest {
         );
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
-        when(signer.getHSMPointer()).thenThrow(new HSMDeviceException("test", 1));
+        when(signer.getPowHSMState()).thenThrow(new HSMDeviceException("test", 1));
 
         AncestorBlockUpdater ancestorBlockUpdater = new AncestorBlockUpdater(
             mock(BlockStore.class),
@@ -129,7 +129,7 @@ class AncestorBlockUpdaterTest {
         PowHSMState initialState = new PowHSMState(initialAncestorBlockHash.toHexString(), initialAncestorBlockHash.toHexString(), false);
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
-        when(signer.getHSMPointer()).thenReturn(initialState);
+        when(signer.getPowHSMState()).thenReturn(initialState);
         // Forcing a failure when trying to update ancestor
         doThrow(new HSMDeviceException("test", 1)).when(signer)
             .updateAncestorBlock(any(UpdateAncestorBlockMessage.class));
@@ -161,7 +161,7 @@ class AncestorBlockUpdaterTest {
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
         // HsmPointer remains unchanged
-        when(signer.getHSMPointer()).thenReturn(initialState);
+        when(signer.getPowHSMState()).thenReturn(initialState);
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(initialAncestorBlockHash.getBytes())).thenReturn(initialAncestorBlock);
@@ -187,7 +187,7 @@ class AncestorBlockUpdaterTest {
         PowHSMState secondState = new PowHSMState(initialAncestorBlockHash.toHexString(), targetBlockHash.toHexString(), false);
 
         HSMBookkeepingClient signer = mock(HSMBookkeepingClient.class);
-        when(signer.getHSMPointer()).thenReturn(initialState).thenReturn(secondState);
+        when(signer.getPowHSMState()).thenReturn(initialState).thenReturn(secondState);
 
         BlockStore blockStore = mock(BlockStore.class);
         when(blockStore.getBlockByHash(initialAncestorBlockHash.getBytes())).thenReturn(initialAncestorBlock);

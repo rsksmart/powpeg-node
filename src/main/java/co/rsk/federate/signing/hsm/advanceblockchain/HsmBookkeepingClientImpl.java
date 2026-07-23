@@ -98,7 +98,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
             ));
         }
         // If HSM has an advanceBlockchain or updateAncestorBlock in progress, then it can't be called.
-        if (getHSMPointer().isInProgress()) {
+        if (getPowHSMState().isInProgress()) {
             throw new HSMBlockchainBookkeepingRelatedException(String.format(
                 "[%s] HSM is already updating its state. Not going to proceed with this request.",
                 methodName
@@ -187,7 +187,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     @Override
-    public PowHSMState getHSMPointer() throws HSMClientException {
+    public PowHSMState getPowHSMState() throws HSMClientException {
         ObjectNode command = this.hsmClientProtocol.buildCommand(BLOCKCHAIN_STATE.getCommand(), hsmVersion);
         JsonNode response = this.hsmClientProtocol.send(command);
 
