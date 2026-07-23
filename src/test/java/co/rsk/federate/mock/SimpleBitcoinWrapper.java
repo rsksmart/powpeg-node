@@ -4,6 +4,7 @@ import co.rsk.federate.bitcoin.BitcoinWrapper;
 import co.rsk.federate.bitcoin.BlockListener;
 import co.rsk.federate.bitcoin.TransactionListener;
 import co.rsk.peg.federation.Federation;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,7 +27,7 @@ public class SimpleBitcoinWrapper implements BitcoinWrapper {
     public void setup(List<PeerAddress> peerAddresses) {}
 
     @Override
-    public void start() {}
+    public void start(Duration progressCheckInterval) {}
 
     @Override
     public void stop() {}

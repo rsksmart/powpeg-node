@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -94,7 +95,7 @@ class BitcoinWrapperImplTest {
 
         List<PeerAddress> peerAddresses = Collections.emptyList();
         bitcoinWrapper.setup(peerAddresses);
-        bitcoinWrapper.start();
+        bitcoinWrapper.start(Duration.ofMinutes(10));
     }
 
     private void setUpActiveFedListener(Federation activeFed) throws Exception {

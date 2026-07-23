@@ -10,17 +10,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import co.rsk.config.ConfigLoader;
+import co.rsk.federate.signing.config.SignerConfig;
 import co.rsk.federate.signing.config.SignerType;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigObject;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import co.rsk.config.ConfigLoader;
-import co.rsk.federate.signing.config.SignerConfig;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigObject;
 import org.bitcoinj.core.NetworkParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,10 @@ class PowpegNodeSystemPropertiesTest {
     @ParameterizedTest
     @MethodSource("updateBridgeTimerEnabledProvider")
     void isUpdateBridgeTimerEnabled_whenGivenNetworkConfigNameAndCustomConfigVariations_shouldReturnEnabled(
-            String networkConfigName, boolean hasPath, boolean customValue) {
+        String networkConfigName,
+        boolean hasPath,
+        boolean customValue
+    ) {
         when(config.getString("blockchain.config.name")).thenReturn(networkConfigName);
         when(config.hasPath(UPDATE_BRIDGE_TIMER_ENABLED.getPath())).thenReturn(hasPath);
         if (hasPath) {
@@ -261,6 +264,23 @@ class PowpegNodeSystemPropertiesTest {
     }
 
     @Test
+    void bitcoinWrapperStartupCheckInterval_whenCustomConfigAvailable_shouldReturnCustomConfig() {
+        int customValue = 60;
+        when(config.hasPath(BTC_WRAPPER_STARTUP_CHECK_INTERVAL.getPath())).thenReturn(true);
+        when(config.getInt(BTC_WRAPPER_STARTUP_CHECK_INTERVAL.getPath())).thenReturn(customValue);
+
+        assertEquals(Duration.ofMinutes(customValue), powpegNodeSystemProperties.getBitcoinWrapperStartupCheckInterval());
+    }
+
+    @Test
+    void bitcoinWrapperStartupCheckInterval_whenCustomConfigNotAvailable_shouldReturnDefaultConfig() {
+        when(config.hasPath(BTC_WRAPPER_STARTUP_CHECK_INTERVAL.getPath())).thenReturn(false);
+
+        int defaultValue = BTC_WRAPPER_STARTUP_CHECK_INTERVAL.getDefaultValue(Integer::parseInt);
+        assertEquals(Duration.ofMinutes(defaultValue), powpegNodeSystemProperties.getBitcoinWrapperStartupCheckInterval());
+    }
+
+    @Test
     void gasPriceProviderConfig_whenCustomConfigAvailable_shouldReturnConfig() {
         ConfigObject mockConfigObject = mock(ConfigObject.class);
         Config mockConfig = mock(Config.class);
@@ -354,6 +374,7 @@ class PowpegNodeSystemPropertiesTest {
     private static Stream<Arguments> powpegNodeConfigParameterProvider() {
         return Stream.of(
             Arguments.of(SIGNERS),
-            Arguments.of(GAS_PRICE_PROVIDER));
+            Arguments.of(GAS_PRICE_PROVIDER)
+        );
     }
 }
