@@ -154,24 +154,27 @@ public class HSMBookkeepingService {
                 hsmCurrentBestBlock.getNumber()
             );
 
-            List<Block> blocks = this.confirmedBlocksProvider.getConfirmedBlocks(hsmCurrentBestBlock.getHash());
-            if (blocks.isEmpty()) {
+            List<Block> confirmedBlocks = this.confirmedBlocksProvider.getConfirmedBlocks(hsmCurrentBestBlock.getHash());
+            if (confirmedBlocks.isEmpty()) {
                 logger.debug("[informConfirmedBlockHeaders] No new block headers to inform");
                 logger.info("[informConfirmedBlockHeaders] Finished HSM bookkeeping process");
                 informing = false;
                 return;
             }
 
+            int confirmedBlocksSize = confirmedBlocks.size();
+            Block firstConfirmedBlock = confirmedBlocks.get(0);
+            Block lastConfirmedBlock = confirmedBlocks.get(confirmedBlocksSize - 1);
             logger.debug(
                     "[informConfirmedBlockHeaders] Going to inform {} block headers. From block number {} with hash {} to block number {} with hash {}",
-                    blocks.size(),
-                    blocks.get(0).getNumber(),
-                    blocks.get(0).getHash(),
-                    blocks.get(blocks.size() - 1).getNumber(),
-                    blocks.get(blocks.size() - 1).getHash()
+                    confirmedBlocksSize,
+                    firstConfirmedBlock.getNumber(),
+                    firstConfirmedBlock.getHash(),
+                    lastConfirmedBlock.getNumber(),
+                    lastConfirmedBlock.getHash()
             );
 
-            hsmBookkeepingClient.advanceBlockchain(blocks);
+            hsmBookkeepingClient.advanceBlockchain(confirmedBlocks);
             hsmCurrentBestBlock = getHsmBestBlock();
             logger.debug(
                 "[informConfirmedBlockHeaders] HSM best block after informing {} (height: {})",
