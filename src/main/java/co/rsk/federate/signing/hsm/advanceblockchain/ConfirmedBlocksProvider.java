@@ -55,8 +55,8 @@ public class ConfirmedBlocksProvider {
         Block blockToProcess = blockStore.getChainBlockByNumber(initialBlockNumber + 1);
         while (blockToProcess != null && confirmedBlocks.size() < maximumElementsToSendHSM) {
             blocksInWindow.add(blockToProcess);
-            BigInteger difficultyToConsider = getBlockTotalDifficulty(blockToProcess, initialBlockNumber);
-            accumulatedDifficulty = accumulatedDifficulty.add(difficultyToConsider);
+            BigInteger totalDifficulty = getBlockTotalDifficulty(blockToProcess, initialBlockNumber);
+            accumulatedDifficulty = accumulatedDifficulty.add(totalDifficulty);
 
             boolean enoughDifficulty = accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0;
             if (enoughDifficulty) {
