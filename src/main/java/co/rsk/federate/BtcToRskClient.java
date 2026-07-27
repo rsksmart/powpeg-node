@@ -29,6 +29,7 @@ import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -64,7 +65,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     private boolean isUpdateBridgeTimerEnabled;
     private Federation federationToListen; // Federation on which this client is operating
     private ScheduledExecutorService updateBridgeTimer; // Timer that updates the bridge periodically
-    private int amountOfHeadersToSend; // Set amount of headers to inform in a single call
+    private int maxAmountOfHeadersToSend; // Set max amount of headers to inform in a single call
     private BtcToRskClientFileData fileData = new BtcToRskClientFileData();
     private boolean shouldUpdateBridgeBtcBlockchain;
     private boolean shouldUpdateBridgeBtcCoinbaseTransactions;
@@ -395,37 +396,41 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     }
 
     protected int updateBridgeBtcBlockchain() throws BlockStoreException {
-        int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBtcBlockchainBestChainHeight();
-        int federatorBtcBlockchainBestChainHeight = bitcoinWrapper.getBestChainHeight();
+        // Pre-check: if the Bridge already knows our best block, there's nothing new to inform
+        StoredBlock bitcoinChainHead = bitcoinWrapper.getChainHead();
+        if (federatorSupport.isBlockHashInformedToBridge(bitcoinChainHead.getHeader().getHash())) {
+            logger.debug("[updateBridgeBtcBlockchain] Federator best block already informed to the Bridge; nothing to do");
+            return 0;
+        }
 
-        boolean shouldUpdateBridge = federatorBtcBlockchainBestChainHeight > bridgeBtcBlockchainBestChainHeight;
+        // First, find the common ancestor that is in the federator's bestchain
+        // using block depth incremental search
+        int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBridgeBtcBlockchainBestChainHeight();
+        Optional<StoredBlock> commonAncestorOpt = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
+        if (commonAncestorOpt.isEmpty()) {
+            throw new BlockStoreException("No best chain block found");
+        }
+        StoredBlock commonAncestor = commonAncestorOpt.get();
+        logger.debug("[updateBridgeBtcBlockchain] Common ancestor is {}.", commonAncestor.getHeader().getHash());
+
+        // If federator's blockchain has more work than bridge's blockchain, update it
+        BigInteger bridgeBitcoinChainWork = calculateBridgeBitcoinChainWork(commonAncestor);
+        BigInteger bitcoinBestChainWork = bitcoinChainHead.getChainWork();
+        // Compare total cumulative work
+        boolean shouldUpdateBridge = bitcoinBestChainWork.compareTo(bridgeBitcoinChainWork) > 0;
         logger.debug(
-            "[updateBridgeBtcBlockchain] BTC blockchain height - Federator: {}, Bridge: {}. Should we update bridge? {}",
-            federatorBtcBlockchainBestChainHeight,
+            "[updateBridgeBtcBlockchain] Heights - Federator: {}, Bridge: {}. Total work - Federator: {}, Bridge: {}. Should we update bridge? {}",
+            bitcoinWrapper.getBestChainHeight(),
             bridgeBtcBlockchainBestChainHeight,
+            bitcoinBestChainWork,
+            bridgeBitcoinChainWork,
             shouldUpdateBridge
         );
         if (!shouldUpdateBridge) {
             return 0;
         }
 
-        // Federator's blockchain has more blocks than bridge's blockchain - go and try to
-        // update the bridge with the latest.
-        // First, find the common ancestor that is in the federator's bestchain
-        // using block depth incremental search
-        Optional<StoredBlock> commonAncestorOpt = findBridgeBtcBlockchainMatchingAncestor(bridgeBtcBlockchainBestChainHeight);
-        if (commonAncestorOpt.isEmpty()) {
-            throw new BlockStoreException("No best chain block found");
-        }
-        StoredBlock commonAncestor = commonAncestorOpt.get();
-
-        logger.debug(
-            "[updateBridgeBtcBlockchain] Common ancestor is {}.",
-            commonAncestor.getHeader().getHash()
-        );
-
-        // We found a common ancestor. Send receiveHeaders with the blocks it is missing.
-        StoredBlock currentBlock = bitcoinWrapper.getChainHead();
+        StoredBlock currentBlock = bitcoinChainHead;
         List<Block> totalHeadersToSendToBridge = new ArrayList<>();
         while (!currentBlock.equals(commonAncestor)) {
             Block currentBlockHeader = currentBlock.getHeader();
@@ -434,15 +439,12 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
         totalHeadersToSendToBridge = Lists.reverse(totalHeadersToSendToBridge);
 
-        // Only send the headers that are not already known to the Bridge
         int from = findFirstUnknownHeader(totalHeadersToSendToBridge);
         if (from == totalHeadersToSendToBridge.size()) {
-            logger.debug(
-                "[updateBridgeBtcBlockchain] All headers already registered; nothing to inform"
-            );
+            logger.debug("[updateBridgeBtcBlockchain] All headers already registered; nothing to inform");
             return 0;
         }
-        int to = Math.min(from + amountOfHeadersToSend, totalHeadersToSendToBridge.size());
+        int to = Math.min(from + maxAmountOfHeadersToSend, totalHeadersToSendToBridge.size());
         List<Block> headersToSendToBridge = totalHeadersToSendToBridge.subList(from, to);
         federatorSupport.sendReceiveHeaders(headersToSendToBridge.toArray(new Block[]{}));
 
@@ -453,8 +455,23 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             headersToSendToBridge.get(0).getHash(),
             headersToSendToBridge.get(headersToSendToBridgeCount - 1).getHash()
         );
-
         return headersToSendToBridgeCount;
+    }
+
+    private BigInteger calculateBridgeBitcoinChainWork(StoredBlock commonAncestor) {
+        NetworkParameters params = ThinConverter.toOriginalInstance(bridgeConstants.getBtcParamsString());
+        Sha256Hash ancestorHash = commonAncestor.getHeader().getHash();
+        Block currentHeader = new Block(params, federatorSupport.getBridgeBtcBlockchainBestBlockHeader());
+        BigInteger cumulativeWorkAboveAncestor = BigInteger.ZERO;
+        while (!currentHeader.getHash().equals(ancestorHash)) {
+            BigInteger currentBlockWork = currentHeader.getWork();
+            cumulativeWorkAboveAncestor = cumulativeWorkAboveAncestor.add(currentBlockWork);
+
+            byte[] parentPayloadBytes = federatorSupport.getBridgeBtcBlockchainParentBlockHeaderByHash(currentHeader.getHash());
+            currentHeader = new Block(params, parentPayloadBytes);
+        }
+
+        return commonAncestor.getChainWork().add(cumulativeWorkAboveAncestor);
     }
 
     private int findFirstUnknownHeader(List<Block> headersToSendToBridge) {
@@ -487,7 +504,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         int currentSearchDepth = 0;
         int iteration = 0;
         while (true) {
-            Sha256Hash storedBlockHash = federatorSupport.getBtcBlockchainBlockHashAtDepth(currentSearchDepth);
+            Sha256Hash storedBlockHash = federatorSupport.getBridgeBtcBlockchainBlockHashAtDepth(currentSearchDepth);
             Optional<StoredBlock> storedBlock = getMatchingStoredBlockInMainChain(storedBlockHash);
             logger.trace(
                 "[findBridgeBtcBlockchainMatchingAncestor] block[storedBlockHash] found? {}",
@@ -910,7 +927,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
     private void setConfigVariables(PowpegNodeSystemProperties config) {
         this.activationConfig = config.getActivationConfig();
         this.isUpdateBridgeTimerEnabled = config.isUpdateBridgeTimerEnabled();
-        this.amountOfHeadersToSend = config.getAmountOfHeadersToSend();
+        this.maxAmountOfHeadersToSend = config.getAmountOfHeadersToSend();
         this.shouldUpdateBridgeBtcBlockchain = config.shouldUpdateBridgeBtcBlockchain();
         this.shouldUpdateBridgeBtcCoinbaseTransactions = config.shouldUpdateBridgeBtcCoinbaseTransactions();
         this.shouldUpdateBridgeBtcTransactions = config.shouldUpdateBridgeBtcTransactions();
