@@ -488,6 +488,72 @@ class FederatorSupportTest {
         assertTrue(result);
     }
 
+    @Test
+    void getBridgeBtcBlockchainBestBlockHeader_returnsHeaderBytesFromBridge() {
+        // Arrange
+        byte[] headerBytes = new byte[]{1, 2, 3, 4, 5};
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_BTC_BLOCKCHAIN_BEST_BLOCK_HEADER))
+        ).thenReturn(headerBytes);
+
+        // Act
+        byte[] result = federatorSupport.getBridgeBtcBlockchainBestBlockHeader();
+
+        // Assert
+        assertArrayEquals(headerBytes, result);
+    }
+
+    @Test
+    void getBridgeBtcBlockchainBestBlockHeader_whenBridgeResultIsEmptyByte_returnsEmptyByte() {
+        // Arrange
+        byte[] headerBytes = new byte[]{};
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_BTC_BLOCKCHAIN_BEST_BLOCK_HEADER))
+        ).thenReturn(headerBytes);
+
+        // Act
+        byte[] result = federatorSupport.getBridgeBtcBlockchainBestBlockHeader();
+
+        // Assert
+        assertArrayEquals(headerBytes, result);
+    }
+
+    @Test
+    void getBridgeBtcBlockchainParentBlockHeaderByHash_returnsParentHeaderBytesFromBridge() {
+        // Arrange
+        byte[] parentHeaderBytes = new byte[]{6, 7, 8, 9, 10};
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_BTC_BLOCKCHAIN_PARENT_BLOCK_HEADER_BY_HASH),
+            any())
+        ).thenReturn(parentHeaderBytes);
+
+        // Act
+        byte[] result = federatorSupport.getBridgeBtcBlockchainParentBlockHeaderByHash(Sha256Hash.ZERO_HASH);
+
+        // Assert
+        assertArrayEquals(parentHeaderBytes, result);
+    }
+
+    @Test
+    void getBridgeBtcBlockchainParentBlockHeaderByHash_whenResultFromBridgeIsEmptyByte_returnsEmptyByte() {
+        // Arrange
+        byte[] emptyByte = new byte[]{};
+        when(bridgeTransactionSender.callTx(
+            any(),
+            eq(Bridge.GET_BTC_BLOCKCHAIN_PARENT_BLOCK_HEADER_BY_HASH),
+            any())
+        ).thenReturn(emptyByte);
+
+        // Act
+        byte[] result = federatorSupport.getBridgeBtcBlockchainParentBlockHeaderByHash(Sha256Hash.ZERO_HASH);
+
+        // Assert
+        assertArrayEquals(emptyByte, result);
+    }
+
     private Sha256Hash createHash() {
         byte[] bytes = new byte[32];
         bytes[0] = (byte) 1;
