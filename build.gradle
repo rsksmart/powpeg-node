@@ -195,8 +195,12 @@ tasks.withType(JavaCompile){
 tasks.withType(AbstractArchiveTask) {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
-    dirMode = 0775
-    fileMode = 0664
+    dirPermissions {
+        unix(0775)
+    }
+    filePermissions {
+        unix(0664)
+    }
 }
 
 ext {
