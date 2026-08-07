@@ -19,7 +19,6 @@
 package co.rsk.federate.rpc;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Implementors of this should be able

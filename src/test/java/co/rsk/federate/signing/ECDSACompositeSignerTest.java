@@ -37,7 +37,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class ECDSACompositeSignerTest {
-    ECDSASigner signer1, signer2;
+    ECDSASigner signer1;
+    ECDSASigner signer2;
     ECDSACompositeSigner signer;
 
     @BeforeEach
@@ -98,7 +99,9 @@ class ECDSACompositeSignerTest {
             when(signer2.canSignWith(new KeyId("another-key"))).thenReturn(false);
             signer.sign(new KeyId("another-id"), new SignerMessageV1(Hex.decode("aabbcc")));
             fail();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            // expected
+        }
     }
 
     @Test
@@ -122,7 +125,9 @@ class ECDSACompositeSignerTest {
             when(signer2.canSignWith(new KeyId("another-key"))).thenReturn(false);
             signer.getPublicKey(new KeyId("another-id"));
             fail();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            // expected
+        }
     }
 
 }
