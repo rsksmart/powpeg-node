@@ -1,3 +1,4 @@
+import groovy.transform.Field
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
@@ -5,12 +6,144 @@ import java.util.jar.JarOutputStream
 plugins {
     id 'application'
     id "jacoco"
+    id 'checkstyle'
     id "org.sonarqube" version "5.1.0.4882"
 }
 
 def config = new ConfigSlurper().parse(new File("$projectDir/src/main/resources/version.properties").toURI().toURL())
 group = 'co.rsk'
 version = config.modifier?.trim() ? config.modifier  + "-" + config.versionNumber : config.versionNumber
+
+checkstyle {
+    toolVersion = '12.2.0'
+    configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
+}
+
+// Returns the list of changed *.java files relative to the 'ratchetFrom' project property
+// (e.g. -PratchetFrom=origin/master), unioned with any uncommitted/staged local changes, or
+// null when 'ratchetFrom' isn't provided -- meaning "no ratchet: check the full source set".
+def runGit(List<String> command) {
+    def out = new ByteArrayOutputStream()
+    def err = new ByteArrayOutputStream()
+    def result = exec {
+        commandLine command
+        standardOutput = out
+        errorOutput = err
+        ignoreExitValue = true
+    }
+    if (result.exitValue != 0) {
+        throw new GradleException(
+                "Cannot determine the ratcheted file set: '${command.join(' ')}' exited " +
+                "${result.exitValue}. This usually means the -PratchetFrom ref isn't available " +
+                "locally (e.g. the base branch wasn't fetched, or the ref is invalid).\nstderr:\n${err}"
+        )
+    }
+    return out.toString()
+}
+
+@Field def ratchetedFilesComputed = false
+@Field def ratchetedFilesCache = null
+
+def getRatchetedFiles() {
+    if (ratchetedFilesComputed) {
+        return ratchetedFilesCache
+    }
+    ratchetedFilesComputed = true
+
+    if (!project.hasProperty('ratchetFrom')) {
+        return ratchetedFilesCache = null
+    }
+
+    def ratchetFrom = project.property('ratchetFrom')
+
+    def baseDiffOutput = runGit(['git', 'diff', '--name-only', "${ratchetFrom}...HEAD"])
+    def uncommittedOutput = runGit(['git', 'diff', '--name-only'])
+    def stagedOutput = runGit(['git', 'diff', '--cached', '--name-only'])
+
+    def baseDiffFiles = baseDiffOutput.trim().split('\n').toList()
+    def uncommittedFiles = uncommittedOutput.trim().split('\n').toList()
+    def stagedFiles = stagedOutput.trim().split('\n').toList()
+    def allFiles = (baseDiffFiles + uncommittedFiles + stagedFiles).unique().findAll { file -> file }
+
+    def projectRoot = project.projectDir.toPath().toAbsolutePath()
+
+    allFiles = allFiles.findAll { file ->
+        file.endsWith('.java')
+    }.collect { file ->
+        def absolutePath = projectRoot.resolve(file).toFile()
+        return absolutePath.exists() ? absolutePath : null
+    }.findAll { it != null }
+
+    return ratchetedFilesCache = allFiles
+}
+
+def getFilteredFilesForCheckstyle(String sourceDir) {
+    def files = getRatchetedFiles()
+    if (files == null) {
+        return null
+    }
+    return files.findAll { file ->
+        def filePath = file.toPath().normalize()
+        def isJavaFile = filePath.toString().endsWith('.java')
+        def containsSourceSegment = filePath.toString().contains(sourceDir)
+
+        isJavaFile && containsSourceSegment
+    }
+}
+
+def configureCheckstyleTask(Checkstyle task, String sourceDir) {
+    // For checkstyleFile task, the sources are set via -PfilePath parameter in task definition
+    if (task.name == 'checkstyleFile') {
+        if (!project.hasProperty('filePath')) {
+            println "No filePath property provided. Skipping task ${task.name}"
+            task.enabled = false
+        } else {
+            def filePaths = project.property('filePath').split(',').collect { it.trim() }
+            task.source = project.files(filePaths)
+        }
+    } else {
+        def ratchetedFiles = getFilteredFilesForCheckstyle(sourceDir)
+        if (ratchetedFiles == null) {
+            // No -PratchetFrom provided: leave the task's default (full) source set untouched.
+        } else if (!ratchetedFiles.isEmpty()) {
+            task.source = project.files(ratchetedFiles)
+        } else {
+            println "No changed files under ${sourceDir} relative to ratchetFrom. Skipping task ${task.name}."
+            task.enabled = false
+        }
+    }
+
+    task.reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.withType(Checkstyle).configureEach { Checkstyle task ->
+    def sourceDirMapping = [
+            'checkstyleMain': 'src/main/java',
+            'checkstyleTest': 'src/test/java',
+            'checkstyleFile': ''
+    ]
+
+    sourceDirMapping.each { taskName, sourceDir ->
+        if (task.name == taskName) {
+            configureCheckstyleTask(task, sourceDir)
+        }
+    }
+}
+
+task checkstyleAll {
+    group = 'verification'
+    description = 'Run all Checkstyle checks'
+    dependsOn 'checkstyleMain', 'checkstyleTest'
+}
+
+task checkstyleFile(type: Checkstyle) {
+    group = 'verification'
+    description = 'Run Checkstyle on specific file(s) (use -PfilePath=file1.java or -PfilePath=file1.java,file2.java)'
+    classpath = files()
+}
 
 test {
     useJUnitPlatform()
