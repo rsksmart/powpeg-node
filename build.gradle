@@ -175,7 +175,9 @@ repositories {
     }
 }
 
-sourceCompatibility = 17
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+}
 
 mainClassName = 'co.rsk.federate.FederateRunner'
 applicationDefaultJvmArgs = ["-server", "-Xss32m", "-Xms3g", "-XX:+UseCompressedOops", "-XX:-OmitStackTraceInFastThrow"]
