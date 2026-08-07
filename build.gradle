@@ -179,8 +179,12 @@ java {
     sourceCompatibility = JavaVersion.VERSION_17
 }
 
-mainClassName = 'co.rsk.federate.FederateRunner'
-applicationDefaultJvmArgs = ["-server", "-Xss32m", "-Xms3g", "-XX:+UseCompressedOops", "-XX:-OmitStackTraceInFastThrow"]
+def mainClassName = 'co.rsk.federate.FederateRunner'
+
+application {
+    mainClass = mainClassName
+    applicationDefaultJvmArgs = ["-server", "-Xss32m", "-Xms3g", "-XX:+UseCompressedOops", "-XX:-OmitStackTraceInFastThrow"]
+}
 
 tasks.withType(JavaCompile){
     options.warnings = false
