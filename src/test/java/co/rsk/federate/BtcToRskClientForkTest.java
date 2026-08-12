@@ -37,9 +37,9 @@ public class BtcToRskClientForkTest {
             assertEquals(bridgeBalance, new BigInteger("20999998").multiply(BigInteger.TEN.pow(18)));
             rskNode.waitFor();
         } finally {
-            try { rskNode.destroyForcibly(); } catch (Exception e) {}
-            try { bitcoind1.destroyForcibly(); } catch (Exception e) {}
-            try { bitcoind2.destroyForcibly(); } catch (Exception e) {}
+            try { rskNode.destroyForcibly(); } catch (Exception e) { /* best-effort cleanup */ }
+            try { bitcoind1.destroyForcibly(); } catch (Exception e) { /* best-effort cleanup */ }
+            try { bitcoind2.destroyForcibly(); } catch (Exception e) { /* best-effort cleanup */ }
         }
     }
 

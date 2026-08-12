@@ -21,8 +21,6 @@ package co.rsk.federate.gas;
 import co.rsk.core.Coin;
 import org.ethereum.core.Blockchain;
 
-import java.math.BigInteger;
-
 /**
  * Gas price provider that uses the best block min gas price.
  *

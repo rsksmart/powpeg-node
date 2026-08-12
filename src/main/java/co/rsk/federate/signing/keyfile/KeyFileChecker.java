@@ -64,11 +64,11 @@ public class KeyFileChecker {
             return "Key File '" + this.filePath + "' does not exist";
         }
         try {
-            byte[] var;
+            byte[] privateKey;
             KeyFileHandler keyHandler = new KeyFileHandler(this.filePath);
-            var = keyHandler.privateKey();
-            boolean sizeOk = this.validateKeyLength(var);
-            var = null;
+            privateKey = keyHandler.privateKey();
+            boolean sizeOk = this.validateKeyLength(privateKey);
+            privateKey = null;
             if (!sizeOk) {
                 return "Invalid Key Size";
             }
@@ -92,7 +92,7 @@ public class KeyFileChecker {
         }
     }
 
-    private boolean validateKeyLength(byte[] var) {
-        return var != null && var.length == KEY_LENGTH;
+    private boolean validateKeyLength(byte[] privateKey) {
+        return privateKey != null && privateKey.length == KEY_LENGTH;
     }
 }

@@ -36,6 +36,11 @@ public class BitcoinWrapperImpl implements BitcoinWrapper {
             return other.federation().equals(this.federation()) &&
                 other.listener() == this.listener();
         }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(federation(), System.identityHashCode(listener()));
+        }
     }
 
     private static final Logger logger = LoggerFactory.getLogger(BitcoinWrapperImpl.class);

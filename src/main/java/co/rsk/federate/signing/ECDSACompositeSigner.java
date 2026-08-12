@@ -113,7 +113,7 @@ public class ECDSACompositeSigner implements ECDSASigner {
     private class CompositeUnrecoverableErrorEventListener implements UnrecoverableErrorEventListener {
         private List<UnrecoverableErrorEventListener> listeners;
 
-        public  CompositeUnrecoverableErrorEventListener(){
+        CompositeUnrecoverableErrorEventListener() {
             this.listeners = new ArrayList<>();
         }
 
