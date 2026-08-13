@@ -118,20 +118,19 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     public void start(Federation federation) {
         logger.info("[start] Starting for federation {}", federation.getAddress());
-        this.federationToListen = federation;
 
         FederationMember federator = federatorSupport.getFederationMember();
         BtcECKey federatorBtcKey = federator.getBtcPublicKey();
-        boolean isMember = federation.isMember(federator);
-        if (!isMember) {
-            String message = String.format(
-                "Member %s is not part of the federation %s",
+        if (!federation.isMember(federator)) {
+            logger.warn(
+                "[start] Member {} is not part of the federation {}, skipping. This node will not watch this federation nor update the bridge for it",
                 federatorBtcKey,
                 federation.getAddress()
             );
-            logger.error("[start] {}", message);
-            throw new IllegalStateException(message);
+            return;
         }
+
+        this.federationToListen = federation;
 
         logger.info(
             "[start] Pegnatory {} watching federation {} since I belong to it",

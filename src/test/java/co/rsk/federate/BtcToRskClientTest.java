@@ -99,13 +99,17 @@ class BtcToRskClientTest {
     }
 
     @Test
-    void start_withNoFederationMember_doesntThrowError() throws Exception {
-        BitcoinWrapper bw = new SimpleBitcoinWrapper();
+    void start_withNoFederationMember_doesntThrowError_andDoesntWatchFederation() throws Exception {
+        BitcoinWrapper bw = mock(BitcoinWrapper.class);
         SimpleFederatorSupport fh = new SimpleFederatorSupport();
 
-        fh.setMember(activeFederationMember);
+        BtcECKey nonMemberKey = TestUtils.getBtcEcKeyFromSeed("nonFederationMember");
+        fh.setMember(FederationMember.getFederationMemberFromKey(nonMemberKey));
+
         BtcToRskClient client = createClientWithMocks(bw, fh);
+
         assertDoesNotThrow(() -> client.start(activeFederation));
+        verify(bw, never()).addFederationListener(any(), any());
     }
 
     @Test
