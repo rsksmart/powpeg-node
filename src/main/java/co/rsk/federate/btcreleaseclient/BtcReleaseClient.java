@@ -154,14 +154,14 @@ public class BtcReleaseClient {
     }
 
     public void start(Federation federation) {
-       FederationMember federationMember = federatorSupport.getFederationMember();
-       if (!federation.isMember(federationMember)) {
-            String message = String.format(
-                "Member %s is no part of the federation %s",
+        FederationMember federationMember = federatorSupport.getFederationMember();
+        if (!federation.isMember(federationMember)) {
+            logger.warn(
+                "[start] Member {} is not part of the federation {}, skipping. This node will not sign pegouts for it",
                 federationMember.getBtcPublicKey(),
-                federation.getAddress());
-            logger.error("[start] {}", message);
-            throw new IllegalStateException(message);
+                federation.getAddress()
+            );
+            return;
         }
 
         if (!observedFederations.contains(federation)) {

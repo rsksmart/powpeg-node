@@ -95,7 +95,7 @@ class BtcReleaseClientTest {
     }
 
     @Test
-    void start_whenFederationMemberNotPartOfDesiredFederation_shouldThrowException() {
+    void start_whenFederationMemberNotPartOfDesiredFederation_shouldNotObserveFederation() {
         // Arrange
         powpegNodeSystemProperties = getPowpegNodeSystemProperties(true);
         Federation federation = TestUtils.createP2shP2wshErpFederation(params, 10);
@@ -109,15 +109,17 @@ class BtcReleaseClientTest {
 
         doReturn(federationMember).when(federatorSupport).getFederationMember();
 
+        Ethereum ethereum = mock(Ethereum.class);
         BtcReleaseClient btcReleaseClient = new BtcReleaseClient(
-            mock(Ethereum.class),
+            ethereum,
             federatorSupport,
             powpegNodeSystemProperties,
             mock(NodeBlockProcessor.class)
         );
 
         // Act & Assert
-        assertThrows(IllegalStateException.class, () -> btcReleaseClient.start(federation));
+        assertDoesNotThrow(() -> btcReleaseClient.start(federation));
+        verify(ethereum, never()).addListener(any());
     }
 
     @Test
