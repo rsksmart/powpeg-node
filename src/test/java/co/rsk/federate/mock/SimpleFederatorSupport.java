@@ -60,6 +60,27 @@ public class SimpleFederatorSupport extends FederatorSupport {
     }
 
     @Override
+    public boolean isBlockHashInformedToBridge(Sha256Hash blockHash) {
+        // A block is known to the Bridge if it belongs to the Bridge's registered chain
+        // or has already been informed through sendReceiveHeaders.
+        if (blockHashes != null) {
+            for (Sha256Hash hash : blockHashes) {
+                if (blockHash.equals(hash)) {
+                    return true;
+                }
+            }
+        }
+        if (headers != null) {
+            for (Block header : headers) {
+                if (blockHash.equals(header.getHash())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
     public List<PeerAddress> getBitcoinPeerAddresses() {
         return null;
     }
