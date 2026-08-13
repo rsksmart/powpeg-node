@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.annotation.Nonnull;
 import javax.annotation.PreDestroy;
 import org.bitcoinj.core.LegacyAddress;
 import org.bitcoinj.core.NetworkParameters;
@@ -74,7 +75,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Responsible for managing the signing and broadcasting of pegout transactions
  * to the Bitcoin network in a federated bridge environment. The BtcReleaseClient
- * coordinates the execution of pegout operations, ensuring transactions are 
+ * coordinates the execution of pegout operations, ensuring transactions are
  * correctly signed and propagated.
  *
  * <p>Key responsibilities include:</p>
@@ -205,7 +206,7 @@ public class BtcReleaseClient {
                 logger.warn("[onBestBlock] Node is not ready to process pegouts");
                 return;
             }
-          
+
             // Sign svp spend tx waiting for signatures, if it exists,
             // before attempting to sign any pegouts.
             federatorSupport.getStateForProposedFederator()
@@ -230,14 +231,19 @@ public class BtcReleaseClient {
             /* Pegout events must be processed on an every-single-block basis,
              since otherwise we could be missing pegouts potentially mined
              on what originally were side-chains and then turned into best-chains.*/
+            Stream<BtcTransaction> pegoutTxs = getPegoutTxs(receipts);
+
+            pegoutTxs.forEach(BtcReleaseClient.this::onBtcRelease);
+        }
+
+        @Nonnull
+        private Stream<BtcTransaction> getPegoutTxs(List<TransactionReceipt> receipts) {
             Stream<LogInfo> transactionLogs = receipts.stream().map(TransactionReceipt::getLogInfoList).flatMap(Collection::stream);
             Stream<LogInfo> bridgeLogs = transactionLogs.filter(info -> Arrays.equals(info.getAddress(), PrecompiledContracts.BRIDGE_ADDR.getBytes()));
 
             Stream<LogInfo> pegoutLogs = bridgeLogs.filter(info -> RELEASE_BTC_TOPIC.equals(info.getTopics().get(0)));
 
-            Stream<BtcTransaction> pegoutTxs = pegoutLogs.map(info -> convertToBtcTxFromSolidityData(info.getData()));
-
-            pegoutTxs.forEach(BtcReleaseClient.this::onBtcRelease);
+            return pegoutLogs.map(info -> convertToBtcTxFromSolidityData(info.getData()));
         }
 
         private boolean shouldProcessPegouts() {
