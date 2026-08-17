@@ -71,7 +71,7 @@ public class HSMBookkeepingService {
         }
 
         try {
-            if (hsmBookkeepingClient.getHSMPointer().isInProgress())  {
+            if (hsmBookkeepingClient.getPowHSMState().isInProgress())  {
                 logger.debug("[start] HSM status is in progress, resetting HSM to fix it");
                 hsmBookkeepingClient.resetAdvanceBlockchain();
             }
@@ -119,7 +119,7 @@ public class HSMBookkeepingService {
     }
 
     private Block getHsmBestBlock() throws HSMClientException {
-        Keccak256 bestBlockHSMHash = hsmBookkeepingClient.getHSMPointer().getBestBlockHash();
+        Keccak256 bestBlockHSMHash = hsmBookkeepingClient.getPowHSMState().getBestBlockHash();
         Block block = blockStore.getBlockByHash(bestBlockHSMHash.getBytes());
         if (block == null) {
             String message = "HSM best block hash doesn't exist in blockStore: " + bestBlockHSMHash;
