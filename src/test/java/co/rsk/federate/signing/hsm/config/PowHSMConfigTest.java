@@ -148,10 +148,14 @@ class PowHSMConfigTest {
 
   @ParameterizedTest
   @MethodSource("provideNetworkParametersAndExpectedCaps")
-  void getDifficultyCap_whenGivenNetwork_shouldMatchExpectedDifficultyCap(String networkId,
-      NetworkDifficultyCap expectedNetworkDifficultyCap) {
-    assertEquals(expectedNetworkDifficultyCap.getDifficultyCap(),
-        powHsmConfig.getDifficultyCap(networkId));
+  void getDifficultyCap_whenGivenNetwork_shouldMatchExpectedDifficultyCap(
+      String networkId,
+      NetworkDifficultyCap expectedNetworkDifficultyCap
+  ) {
+      assertEquals(
+          expectedNetworkDifficultyCap.getDifficultyCap(),
+          powHsmConfig.getDifficultyCap(networkId)
+      );
   }
 
   @Test
@@ -179,6 +183,7 @@ class PowHSMConfigTest {
   static Stream<Arguments> provideNetworkParametersAndExpectedCaps() {
     return Stream.of(
         Arguments.of(NetworkParameters.ID_MAINNET, NetworkDifficultyCap.MAINNET),
+        Arguments.of(NetworkParameters.ID_TESTNET4, NetworkDifficultyCap.TESTNET2),
         Arguments.of(NetworkParameters.ID_TESTNET, NetworkDifficultyCap.TESTNET),
         Arguments.of(NetworkParameters.ID_REGTEST, NetworkDifficultyCap.REGTEST));
   }
