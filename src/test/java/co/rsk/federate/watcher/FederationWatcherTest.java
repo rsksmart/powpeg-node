@@ -2,10 +2,13 @@ package co.rsk.federate.watcher;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -383,6 +386,32 @@ class FederationWatcherTest {
         verify(federationProvider).getRetiringFederationAddress();
         verify(federationProvider).getRetiringFederation();
         verify(federationWatcherListener).onRetiringFederationChange(SECOND_FEDERATION);
+    }
+
+    @Test
+    void onBestBlock_whenListenerFails_shouldRetryFederationChangeOnNextBestBlock() throws Exception {
+        // Arrange
+        var rskListener = setupAndGetRskListener(null, FIRST_FEDERATION, null);
+        when(federationProvider.getProposedFederationAddress()).thenReturn(Optional.empty());
+        when(federationProvider.getActiveFederationAddress()).thenReturn(SECOND_FEDERATION.getAddress());
+        when(federationProvider.getActiveFederation()).thenReturn(SECOND_FEDERATION);
+        when(federationProvider.getRetiringFederationAddress()).thenReturn(Optional.empty());
+
+        // The first notification fails, the second one succeeds
+        RuntimeException exception = new RuntimeException("Clients cannot be changed");
+        doThrow(exception).doNothing()
+            .when(federationWatcherListener).onActiveFederationChange(SECOND_FEDERATION);
+
+        federationWatcher.start(federationProvider, federationWatcherListener);
+
+        // Act
+        // Since the notification failed, the new active federation must not be recorded as notified
+        assertThrows(RuntimeException.class, () -> rskListener.onBestBlock(null, null));
+        // So the very same change is detected again on the next best block, and retried
+        rskListener.onBestBlock(null, null);
+
+        // Assert
+        verify(federationWatcherListener, times(2)).onActiveFederationChange(SECOND_FEDERATION);
     }
 
     private EthereumListenerAdapter setupAndGetRskListener(

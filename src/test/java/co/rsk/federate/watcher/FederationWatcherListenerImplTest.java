@@ -1,6 +1,7 @@
 package co.rsk.federate.watcher;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -82,13 +83,22 @@ class FederationWatcherListenerImplTest {
     }
 
     @Test
-    void triggerClientChange_whenExceptionOccurs_shouldHandleException() {
+    void triggerClientChange_whenExceptionOccurs_shouldPropagateException() {
         // Arrange
         // Simulate an exception in one of the called methods
-        doThrow(new RuntimeException("Simulated exception")).when(btcToRskClientActive).stop();
+        RuntimeException exception = new RuntimeException("Simulated exception");
+        doThrow(exception).when(btcToRskClientActive).stop();
 
         // Act & Assert
-        assertDoesNotThrow(() -> federationWatcherListener.onActiveFederationChange(FEDERATION));
+        // The exception must reach the FederationWatcher, so it does not record this federation as
+        // already notified and retries the change on the next best block
+        RuntimeException thrownException = assertThrows(
+            RuntimeException.class,
+            () -> federationWatcherListener.onActiveFederationChange(FEDERATION));
+
+        assertSame(exception, thrownException);
+        verify(btcToRskClientActive, never()).start(FEDERATION);
+        verify(btcReleaseClient, never()).start(FEDERATION);
     }
 
     @Test
@@ -114,12 +124,17 @@ class FederationWatcherListenerImplTest {
     }
 
     @Test
-    void onProposedFederationChange_whenClientStartThrowsException_shouldHandleException() {
+    void onProposedFederationChange_whenClientStartThrowsException_shouldPropagateException() {
         // Arrange
-        doThrow(new RuntimeException("Start failed")).when(btcReleaseClient).start(FEDERATION);
+        RuntimeException exception = new RuntimeException("Start failed");
+        doThrow(exception).when(btcReleaseClient).start(FEDERATION);
 
         // Act & Assert
-        assertDoesNotThrow(() -> federationWatcherListener.onProposedFederationChange(FEDERATION));
+        RuntimeException thrownException = assertThrows(
+            RuntimeException.class,
+            () -> federationWatcherListener.onProposedFederationChange(FEDERATION));
+
+        assertSame(exception, thrownException);
     }
 
     private static List<FederationMember> getFederationMembersFromPksForBtc(Integer... pks) {

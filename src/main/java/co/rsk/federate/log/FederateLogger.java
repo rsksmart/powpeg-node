@@ -5,12 +5,7 @@ import co.rsk.federate.util.CurrentTimeProvider;
 import co.rsk.federate.util.LoggerProvider;
 import org.bitcoinj.core.StoredBlock;
 import org.ethereum.core.Block;
-import org.ethereum.core.TransactionReceipt;
-import org.ethereum.facade.Ethereum;
-import org.ethereum.listener.EthereumListenerAdapter;
 import org.slf4j.Logger;
-
-import java.util.List;
 
 public class FederateLogger {
 

@@ -47,47 +47,41 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
             return;
         }
 
-        try {
-            // start {@code BtcReleaseClient} with proposed federation,
-            // so it can sign svp spend tx
-            btcReleaseClient.start(newProposedFederation);
+        // start {@code BtcReleaseClient} with proposed federation,
+        // so it can sign svp spend tx
+        //
+        // Failures are propagated on purpose, so that FederationWatcher does not record this
+        // federation as notified and retries on the next best block. See triggerClientChange
+        btcReleaseClient.start(newProposedFederation);
 
-            logger.info(
-                "[onProposedFederationChange] BtcReleaseClient for proposed federation [{}] started with success",
-                newProposedFederation.getAddress()
-            );
-        } catch (Exception e) {
-            logger.error(
-                "[onProposedFederationChange] BtcReleaseClient for proposed federation [{}] failed to start",
-                newProposedFederation.getAddress(),
-                e
-            );
-        }
+        logger.info(
+            "[onProposedFederationChange] BtcReleaseClient for proposed federation [{}] started with success",
+            newProposedFederation.getAddress()
+        );
     }
 
     private void triggerClientChange(BtcToRskClient btcToRskClient, Federation newFederation) {
         // This method assumes that the new federation cannot be null
         Objects.requireNonNull(newFederation);
-      
-        try {
-            // Stop the current clients
-            btcToRskClient.stop();
-            btcReleaseClient.stop(newFederation);
 
-            // Start the current clients
-            btcToRskClient.start(newFederation);
-            btcReleaseClient.start(newFederation);
+        // Failures are propagated on purpose. FederationWatcher records the federation it notified
+        // about only after this method returns normally, so throwing keeps its state stale and the
+        // change is retried on the next best block; stop and start are idempotent, so retrying is
+        // safe. Swallowing here would instead leave this node neither watching pegins nor signing
+        // pegouts for the federation, with no further attempt. Escaping exceptions cannot disrupt
+        // block processing, since rskj isolates every listener callback.
 
-            logger.info(
-                "[triggerClientChange] Clients for federation [{}] changed with success",
-                newFederation.getAddress());
-        } catch (Exception e) {
-            logger.error(
-                "[triggerClientChange] Clients for federation [{}] cannot be changed",
-                newFederation.getAddress(),
-                e
-            );
-        }
+        // Stop the current clients
+        btcToRskClient.stop();
+        btcReleaseClient.stop(newFederation);
+
+        // Start the current clients
+        btcToRskClient.start(newFederation);
+        btcReleaseClient.start(newFederation);
+
+        logger.info(
+            "[triggerClientChange] Clients for federation [{}] changed with success",
+            newFederation.getAddress());
     }
     
     private void clearRetiringFederationClient() {
