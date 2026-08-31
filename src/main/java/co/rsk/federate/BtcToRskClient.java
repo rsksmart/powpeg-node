@@ -403,6 +403,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             return 0;
         }
 
+        logger.debug("[updateBridgeBtcBlockchain] Federator best block is not yet informed to the Bridge");
         // First, find the common ancestor that is in the federator's bestchain
         // using block depth incremental search
         int bridgeBtcBlockchainBestChainHeight = federatorSupport.getBridgeBtcBlockchainBestChainHeight();
@@ -427,6 +428,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             shouldUpdateBridge
         );
         if (!shouldUpdateBridge) {
+            logger.warn("[updateBridgeBtcBlockchain] Bridge has more work than Federator, so we won't update it.");
             return 0;
         }
 
