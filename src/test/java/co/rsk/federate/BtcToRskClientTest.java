@@ -1306,7 +1306,8 @@ class BtcToRskClientTest {
         bitcoinWrapper.setBlocks(blocks);
 
         BtcLockSender btcLockSender = mock(BtcLockSender.class);
-        when(btcLockSender.getBTCAddress()).thenReturn(mock(co.rsk.bitcoinj.core.Address.class));
+        co.rsk.bitcoinj.core.Address sender = BitcoinTestUtils.createP2PKHAddress(MAINNET_BTC_PARAMS, "sender");
+        when(btcLockSender.getBTCAddress()).thenReturn(sender);
         BtcLockSenderProvider btcLockSenderProvider = mock(BtcLockSenderProvider.class);
         when(btcLockSenderProvider.tryGetBtcLockSender(any())).thenReturn(Optional.of(btcLockSender));
 
@@ -3670,7 +3671,7 @@ class BtcToRskClientTest {
             }
 
             @Test
-            void updateBridgeBtcCoinbaseTransactions_whenBridgeHasNotCoinbaseInformed_shouldKeepSendingTx() throws Exception {
+            void updateBridgeBtcCoinbaseTransactions_whenBridgeHasNotCoinbaseInformed_shouldKeepSendingTx() {
                 // arrange
                 when(federatorSupport.hasBlockCoinbaseInformed(blockHash)).thenReturn(false);
 
@@ -4531,14 +4532,6 @@ class BtcToRskClientTest {
     private StoredBlock[] createForkedBlockchain(StoredBlock[] currentBlocks, int forkHeight, int newHeight) {
         BigInteger defaultWorkPerBlock = BigInteger.ONE.shiftLeft(36);
         return createForkedBlockchainWithWork(currentBlocks, forkHeight, newHeight, defaultWorkPerBlock);
-    }
-
-    private Sha256Hash[] createHashChain(StoredBlock[] blocks, int height) {
-        Sha256Hash[] hashes = new Sha256Hash[height+1];
-        for (int i = 0; i <= height; i++) {
-            hashes[height - i] = blocks[i].getHeader().getHash();
-        }
-        return hashes;
     }
 
     private Transaction getCoinbaseTx(boolean hasWitness, Sha256Hash witnessRoot, byte[] witnessReservedValue) {
