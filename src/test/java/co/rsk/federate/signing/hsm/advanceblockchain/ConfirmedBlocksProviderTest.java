@@ -182,7 +182,7 @@ class ConfirmedBlocksProviderTest {
     }
 
     @Test
-    void getBlockDifficultyToConsider_considersUnclesAndCapDifficulty() {
+    void getBlockTotalDifficulty_considersUnclesAndCapDifficulty() {
         // arrange
         Block block = buildBlockWithUncles();
 
@@ -196,7 +196,8 @@ class ConfirmedBlocksProviderTest {
         );
 
         // act
-        BigInteger consideredDifficulty = confirmedBlocksProvider.getBlockDifficultyToConsider(block);
+        int bestBlockHeight = 1;
+        BigInteger totalDifficulty = confirmedBlocksProvider.getBlockTotalDifficulty(block, bestBlockHeight);
 
         // assert
         // Pow HSM considers brothers difficulty
@@ -204,8 +205,39 @@ class ConfirmedBlocksProviderTest {
         // + 1000000000000000000000 difficulty from block 2 (uncle)
         // + 8000000000000000000000 difficulty round to 7000000000000000000000 from block 3 (uncle)
         // = 15000000000000000000000 considered difficulty
-        BigInteger expectedConsideredDifficulty = new BigInteger("15000000000000000000000");
-        assertEquals(expectedConsideredDifficulty, consideredDifficulty);
+        BigInteger expectedTotalDifficulty = new BigInteger("15000000000000000000000");
+        assertEquals(expectedTotalDifficulty, totalDifficulty);
+    }
+
+    @Test
+    void getBlockTotalDifficulty_ignoresUnclesNotAboveHsmBestBlock() {
+        // arrange
+        Block block = buildBlockWithUncles();
+
+        // build blocks provider for Pow HSM
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
+            BigInteger.valueOf(160),
+            100,
+            mock(BlockStore.class),
+            MAINNET.getDifficultyCap(),
+            hsmVersion
+        );
+
+        // act
+        // With the HSM best block at height 2, the uncle at height 2 is a sibling of the HSM best
+        // block: its canonical sibling is not part of the set being sent, so it cannot be delivered
+        // as a brother and its difficulty must be ignored. Only the uncle at height 3 is counted.
+        int bestBlockHeight = 2;
+        BigInteger totalDifficulty = confirmedBlocksProvider.getBlockTotalDifficulty(block, bestBlockHeight);
+
+        // assert
+        // Pow HSM considers brothers difficulty
+        // 7000000000000000000001 difficulty round to 7000000000000000000000 from block 4
+        // + 8000000000000000000000 difficulty round to 7000000000000000000000 from block 3 (uncle)
+        // block 2 (uncle at height 2) is NOT counted because it cannot be sent as a brother
+        // = 14000000000000000000000 considered difficulty
+        BigInteger expectedTotalDifficulty = new BigInteger("14000000000000000000000");
+        assertEquals(expectedTotalDifficulty, totalDifficulty);
     }
 
     private Block buildBlockWithUncles() {

@@ -43,7 +43,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     private static final Logger logger = LoggerFactory.getLogger(HsmBookkeepingClientImpl.class);
     private final HSMClientProtocol hsmClientProtocol;
     private final HSMVersion hsmVersion;
-    private int maxChunkSize = 10;  // DEFAULT VALUE
+    private int maxChunkSize = 10; // DEFAULT VALUE
     private boolean isStopped = false;
 
     public HsmBookkeepingClientImpl(HSMClientProtocol hsmClientProtocol) throws HSMClientException {
@@ -126,9 +126,12 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
         payload.set(BROTHERS.getFieldName(), brothersFieldData);
     }
 
-    private List<String[]> getBrothers(String[] blockHeaderChunk, AdvanceBlockchainMessage message)
-        throws HSMBlockchainBookkeepingRelatedException {
+    private List<String[]> getBrothers(
+        String[] blockHeaderChunk,
+        AdvanceBlockchainMessage message
+    ) throws HSMBlockchainBookkeepingRelatedException {
         List<String[]> brothers = new ArrayList<>();
+
         for (String blockHeader : blockHeaderChunk) {
             brothers.add(message.getParsedBrothers(blockHeader));
         }
@@ -163,16 +166,19 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     @Override
-    public void advanceBlockchain(List<Block> blocks) throws HSMClientException {
-        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(blocks);
+    public void advanceBlockchain(List<Block> confirmedBlocks) throws HSMClientException {
+        String advanceBlockchain = ADVANCE_BLOCKCHAIN.getCommand();
+
+        AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(confirmedBlocks);
         List<String> blockHeaders = message.getParsedBlockHeaders();
-        validateHSMStateAndBlockHeaders(blockHeaders, ADVANCE_BLOCKCHAIN.getCommand());
+        validateHSMStateAndBlockHeaders(blockHeaders, advanceBlockchain);
         List<String[]> blockHeadersChunks = getChunks(blockHeaders.toArray(new String[]{}), maxChunkSize, false);
 
-        logger.trace("[advanceBlockchain] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunks.size());
-        for (int i = 0; i < blockHeadersChunks.size(); i++) {
+        int blockHeadersChunksSize = blockHeadersChunks.size();
+        logger.trace("[advanceBlockchain] Going to send {} headers in {} chunks.", blockHeaders.size(), blockHeadersChunksSize);
+        for (int i = 0; i < blockHeadersChunksSize; i++) {
             String[] blockHeaderChunk = blockHeadersChunks.get(i);
-            ObjectNode payload = this.hsmClientProtocol.buildCommand(ADVANCE_BLOCKCHAIN.getCommand(), hsmVersion);
+            ObjectNode payload = this.hsmClientProtocol.buildCommand(advanceBlockchain, hsmVersion);
             addBlocksToPayload(payload, blockHeaderChunk);
 
             List<String[]> brothers = getBrothers(blockHeaderChunk, message);
