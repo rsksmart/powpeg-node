@@ -22,41 +22,26 @@ import org.ethereum.crypto.ECKey;
 public class SimpleFederatorSupport extends FederatorSupport {
     private Federation federation;
     private Block[] headers;
-    private int sendReceiveHeadersInvocations = 0;
     private final List<TransactionSentToRegisterBtcTransaction> txsSentToRegisterBtcTransaction = new ArrayList<>();
-    private int height = 0;
-    private Sha256Hash[] blockHashes;
-    private int initialChainHeight = 0;
+    private final Sha256Hash[] blockHashes = new Sha256Hash[0];
 
     public SimpleFederatorSupport() {
         super(null, new TestSystemProperties(), null);
     }
 
     @Override
-    public int getBtcBlockchainBestChainHeight() {
-        return height;
-    }
-
-    public void setBtcBlockchainBestChainHeight(int h) {
-        height = h;
+    public int getBridgeBtcBlockchainBestChainHeight() {
+        return 0;
     }
 
     @Override
     public int getBtcBlockchainInitialBlockHeight() {
-        return initialChainHeight;
-    }
-
-    public void setBtcBlockchainInitialBlockHeight(int h) {
-        initialChainHeight = h;
+        return 0;
     }
 
     @Override
-    public Sha256Hash getBtcBlockchainBlockHashAtDepth(int depth) {
+    public Sha256Hash getBridgeBtcBlockchainBlockHashAtDepth(int depth) {
         return blockHashes[depth];
-    }
-
-    public void setBlockHashes(Sha256Hash[] hashes) {
-        blockHashes = hashes;
     }
 
     @Override
@@ -144,15 +129,6 @@ public class SimpleFederatorSupport extends FederatorSupport {
             System.arraycopy(headers, 0, result, this.headers.length, headers.length);
             this.headers = result;
         }
-        sendReceiveHeadersInvocations++;
-    }
-
-    public Block[] getReceiveHeaders() {
-        return this.headers;
-    }
-
-    public int getSendReceiveHeadersInvocations() {
-        return sendReceiveHeadersInvocations;
     }
 
     @Override

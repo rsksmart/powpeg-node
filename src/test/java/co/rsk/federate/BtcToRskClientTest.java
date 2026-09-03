@@ -32,10 +32,10 @@ import co.rsk.peg.pegininstructions.PeginInstructionsProvider;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Stream;
 
 import com.google.common.collect.Lists;
 import org.bitcoinj.core.*;
@@ -636,194 +636,6 @@ class BtcToRskClientTest {
         verify(btcToRskClientFileStorageMock, never()).write(any());
         assertFalse(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
         assertFalse(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
-    }
-
-    @Test
-    void updateBlockchainWithoutBlocks() throws Exception {
-        BitcoinWrapper bw = new SimpleBitcoinWrapper();
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        BtcToRskClient client = createClientWithMocks(bw, fh);
-
-        int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
-        assertEquals(0, numberOfBlocksSent);
-
-        assertNull(fh.getReceiveHeaders());
-    }
-
-    @Test
-    void updateBlockchainWithBetterBlockchainInContract() throws Exception {
-        BitcoinWrapper bw = new SimpleBitcoinWrapper();
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBlockchainBestChainHeight(10);
-        BtcToRskClient client = createClientWithMocks(bw, fh);
-
-        int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
-        assertEquals(0, numberOfBlocksSent);
-
-        assertNull(fh.getReceiveHeaders());
-
-        assertEquals(0, fh.getSendReceiveHeadersInvocations());
-    }
-
-    @Test
-    void updateBlockchainWithBetterBlockchainInWalletByOneBlock() throws Exception {
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
-        StoredBlock[] blocks = createBlockchain(3);
-        bw.setBlocks(blocks);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBlockchainBestChainHeight(2);
-        fh.setBlockHashes(createHashChain(blocks, 2));
-        BtcToRskClient client = createClientWithMocks(bw, fh);
-
-        int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
-
-        Block[] headers = fh.getReceiveHeaders();
-
-        assertNotNull(headers);
-        assertEquals(1, headers.length);
-        assertEquals(1, numberOfBlocksSent);
-        assertEquals(blocks[3].getHeader().getHash(), headers[0].getHash());
-
-        assertEquals(1, fh.getSendReceiveHeadersInvocations());
-    }
-
-    @Test
-    void updateBlockchainWithBetterBlockchainInWalletByTwoBlocks() throws Exception {
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
-        StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBlockchainBestChainHeight(2);
-        fh.setBlockHashes(createHashChain(blocks, 2));
-        BtcToRskClient client = createClientWithMocks(bw, fh);
-
-        int numberOfBlocksSent = client.updateBridgeBtcBlockchain();
-
-        Block[] headers = fh.getReceiveHeaders();
-
-        assertNotNull(headers);
-        assertEquals(2, headers.length);
-        assertEquals(2, numberOfBlocksSent);
-        assertEquals(blocks[3].getHeader().getHash(), headers[0].getHash());
-        assertEquals(blocks[4].getHeader().getHash(), headers[1].getHash());
-
-        assertEquals(1, fh.getSendReceiveHeadersInvocations());
-    }
-
-    @Test
-    void updateBlockchainWithBetterBlockchainInWalletByThreeBlocks() throws Exception {
-        SimpleBitcoinWrapper bw = new SimpleBitcoinWrapper();
-        StoredBlock[] blocks = createBlockchain(4);
-        bw.setBlocks(blocks);
-        SimpleFederatorSupport fh = new SimpleFederatorSupport();
-        fh.setBtcBlockchainBestChainHeight(1);
-        fh.setBlockHashes(createHashChain(blocks, 1));
-        BtcToRskClient client = createClientWithMocks(bw, fh);
-
-        client.updateBridgeBtcBlockchain();
-
-        Block[] headers = fh.getReceiveHeaders();
-
-        assertNotNull(headers);
-        assertEquals(3, headers.length);
-        assertEquals(blocks[2].getHeader().getHash(), headers[0].getHash());
-        assertEquals(blocks[3].getHeader().getHash(), headers[1].getHash());
-        assertEquals(blocks[4].getHeader().getHash(), headers[2].getHash());
-
-        assertEquals(1, fh.getSendReceiveHeadersInvocations());
-    }
-
-    @Test
-    void updateBlockchainWithBetterBlockchainInWalletBySixHundredBlocks() throws Exception {
-        StoredBlock[] blocks = createBlockchain(601);
-        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
-        bitcoinWrapper.setBlocks(blocks);
-
-        SimpleFederatorSupport federatorSupport = new SimpleFederatorSupport();
-        federatorSupport.setBtcBlockchainBestChainHeight(1);
-        federatorSupport.setBlockHashes(createHashChain(blocks, 1));
-
-        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
-        int amountOfHeadersToSend = 345;
-
-        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
-        when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
-
-        BtcToRskClient client = btcToRskClientBuilder
-            .withActivationConfig(activationConfig)
-            .withBitcoinWrapper(bitcoinWrapper)
-            .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(bridgeRegTestConstants)
-            .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(activeFederation)
-            .withFedNodeSystemProperties(config)
-            .build();
-
-        client.updateBridgeBtcBlockchain();
-
-        Block[] headers = federatorSupport.getReceiveHeaders();
-
-        assertNotNull(headers);
-        assertEquals(amountOfHeadersToSend, headers.length);
-
-        assertEquals(1, federatorSupport.getSendReceiveHeadersInvocations());
-    }
-
-    @Test
-    void updateBlockchainWithDeepFork() throws Exception {
-        SimpleBitcoinWrapper bitcoinWrapper = new SimpleBitcoinWrapper();
-        SimpleFederatorSupport federatorSupport = spy(new SimpleFederatorSupport());
-
-        // Set the bridge's blockchain to start at height 10 and have a current height of 40 - 30 blocks of maximum
-        // search depth
-        final int BRIDGE_HEIGHT = 200;
-        final int BRIDGE_INITIAL_HEIGHT = 10;
-        StoredBlock[] blocks = createBlockchain(BRIDGE_HEIGHT);
-        federatorSupport.setBtcBlockchainInitialBlockHeight(BRIDGE_INITIAL_HEIGHT);
-        federatorSupport.setBtcBlockchainBestChainHeight(BRIDGE_HEIGHT);
-        federatorSupport.setBlockHashes(createHashChain(blocks, BRIDGE_HEIGHT));
-
-        // Create a forked blockchain on the federate node's side
-        final int FEDERATOR_HEIGHT = 225;
-        final int FORK_HEIGHT = 20;
-        blocks = createForkedBlockchain(blocks, FORK_HEIGHT, FEDERATOR_HEIGHT);
-        bitcoinWrapper.setBlocks(blocks);
-
-        BtcLockSenderProvider btcLockSenderProvider = mockBtcLockSenderProvider(TxSenderAddressType.P2PKH);
-        int amountOfHeadersToSend = 215;
-
-        PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
-        when(config.getAmountOfHeadersToSend()).thenReturn(amountOfHeadersToSend);
-
-        BtcToRskClient client =  btcToRskClientBuilder
-            .withActivationConfig(activationConfig)
-            .withBitcoinWrapper(bitcoinWrapper)
-            .withFederatorSupport(federatorSupport)
-            .withBridgeConstants(bridgeRegTestConstants)
-            .withBtcLockSenderProvider(btcLockSenderProvider)
-            .withFederation(activeFederation)
-            .withFedNodeSystemProperties(config)
-            .build();
-
-        // Let's see what happens...
-        client.updateBridgeBtcBlockchain();
-
-        Block[] headers = federatorSupport.getReceiveHeaders();
-
-        assertNotNull(headers);
-        // Search depth should go down to the maximum depth (height - inital height = 200 - 10 = 190)
-        // That means depth should be called with: 0, 1, 2, 4, 8, 16, 32, 64, 128, 190.
-        Stream.of(0, 1, 2, 4, 8, 16, 32, 64, 128, 190).forEach(depth ->
-            verify(federatorSupport, times(1)).getBtcBlockchainBlockHashAtDepth(depth)
-        );
-        // The exponential search finds the common ancestor at height 10, but blocks 11...FORK_HEIGHT
-        // are shared with the Bridge's chain (already registered), so starting index skips them and
-        // only the new fork blocks (FORK_HEIGHT+1 ... FEDERATOR_HEIGHT) are informed.
-        int expectedInformedHeaders = FEDERATOR_HEIGHT - FORK_HEIGHT; // 225 - 20 = 205
-        assertEquals(expectedInformedHeaders, headers.length);
-
-        // Only one receive headers invocation
-        assertEquals(1, federatorSupport.getSendReceiveHeadersInvocations());
     }
 
     @Test
@@ -1699,7 +1511,15 @@ class BtcToRskClientTest {
         }
 
         private void updateBridgeBestChainHeight() {
-            when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(bitcoinWrapper.getBestChainHeight());
+            int bestChainHeight = bitcoinWrapper.getBestChainHeight();
+            when(federatorSupport.getBridgeBtcBlockchainBestChainHeight())
+                .thenReturn(bestChainHeight);
+
+            Block bestBlock = blocks[bestChainHeight].getHeader();
+            when(federatorSupport.getBridgeBtcBlockchainBlockHashAtDepth(0))
+                .thenReturn(bestBlock.getHash());
+            when(federatorSupport.getBridgeBtcBlockchainBestBlockHeader())
+                .thenReturn(bestBlock.bitcoinSerialize());
         }
 
         private void setUpKit() throws BlockStoreException {
@@ -1833,8 +1653,10 @@ class BtcToRskClientTest {
             setUpActiveFedClient(federation);
 
             // none of the Bridge's blocks are on the federator's chain, so no common ancestor is found
-            when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(0);
-            when(federatorSupport.getBtcBlockchainBlockHashAtDepth(anyInt())).thenReturn(Sha256Hash.ZERO_HASH);
+            when(federatorSupport.getBridgeBtcBlockchainBestChainHeight()).thenReturn(0);
+            when(federatorSupport.getBridgeBtcBlockchainBlockHashAtDepth(anyInt())).thenReturn(Sha256Hash.ZERO_HASH);
+            Sha256Hash federatorBestBlockHash = bitcoinWrapper.getChainHead().getHeader().getHash();
+            when(federatorSupport.isBlockHashInformedToBridge(federatorBestBlockHash)).thenReturn(false);
 
             assertThrows(BlockStoreException.class, () -> activeFedClient.updateBridgeBtcBlockchain());
         }
@@ -3786,7 +3608,7 @@ class BtcToRskClientTest {
 
                 // inject other appearance hash that is NOT stubbed in the block store, and
                 // that iterates first in the natural-ordered treemap
-                String hashThatWillAppearFirst = "aaaaa00000aaaaa00000aaaaa00000aaaaa00000aaaaa00000aaaaa00000aaaa";
+                String hashThatWillAppearFirst = "0100000000000000000000000000000000000000000000000000000000000000";
                 Sha256Hash appearanceHashFromMissingBlock = Sha256Hash.wrap(hashThatWillAppearFirst);
                 Transaction peginTx = walletTxs.iterator().next();
                 peginTx.addBlockAppearance(appearanceHashFromMissingBlock, 1);
@@ -3962,6 +3784,34 @@ class BtcToRskClientTest {
         @TestInstance(TestInstance.Lifecycle.PER_METHOD)
         class UpdateBridgeBtcBlockchain {
 
+            void setUpBitcoinBlockchain() throws Exception {
+                setUpBlocks();
+                setUpKit();
+                setUpBitcoinWrapper();
+                setUpClient();
+            }
+
+            void setUpBridgeBitcoinFork(StoredBlock[] fork, int forkHeight) {
+                when(federatorSupport.getBridgeBtcBlockchainBestChainHeight()).thenReturn(forkHeight);
+
+                for (int depth = 0; depth <= forkHeight; depth++) {
+                    Sha256Hash forkBlockHash = fork[forkHeight - depth].getHeader().getHash();
+                    when(federatorSupport.getBridgeBtcBlockchainBlockHashAtDepth(depth)).thenReturn(forkBlockHash);
+                }
+
+                StoredBlock bridgeBitcoinBestBlock = fork[forkHeight];
+                when(federatorSupport.getBridgeBtcBlockchainBestBlockHeader()).thenReturn(bridgeBitcoinBestBlock.getHeader().bitcoinSerialize());
+
+                // since common ancestor search uses exponential search, the found matching block
+                // won't necessarily be the last shared one.
+                // So the more robust thing to do is connect all the blocks with their parent.
+                for (int height = forkHeight; height > 0; height--) {
+                    Block currentHeader = fork[height].getHeader();
+                    Block parentHeader = fork[height - 1].getHeader();
+                    when(federatorSupport.getBridgeBtcBlockchainParentBlockHeaderByHash(currentHeader.getHash())).thenReturn(parentHeader.bitcoinSerialize());
+                }
+            }
+
             void setUpClient() throws Exception {
                 Federation federation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20);
                 setUpActiveFedClient(federation);
@@ -3977,27 +3827,20 @@ class BtcToRskClientTest {
 
                 // setup fed best chain
                 int chainHeight = 230;
-                int maxAmountOfHeadersToSend = 100; // builder default
-                int lastInformedHeader = 100;
-
                 blocks = createBlockchain(chainHeight);
-                setUpBlocks();
-                setUpKit();
-                setUpBitcoinWrapper();
-                setUpClient();
+                setUpBitcoinBlockchain();
+                int maxAmountOfHeadersToSend = 100; // default
 
                 // setup bridge fork
-                int bridgeForkHeight = 3;
-                when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(bridgeForkHeight);
+                int bridgeForkHeight = 4;
+                when(federatorSupport.getBridgeBtcBlockchainBestChainHeight()).thenReturn(bridgeForkHeight);
                 int commonAncestorHeight = 0;
                 StoredBlock[] bridgeFork = createForkedBlockchain(blocks, commonAncestorHeight, bridgeForkHeight);
-                for (int depth = 0; depth <= bridgeForkHeight; depth++) {
-                    Sha256Hash forkBlockHash = bridgeFork[bridgeForkHeight - depth].getHeader().getHash();
-                    when(federatorSupport.getBtcBlockchainBlockHashAtDepth(depth)).thenReturn(forkBlockHash);
-                }
+                setUpBridgeBitcoinFork(bridgeFork, bridgeForkHeight);
 
                 // headers 1...lastInformedHeader were already informed (stored as non-best forks
                 // above the ancestor); the rest are still missing.
+                int lastInformedHeader = 100;
                 markHeadersAsInformed(1, lastInformedHeader);
                 int firstCallFirstHeaderToSend = lastInformedHeader + 1;
                 markHeadersAsNotInformed(firstCallFirstHeaderToSend, chainHeight);
@@ -4009,6 +3852,7 @@ class BtcToRskClientTest {
                 int firstCallLastHeaderToSend = firstCallFirstHeaderToSend + maxAmountOfHeadersToSend - 1;
                 Block[] firstCallExpectedHeadersSent = getHeaders(firstCallFirstHeaderToSend, firstCallLastHeaderToSend);
                 verify(federatorSupport).sendReceiveHeaders(firstCallExpectedHeadersSent);
+                assertCommonAncestorSearch(4);
 
                 clearInvocations(federatorSupport);
                 // simulate the first batch is now registered in the Bridge
@@ -4021,6 +3865,7 @@ class BtcToRskClientTest {
                 int secondCallFirstHeaderToSend = firstCallLastHeaderToSend + 1;
                 Block[] secondCallExpectedHeadersSent = getHeaders(secondCallFirstHeaderToSend, chainHeight);
                 verify(federatorSupport).sendReceiveHeaders(secondCallExpectedHeadersSent);
+                assertCommonAncestorSearch(4);
 
                 clearInvocations(federatorSupport);
                 // simulate the second batch is now registered too and that bridge is up-to-date
@@ -4029,8 +3874,86 @@ class BtcToRskClientTest {
 
                 // third call: the whole fork is known, nothing left to inform
                 int thirdCallSentHeadersCount = activeFedClient.updateBridgeBtcBlockchain();
-                assertEquals(0, thirdCallSentHeadersCount);
-                verify(federatorSupport, never()).sendReceiveHeaders(any(Block[].class));
+                verify(federatorSupport, never()).getBridgeBtcBlockchainBlockHashAtDepth(0);
+                assertNoHeadersSent(thirdCallSentHeadersCount);
+            }
+
+            @Test
+            void updateBridgeBtcBlockchain_whenBridgeHasLowerWorkFork_informsCanonicalHeaders() throws Exception {
+                // arrange
+                int bestChainHeight = 100;
+                BigInteger workPerBlock = BigInteger.ONE.shiftLeft(36);
+                blocks = createBitcoinBlockchainWithWork(bestChainHeight, workPerBlock);
+                setUpBitcoinBlockchain();
+                assertEquals(bestChainHeight, bitcoinWrapper.getBestChainHeight());
+
+                // last shared block is ten blocks below best chain height
+                int lastSharedBlockHeight = bestChainHeight - 10;
+                markHeadersAsInformed(1, lastSharedBlockHeight);
+                markHeadersAsNotInformed(lastSharedBlockHeight + 1, bestChainHeight); // 91..100 are not informed to the bridge
+
+                // the fork is taller (more blocks) but with less work
+                int forkHeight = bestChainHeight + 25;
+                BigInteger workPerForkBlock = workPerBlock.divide(BigInteger.valueOf(4));
+                when(federatorSupport.getBridgeBtcBlockchainBestChainHeight()).thenReturn(forkHeight);
+                StoredBlock[] fork = createForkedBlockchainWithWork(blocks, lastSharedBlockHeight, forkHeight, workPerForkBlock);
+                setUpBridgeBitcoinFork(fork, forkHeight);
+
+                // assert the canonical chain carries more work
+                StoredBlock bridgeBitcoinBestBlock = fork[forkHeight];
+                BigInteger work = bitcoinWrapper.getChainHead().getChainWork();
+                BigInteger forkWork = bridgeBitcoinBestBlock.getChainWork();
+                boolean bestChainHasMoreWorkThanForkedChain = work.compareTo(forkWork) > 0;
+                assertTrue(bestChainHasMoreWorkThanForkedChain);
+
+                // act
+                int informedHeaders = activeFedClient.updateBridgeBtcBlockchain();
+
+                // assert
+                assertCommonAncestorSearch(64);
+
+                int headersToSend = bestChainHeight - lastSharedBlockHeight;
+                assertEquals(headersToSend, informedHeaders);
+                int firstHeaderToSend = lastSharedBlockHeight + 1;
+                Block[] sentHeaders = getHeaders(firstHeaderToSend, bestChainHeight);
+                verify(federatorSupport).sendReceiveHeaders(sentHeaders);
+            }
+
+
+            @Test
+            void updateBridgeBtcBlockchain_whenBitcoinHasLowerWorkFork_doesNotInformHeaders() throws Exception {
+                // arrange
+                int bestChainHeight = 100;
+                BigInteger workPerBlock = BigInteger.ONE.shiftLeft(34);
+                blocks = createBitcoinBlockchainWithWork(bestChainHeight, workPerBlock);
+                setUpBitcoinBlockchain();
+                assertEquals(bestChainHeight, bitcoinWrapper.getBestChainHeight());
+
+                // last shared block is ten blocks below best chain height
+                int lastSharedBlockHeight = bestChainHeight - 10;
+                markHeadersAsInformed(1, lastSharedBlockHeight);
+                markHeadersAsNotInformed(lastSharedBlockHeight + 1, bestChainHeight); // 91..100 are not informed to the bridge
+
+                // the fork has fewer blocks but with more work
+                int forkHeight = bestChainHeight - 5;
+                BigInteger workPerForkBlock = BigInteger.ONE.shiftLeft(36);
+                when(federatorSupport.getBridgeBtcBlockchainBestChainHeight()).thenReturn(forkHeight);
+                StoredBlock[] fork = createForkedBlockchainWithWork(blocks, lastSharedBlockHeight, forkHeight, workPerForkBlock);
+                setUpBridgeBitcoinFork(fork, forkHeight);
+
+                // assert the canonical chain carries more work
+                StoredBlock bridgeBitcoinBestBlock = fork[forkHeight];
+                BigInteger work = bitcoinWrapper.getChainHead().getChainWork();
+                BigInteger forkWork = bridgeBitcoinBestBlock.getChainWork();
+                boolean bridgeChainHasMoreWorkThanBitcoinChain = forkWork.compareTo(work) > 0;
+                assertTrue(bridgeChainHasMoreWorkThanBitcoinChain);
+
+                // act
+                int informedHeaders = activeFedClient.updateBridgeBtcBlockchain();
+
+                // assert
+                assertCommonAncestorSearch(8);
+                assertNoHeadersSent(informedHeaders);
             }
 
             private void markHeadersAsNotInformed(int fromHeight, int toHeight) {
@@ -4046,6 +3969,19 @@ class BtcToRskClientTest {
                     headers.add(blocks[height].getHeader());
                 }
                 return headers.toArray(new Block[]{});
+            }
+
+            private void assertNoHeadersSent(int informedHeaders) {
+                assertEquals(0, informedHeaders);
+                verify(federatorSupport, never()).sendReceiveHeaders(any(Block[].class));
+            }
+
+            private void assertCommonAncestorSearch(int matchDepth) {
+                verify(federatorSupport).getBridgeBtcBlockchainBlockHashAtDepth(0);
+                for (int depth = 1; depth <= matchDepth; depth <<= 1) {
+                    verify(federatorSupport).getBridgeBtcBlockchainBlockHashAtDepth(depth);
+                }
+                verify(federatorSupport, never()).getBridgeBtcBlockchainBlockHashAtDepth(matchDepth << 1);
             }
         }
 
@@ -4232,7 +4168,7 @@ class BtcToRskClientTest {
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(1);
+        when(federatorSupport.getBridgeBtcBlockchainBestChainHeight()).thenReturn(1);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
@@ -4264,7 +4200,7 @@ class BtcToRskClientTest {
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(1);
+        when(federatorSupport.getBridgeBtcBlockchainBestChainHeight()).thenReturn(1);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
@@ -4298,7 +4234,7 @@ class BtcToRskClientTest {
         when(nodeBlockProcessor.hasBetterBlockToSync()).thenReturn(false);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(1);
+        when(federatorSupport.getBridgeBtcBlockchainBestChainHeight()).thenReturn(1);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
 
         BitcoinWrapper bitcoinWrapper = mock(BitcoinWrapper.class);
@@ -4336,7 +4272,7 @@ class BtcToRskClientTest {
         Transaction peginBtcTx = createSegwitTransaction();
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
-        when(federatorSupport.getBtcBlockchainBestChainHeight()).thenReturn(1);
+        when(federatorSupport.getBridgeBtcBlockchainBestChainHeight()).thenReturn(1);
         when(federatorSupport.isBtcTxHashAlreadyProcessed(peginBtcTx.getTxId())).thenReturn(true);
         when(federatorSupport.getBtcTxHashProcessedHeight(peginBtcTx.getTxId())).thenReturn(1L);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
@@ -4521,13 +4457,33 @@ class BtcToRskClientTest {
     }
 
     private StoredBlock[] createBlockchain(int height) {
+        BigInteger defaultWorkPerBlock = BigInteger.ONE.shiftLeft(36);
+        return createBitcoinBlockchainWithWork(height, defaultWorkPerBlock);
+    }
+
+    private StoredBlock[] createBitcoinBlockchainWithWork(int height, BigInteger workPerBlock) {
         StoredBlock[] blocks = new StoredBlock[height + 1];
 
         Sha256Hash previousHash = Sha256Hash.wrap("0000000000000000000000000000000000000000000000000000000000000000");
+        BigInteger cumulativeWork = BigInteger.ZERO;
 
+        BigInteger target = BigInteger.ONE.shiftLeft(256) // 2^256
+            .divide(workPerBlock)
+            .subtract(BigInteger.ONE);
+        long difficultyTarget = Utils.encodeCompactBits(target);
         for (int k = 0; k <= height; k++) {
-            Block header = new Block(networkParameters, 1, previousHash, createHash(), 1, 1, 1, new ArrayList<>());
-            StoredBlock block = new StoredBlock(header, null, k);
+            Block header = new Block(
+                networkParameters,
+                1,
+                previousHash,
+                createHash(),
+                1,
+                difficultyTarget,
+                1,
+                new ArrayList<>()
+            );
+            cumulativeWork = cumulativeWork.add(header.getWork());
+            StoredBlock block = new StoredBlock(header, cumulativeWork, k);
             blocks[k] = block;
             previousHash = header.getHash();
         }
@@ -4535,15 +4491,23 @@ class BtcToRskClientTest {
         return blocks;
     }
 
-    private StoredBlock[] createForkedBlockchain(StoredBlock[] currentBlocks, int forkHeight, int newHeight) {
+    private StoredBlock[] createForkedBlockchainWithWork(StoredBlock[] currentBlocks, int forkHeight, int newHeight, BigInteger workPerBlock) {
         StoredBlock[] blocks = new StoredBlock[newHeight + 1];
 
         // Initial blocks (reference is enough)
-        if (forkHeight + 1 >= 0) System.arraycopy(currentBlocks, 0, blocks, 0, forkHeight + 1);
+        if (forkHeight + 1 >= 0) {
+            System.arraycopy(currentBlocks, 0, blocks, 0, forkHeight + 1);
+        }
 
         // New blocks
         Sha256Hash previousHash = blocks[forkHeight].getHeader().getHash();
+        // continue accumulating work from the shared ancestor, not from zero
+        BigInteger cumulativeWork = blocks[forkHeight].getChainWork();
 
+        BigInteger target = BigInteger.ONE.shiftLeft(256) // 2^256
+            .divide(workPerBlock)
+            .subtract(BigInteger.ONE);
+        long difficultyTarget = Utils.encodeCompactBits(target);
         for (int i = forkHeight+1; i <= newHeight; i++) {
             Block header = new Block(
                 networkParameters,
@@ -4551,16 +4515,22 @@ class BtcToRskClientTest {
                 previousHash,
                 createHash(),
                 1,
-                1,
+                difficultyTarget,
                 1,
                 new ArrayList<>()
             );
-            StoredBlock block = new StoredBlock(header, null, i);
+            cumulativeWork = cumulativeWork.add(header.getWork());
+            StoredBlock block = new StoredBlock(header, cumulativeWork, i);
             blocks[i] = block;
             previousHash = header.getHash();
         }
 
         return blocks;
+    }
+
+    private StoredBlock[] createForkedBlockchain(StoredBlock[] currentBlocks, int forkHeight, int newHeight) {
+        BigInteger defaultWorkPerBlock = BigInteger.ONE.shiftLeft(36);
+        return createForkedBlockchainWithWork(currentBlocks, forkHeight, newHeight, defaultWorkPerBlock);
     }
 
     private Sha256Hash[] createHashChain(StoredBlock[] blocks, int height) {
