@@ -41,7 +41,7 @@ public class FederateLogger {
         if (currentRskBestChainHeight - lastBlockNumberLog > minBlocksBetweenLogs && currentTimeMillis - lastLogTime > minTimeBetweenLogs) {
             monitoringLogger.info("RSK height: {}", currentRskBestChainHeight);
             monitoringLogger.info("BTC height: {}", currentBtcBestChainHeight);
-            monitoringLogger.info("Bridge BTC height: {}", federatorSupport.getBtcBlockchainBestChainHeight());
+            monitoringLogger.info("Bridge BTC height: {}", federatorSupport.getBridgeBtcBlockchainBestChainHeight());
             lastBlockNumberLog = currentRskBestChainHeight;
             lastLogTime = currentTimeMillis;
         }

@@ -73,12 +73,27 @@ public class FederatorSupport {
         );
     }
 
-    public int getBtcBlockchainBestChainHeight() {
+    public int getBridgeBtcBlockchainBestChainHeight() {
         BigInteger btcBlockchainBestChainHeight = this.bridgeTransactionSender.callTx(
             federatorAddress,
             Bridge.GET_BTC_BLOCKCHAIN_BEST_CHAIN_HEIGHT
         );
         return btcBlockchainBestChainHeight.intValue();
+    }
+
+    public byte[] getBridgeBtcBlockchainBestBlockHeader() {
+        return this.bridgeTransactionSender.callTx(
+            federatorAddress,
+            Bridge.GET_BTC_BLOCKCHAIN_BEST_BLOCK_HEADER
+        );
+    }
+
+    public byte[] getBridgeBtcBlockchainParentBlockHeaderByHash(Sha256Hash blockHash) {
+        return this.bridgeTransactionSender.callTx(
+            federatorAddress,
+            Bridge.GET_BTC_BLOCKCHAIN_PARENT_BLOCK_HEADER_BY_HASH,
+            new Object[]{ blockHash.getBytes() }
+        );
     }
 
     public int getBtcBlockchainInitialBlockHeight() {
@@ -89,7 +104,7 @@ public class FederatorSupport {
         return btcBlockchainInitialBlockHeight.intValue();
     }
 
-    public Sha256Hash getBtcBlockchainBlockHashAtDepth(int depth) {
+    public Sha256Hash getBridgeBtcBlockchainBlockHashAtDepth(int depth) {
         byte[] blockHashBytes = this.bridgeTransactionSender.callTx(
             federatorAddress,
             Bridge.GET_BTC_BLOCKCHAIN_BLOCK_HASH_AT_DEPTH,

@@ -35,7 +35,7 @@ class FederateLoggerTest {
         );
 
         int bridgeBtcHeight = 1;
-        doReturn(bridgeBtcHeight).when(federatorSupport).getBtcBlockchainBestChainHeight();
+        doReturn(bridgeBtcHeight).when(federatorSupport).getBridgeBtcBlockchainBestChainHeight();
 
         long rskBestBlockHeight = 1L;
         Block currentRskBestBlock = mock(Block.class);
