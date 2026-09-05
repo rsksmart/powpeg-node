@@ -55,7 +55,6 @@ import co.rsk.federate.signing.hsm.client.HSMClientProtocolFactory;
 import co.rsk.federate.signing.hsm.config.PowHSMConfig;
 import co.rsk.federate.signing.hsm.message.ReleaseCreationInformationGetter;
 import co.rsk.federate.signing.hsm.message.SignerMessageBuilderFactory;
-import co.rsk.federate.signing.hsm.requirements.AncestorBlockUpdater;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.watcher.FederationWatcher;
 import co.rsk.federate.watcher.FederationWatcherListener;
@@ -353,10 +352,8 @@ public class FedNodeRunner implements NodeRunner {
                 fedNodeContext.getBlockStore()
             ),
             new ReleaseRequirementsEnforcer(
-                new AncestorBlockUpdater(
-                    fedNodeContext.getBlockStore(),
-                    hsmBookkeepingClient
-                )
+                fedNodeContext.getBlockStore(),
+                hsmBookkeepingClient
             )
         );
 
