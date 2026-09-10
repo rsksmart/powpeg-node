@@ -113,38 +113,36 @@ public class PowHSMConfig {
     }
   }
 
-  /**
-   * Retrieves the difficulty cap for a given network parameter.
-   * The difficulty cap is determined based on the network type (mainnet, testnet,
-   * or regtest). This value will be used to determine the maximum allowed
-   * difficulty for any given block.
-   * 
-   * @param networkParameter the network parameter identifier, which can be one of
-   *                         the following:
-   *                         <ul>
-   *                         <li>{@link NetworkParameters#ID_MAINNET} - Mainnet
-   *                         network</li>
-   *                         <li>{@link NetworkParameters#ID_TESTNET} - Testnet
-   *                         network</li>
-   *                         <li>{@link NetworkParameters#ID_REGTEST} - Regtest
-   *                         network</li>
-   *                         </ul>
-   * @return the difficulty cap as a {@link BigInteger} for the specified network.
-   * @throws IllegalArgumentException if the provided network parameter is
-   *                                  invalid.
-   */
-  public BigInteger getDifficultyCap(String networkParameter) {
-    switch (networkParameter) {
-      case NetworkParameters.ID_MAINNET:
-        return NetworkDifficultyCap.MAINNET.getDifficultyCap();
-      case NetworkParameters.ID_TESTNET:
-        return NetworkDifficultyCap.TESTNET.getDifficultyCap();
-      case NetworkParameters.ID_REGTEST:
-        return NetworkDifficultyCap.REGTEST.getDifficultyCap();
-      default:
-        String message = "Invalid network provided: " + networkParameter;
-        logger.error(message);
-        throw new IllegalArgumentException(message);
+    /**
+    * Retrieves the difficulty cap for a given network parameter.
+    * The difficulty cap is determined based on the network type (mainnet, testnet,
+    * or regtest). This value will be used to determine the maximum allowed
+    * difficulty for any given block.
+    *
+    * @param networkParameter the network parameter identifier, which can be one of the following:
+    * <ul>
+    *   <li>{@link NetworkParameters#ID_MAINNET} - Mainnet network</li>
+    *   <li>{@link NetworkParameters#ID_TESTNET4} - Testnet4 network</li>
+    *   <li>{@link NetworkParameters#ID_TESTNET} - Testnet network</li>
+    *   <li>{@link NetworkParameters#ID_REGTEST} - Regtest network</li>
+    * </ul>
+    * @return the difficulty cap as a {@link BigInteger} for the specified network.
+    * @throws IllegalArgumentException if the provided network parameter is invalid.
+    */
+    public BigInteger getDifficultyCap(String networkParameter) {
+        switch (networkParameter) {
+            case NetworkParameters.ID_MAINNET:
+                return NetworkDifficultyCap.MAINNET.getDifficultyCap();
+            case NetworkParameters.ID_TESTNET4:
+                return NetworkDifficultyCap.TESTNET2.getDifficultyCap();
+            case NetworkParameters.ID_TESTNET:
+                return NetworkDifficultyCap.TESTNET.getDifficultyCap();
+            case NetworkParameters.ID_REGTEST:
+                return NetworkDifficultyCap.REGTEST.getDifficultyCap();
+            default:
+                String message = "Invalid network provided: " + networkParameter;
+                logger.error(message);
+                throw new IllegalArgumentException(message);
+        }
     }
-  }
 }
