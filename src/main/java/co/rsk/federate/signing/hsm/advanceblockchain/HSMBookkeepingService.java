@@ -3,6 +3,7 @@ package co.rsk.federate.signing.hsm.advanceblockchain;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
+import co.rsk.federate.signing.hsm.advanceblockchain.ConfirmedBlocksProvider.ConfirmedBlock;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.net.NodeBlockProcessor;
 import org.ethereum.core.Block;
@@ -154,7 +155,7 @@ public class HSMBookkeepingService {
                 hsmCurrentBestBlock.getNumber()
             );
 
-            List<Block> confirmedBlocks = this.confirmedBlocksProvider.getConfirmedBlocks(hsmCurrentBestBlock.getHash());
+            List<ConfirmedBlock> confirmedBlocks = this.confirmedBlocksProvider.getConfirmedBlocks(hsmCurrentBestBlock.getHash());
             if (confirmedBlocks.isEmpty()) {
                 logger.debug("[informConfirmedBlockHeaders] No new block headers to inform");
                 logger.info("[informConfirmedBlockHeaders] Finished HSM bookkeeping process");
@@ -163,8 +164,8 @@ public class HSMBookkeepingService {
             }
 
             int confirmedBlocksSize = confirmedBlocks.size();
-            Block firstConfirmedBlock = confirmedBlocks.get(0);
-            Block lastConfirmedBlock = confirmedBlocks.get(confirmedBlocksSize - 1);
+            Block firstConfirmedBlock = confirmedBlocks.get(0).block();
+            Block lastConfirmedBlock = confirmedBlocks.get(confirmedBlocksSize - 1).block();
             logger.debug(
                     "[informConfirmedBlockHeaders] Going to inform {} block headers. From block number {} with hash {} to block number {} with hash {}",
                     confirmedBlocksSize,

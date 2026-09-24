@@ -20,6 +20,7 @@ import static co.rsk.federate.signing.HSMField.UPDATING;
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
+import co.rsk.federate.signing.hsm.advanceblockchain.ConfirmedBlocksProvider.ConfirmedBlock;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.PowHSMResponseHandler;
@@ -35,7 +36,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.ethereum.core.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,7 +166,7 @@ public class HsmBookkeepingClientImpl implements HSMBookkeepingClient {
     }
 
     @Override
-    public void advanceBlockchain(List<Block> confirmedBlocks) throws HSMClientException {
+    public void advanceBlockchain(List<ConfirmedBlock> confirmedBlocks) throws HSMClientException {
         String advanceBlockchain = ADVANCE_BLOCKCHAIN.getCommand();
 
         AdvanceBlockchainMessage message = new AdvanceBlockchainMessage(confirmedBlocks);

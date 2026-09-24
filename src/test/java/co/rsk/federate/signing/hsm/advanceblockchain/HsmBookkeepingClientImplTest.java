@@ -16,6 +16,7 @@ import co.rsk.federate.signing.hsm.*;
 import co.rsk.federate.signing.hsm.client.HSMClientProtocol;
 import co.rsk.federate.signing.hsm.client.HSMResponseCode;
 import co.rsk.federate.signing.hsm.message.*;
+import co.rsk.federate.signing.utils.BlockBuilder;
 import co.rsk.federate.signing.utils.TestUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,9 +35,9 @@ import org.mockito.ArgumentCaptor;
 
 class HsmBookkeepingClientImplTest {
     private final BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
-    private final List<Block> blocks = buildBlocks();
+    private final List<ConfirmedBlocksProvider.ConfirmedBlock> confirmedBlocks = buildConfirmedBlocks();
+    private final List<Block> blocks = confirmedBlocks.stream().map(ConfirmedBlocksProvider.ConfirmedBlock::block).toList();
     private final List<BlockHeader> blockHeaders = blocks.stream().map(Block::getHeader).toList();
-    private final Map<Keccak256, List<BlockHeader>> blocksBrothers = getBlocksBrothers();
 
     private JsonRpcClient jsonRpcClientMock;
     private HsmBookkeepingClientImpl hsmBookkeepingClient;
@@ -268,7 +269,7 @@ class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(buildBlockchainStateRequest(hsmVersion)))
             .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
-        hsmBookkeepingClient.advanceBlockchain(blocks);
+        hsmBookkeepingClient.advanceBlockchain(confirmedBlocks);
 
         // 2 interactions to get the hsm version and blockchain state
         verify(jsonRpcClientMock, times(2)).send(any());
@@ -293,7 +294,7 @@ class HsmBookkeepingClientImplTest {
             .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, true));
 
         assertThrows(HSMBlockchainBookkeepingRelatedException.class, () ->
-            hsmBookkeepingClient.advanceBlockchain(blocks)
+            hsmBookkeepingClient.advanceBlockchain(confirmedBlocks)
         );
     }
 
@@ -302,7 +303,7 @@ class HsmBookkeepingClientImplTest {
         when(jsonRpcClientMock.send(any(JsonNode.class))).thenReturn(buildResponse(HSMResponseCode.UNKNOWN_ERROR));
 
         assertThrows(HSMClientException.class, () ->
-            hsmBookkeepingClient.advanceBlockchain(blocks)
+            hsmBookkeepingClient.advanceBlockchain(confirmedBlocks)
         );
     }
 
@@ -320,7 +321,7 @@ class HsmBookkeepingClientImplTest {
             .thenReturn(buildBlockchainStateResponse(bestBlockHash, ancestorBlockHash, newestValidBlock, false));
 
         hsmBookkeepingClient.setMaxChunkSizeToHsm(maxChunkSize);
-        hsmBookkeepingClient.advanceBlockchain(blocks);
+        hsmBookkeepingClient.advanceBlockchain(confirmedBlocks);
 
         int advanceBlockchainCalls = (int) Math.ceil((double) blocks.size() / maxChunkSize);
         int numberOfInvocations = 1 + 1 + advanceBlockchainCalls; // version + blockchainState + advanceBlockchain calls
@@ -343,8 +344,8 @@ class HsmBookkeepingClientImplTest {
 
         // The brothers should be in the same order as the headers
         Stack<List<BlockHeader>> allBrothers = new Stack<>();
-        for (Block block : blocks) {
-            allBrothers.push(blocksBrothers.get(block.getHash()));
+        for (ConfirmedBlocksProvider.ConfirmedBlock confirmedBlock : confirmedBlocks) {
+            allBrothers.push(confirmedBlock.brothers());
         }
 
         for (int i = 0; i < advanceBlockchainCalls; i++) {
@@ -462,14 +463,14 @@ class HsmBookkeepingClientImplTest {
         assertEquals(network, blockchainParameters.getNetwork());
     }
 
-    private List<Block> buildBlocks() {
-        /*
-            Block 1 - Brothers: 201, 202, 301, 502
-            Block 2 - Brothers: 302, 303
-            Block 3 - Brothers: No
-            Block 4 - Brothers: 501
-            Block 5 - Brothers: No
-         */
+    /**
+     * Block 1 - Brothers: 201, 202, 301, 502
+     * Block 2 - Brothers: 302, 303
+     * Block 3 - Brothers: none
+     * Block 4 - Brothers: 501
+     * Block 5 - Brothers: none
+     */
+    private List<ConfirmedBlocksProvider.ConfirmedBlock> buildConfirmedBlocks() {
         BlockHeader block1Header = blockHeaderBuilder
             .setNumber(1)
             .setParentHashFromKeccak256(TestUtils.createHash(0))
@@ -491,61 +492,34 @@ class HsmBookkeepingClientImplTest {
             .setParentHashFromKeccak256(block4Header.getHash())
             .build();
 
-        List<BlockHeader> block1Uncles = Collections.emptyList();
-        List<BlockHeader> block2Uncles = Arrays.asList(
+        List<BlockHeader> block1Brothers = Arrays.asList(
             blockHeaderBuilder.setNumber(201).setParentHashFromKeccak256(block1Header.getParentHash()).build(),
-            blockHeaderBuilder.setNumber(202).setParentHashFromKeccak256(block1Header.getParentHash()).build()
-        );
-        List<BlockHeader> block3Uncles = Arrays.asList(
+            blockHeaderBuilder.setNumber(202).setParentHashFromKeccak256(block1Header.getParentHash()).build(),
             blockHeaderBuilder.setNumber(301).setParentHashFromKeccak256(block1Header.getParentHash()).build(),
+            blockHeaderBuilder.setNumber(502).setParentHashFromKeccak256(block1Header.getParentHash()).build()
+        );
+        List<BlockHeader> block2Brothers = Arrays.asList(
             blockHeaderBuilder.setNumber(302).setParentHashFromKeccak256(block2Header.getParentHash()).build(),
             blockHeaderBuilder.setNumber(303).setParentHashFromKeccak256(block2Header.getParentHash()).build()
         );
-        List<BlockHeader> block4Uncles = Collections.emptyList();
-        List<BlockHeader> block5Uncles = Arrays.asList(
-            blockHeaderBuilder.setNumber(501).setParentHashFromKeccak256(block4Header.getParentHash()).build(),
-            blockHeaderBuilder.setNumber(502).setParentHashFromKeccak256(block1Header.getParentHash()).build()
-        );
-
-        return Arrays.asList(
-            new Block(block1Header, Collections.emptyList(), block1Uncles, true, true),
-            new Block(block2Header, Collections.emptyList(), block2Uncles, true, true),
-            new Block(block3Header, Collections.emptyList(), block3Uncles, true, true),
-            new Block(block4Header, Collections.emptyList(), block4Uncles, true, true),
-            new Block(block5Header, Collections.emptyList(), block5Uncles, true, true)
-        );
-    }
-
-    private Map<Keccak256, List<BlockHeader>> getBlocksBrothers() {
-        // Block 1 - Brothers: 201, 202, 301, 502
-        BlockHeader block201 = blocks.get(1).getUncleList().get(0);
-        BlockHeader block202 = blocks.get(1).getUncleList().get(1);
-        BlockHeader block301 = blocks.get(2).getUncleList().get(0);
-        BlockHeader block502 = blocks.get(4).getUncleList().get(1);
-        List<BlockHeader> block1Brothers = Arrays.asList(block201, block202, block301, block502);
-
-        // Block 2 - Brothers: 302, 303
-        BlockHeader block302 = blocks.get(2).getUncleList().get(1);
-        BlockHeader block303 = blocks.get(2).getUncleList().get(2);
-        List<BlockHeader> block2Brothers = Arrays.asList(block302, block303);
-
-        // Block 3 - Brothers: No
         List<BlockHeader> block3Brothers = Collections.emptyList();
-
-        // Block 4 - Brothers: 501
-        BlockHeader block501 = blocks.get(4).getUncleList().get(0);
-        List<BlockHeader> block4Brothers = Collections.singletonList(block501);
-
-        // Block 5 - Brothers: No
+        List<BlockHeader> block4Brothers = Collections.singletonList(
+            blockHeaderBuilder.setNumber(501).setParentHashFromKeccak256(block4Header.getParentHash()).build()
+        );
         List<BlockHeader> block5Brothers = Collections.emptyList();
 
-        Map<Keccak256, List<BlockHeader>> result = new HashMap<>();
-        result.put(blocks.get(0).getHash(), block1Brothers);
-        result.put(blocks.get(1).getHash(), block2Brothers);
-        result.put(blocks.get(2).getHash(), block3Brothers);
-        result.put(blocks.get(3).getHash(), block4Brothers);
-        result.put(blocks.get(4).getHash(), block5Brothers);
+        Block block1 = new BlockBuilder().withHeader(block1Header).build();
+        Block block2 = new BlockBuilder().withHeader(block2Header).build();
+        Block block3 = new BlockBuilder().withHeader(block3Header).build();
+        Block block4 = new BlockBuilder().withHeader(block4Header).build();
+        Block block5 = new BlockBuilder().withHeader(block5Header).build();
 
-        return result;
+        return Arrays.asList(
+            new ConfirmedBlocksProvider.ConfirmedBlock(block1, block1Brothers),
+            new ConfirmedBlocksProvider.ConfirmedBlock(block2, block2Brothers),
+            new ConfirmedBlocksProvider.ConfirmedBlock(block3, block3Brothers),
+            new ConfirmedBlocksProvider.ConfirmedBlock(block4, block4Brothers),
+            new ConfirmedBlocksProvider.ConfirmedBlock(block5, block5Brothers)
+        );
     }
 }
