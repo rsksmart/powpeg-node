@@ -12,6 +12,7 @@ import co.rsk.core.RskAddress;
 import co.rsk.core.bc.PendingState;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
+import co.rsk.federate.signing.hsm.SignerException;
 import co.rsk.peg.Bridge;
 import java.math.BigInteger;
 import org.ethereum.config.Constants;
@@ -34,6 +35,7 @@ class BridgeTransactionSenderTest {
     private static final RskAddress FEDERATOR_ADDRESS = new RskAddress("0x0000000000000000000000000000000000000123");
     private static final RskAddress COINBASE = new RskAddress("0x0000000000000000000000000000000000000456");
     private static final long FEDERATOR_GAS_PRICE = 60_000_000L;
+    private static final long GAS_NEEDED = 48_000L;
     private static final byte[] LONG_MAX_VALUE = BigInteger.valueOf(Long.MAX_VALUE).toByteArray();
     private static final byte[] ZERO = BigInteger.ZERO.toByteArray();
 
@@ -88,19 +90,9 @@ class BridgeTransactionSenderTest {
     @Test
     void sendRskTx_estimatesGasWithLegacyBridgeCall_andSubmitsTxWithEstimatedGas() throws Exception {
         CallTransaction.Function function = Bridge.UPDATE_COLLECTIONS;
-        long gasNeeded = 48_000L;
-        ProgramResult programResult = new ProgramResult();
-        programResult.spendGas(gasNeeded);
-        when(reversibleTransactionExecutor.executeTransactionAtBlock(eq(bestBlock), eq(COINBASE), any()))
-            .thenReturn(programResult);
-
-        PendingState pendingState = mock(PendingState.class);
-        when(pendingState.getBalance(FEDERATOR_ADDRESS)).thenReturn(Coin.valueOf(Long.MAX_VALUE));
-        when(pendingState.getNonce(FEDERATOR_ADDRESS)).thenReturn(BigInteger.ZERO);
-        when(transactionPool.getPendingState()).thenReturn(pendingState);
-
-        ECDSASigner signer = mock(ECDSASigner.class);
-        when(signer.sign(any(), any())).thenReturn(ECKey.fromPrivate(BigInteger.TEN).sign(new byte[32]));
+        arrangeGasEstimate(GAS_NEEDED);
+        arrangeFederatorBalance(Coin.valueOf(Long.MAX_VALUE));
+        ECDSASigner signer = signerReturningValidSignature();
 
         bridgeTransactionSender.sendRskTx(FEDERATOR_ADDRESS, signer, function);
 
@@ -109,10 +101,92 @@ class BridgeTransactionSenderTest {
         assertArrayEquals(BigInteger.valueOf(FEDERATOR_GAS_PRICE).toByteArray(), params.gasPrice());
         assertArrayEquals(LONG_MAX_VALUE, params.gasLimit());
 
-        ArgumentCaptor<Transaction> submittedTx = ArgumentCaptor.forClass(Transaction.class);
-        verify(ethereum).submitTransaction(submittedTx.capture());
-        assertEquals(BigInteger.valueOf(gasNeeded), new BigInteger(1, submittedTx.getValue().getGasLimit()));
-        assertEquals(PrecompiledContracts.BRIDGE_ADDR, submittedTx.getValue().getReceiveAddress());
+        Transaction submittedTx = captureSubmittedTx();
+        assertEquals(BigInteger.valueOf(GAS_NEEDED), new BigInteger(1, submittedTx.getGasLimit()));
+        assertEquals(PrecompiledContracts.BRIDGE_ADDR, submittedTx.getReceiveAddress());
+    }
+
+    @Test
+    void sendRskTx_whenFederatorGasPriceIsAboveMinimum_usesFederatorGasPrice() throws Exception {
+        arrangeGasEstimate(GAS_NEEDED);
+        arrangeFederatorBalance(Coin.valueOf(Long.MAX_VALUE));
+
+        bridgeTransactionSender.sendRskTx(FEDERATOR_ADDRESS, signerReturningValidSignature(), Bridge.UPDATE_COLLECTIONS);
+
+        assertEquals(Coin.valueOf(FEDERATOR_GAS_PRICE), captureSubmittedTx().getGasPrice());
+    }
+
+    @Test
+    void sendRskTx_whenMinimumGasPriceIsAboveFederatorGasPrice_usesMinimumGasPriceWithGap() throws Exception {
+        // The default gas price provider adds a 10% gap over the best block minimum gas price
+        when(bestBlock.getMinimumGasPrice()).thenReturn(Coin.valueOf(100_000_000L));
+        arrangeGasEstimate(GAS_NEEDED);
+        arrangeFederatorBalance(Coin.valueOf(Long.MAX_VALUE));
+
+        bridgeTransactionSender.sendRskTx(FEDERATOR_ADDRESS, signerReturningValidSignature(), Bridge.UPDATE_COLLECTIONS);
+
+        assertEquals(Coin.valueOf(110_000_000L), captureSubmittedTx().getGasPrice());
+    }
+
+    @Test
+    void sendRskTx_whenBalanceCoversExactTxCost_submitsTx() throws Exception {
+        arrangeGasEstimate(GAS_NEEDED);
+        arrangeFederatorBalance(Coin.valueOf(FEDERATOR_GAS_PRICE * GAS_NEEDED));
+
+        bridgeTransactionSender.sendRskTx(FEDERATOR_ADDRESS, signerReturningValidSignature(), Bridge.UPDATE_COLLECTIONS);
+
+        verify(ethereum).submitTransaction(any());
+    }
+
+    @Test
+    void sendRskTx_whenBalanceIsNotEnough_doesNotSignNorSubmitTx() throws Exception {
+        arrangeGasEstimate(GAS_NEEDED);
+        arrangeFederatorBalance(Coin.valueOf(FEDERATOR_GAS_PRICE * GAS_NEEDED - 1));
+        ECDSASigner signer = signerReturningValidSignature();
+
+        bridgeTransactionSender.sendRskTx(FEDERATOR_ADDRESS, signer, Bridge.UPDATE_COLLECTIONS);
+
+        verify(signer, never()).sign(any(), any());
+        verify(ethereum, never()).submitTransaction(any());
+    }
+
+    @Test
+    void sendRskTx_whenSigningFails_doesNotSubmitTx() throws Exception {
+        arrangeGasEstimate(GAS_NEEDED);
+        arrangeFederatorBalance(Coin.valueOf(Long.MAX_VALUE));
+        ECDSASigner signer = mock(ECDSASigner.class);
+        when(signer.sign(any(), any())).thenThrow(new SignerException("signer unavailable"));
+
+        assertDoesNotThrow(() -> bridgeTransactionSender.sendRskTx(FEDERATOR_ADDRESS, signer, Bridge.UPDATE_COLLECTIONS));
+
+        verify(signer).sign(any(), any());
+        verify(ethereum, never()).submitTransaction(any());
+    }
+
+    private void arrangeGasEstimate(long gasNeeded) {
+        ProgramResult programResult = new ProgramResult();
+        programResult.spendGas(gasNeeded);
+        when(reversibleTransactionExecutor.executeTransactionAtBlock(eq(bestBlock), eq(COINBASE), any()))
+            .thenReturn(programResult);
+    }
+
+    private void arrangeFederatorBalance(Coin balance) {
+        PendingState pendingState = mock(PendingState.class);
+        when(pendingState.getBalance(FEDERATOR_ADDRESS)).thenReturn(balance);
+        when(pendingState.getNonce(FEDERATOR_ADDRESS)).thenReturn(BigInteger.ZERO);
+        when(transactionPool.getPendingState()).thenReturn(pendingState);
+    }
+
+    private static ECDSASigner signerReturningValidSignature() throws SignerException {
+        ECDSASigner signer = mock(ECDSASigner.class);
+        when(signer.sign(any(), any())).thenReturn(ECKey.fromPrivate(BigInteger.TEN).sign(new byte[32]));
+        return signer;
+    }
+
+    private Transaction captureSubmittedTx() {
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(ethereum).submitTransaction(captor.capture());
+        return captor.getValue();
     }
 
     private ReversibleTransactionParams captureExecutedParams() {
