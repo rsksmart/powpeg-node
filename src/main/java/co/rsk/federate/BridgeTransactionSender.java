@@ -2,6 +2,7 @@ package co.rsk.federate;
 
 import co.rsk.core.Coin;
 import co.rsk.core.ReversibleTransactionExecutor;
+import co.rsk.core.ReversibleTransactionExecutor.ReversibleTransactionParams;
 import co.rsk.core.RskAddress;
 import co.rsk.core.bc.PendingState;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
@@ -11,6 +12,7 @@ import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.hsm.message.SignerMessageV1;
 import co.rsk.federate.signing.hsm.SignerException;
 import org.ethereum.core.*;
+import org.ethereum.core.transaction.TransactionType;
 import org.ethereum.crypto.ECKey;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.vm.PrecompiledContracts;
@@ -57,15 +59,10 @@ public class BridgeTransactionSender {
         params = params != null ? params : new Object[]{};
         Block bestBlock = blockchain.getBestBlock();
         byte[] longMaxValue = longToByteArray(Long.MAX_VALUE);
-        ProgramResult res = reversibleTransactionExecutor.executeTransaction(
+        ProgramResult res = reversibleTransactionExecutor.executeTransactionAtBlock(
                 bestBlock,
                 bestBlock.getCoinbase(),
-                longMaxValue,
-                longMaxValue,
-                PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-                longToByteArray(0L),
-                function.encode(params),
-                federatorAddress
+                bridgeCallParams(longMaxValue, longMaxValue, function.encode(params), federatorAddress)
         );
         T[] result = (T[]) function.decodeResult(res.getHReturn());
         return result[0];
@@ -80,15 +77,15 @@ public class BridgeTransactionSender {
             PendingState pendingState = transactionPool.getPendingState();
             Block block = blockchain.getBestBlock();
             // First, calculate how much gas is needed
-            long gasNeeded = reversibleTransactionExecutor.executeTransaction(
+            long gasNeeded = reversibleTransactionExecutor.executeTransactionAtBlock(
                     block,
                     block.getCoinbase(),
-                    longToByteArray(gasPrice.asBigInteger().longValue()),
-                    longToByteArray(Long.MAX_VALUE),
-                    PrecompiledContracts.BRIDGE_ADDR.getBytes(),
-                    longToByteArray(0L),
-                    function.encode(functionArgs),
-                    federatorAddress
+                    bridgeCallParams(
+                            longToByteArray(gasPrice.asBigInteger().longValue()),
+                            longToByteArray(Long.MAX_VALUE),
+                            function.encode(functionArgs),
+                            federatorAddress
+                    )
             ).getGasUsed();
 
         synchronized (transactionPool) {
@@ -143,5 +140,24 @@ public class BridgeTransactionSender {
 
     private static byte[] longToByteArray(long val) {
         return BigInteger.valueOf(val).toByteArray();
+    }
+
+    private static ReversibleTransactionParams bridgeCallParams(
+            byte[] gasPrice, byte[] gasLimit, byte[] data, RskAddress fromAddress) {
+        // Bridge calls are legacy txs with no value, so the typed-tx fields stay unset
+        return new ReversibleTransactionParams(
+                gasPrice,
+                gasLimit,
+                PrecompiledContracts.BRIDGE_ADDR.getBytes(),
+                longToByteArray(0L),
+                data,
+                fromAddress,
+                null, // authorizationList
+                (byte) 0, // chainId
+                TransactionType.LEGACY,
+                null, // accessListBytes
+                null, // maxPriorityFeePerGas
+                null // maxFeePerGas
+        );
     }
 }
