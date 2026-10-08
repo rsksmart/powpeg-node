@@ -19,13 +19,14 @@ import co.rsk.federate.signing.hsm.HSMDeviceException;
 import co.rsk.federate.signing.hsm.HSMInvalidResponseException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
+import co.rsk.federate.signing.utils.BlockBuilder;
 import co.rsk.federate.signing.utils.TestUtils;
 import co.rsk.net.NodeBlockProcessor;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
+import org.ethereum.core.BlockHeader;
 import org.ethereum.core.BlockHeaderBuilder;
 import org.ethereum.db.BlockStore;
 import org.junit.jupiter.api.Test;
@@ -345,17 +346,14 @@ class HSMBookkeepingServiceTest {
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
 
         BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
-        Block block = new Block(
-            blockHeaderBuilder.setNumber(1).build(),
-            Collections.emptyList(),
-            Collections.emptyList(),
-            true,
-            true
-        );
-        List<Block> blocks = Collections.singletonList(block);
+        Block block = new BlockBuilder()
+            .withHeader(blockHeaderBuilder.setNumber(1).build())
+            .build();
+        List<BlockHeader> brothers = new ArrayList<>();
+        ConfirmedBlocksProvider.ConfirmedBlock confirmedBlock = new ConfirmedBlocksProvider.ConfirmedBlock(block, brothers);
 
         ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
-        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(blocks);
+        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(List.of(confirmedBlock));
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
@@ -390,10 +388,12 @@ class HSMBookkeepingServiceTest {
         BlockStore mockBlockStore = mock(BlockStore.class);
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
 
-        List<Block> confirmedBlocks = Collections.singletonList(TestUtils.mockBlock(1, TestUtils.createHash(1)));
+        Block block = TestUtils.mockBlock(1, TestUtils.createHash(1));
+        List<BlockHeader> brothers = new ArrayList<>();
+        ConfirmedBlocksProvider.ConfirmedBlock confirmedBlock = new ConfirmedBlocksProvider.ConfirmedBlock(block, brothers);
 
         ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
-        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(confirmedBlocks);
+        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(List.of(confirmedBlock));
 
         NodeBlockProcessor nodeBlockProcessor = mock(NodeBlockProcessor.class);
 
@@ -427,10 +427,12 @@ class HSMBookkeepingServiceTest {
         BlockStore mockBlockStore = mock(BlockStore.class);
         when(mockBlockStore.getBlockByHash(any())).thenReturn(mock(Block.class));
 
-        List<Block> confirmedBlocks = Collections.singletonList(TestUtils.mockBlock(1, TestUtils.createHash(1)));
+        Block block = TestUtils.mockBlock(1, TestUtils.createHash(1));
+        List<BlockHeader> brothers = new ArrayList<>();
+        ConfirmedBlocksProvider.ConfirmedBlock confirmedBlock = new ConfirmedBlocksProvider.ConfirmedBlock(block, brothers);
 
         ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
-        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(confirmedBlocks);
+        when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(List.of(confirmedBlock));
 
         HSMBookeepingServiceListener mockListener = mock(HSMBookeepingServiceListener.class);
 
