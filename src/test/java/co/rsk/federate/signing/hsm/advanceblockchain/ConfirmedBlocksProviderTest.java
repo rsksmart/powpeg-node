@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
@@ -372,13 +373,14 @@ class ConfirmedBlocksProviderTest {
      * HSM best block: 100. Canonical chain: 101 to 103, each with difficulty 500. Block 104
      * has difficulty 100, not enough on its own to be confirmed, and there is no block after it,
      * so it is walked but never sent (it stays out of blocksToSendCount).
-     * Blocks 103 and 104 each declare one uncle that is a brother of block 102 (both share block
-     * 101 as parent). Since block 104 is never sent, its brother must not leak into the brothers
-     * delivered for block 102.
-     * 101                    uncles: no,             parent: 100
-     * 102                    uncles: no,              parent: 101
-     * 103                    uncles: sentBrother,     parent: 102
-     * 104 (never sent)       uncles: unsentBrother,   parent: 103
+     * Block 102 has 11 brothers (all children of block 101): 6 declared as uncles by block 103,
+     * which is sent, and 5 declared by block 104, which is not. The 5 from block 104 are heavier
+     * than the other 6, so if they were still part of the group when the limit is applied, they
+     * would be selected. Since block 104 is never sent, none of its uncles must be delivered.
+     * 101                    uncles: no,                  parent: 100
+     * 102                    uncles: no,                  parent: 101
+     * 103                    uncles: 6 brothers of 102,   parent: 102
+     * 104 (never sent)       uncles: 5 brothers of 102,   parent: 103
      */
     @Test
     void getConfirmedBlocks_excludesBrothersDeclaredOnlyByBlocksNeverSent() {
@@ -407,22 +409,30 @@ class ConfirmedBlocksProviderTest {
             .setDifficulty(new BlockDifficulty(BigInteger.valueOf(100)))
             .build();
 
-        // Both brothers share block 101 as parent, just like block 102 does
-        BlockHeader sentBrotherOfBlock102 = blockHeaderBuilder
-            .setNumber(102)
-            .setParentHashFromKeccak256(block101Header.getHash())
-            .setDifficulty(new BlockDifficulty(BigInteger.valueOf(50)))
-            .build();
-        BlockHeader unsentBrotherOfBlock102 = blockHeaderBuilder
-            .setNumber(102)
-            .setParentHashFromKeccak256(block101Header.getHash())
-            .setDifficulty(new BlockDifficulty(BigInteger.valueOf(60)))
-            .build();
+        // All the brothers share block 101 as parent, just like block 102 does
+        List<BlockHeader> sentBrothersOfBlock102 = new ArrayList<>();
+        for (long difficulty = 10; difficulty <= 15; difficulty++) {
+            BlockHeader brotherHeader = blockHeaderBuilder
+                .setNumber(102)
+                .setParentHashFromKeccak256(block101Header.getHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(difficulty)))
+                .build();
+            sentBrothersOfBlock102.add(brotherHeader);
+        }
+        List<BlockHeader> unsentBrothersOfBlock102 = new ArrayList<>();
+        for (long difficulty = 100; difficulty <= 104; difficulty++) {
+            BlockHeader brotherHeader = blockHeaderBuilder
+                .setNumber(102)
+                .setParentHashFromKeccak256(block101Header.getHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(difficulty)))
+                .build();
+            unsentBrothersOfBlock102.add(brotherHeader);
+        }
 
         Block block101 = new BlockBuilder().withHeader(block101Header).withUncles(Collections.emptyList()).build();
         Block block102 = new BlockBuilder().withHeader(block102Header).withUncles(Collections.emptyList()).build();
-        Block block103 = new BlockBuilder().withHeader(block103Header).withUncles(List.of(sentBrotherOfBlock102)).build();
-        Block block104 = new BlockBuilder().withHeader(block104Header).withUncles(List.of(unsentBrotherOfBlock102)).build();
+        Block block103 = new BlockBuilder().withHeader(block103Header).withUncles(sentBrothersOfBlock102).build();
+        Block block104 = new BlockBuilder().withHeader(block104Header).withUncles(unsentBrothersOfBlock102).build();
 
         List<Block> chain = List.of(block101, block102, block103, block104);
         chain.forEach(block -> when(mockBlockStore.getChainBlockByNumber(block.getNumber())).thenReturn(block));
@@ -446,8 +456,10 @@ class ConfirmedBlocksProviderTest {
             confirmedBlocks.stream().map(ConfirmedBlock::block).toList()
         );
 
+        // Only the 6 brothers declared by block 103 are delivered. The group has 11 headers before
+        // block 104 uncles are discarded, so the limit must be applied after discarding them
         ConfirmedBlock block102Confirmed = confirmedBlocks.get(1);
-        assertEquals(List.of(sentBrotherOfBlock102), block102Confirmed.brothers());
+        assertEquals(Set.copyOf(sentBrothersOfBlock102), Set.copyOf(block102Confirmed.brothers()));
     }
 
     private List<Block> buildChainWithBrothersOfBlock102() {

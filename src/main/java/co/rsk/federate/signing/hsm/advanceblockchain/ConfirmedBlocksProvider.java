@@ -93,13 +93,14 @@ public class ConfirmedBlocksProvider {
         if (confirmedBlocksCount == 0) {
             return Collections.emptyList();
         }
+
+        discardUnclesOfUnsentBlocks(walkedBlocks, blocksToSendCount, initialBlockNumber, brothersByParent);
         List<ConfirmedBlock> confirmedBlocks = buildConfirmedBlocks(walkedBlocks, blocksToSendCount, brothersByParent);
         logger.debug(
             "[getConfirmedBlocks] Added {} extra blocks as proof",
             blocksToSendCount - confirmedBlocksCount
         );
 
-        cleanupWalkedBlocks(walkedBlocks, blocksToSendCount, initialBlockNumber, brothersByParent);
         return confirmedBlocks;
     }
 
@@ -113,7 +114,7 @@ public class ConfirmedBlocksProvider {
             .toList();
     }
 
-    private void cleanupWalkedBlocks(
+    private void discardUnclesOfUnsentBlocks(
         List<Block> walkedBlocks,
         int blocksToSendCount,
         long threshold,
