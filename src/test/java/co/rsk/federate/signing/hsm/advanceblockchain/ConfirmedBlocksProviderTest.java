@@ -16,9 +16,13 @@ import co.rsk.federate.signing.utils.TestUtils;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
@@ -26,6 +30,8 @@ import org.ethereum.core.BlockHeaderBuilder;
 import org.ethereum.db.BlockStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ConfirmedBlocksProviderTest {
     private static final HSMVersion hsmVersion = TestUtils.getLatestHsmVersion();
@@ -460,6 +466,258 @@ class ConfirmedBlocksProviderTest {
         // block 104 uncles are discarded, so the limit must be applied after discarding them
         ConfirmedBlock block102Confirmed = confirmedBlocks.get(1);
         assertEquals(Set.copyOf(sentBrothersOfBlock102), Set.copyOf(block102Confirmed.brothers()));
+    }
+
+    /**
+     * HSM best block: 100. Canonical chain: 101 to 104, each with difficulty 100. Block 102 has 12
+     * brothers (children of block 101): 6 declared as uncles by block 103 and 6 by block 104, so
+     * the group is above the limit. Even counting the 10 heaviest brothers the window adds up to
+     * 400 + 1065, well below the target, so no block is ever confirmed and nothing is sent,
+     * brothers included.
+     */
+    @Test
+    void getConfirmedBlocks_returnsNothingWhenNoBlockReachesTheTargetEvenWithBrothers() {
+        // arrange
+        Block bestBlock = TestUtils.mockBlock(104, TestUtils.createHash(104));
+        when(mockBlockStore.getBestBlock()).thenReturn(bestBlock);
+
+        BlockHeader block101Header = blockHeaderBuilder
+            .setNumber(101)
+            .setParentHashFromKeccak256(startingPoint)
+            .setDifficulty(new BlockDifficulty(BigInteger.valueOf(100)))
+            .build();
+        BlockHeader block102Header = blockHeaderBuilder
+            .setNumber(102)
+            .setParentHashFromKeccak256(block101Header.getHash())
+            .setDifficulty(new BlockDifficulty(BigInteger.valueOf(100)))
+            .build();
+        BlockHeader block103Header = blockHeaderBuilder
+            .setNumber(103)
+            .setParentHashFromKeccak256(block102Header.getHash())
+            .setDifficulty(new BlockDifficulty(BigInteger.valueOf(100)))
+            .build();
+        BlockHeader block104Header = blockHeaderBuilder
+            .setNumber(104)
+            .setParentHashFromKeccak256(block103Header.getHash())
+            .setDifficulty(new BlockDifficulty(BigInteger.valueOf(100)))
+            .build();
+
+        List<BlockHeader> brothersOfBlock102 = new ArrayList<>();
+        for (long difficulty = 100; difficulty <= 111; difficulty++) {
+            BlockHeader brotherHeader = blockHeaderBuilder
+                .setNumber(102)
+                .setParentHashFromKeccak256(block101Header.getHash())
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(difficulty)))
+                .build();
+            brothersOfBlock102.add(brotherHeader);
+        }
+
+        List<Block> chain = List.of(
+            new BlockBuilder().withHeader(block101Header).build(),
+            new BlockBuilder().withHeader(block102Header).build(),
+            new BlockBuilder().withHeader(block103Header).withUncles(brothersOfBlock102.subList(0, 6)).build(),
+            new BlockBuilder().withHeader(block104Header).withUncles(brothersOfBlock102.subList(6, 12)).build()
+        );
+        chain.forEach(block -> when(mockBlockStore.getChainBlockByNumber(block.getNumber())).thenReturn(block));
+
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
+            BigInteger.valueOf(5000),
+            MAX_ELEMENTS_TO_SEND_TO_HSM,
+            mockBlockStore,
+            MAINNET.getDifficultyCap(),
+            hsmVersion
+        );
+
+        // act
+        List<ConfirmedBlock> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
+
+        // assert
+        assertEquals(Collections.emptyList(), confirmedBlocks);
+    }
+
+    /**
+     * Oracle test: compares getConfirmedBlocks against a deliberately naive reference that, after
+     * each walked block, recomputes everything from scratch (which uncles are known, how they group
+     * by parent, which ones the limit leaves out, and the total difficulty of the unconfirmed window).
+     * The reference holds no state between iterations, so any bookkeeping the provider keeps
+     * to avoid recomputing (running totals, cached contributions) has to agree with it on every chain.
+     * The chains are random (fixed seeds, so failures are reproducible) and include brothers
+     * declared by later blocks, groups above the limit built from several declaring blocks,
+     * uncles declared after their owner block was confirmed, uncles at or below the HSM best
+     * block, and trailing blocks that are walked but never sent.
+     */
+    private static Stream<Long> chainSeeds() {
+        return LongStream.range(0, 300).boxed();
+    }
+    @ParameterizedTest(name = "seed {0}")
+    @MethodSource("chainSeeds")
+    void getConfirmedBlocks_matchesFromScratchRecomputationOnChain(long seed) {
+        // arrange
+        Random random = new Random(seed);
+        int chainLength = 20 + random.nextInt(60);
+        List<Block> chain = buildRandomChainWithBrothers(random, chainLength);
+        chain.forEach(block -> when(mockBlockStore.getChainBlockByNumber(block.getNumber())).thenReturn(block));
+        Block lastBlock = chain.get(chain.size() - 1);
+        Block bestBlock = TestUtils.mockBlock(lastBlock.getNumber(), TestUtils.createHash(1));
+        when(mockBlockStore.getBestBlock()).thenReturn(bestBlock);
+
+        BigInteger difficultyTarget = BigInteger.valueOf(1500 + random.nextInt(7500));
+        int maximumElementsToSendHSM = new int[]{3, 10, MAX_ELEMENTS_TO_SEND_TO_HSM}[random.nextInt(3)];
+        BigInteger difficultyCap = BigInteger.valueOf(700);
+
+        ConfirmedBlocksProvider confirmedBlocksProvider = new ConfirmedBlocksProvider(
+            difficultyTarget,
+            maximumElementsToSendHSM,
+            mockBlockStore,
+            difficultyCap,
+            hsmVersion
+        );
+
+        // act
+        List<ConfirmedBlock> actual = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
+
+        // assert
+        List<ConfirmedBlock> expected = getConfirmedBlocksFromScratch(
+            chain,
+            difficultyTarget,
+            maximumElementsToSendHSM,
+            difficultyCap
+        );
+        String message = "seed " + seed;
+        assertEquals(
+            expected.stream().map(ConfirmedBlock::block).toList(),
+            actual.stream().map(ConfirmedBlock::block).toList(),
+            message
+        );
+        for (int i = 0; i < expected.size(); i++) {
+            assertEquals(
+                Set.copyOf(expected.get(i).brothers()),
+                Set.copyOf(actual.get(i).brothers()),
+                message + ", brothers of block " + expected.get(i).block().getNumber()
+            );
+            assertEquals(expected.get(i).brothers().size(), actual.get(i).brothers().size(), message);
+        }
+    }
+
+    private List<ConfirmedBlock> getConfirmedBlocksFromScratch(
+        List<Block> chain,
+        BigInteger difficultyTarget,
+        int maximumElementsToSendHSM,
+        BigInteger difficultyCap
+    ) {
+        int walkedCount = 0;
+        int confirmedCount = 0;
+        int toSendCount = 0;
+        while (walkedCount < chain.size() && confirmedCount < maximumElementsToSendHSM) {
+            walkedCount++;
+            List<Block> walked = chain.subList(0, walkedCount);
+            BigInteger windowDifficulty = walked.subList(confirmedCount, walkedCount).stream()
+                .map(block -> getTotalDifficultyFromScratch(block, walked, difficultyCap))
+                .reduce(BigInteger.ZERO, BigInteger::add);
+            if (windowDifficulty.compareTo(difficultyTarget) >= 0) {
+                confirmedCount++;
+                toSendCount = walkedCount;
+            }
+        }
+        if (confirmedCount == 0) {
+            return Collections.emptyList();
+        }
+
+        // Only the uncles declared by the blocks that are sent are delivered as brothers
+        List<Block> sent = chain.subList(0, toSendCount);
+        return sent.stream()
+            .map(block -> new ConfirmedBlock(block, getBrothersFromScratch(block, sent)))
+            .toList();
+    }
+
+    private BigInteger getTotalDifficultyFromScratch(Block block, List<Block> declaringBlocks, BigInteger difficultyCap) {
+        BigInteger brothersDifficulty = getBrothersFromScratch(block, declaringBlocks).stream()
+            .map(brother -> difficultyCap.min(brother.getDifficulty().asBigInteger()))
+            .reduce(BigInteger.ZERO, BigInteger::add);
+        return difficultyCap.min(block.getDifficulty().asBigInteger()).add(brothersDifficulty);
+    }
+
+    private List<BlockHeader> getBrothersFromScratch(Block block, List<Block> declaringBlocks) {
+        return declaringBlocks.stream()
+            .flatMap(declaringBlock -> declaringBlock.getUncleList().stream())
+            .filter(uncle -> uncle.getNumber() > HSM_BEST_BLOCK_NUMBER)
+            .filter(uncle -> uncle.getParentHash().equals(block.getParentHash()))
+            .sorted((uncle1, uncle2) -> uncle2.getDifficulty().compareTo(uncle1.getDifficulty()))
+            .limit(BROTHERS_LIMIT_PER_BLOCK_HEADER)
+            .toList();
+    }
+
+    private List<Block> buildRandomChainWithBrothers(Random random, int chainLength) {
+        // Distinct difficulties keep every header hash different, even between brothers
+        Set<Long> usedDifficulties = new HashSet<>();
+
+        List<BlockHeader> canonicalHeaders = new ArrayList<>();
+        Keccak256 parentHash = startingPoint;
+        for (int i = 0; i < chainLength; i++) {
+            long difficulty;
+            do {
+                difficulty = 1 + random.nextInt(1500);
+            } while (!usedDifficulties.add(difficulty));
+            BlockHeader header = blockHeaderBuilder
+                .setNumber(HSM_BEST_BLOCK_NUMBER + 1 + i)
+                .setParentHashFromKeccak256(parentHash)
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(difficulty)))
+                .build();
+            canonicalHeaders.add(header);
+            parentHash = header.getHash();
+        }
+
+        List<List<BlockHeader>> unclesByBlock = new ArrayList<>();
+        for (int i = 0; i < chainLength; i++) {
+            unclesByBlock.add(new ArrayList<>());
+        }
+
+        // Some blocks have brothers, declared as uncles by blocks that come later. Each block can
+        // declare at most 10 uncles, but the brothers of one block can come from several of them
+        for (int i = 0; i < chainLength - 1; i++) {
+            if (random.nextInt(10) >= 4) {
+                continue;
+            }
+            Keccak256 sharedParentHash = canonicalHeaders.get(i).getParentHash();
+            int brothersCount = 1 + random.nextInt(13);
+            for (int j = 0; j < brothersCount; j++) {
+                int declaringBlockIndex = i + 1 + random.nextInt(Math.min(8, chainLength - 1 - i));
+                List<BlockHeader> declaredUncles = unclesByBlock.get(declaringBlockIndex);
+                if (declaredUncles.size() >= 10) {
+                    continue;
+                }
+                long difficulty;
+                do {
+                    difficulty = 1 + random.nextInt(1500);
+                } while (!usedDifficulties.add(difficulty));
+                BlockHeader brotherHeader = blockHeaderBuilder
+                    .setNumber(HSM_BEST_BLOCK_NUMBER + 1 + i)
+                    .setParentHashFromKeccak256(sharedParentHash)
+                    .setDifficulty(new BlockDifficulty(BigInteger.valueOf(difficulty)))
+                    .build();
+                declaredUncles.add(brotherHeader);
+            }
+        }
+
+        // An uncle at the height of the HSM best block is not a brother of anything we send
+        if (random.nextInt(4) == 0) {
+            long difficulty;
+            do {
+                difficulty = 1 + random.nextInt(1500);
+            } while (!usedDifficulties.add(difficulty));
+            BlockHeader staleUncleHeader = blockHeaderBuilder
+                .setNumber(HSM_BEST_BLOCK_NUMBER)
+                .setParentHashFromKeccak256(TestUtils.createHash(HSM_BEST_BLOCK_NUMBER - 1))
+                .setDifficulty(new BlockDifficulty(BigInteger.valueOf(difficulty)))
+                .build();
+            unclesByBlock.get(0).add(staleUncleHeader);
+        }
+
+        List<Block> chain = new ArrayList<>();
+        for (int i = 0; i < chainLength; i++) {
+            chain.add(new BlockBuilder().withHeader(canonicalHeaders.get(i)).withUncles(unclesByBlock.get(i)).build());
+        }
+        return chain;
     }
 
     private List<Block> buildChainWithBrothersOfBlock102() {

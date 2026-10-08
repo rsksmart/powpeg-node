@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.ethereum.core.Block;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.db.BlockStore;
@@ -56,6 +57,8 @@ public class ConfirmedBlocksProvider {
 
         List<Block> walkedBlocks = new ArrayList<>();
         Map<Keccak256, List<BlockHeader>> brothersByParent = new HashMap<>();
+        BlocksDifficulty notYetConfirmedBlocksDifficulty = new BlocksDifficulty(walkedBlocks, brothersByParent);
+
         int confirmedBlocksCount = 0;
         int blocksToSendCount = 0;
 
@@ -64,14 +67,15 @@ public class ConfirmedBlocksProvider {
             walkedBlocks.add(blockToProcess);
             groupBlockUncles(blockToProcess, initialBlockNumber, brothersByParent);
 
-            List<Block> blocksInWindow = walkedBlocks.subList(confirmedBlocksCount, walkedBlocks.size());
-            BigInteger accumulatedDifficulty = getBlocksTotalDifficulty(blocksInWindow, brothersByParent);
+            notYetConfirmedBlocksDifficulty.addDifficulty(confirmedBlocksCount, initialBlockNumber);
+            BigInteger accumulatedDifficulty = notYetConfirmedBlocksDifficulty.getTotal();
+
             boolean enoughDifficulty = accumulatedDifficulty.compareTo(minimumAccumulatedDifficulty) >= 0;
             if (enoughDifficulty) {
                 logger.trace(
                     "[getConfirmedBlocks] Accumulated enough difficulty {} with {} blocks",
                     accumulatedDifficulty,
-                    blocksInWindow.size()
+                    walkedBlocks.size() - confirmedBlocksCount
                 );
 
                 // The block was confirmed. Add it to confirmed blocks list,
@@ -83,6 +87,7 @@ public class ConfirmedBlocksProvider {
                     confirmedBlock.getNumber()
                 );
 
+                notYetConfirmedBlocksDifficulty.removeDifficulty(confirmedBlocksCount);
                 confirmedBlocksCount++;
                 blocksToSendCount = walkedBlocks.size();
             }
@@ -90,9 +95,6 @@ public class ConfirmedBlocksProvider {
             blockToProcess = blockStore.getChainBlockByNumber(blockToProcess.getNumber() + 1);
         }
         logger.debug("[getConfirmedBlocks] Got {} confirmed blocks", confirmedBlocksCount);
-        if (confirmedBlocksCount == 0) {
-            return Collections.emptyList();
-        }
 
         discardUnclesOfUnsentBlocks(walkedBlocks, blocksToSendCount, initialBlockNumber, brothersByParent);
         List<ConfirmedBlock> confirmedBlocks = buildConfirmedBlocks(walkedBlocks, blocksToSendCount, brothersByParent);
@@ -145,15 +147,6 @@ public class ConfirmedBlocksProvider {
         }
     }
 
-    private BigInteger getBlocksTotalDifficulty(
-        List<Block> blocks,
-        Map<Keccak256, List<BlockHeader>> brothersByParent
-    ) {
-        return blocks.stream()
-            .map(block -> getBlockTotalDifficulty(block, brothersByParent))
-            .reduce(BigInteger.ZERO, BigInteger::add);
-    }
-
     /**
      * Difficulty this block adds to the difficulty the HSM will see: its own plus the difficulty of
      * the brothers that will be delivered along with it (brothers left out by the limit add nothing).
@@ -187,5 +180,74 @@ public class ConfirmedBlocksProvider {
             .sorted((brother1, brother2) -> brother2.getDifficulty().compareTo(brother1.getDifficulty()))
             .limit(BROTHERS_LIMIT_PER_BLOCK_HEADER)
             .toList();
+    }
+
+    /**
+     * Running total of the difficulty of a list of blocks, kept up to date incrementally instead of
+     * recomputing it from scratch each time a block is added or removed.
+     * <p>
+     * Invariant: difficulties[i] is what getBlockTotalDifficulty gives for blocks[i] with the brothers
+     * known so far, and total is the sum of difficulties[i] for the blocks not removed yet.
+     * A difficulty may change when an uncle is added to the group of brothers of a block, and a block
+     * can only declare uncles that are brothers of blocks that come before it in the list, so
+     * refreshing the difficulty of the blocks the uncles of each new block are brothers of is enough.
+     */
+    private class BlocksDifficulty {
+        private final List<Block> blocks;
+        private final Map<Keccak256, List<BlockHeader>> brothersByParent;
+        private final List<BigInteger> difficulties = new ArrayList<>();
+        // There is a single canonical block per parent hash, so it identifies the blocks the uncles are brothers of
+        private final Map<Keccak256, Integer> indexByParent = new HashMap<>();
+        private BigInteger total = BigInteger.ZERO;
+
+        private BlocksDifficulty(List<Block> blocks, Map<Keccak256, List<BlockHeader>> brothersByParent) {
+            this.blocks = blocks;
+            this.brothersByParent = brothersByParent;
+        }
+
+        private BigInteger getTotal() {
+            return total;
+        }
+
+        // To be called after a block was added and its uncles were grouped
+        private void addDifficulty(int fromIndex, long uncleHeightThreshold) {
+            int lastBlockIndex = blocks.size() - 1;
+            Block lastBlock = blocks.get(lastBlockIndex);
+            indexByParent.put(lastBlock.getParentHash(), lastBlockIndex);
+
+            BigInteger blockTotalDifficulty = getBlockTotalDifficulty(lastBlock, brothersByParent);
+            difficulties.add(blockTotalDifficulty);
+            total = total.add(blockTotalDifficulty);
+
+            updateDifficultyOfBlocksWithNewBrothers(lastBlock, fromIndex, uncleHeightThreshold);
+        }
+
+        private void updateDifficultyOfBlocksWithNewBrothers(
+            Block block,
+            int fromIndex,
+            long uncleHeightThreshold
+        ) {
+            // The uncles of this block are brothers of blocks that come before it in the list.
+            // Blocks before fromIndex were already removed from the total, so refreshing them would corrupt it.
+            block.getUncleList().stream()
+                .filter(uncle -> uncle.getNumber() > uncleHeightThreshold)
+                .map(BlockHeader::getParentHash)
+                .distinct() // to refresh difficulty just once if one block has several uncles with same parent
+                .map(indexByParent::get)
+                .filter(Objects::nonNull)
+                .filter(blockIndex -> blockIndex >= fromIndex)
+                .forEach(this::updateDifficulty);
+        }
+
+        private void updateDifficulty(int index) {
+            BigInteger updatedDifficulty = getBlockTotalDifficulty(blocks.get(index), brothersByParent);
+            BigInteger diff = updatedDifficulty.subtract(difficulties.get(index));
+            total = total.add(diff);
+            difficulties.set(index, updatedDifficulty);
+        }
+
+        private void removeDifficulty(int blockIndex) {
+            total = total.subtract(difficulties.get(blockIndex));
+        }
     }
 }
