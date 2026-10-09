@@ -83,6 +83,7 @@ class PowHSMSigningClientBtcTest {
         pegoutCreationRskTx = mock(Transaction.class);
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
+        when(pegoutCreationRskTx.getTypePrefix()).thenReturn(TransactionTypePrefix.legacy());
 
         pegoutCreationBlock = createBlockWithTxs(Collections.singletonList(pegoutCreationRskTx));
 
