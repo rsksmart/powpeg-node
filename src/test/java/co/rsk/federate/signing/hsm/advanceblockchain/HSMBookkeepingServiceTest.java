@@ -18,6 +18,7 @@ import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMDeviceException;
 import co.rsk.federate.signing.hsm.HSMInvalidResponseException;
 import co.rsk.federate.signing.hsm.client.HSMBookkeepingClient;
+import co.rsk.federate.signing.hsm.message.ConfirmedBlock;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.utils.BlockBuilder;
 import co.rsk.federate.signing.utils.TestUtils;
@@ -350,7 +351,7 @@ class HSMBookkeepingServiceTest {
             .withHeader(blockHeaderBuilder.setNumber(1).build())
             .build();
         List<BlockHeader> brothers = new ArrayList<>();
-        ConfirmedBlocksProvider.ConfirmedBlock confirmedBlock = new ConfirmedBlocksProvider.ConfirmedBlock(block, brothers);
+        ConfirmedBlock confirmedBlock = new ConfirmedBlock(block, brothers);
 
         ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
         when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(List.of(confirmedBlock));
@@ -390,7 +391,7 @@ class HSMBookkeepingServiceTest {
 
         Block block = TestUtils.mockBlock(1, TestUtils.createHash(1));
         List<BlockHeader> brothers = new ArrayList<>();
-        ConfirmedBlocksProvider.ConfirmedBlock confirmedBlock = new ConfirmedBlocksProvider.ConfirmedBlock(block, brothers);
+        ConfirmedBlock confirmedBlock = new ConfirmedBlock(block, brothers);
 
         ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
         when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(List.of(confirmedBlock));
@@ -429,7 +430,7 @@ class HSMBookkeepingServiceTest {
 
         Block block = TestUtils.mockBlock(1, TestUtils.createHash(1));
         List<BlockHeader> brothers = new ArrayList<>();
-        ConfirmedBlocksProvider.ConfirmedBlock confirmedBlock = new ConfirmedBlocksProvider.ConfirmedBlock(block, brothers);
+        ConfirmedBlock confirmedBlock = new ConfirmedBlock(block, brothers);
 
         ConfirmedBlocksProvider mockConfirmedBlocksProvider = mock(ConfirmedBlocksProvider.class);
         when(mockConfirmedBlocksProvider.getConfirmedBlocks(any())).thenReturn(List.of(confirmedBlock));

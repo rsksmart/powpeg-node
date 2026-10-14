@@ -10,7 +10,7 @@ import static co.rsk.federate.signing.hsm.config.NetworkDifficultyCap.REGTEST;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMVersion;
-import co.rsk.federate.signing.hsm.advanceblockchain.ConfirmedBlocksProvider.ConfirmedBlock;
+import co.rsk.federate.signing.hsm.message.ConfirmedBlock;
 import co.rsk.federate.signing.utils.BlockBuilder;
 import co.rsk.federate.signing.utils.TestUtils;
 import java.math.BigInteger;
@@ -335,7 +335,7 @@ class ConfirmedBlocksProviderTest {
         );
 
         // act
-        List<ConfirmedBlocksProvider.ConfirmedBlock> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
+        List<ConfirmedBlock> confirmedBlocks = confirmedBlocksProvider.getConfirmedBlocks(startingPoint);
 
         // assert
         // The 11 brothers of block 102 come from the uncle lists of blocks 103 and 104, so their

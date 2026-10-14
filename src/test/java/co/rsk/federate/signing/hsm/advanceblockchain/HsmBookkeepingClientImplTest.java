@@ -35,8 +35,8 @@ import org.mockito.ArgumentCaptor;
 
 class HsmBookkeepingClientImplTest {
     private final BlockHeaderBuilder blockHeaderBuilder = new BlockHeaderBuilder(mock(ActivationConfig.class));
-    private final List<ConfirmedBlocksProvider.ConfirmedBlock> confirmedBlocks = buildConfirmedBlocks();
-    private final List<Block> blocks = confirmedBlocks.stream().map(ConfirmedBlocksProvider.ConfirmedBlock::block).toList();
+    private final List<ConfirmedBlock> confirmedBlocks = buildConfirmedBlocks();
+    private final List<Block> blocks = confirmedBlocks.stream().map(ConfirmedBlock::block).toList();
     private final List<BlockHeader> blockHeaders = blocks.stream().map(Block::getHeader).toList();
 
     private JsonRpcClient jsonRpcClientMock;
@@ -344,7 +344,7 @@ class HsmBookkeepingClientImplTest {
 
         // The brothers should be in the same order as the headers
         Stack<List<BlockHeader>> allBrothers = new Stack<>();
-        for (ConfirmedBlocksProvider.ConfirmedBlock confirmedBlock : confirmedBlocks) {
+        for (ConfirmedBlock confirmedBlock : confirmedBlocks) {
             allBrothers.push(confirmedBlock.brothers());
         }
 
@@ -470,7 +470,7 @@ class HsmBookkeepingClientImplTest {
      * Block 4 - Brothers: 501
      * Block 5 - Brothers: none
      */
-    private List<ConfirmedBlocksProvider.ConfirmedBlock> buildConfirmedBlocks() {
+    private List<ConfirmedBlock> buildConfirmedBlocks() {
         BlockHeader block1Header = blockHeaderBuilder
             .setNumber(1)
             .setParentHashFromKeccak256(TestUtils.createHash(0))
@@ -515,11 +515,11 @@ class HsmBookkeepingClientImplTest {
         Block block5 = new BlockBuilder().withHeader(block5Header).build();
 
         return Arrays.asList(
-            new ConfirmedBlocksProvider.ConfirmedBlock(block1, block1Brothers),
-            new ConfirmedBlocksProvider.ConfirmedBlock(block2, block2Brothers),
-            new ConfirmedBlocksProvider.ConfirmedBlock(block3, block3Brothers),
-            new ConfirmedBlocksProvider.ConfirmedBlock(block4, block4Brothers),
-            new ConfirmedBlocksProvider.ConfirmedBlock(block5, block5Brothers)
+            new ConfirmedBlock(block1, block1Brothers),
+            new ConfirmedBlock(block2, block2Brothers),
+            new ConfirmedBlock(block3, block3Brothers),
+            new ConfirmedBlock(block4, block4Brothers),
+            new ConfirmedBlock(block5, block5Brothers)
         );
     }
 }

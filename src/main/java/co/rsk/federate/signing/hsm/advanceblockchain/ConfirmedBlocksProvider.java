@@ -2,6 +2,7 @@ package co.rsk.federate.signing.hsm.advanceblockchain;
 
 import co.rsk.crypto.Keccak256;
 import co.rsk.federate.signing.hsm.HSMVersion;
+import co.rsk.federate.signing.hsm.message.ConfirmedBlock;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,8 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConfirmedBlocksProvider {
-    public record ConfirmedBlock(Block block, List<BlockHeader> brothers) {}
-
     private static final int BROTHERS_LIMIT_PER_BLOCK_HEADER = 10;
     private static final Logger logger = LoggerFactory.getLogger(ConfirmedBlocksProvider.class);
 
@@ -78,8 +77,8 @@ public class ConfirmedBlocksProvider {
                     walkedBlocks.size() - confirmedBlocksCount
                 );
 
-                // The block was confirmed. Add it to confirmed blocks list,
-                // subtract its difficulty from the accumulated and remove it from the proof blocks list
+                // The first block of the window was confirmed. Subtract its difficulty from the accumulated
+                // and move the start of the window past it
                 Block confirmedBlock = walkedBlocks.get(confirmedBlocksCount);
                 logger.trace(
                     "[getConfirmedBlocks] Confirmed block {} (height {})",
@@ -135,7 +134,7 @@ public class ConfirmedBlocksProvider {
         long uncleHeightThreshold,
         Map<Keccak256, List<BlockHeader>> unclesByParentHash
     ) {
-        // we will group the blockToProcess UNCLES as brothers sharing the same parent
+        // we will group the block UNCLES as brothers sharing the same parent
         for (BlockHeader uncle : block.getUncleList()) {
             if (!isDeliverableAsBrother(uncle, uncleHeightThreshold)) {
                 continue;

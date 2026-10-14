@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
-import co.rsk.federate.signing.hsm.advanceblockchain.ConfirmedBlocksProvider.ConfirmedBlock;
 import co.rsk.federate.signing.utils.BlockBuilder;
 import co.rsk.federate.signing.utils.TestUtils;
 import java.util.Arrays;

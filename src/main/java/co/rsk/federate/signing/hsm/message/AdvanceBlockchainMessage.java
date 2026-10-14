@@ -4,17 +4,16 @@ import co.rsk.federate.signing.hsm.HSMBlockchainBookkeepingRelatedException;
 
 import java.util.Comparator;
 import java.util.List;
-import co.rsk.federate.signing.hsm.advanceblockchain.ConfirmedBlocksProvider.ConfirmedBlock;
 
 public class AdvanceBlockchainMessage {
+    private static final Comparator<ConfirmedBlock> DESCENDING_BY_BLOCK_NUMBER =
+        Comparator.comparingLong((ConfirmedBlock confirmedBlock) -> confirmedBlock.block().getNumber()).reversed();
+
     private final List<ParsedHeader> parsedHeaders;
 
     public AdvanceBlockchainMessage(List<ConfirmedBlock> confirmedBlocks) {
         this.parsedHeaders = parseHeadersAndBrothers(confirmedBlocks);
     }
-
-    private static final Comparator<ConfirmedBlock> DESCENDING_BY_BLOCK_NUMBER =
-        Comparator.comparingLong((ConfirmedBlock confirmedBlock) -> confirmedBlock.block().getNumber()).reversed();
 
     private List<ParsedHeader> parseHeadersAndBrothers(List<ConfirmedBlock> confirmedBlocks) {
         return confirmedBlocks.stream()

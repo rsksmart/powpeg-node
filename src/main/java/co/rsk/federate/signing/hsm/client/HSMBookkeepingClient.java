@@ -2,7 +2,7 @@ package co.rsk.federate.signing.hsm.client;
 
 import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.HSMVersion;
-import co.rsk.federate.signing.hsm.advanceblockchain.ConfirmedBlocksProvider.ConfirmedBlock;
+import co.rsk.federate.signing.hsm.message.ConfirmedBlock;
 import co.rsk.federate.signing.hsm.message.PowHSMState;
 import co.rsk.federate.signing.hsm.message.PowHSMBlockchainParameters;
 import co.rsk.federate.signing.hsm.message.UpdateAncestorBlockMessage;
