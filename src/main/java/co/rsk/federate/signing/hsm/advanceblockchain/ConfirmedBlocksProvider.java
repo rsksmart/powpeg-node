@@ -112,7 +112,7 @@ public class ConfirmedBlocksProvider {
         Map<Keccak256, List<BlockHeader>> brothersByParent
     ) {
         return walkedBlocks.subList(0, blocksToSendCount).stream()
-            .map(block -> new ConfirmedBlock(block, getBrothers(block, brothersByParent)))
+            .map(block -> new ConfirmedBlock(block, List.copyOf(getBrothers(block, brothersByParent))))
             .toList();
     }
 
@@ -126,7 +126,7 @@ public class ConfirmedBlocksProvider {
         // uncles are not delivered as brothers either
         walkedBlocks.subList(blocksToSendCount, walkedBlocks.size())
             .forEach(block -> block.getUncleList().stream()
-                .filter(uncle -> uncle.getNumber() > threshold)
+                .filter(uncle -> isDeliverableAsBrother(uncle, threshold))
                 .forEach(uncle -> brothersByParent.get(uncle.getParentHash()).remove(uncle)));
     }
 
@@ -137,7 +137,7 @@ public class ConfirmedBlocksProvider {
     ) {
         // we will group the blockToProcess UNCLES as brothers sharing the same parent
         for (BlockHeader uncle : block.getUncleList()) {
-            if (uncle.getNumber() <= uncleHeightThreshold) {
+            if (!isDeliverableAsBrother(uncle, uncleHeightThreshold)) {
                 continue;
             }
 
@@ -145,6 +145,10 @@ public class ConfirmedBlocksProvider {
                 unclesByParentHash.computeIfAbsent(uncle.getParentHash(), parentHash -> new ArrayList<>());
             groupedUncles.add(uncle);
         }
+    }
+
+    private boolean isDeliverableAsBrother(BlockHeader uncle, long uncleHeightThreshold) {
+        return uncle.getNumber() > uncleHeightThreshold;
     }
 
     /**
@@ -230,7 +234,7 @@ public class ConfirmedBlocksProvider {
             // The uncles of this block are brothers of blocks that come before it in the list.
             // Blocks before fromIndex were already removed from the total, so refreshing them would corrupt it.
             block.getUncleList().stream()
-                .filter(uncle -> uncle.getNumber() > uncleHeightThreshold)
+                .filter(uncle -> isDeliverableAsBrother(uncle, uncleHeightThreshold))
                 .map(BlockHeader::getParentHash)
                 .distinct() // to refresh difficulty just once if one block has several uncles with same parent
                 .map(indexByParent::get)
