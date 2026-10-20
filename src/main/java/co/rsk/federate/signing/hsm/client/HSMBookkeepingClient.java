@@ -16,7 +16,7 @@ public interface HSMBookkeepingClient {
 
     void advanceBlockchain(List<ConfirmedBlock> confirmedBlocks) throws HSMClientException;
 
-    PowHSMState getHSMPointer() throws HSMClientException;
+    PowHSMState getPowHSMState() throws HSMClientException;
 
     void resetAdvanceBlockchain() throws HSMClientException;
 
