@@ -1,7 +1,6 @@
 package co.rsk.federate.btcreleaseclient;
 
 import static co.rsk.federate.signing.PowPegNodeKeyId.BTC;
-import static co.rsk.peg.bitcoin.BitcoinUtils.inputHasWitness;
 
 import co.rsk.bitcoinj.core.BtcECKey;
 import co.rsk.bitcoinj.core.BtcTransaction;
@@ -19,7 +18,6 @@ import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.FederationCantSignException;
 import co.rsk.federate.signing.FederatorAlreadySignedException;
-import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
 import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
 import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMClientException;
@@ -454,18 +452,13 @@ public class BtcReleaseClient {
             BtcECKey federatorPublicKey = signer.getPublicKey(BTC.getKeyId()).toBtcKey();
             logger.trace("[validateTxCanBeSigned] Federator public key {}", federatorPublicKey);
 
+            SigHashCalculator sigHashCalculator = new SegwitSigHashCalculatorImpl(releaseCreationInformation.getUtxoOutpointValues());
             for (int inputIndex = 0; inputIndex < pegoutBtcTx.getInputs().size(); inputIndex++) {
                 // Check if input is not already signed by the current federator
                 logger.trace(
                     "[validateTxCanBeSigned] Checking if the input {} is not already signed by the current federator",
                     inputIndex
                 );
-
-                SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
-                if (inputHasWitness(pegoutBtcTx, inputIndex)) {
-                    sigHashCalculator = new SegwitSigHashCalculatorImpl(releaseCreationInformation.getUtxoOutpointValues());
-                }
-
                 co.rsk.bitcoinj.core.Sha256Hash sigHash = sigHashCalculator.calculate(pegoutBtcTx, inputIndex);
                 if (BridgeUtils.isInputSignedByThisFederator(pegoutBtcTx, inputIndex, federatorPublicKey, sigHash)) {
                     String message = String.format(
@@ -498,13 +491,12 @@ public class BtcReleaseClient {
             releaseRequirementsEnforcer.enforce(signerVersion, pegoutCreationInformation);
             co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(bridgeConstants.getBtcParams()));
             List<byte[]> signatures = new ArrayList<>();
+            SignerMessageBuilder messageBuilder = signerMessageBuilderFactory.buildFromConfig(
+                signerVersion,
+                pegoutCreationInformation
+            );
             int inputsSize = pegoutBtcTx.getInputs().size();
             for (int inputIndex = 0; inputIndex < inputsSize; inputIndex++) {
-                SignerMessageBuilder messageBuilder = signerMessageBuilderFactory.buildFromConfig(
-                    signerVersion,
-                    pegoutCreationInformation,
-                    inputIndex
-                );
                 SignerMessage messageToSign = messageBuilder.buildMessageForIndex(inputIndex);
                 logger.trace("[signRelease] Message to sign: {}", messageToSign.getClass());
                 ECKey.ECDSASignature ethSig = signer.sign(BTC.getKeyId(), messageToSign);

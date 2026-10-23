@@ -13,7 +13,6 @@ import co.rsk.bitcoinj.script.ScriptBuilder;
 import co.rsk.bitcoinj.wallet.RedeemData;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
-import co.rsk.federate.signing.LegacySigHashCalculatorImpl;
 import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
 import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMVersion;
@@ -266,15 +265,12 @@ public final class TestUtils {
 
         // Build btc tx to be signed
         BtcTransaction btcTx = new BtcTransaction(params);
-        btcTx.addInput(prevOut).setScriptSig(createBaseInputScriptThatSpendsFromTheFederation(federation));
+        btcTx.addInput(prevOut);
+        addSpendingFederationBaseScript(btcTx, 0, federation.getRedeemScript(), federation.getFormatVersion());
         TransactionOutput output = new TransactionOutput(params, btcTx, Coin.COIN, new BtcECKey().toAddress(params));
         btcTx.addOutput(output);
 
         return btcTx;
-    }
-
-    public static Script createBaseInputScriptThatSpendsFromTheFederation(Federation federation) {
-        return createBaseInputScriptThatSpendsFromTheFederation(federation, null);
     }
 
     public static Script createBaseInputScriptThatSpendsFromTheFederation(
@@ -298,26 +294,8 @@ public final class TestUtils {
 
     public static void addSignatures(BtcTransaction btcTx, BtcECKey signer) {
         for (int i = 0; i < btcTx.getInputs().size(); i++) {
-            if (inputHasWitness(btcTx, i)) {
-                addSignaturesToSegwitInput(btcTx, i, signer);
-            } else {
-                addSignatureToLegacyInput(btcTx, i, signer);
-            }
+            addSignaturesToSegwitInput(btcTx, i, signer);
         }
-    }
-
-    private static void addSignatureToLegacyInput(BtcTransaction btcTx, int inputToSignIndex, BtcECKey signer){
-        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
-        Sha256Hash sigHash = sigHashCalculator.calculate(btcTx, inputToSignIndex);
-
-        int sigIndex = getSigInsertionIndex(btcTx, inputToSignIndex, sigHash, signer);
-
-        Optional<Script> redeemScript = extractRedeemScriptFromInput(btcTx, inputToSignIndex);
-        Script outputScript = buildOutputScript(btcTx, inputToSignIndex, redeemScript.get());
-
-        BtcECKey.ECDSASignature signature = signer.sign(sigHash);
-        TransactionSignature txSig = new TransactionSignature(signature, BtcTransaction.SigHash.ALL, false);
-        signInput(btcTx, inputToSignIndex, txSig, sigIndex, outputScript);
     }
 
     private static void addSignaturesToSegwitInput(BtcTransaction btcTx, int inputToSignIndex, BtcECKey signer) {
