@@ -180,7 +180,7 @@ class PowHSMSignerMessageBuilderTest {
             mock(BtcTransaction.class),
             Collections.emptyList()
         );
-        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
+        SigHashCalculator sigHashCalculator = new SegwitSigHashCalculatorImpl(Collections.emptyList());
         PowHSMSignerMessageBuilder signerMessageBuilder = new PowHSMSignerMessageBuilder(
             receiptStore,
             releaseCreationInformation,
