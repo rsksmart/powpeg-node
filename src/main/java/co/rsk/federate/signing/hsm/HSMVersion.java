@@ -3,6 +3,7 @@ package co.rsk.federate.signing.hsm;
 public enum HSMVersion {
     V1(1),
     V5(5),
+    V6(6)
     ;
 
     private final int number;
