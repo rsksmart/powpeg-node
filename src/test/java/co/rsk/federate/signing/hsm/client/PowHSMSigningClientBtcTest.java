@@ -385,7 +385,7 @@ class PowHSMSigningClientBtcTest {
 
     private ObjectNode buildSignCommand(PowHSMSignerMessage powHSMSignerMessage) {
         // Message child
-        JsonNode message = powHSMSignerMessage.getMessageToSign();
+        JsonNode message = powHSMSignerMessage.getMessageToSign(hsmVersion);
 
         // Auth child
         ObjectNode auth = objectMapper.createObjectNode();
@@ -435,7 +435,7 @@ class PowHSMSigningClientBtcTest {
         ObjectNode message = objectMapper.createObjectNode();
         message.put(TX.getFieldName(), "aaaa");
         message.put(INPUT.getFieldName(), messageForSignature.getInputIndex());
-        when(messageForSignature.getMessageToSign()).thenReturn(message);
+        when(messageForSignature.getMessageToSign(any())).thenReturn(message);
 
         return messageForSignature;
     }
