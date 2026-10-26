@@ -51,7 +51,7 @@ class PegUtilsTest {
     );
 
     @Nested
-    class IsSvpFundTxTest {
+    class IsSVPFundTxTest {
         private Federation activeFederation;
         private Federation proposedFederation;
         private Address proposedFederationAddress;
@@ -74,27 +74,27 @@ class PegUtilsTest {
         }
 
         @Test
-        void isSvpFundTx_withChange_shouldReturnTrue() {
+        void isSVPFundTx_withChange_shouldReturnTrue() {
             // arrange
             BtcTransaction svpFundTx = createSVPFundTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, proposedFederation);
 
             // act & assert
-            assertTrue(isSvpFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withoutChange_shouldReturnTrue() {
+        void isSVPFundTx_withoutChange_shouldReturnTrue() {
             // arrange
             BtcTransaction svpFundTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(svpFundTx, activeFederation, 1);
             addSvpFundOutputs(svpFundTx);
 
             // act & assert
-            assertTrue(isSvpFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withMultipleInputsFromActiveFed_shouldReturnTrue() {
+        void isSVPFundTx_withMultipleInputsFromActiveFed_shouldReturnTrue() {
             // arrange
             BtcTransaction svpFundTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(svpFundTx, activeFederation, 1);
@@ -104,11 +104,11 @@ class PegUtilsTest {
             svpFundTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertTrue(isSvpFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withInputFromFlyoverUtxo_shouldReturnTrue() {
+        void isSVPFundTx_withInputFromFlyoverUtxo_shouldReturnTrue() {
             // arrange
             // the svp fund tx is built from the active federation wallet, which includes its flyover utxos
             BtcTransaction svpFundTx = new BtcTransaction(MAINNET_BTC_PARAMS);
@@ -118,22 +118,22 @@ class PegUtilsTest {
             svpFundTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertTrue(isSvpFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withoutInputs_shouldReturnFalse() {
+        void isSVPFundTx_withoutInputs_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addSvpFundOutputs(btcTx);
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withATxWithInputFromUser_shouldReturnFalse() {
+        void isSVPFundTx_withATxWithInputFromUser_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromUser(btcTx);
@@ -141,22 +141,36 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withSingleOutput_shouldReturnFalse() {
+        void isSVPFundTx_withInputsFromActiveFedAndUser_shouldReturnFalse() {
+            // arrange
+            BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
+            // a different outpoint than the one spent by the user input
+            addInputFromFederation(btcTx, activeFederation, 2);
+            addInputFromUser(btcTx);
+            addSvpFundOutputs(btcTx);
+            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+
+            // act & assert
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+        }
+
+        @Test
+        void isSVPFundTx_withSingleOutput_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, proposedFederationAddress);
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withOutputToUser_shouldReturnFalse() {
+        void isSVPFundTx_withOutputToUser_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
@@ -165,11 +179,11 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, userAddress);
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withFundOutputsSwapped_shouldReturnFalse() {
+        void isSVPFundTx_withFundOutputsSwapped_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
@@ -178,11 +192,11 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withOneSatoshiAboveSvpFundValueToProposedFed_shouldReturnFalse() {
+        void isSVPFundTx_withOneSatoshiAboveSvpFundValueToProposedFed_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
@@ -191,11 +205,11 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withOneSatoshiBelowSvpFundValueToProposedFed_shouldReturnFalse() {
+        void isSVPFundTx_withOneSatoshiBelowSvpFundValueToProposedFed_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
@@ -204,11 +218,11 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withOneSatoshiAboveSvpFundValueToFlyoverProposedFed_shouldReturnFalse() {
+        void isSVPFundTx_withOneSatoshiAboveSvpFundValueToFlyoverProposedFed_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
@@ -217,11 +231,11 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withOneSatoshiBelowSvpFundValueToFlyoverProposedFed_shouldReturnFalse() {
+        void isSVPFundTx_withOneSatoshiBelowSvpFundValueToFlyoverProposedFed_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
@@ -230,11 +244,11 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withPegoutToProposedFedAddressesPayingFees_shouldReturnFalse() {
+        void isSVPFundTx_withPegoutToProposedFedAddressesPayingFees_shouldReturnFalse() {
             // arrange
             // a batched pegout whose recipients are the proposed federation addresses; recipients pay the fees,
             // so each output ends up below the requested value
@@ -247,11 +261,11 @@ class PegUtilsTest {
 
             // act & assert
             assertTrue(isPegOutTx(btcTx, activeFederation));
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withoutFlyoverOutput_shouldReturnFalse() {
+        void isSVPFundTx_withoutFlyoverOutput_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
@@ -260,11 +274,11 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withoutProposedFedOutput_shouldReturnFalse() {
+        void isSVPFundTx_withoutProposedFedOutput_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
@@ -273,11 +287,11 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withFlyoverOutputFromAnotherPrefix_shouldReturnFalse() {
+        void isSVPFundTx_withFlyoverOutputFromAnotherPrefix_shouldReturnFalse() {
             // arrange
             Address flyoverAddressWithAnotherPrefix = getFlyoverAddress(ANOTHER_FLYOVER_PREFIX, proposedFederation);
 
@@ -288,21 +302,21 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withOutputsToAnotherProposedFed_shouldReturnFalse() {
+        void isSVPFundTx_withOutputsToAnotherProposedFed_shouldReturnFalse() {
             // arrange
             Federation anotherProposedFederation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, ANOTHER_FEDERATION_SIZE);
             BtcTransaction btcTx = createSVPFundTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, anotherProposedFederation);
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withThirdOutputNotToActiveFed_shouldReturnFalse() {
+        void isSVPFundTx_withThirdOutputNotToActiveFed_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
@@ -310,31 +324,31 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, userAddress);
 
             // act & assert
-            assertFalse(isSvpFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withPegin_shouldReturnFalse() {
+        void isSVPFundTx_withPegin_shouldReturnFalse() {
             // arrange
             BtcTransaction pegin = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(pegin, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSvpFundTx(pegin, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(pegin, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withPeginToProposedFed_shouldReturnFalse() {
+        void isSVPFundTx_withPeginToProposedFed_shouldReturnFalse() {
             // arrange
             BtcTransaction peginToProposedFederation = createTxFromP2pkh(MAINNET_BTC_PARAMS);
             addOutputToFedWithMinimumPeginValue(peginToProposedFederation, proposedFederationAddress);
 
             // act & assert
-            assertFalse(isSvpFundTx(peginToProposedFederation, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(peginToProposedFederation, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withPegout_shouldReturnFalse() {
+        void isSVPFundTx_withPegout_shouldReturnFalse() {
             // arrange
             BtcTransaction pegout = createPegout(
                 MAINNET_BTC_PARAMS,
@@ -344,26 +358,26 @@ class PegUtilsTest {
             );
 
             // act & assert
-            assertFalse(isSvpFundTx(pegout, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(pegout, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withMigrationTx_shouldReturnFalse() {
+        void isSVPFundTx_withMigrationTx_shouldReturnFalse() {
             // arrange
             Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, ANOTHER_FEDERATION_SIZE);
             BtcTransaction migrationTx = createMigrationTx(MAINNET_BTC_PARAMS, retiringFederation, activeFederation);
 
             // act & assert
-            assertFalse(isSvpFundTx(migrationTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(migrationTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withSvpSpendTx_shouldReturnFalse() {
+        void isSVPFundTx_withSvpSpendTx_shouldReturnFalse() {
             // arrange
             BtcTransaction svpSpendTx = createSVPSpendTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, proposedFederation);
 
             // act & assert
-            assertFalse(isSvpFundTx(svpSpendTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(svpSpendTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         private void addSvpFundOutputs(BtcTransaction btcTx) {
@@ -412,32 +426,32 @@ class PegUtilsTest {
         }
 
         @Test
-        void isSvpFundTx_withMainnetSvpFundTx_shouldReturnTrue() throws IOException {
+        void isSVPFundTx_withMainnetSvpFundTx_shouldReturnTrue() throws IOException {
             // arrange
             BtcTransaction svpFundTx = readMainnetTx("mainnet-svp-fund-tx.hex");
 
             // act & assert
-            assertTrue(isSvpFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         @Test
-        void isSvpFundTx_withMainnetSvpSpendTx_shouldReturnFalse() throws IOException {
+        void isSVPFundTx_withMainnetSvpSpendTx_shouldReturnFalse() throws IOException {
             // arrange
             BtcTransaction svpSpendTx = readMainnetTx("mainnet-svp-spend-tx.hex");
 
             // act & assert
-            assertFalse(isSvpFundTx(svpSpendTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(svpSpendTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
             assertTrue(isSVPSpendTx(svpSpendTx, proposedFederation, activeFederation));
         }
 
         @Test
-        void isSvpFundTx_withMainnetPegout_shouldReturnFalse() throws IOException {
+        void isSVPFundTx_withMainnetPegout_shouldReturnFalse() throws IOException {
             // arrange
             BtcTransaction pegout = readMainnetTx("mainnet-pegout-tx.hex");
 
             // act & assert
             assertTrue(isPegOutTx(pegout, activeFederation));
-            assertFalse(isSvpFundTx(pegout, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertFalse(isSVPFundTx(pegout, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
         }
 
         private static BtcTransaction readMainnetTx(String fileName) throws IOException {

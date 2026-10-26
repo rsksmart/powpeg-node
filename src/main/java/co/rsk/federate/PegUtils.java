@@ -62,7 +62,7 @@ public class PegUtils {
             && isOutputToScript(activeFedScript, btcTx.getOutput(activeFedOutputIndex));
     }
 
-    public static boolean isSvpFundTx(
+    public static boolean isSVPFundTx(
         BtcTransaction btcTx,
         Federation proposedFederation,
         Federation activeFederation,
