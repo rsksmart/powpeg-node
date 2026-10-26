@@ -183,6 +183,26 @@ public class FederatorSupport {
         );
     }
 
+    public void sendRegisterPegoutTransaction(org.bitcoinj.core.Transaction tx, int blockHeight, PartialMerkleTree pmt) {
+        logger.debug(
+            "[sendRegisterPegoutTransaction] About to send to the bridge btc tx {} (wtxid: {}). Block height {}",
+            tx.getTxId(),
+            tx.getWTxId(),
+            blockHeight
+        );
+
+        byte[] txIdSerialized = tx.getTxId().getBytes();
+        byte[] pmtSerialized = pmt.bitcoinSerialize();
+        this.bridgeTransactionSender.sendRskTx(
+            federatorAddress,
+            signer,
+            Bridge.REGISTER_PEGOUT_TRANSACTION,
+            txIdSerialized,
+            blockHeight,
+            pmtSerialized
+        );
+    }
+
     public void sendRegisterCoinbaseTransaction(CoinbaseInformation coinbaseInformation) {
         logger.debug(
             "[sendRegisterCoinbaseTransaction] About to send to the bridge btc coinbase tx hash {}. Block hash {}",
