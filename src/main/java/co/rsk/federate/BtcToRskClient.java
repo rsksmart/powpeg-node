@@ -649,7 +649,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         continue;
                     }
 
-                    if (!shouldSendTx(tx, federationWallet, proposedFederation, retiringFederation, activeFederation)) {
+                    if (!shouldSendRegisterBtcTx(tx, federationWallet, proposedFederation, retiringFederation, activeFederation)) {
                         removeTxHashFromFile(txHashIterator);
                         logger.warn(
                             "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to send to the Bridge",
@@ -659,7 +659,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         continue;
                     }
 
-                    sendTx(tx, txStoredBlock, pmt.get());
+                    sendRegisterBtcTx(tx, txStoredBlock, pmt.get());
                     numberOfTxsSent++;
                     // Sent a maximum of 40 registerBtcTransaction txs per federator
                     if (numberOfTxsSent >= MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN) {
@@ -730,7 +730,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             .map(Proof::getPartialMerkleTree);
     }
 
-    private boolean shouldSendTx(Transaction tx, Wallet federationWallet, Optional<Federation> proposedFederation, Optional<Federation> retiringFederation, Federation activeFederation) {
+    private boolean shouldSendRegisterBtcTx(Transaction tx, Wallet federationWallet, Optional<Federation> proposedFederation, Optional<Federation> retiringFederation, Federation activeFederation) {
         logger.debug("[shouldSendTx] Checking if tx should be sent {} (wtxid: {})", tx.getTxId(), tx.getWTxId());
         BtcTransaction btcTx = ThinConverter.toThinInstance(federationWallet.getNetworkParameters(), tx);
 
@@ -759,7 +759,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         return isValidPegInTx(btcTx, federationWallet, peginInformation);
     }
 
-    private void sendTx(Transaction tx, StoredBlock txStoredBlock, PartialMerkleTree pmt) {
+    private void sendRegisterBtcTx(Transaction tx, StoredBlock txStoredBlock, PartialMerkleTree pmt) {
         int blockHeight = txStoredBlock.getHeight();
 
         logger.debug(
