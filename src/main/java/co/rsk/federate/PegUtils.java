@@ -1,5 +1,7 @@
 package co.rsk.federate;
 
+import static co.rsk.peg.PegUtils.getFlyoverFederationScriptPubKey;
+
 import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.ScriptException;
@@ -13,6 +15,7 @@ import co.rsk.bitcoinj.wallet.Wallet;
 import co.rsk.peg.PeginInformation;
 import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.peg.btcLockSender.BtcLockSender;
+import co.rsk.peg.constants.BridgeConstants;
 import co.rsk.peg.federation.ErpFederation;
 import co.rsk.peg.federation.Federation;
 import co.rsk.peg.pegininstructions.PeginInstructionsException;
@@ -24,6 +27,8 @@ import org.slf4j.LoggerFactory;
 public class PegUtils {
     public static final Coin MINIMUM_PEGIN_TX_VALUE = Coin.valueOf(500_000);
     private static final Logger logger = LoggerFactory.getLogger(PegUtils.class);
+    private static final int SVP_FUND_TX_OUTPUTS_WITHOUT_CHANGE = 2;
+    private static final int SVP_FUND_TX_OUTPUTS_WITH_CHANGE = 3;
 
     private PegUtils() {}
 
@@ -55,6 +60,49 @@ public class PegUtils {
         return isInputFromScript(defaultProposedFederationP2SHScript, btcTx, proposedFedInputIndex)
             && isInputFromScript(defaultProposedFederationP2SHScript, btcTx, flyoverProposedFedInputIndex)
             && isOutputToScript(activeFedScript, btcTx.getOutput(activeFedOutputIndex));
+    }
+
+    public static boolean isSvpFundTx(
+        BtcTransaction btcTx,
+        Federation proposedFederation,
+        Federation activeFederation,
+        BridgeConstants bridgeConstants
+    ) {
+        int outputsCount = btcTx.getOutputs().size();
+        if (outputsCount != SVP_FUND_TX_OUTPUTS_WITHOUT_CHANGE && outputsCount != SVP_FUND_TX_OUTPUTS_WITH_CHANGE) {
+            return false;
+        }
+        if (!allInputsAreFromFederation(btcTx, activeFederation)) {
+            return false;
+        }
+
+        Coin svpFundTxOutputsValue = bridgeConstants.getSvpFundTxOutputsValue();
+        int proposedFedOutputIndex = 0;
+        TransactionOutput proposedFedOutput = btcTx.getOutput(proposedFedOutputIndex);
+        Script proposedFedScript = proposedFederation.getP2SHScript();
+        if (!isOutputToScriptWithValue(proposedFedScript, svpFundTxOutputsValue, proposedFedOutput)) {
+            return false;
+        }
+
+        int flyoverProposedFedOutputIndex = 1;
+        TransactionOutput flyoverProposedFedOutput = btcTx.getOutput(flyoverProposedFedOutputIndex);
+        Script flyoverProposedFedScript = getFlyoverFederationScriptPubKey(
+            bridgeConstants.getProposedFederationFlyoverPrefix(),
+            proposedFederation
+        );
+        if (!isOutputToScriptWithValue(flyoverProposedFedScript, svpFundTxOutputsValue, flyoverProposedFedOutput)) {
+            return false;
+        }
+
+        boolean hasNoChangeOutput = outputsCount == SVP_FUND_TX_OUTPUTS_WITHOUT_CHANGE;
+        if (hasNoChangeOutput) {
+            return true;
+        }
+
+        int changeOutputIndex = 2;
+        TransactionOutput changeOutput = btcTx.getOutput(changeOutputIndex);
+        Script activeFedScript = activeFederation.getP2SHScript();
+        return isOutputToScript(activeFedScript, changeOutput);
     }
 
     public static boolean isMigrationTx(
@@ -102,6 +150,20 @@ public class PegUtils {
         return expectedSpendingScript.equals(p2shOutputScript) || expectedSpendingScript.equals(p2wshOutputScript);
     }
 
+    private static boolean allInputsAreFromFederation(BtcTransaction btcTx, Federation federation) {
+        Script fedStandardP2SHScript = ((ErpFederation) federation).getDefaultP2SHScript();
+        int inputsSize = btcTx.getInputs().size();
+        if (inputsSize == 0) {
+            return false;
+        }
+        for (int i = 0; i < inputsSize; i++) {
+            if (!isInputFromScript(fedStandardP2SHScript, btcTx, i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static boolean allTxOutputsAreToFed(BtcTransaction btcTx, Federation federation) {
         for (TransactionOutput output : btcTx.getOutputs()) {
             if (!isOutputToScript(federation.getP2SHScript(), output)) {
@@ -114,6 +176,10 @@ public class PegUtils {
     private static boolean isOutputToScript(Script expectedOutputScript, TransactionOutput output) {
         Script txOutputScript = output.getScriptPubKey();
         return expectedOutputScript.equals(txOutputScript);
+    }
+
+    private static boolean isOutputToScriptWithValue(Script expectedOutputScript, Coin expectedValue, TransactionOutput output) {
+        return isOutputToScript(expectedOutputScript, output) && output.getValue().equals(expectedValue);
     }
 
     public static boolean isValidPegInTx(BtcTransaction btcTx, Wallet federationWallet, PeginInformation peginInformation) {
