@@ -1,7 +1,6 @@
 package co.rsk.federate;
 
-import static co.rsk.federate.PegUtils.isPegOutTx;
-import static co.rsk.federate.PegUtils.isSvpFundTx;
+import static co.rsk.federate.PegUtils.*;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.addOutputToFedWithMinimumPeginValue;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.coinListOf;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.createHash;
@@ -428,6 +427,7 @@ class PegUtilsTest {
 
             // act & assert
             assertFalse(isSvpFundTx(svpSpendTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertTrue(isSVPSpendTx(svpSpendTx, proposedFederation, activeFederation));
         }
 
         @Test
