@@ -652,7 +652,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
                     if (shouldSendRegisterPegoutTx(tx, federationWallet, proposedFederation, retiringFederation, activeFederation)) {
                         sendRegisterPegoutTx(tx, txStoredBlock, pmt.get());
-                    } else if (shouldSendRegisterBtcTx(tx, federationWallet, proposedFederation, retiringFederation, activeFederation)) {
+                    } else if (shouldSendRegisterBtcTx(tx, federationWallet, proposedFederation, activeFederation)) {
                         sendRegisterBtcTx(tx, txStoredBlock, pmt.get());
                     } else {
                         removeTxHashFromFile(txHashIterator);
@@ -734,7 +734,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             .map(Proof::getPartialMerkleTree);
     }
 
-    private boolean shouldSendRegisterBtcTx(Transaction tx, Wallet federationWallet, Optional<Federation> proposedFederation, Optional<Federation> retiringFederation, Federation activeFederation) {
+    private boolean shouldSendRegisterBtcTx(Transaction tx, Wallet federationWallet, Optional<Federation> proposedFederation, Federation activeFederation) {
         logger.debug("[shouldSendTx] Checking if tx should be sent {} (wtxid: {})", tx.getTxId(), tx.getWTxId());
         BtcTransaction btcTx = ThinConverter.toThinInstance(federationWallet.getNetworkParameters(), tx);
 
@@ -754,10 +754,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         if (proposedFederation.isPresent() && isSVPSpendTx(btcTx, proposedFederation.get(), activeFederation)) {
             return true;
         }
-        if (retiringFederation.isPresent() && isMigrationTx(btcTx, retiringFederation.get(), activeFederation)) {
-            return true;
-        }
-        if (isPegOutTx(btcTx, federationToListen)) {
+        if (proposedFederation.isPresent() && isSVPFundTx(btcTx, proposedFederation.get(), activeFederation, bridgeConstants)) {
             return true;
         }
         return isValidPegInTx(btcTx, federationWallet, peginInformation);
