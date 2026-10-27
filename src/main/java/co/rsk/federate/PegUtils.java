@@ -29,6 +29,11 @@ public class PegUtils {
     private static final Logger logger = LoggerFactory.getLogger(PegUtils.class);
     private static final int SVP_FUND_TX_OUTPUTS_WITHOUT_CHANGE = 2;
     private static final int SVP_FUND_TX_OUTPUTS_WITH_CHANGE = 3;
+    private static final int SVP_SPEND_TX_INPUTS_COUNT = 2;
+    private static final int SVP_SPEND_TX_OUTPUTS_COUNT = 1;
+    private static final int SVP_SPEND_TX_PROPOSED_FED_INPUT_INDEX = 0;
+    private static final int SVP_SPEND_TX_FLYOVER_PROPOSED_FED_INPUT_INDEX = 1;
+    private static final int SVP_SPEND_TX_ACTIVE_FED_OUTPUT_INDEX = 0;
 
     private PegUtils() {}
 
@@ -37,29 +42,23 @@ public class PegUtils {
         Federation proposedFederation,
         Federation activeFederation
     ) {
-        int svpSpendTxInputsCount = 2;
-        if (btcTx.getInputs().size() != svpSpendTxInputsCount) {
+        if (btcTx.getInputs().size() != SVP_SPEND_TX_INPUTS_COUNT) {
             return false;
         }
-        if (btcTx.countWitnesses() != svpSpendTxInputsCount) {
+        if (btcTx.countWitnesses() != SVP_SPEND_TX_INPUTS_COUNT) {
             return false;
         }
 
-        int svpSpendTxOutputsCount = 1;
-        if (btcTx.getOutputs().size() != svpSpendTxOutputsCount) {
+        if (btcTx.getOutputs().size() != SVP_SPEND_TX_OUTPUTS_COUNT) {
             return false;
         }
 
         Script defaultProposedFederationP2SHScript = ((ErpFederation) proposedFederation).getDefaultP2SHScript();
-        int proposedFedInputIndex = 0;
-        int flyoverProposedFedInputIndex = 1;
-
-        int activeFedOutputIndex = 0;
         Script activeFedScript = activeFederation.getP2SHScript();
 
-        return isInputFromScript(defaultProposedFederationP2SHScript, btcTx, proposedFedInputIndex)
-            && isInputFromScript(defaultProposedFederationP2SHScript, btcTx, flyoverProposedFedInputIndex)
-            && isOutputToScript(activeFedScript, btcTx.getOutput(activeFedOutputIndex));
+        return isInputFromScript(defaultProposedFederationP2SHScript, btcTx, SVP_SPEND_TX_PROPOSED_FED_INPUT_INDEX)
+            && isInputFromScript(defaultProposedFederationP2SHScript, btcTx, SVP_SPEND_TX_FLYOVER_PROPOSED_FED_INPUT_INDEX)
+            && isOutputToScript(activeFedScript, btcTx.getOutput(SVP_SPEND_TX_ACTIVE_FED_OUTPUT_INDEX));
     }
 
     public static boolean isSVPFundTx(
