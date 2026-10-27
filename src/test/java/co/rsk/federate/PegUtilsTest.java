@@ -101,7 +101,7 @@ class PegUtilsTest {
             addInputFromFederation(svpFundTx, activeFederation, 2);
             addInputFromFederation(svpFundTx, activeFederation, 3);
             addSvpFundOutputs(svpFundTx);
-            svpFundTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(svpFundTx);
 
             // act & assert
             assertIsSVPFundTx(svpFundTx, proposedFederation, activeFederation);
@@ -115,7 +115,7 @@ class PegUtilsTest {
             addInputFromFederation(svpFundTx, activeFederation, 1);
             addInputFromFlyoverFederation(svpFundTx, activeFederation);
             addSvpFundOutputs(svpFundTx);
-            svpFundTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(svpFundTx);
 
             // act & assert
             assertIsSVPFundTx(svpFundTx, proposedFederation, activeFederation);
@@ -126,7 +126,7 @@ class PegUtilsTest {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addSvpFundOutputs(btcTx);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -138,7 +138,7 @@ class PegUtilsTest {
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromUser(btcTx);
             addSvpFundOutputs(btcTx);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -152,7 +152,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 2);
             addInputFromUser(btcTx);
             addSvpFundOutputs(btcTx);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -165,7 +165,7 @@ class PegUtilsTest {
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, retiringFederation, 1);
             addSvpFundOutputs(btcTx);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -177,7 +177,7 @@ class PegUtilsTest {
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, proposedFederation, 1);
             addSvpFundOutputs(btcTx);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -200,7 +200,7 @@ class PegUtilsTest {
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromFederation(btcTx, activeFederation, 1);
             addSvpFundOutputs(btcTx);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
             btcTx.addOutput(CHANGE_VALUE, userAddress);
 
             // act & assert
@@ -214,7 +214,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, flyoverProposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, proposedFederationAddress);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -227,7 +227,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE.add(Coin.SATOSHI), proposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, flyoverProposedFederationAddress);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -240,7 +240,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE.minus(Coin.SATOSHI), proposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, flyoverProposedFederationAddress);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -253,7 +253,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, proposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE.add(Coin.SATOSHI), flyoverProposedFederationAddress);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -266,7 +266,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, proposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE.minus(Coin.SATOSHI), flyoverProposedFederationAddress);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -282,7 +282,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE.minus(feePerOutput), proposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE.minus(feePerOutput), flyoverProposedFederationAddress);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertTrue(isPegOutTx(btcTx, activeFederation));
@@ -296,7 +296,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, proposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, proposedFederationAddress);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -309,7 +309,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, flyoverProposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, flyoverProposedFederationAddress);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -324,7 +324,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, proposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, flyoverAddressWithAnotherPrefix);
-            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+            addChangeOutput(btcTx);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
@@ -408,6 +408,10 @@ class PegUtilsTest {
         private void addSvpFundOutputs(BtcTransaction btcTx) {
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, proposedFederationAddress);
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, flyoverProposedFederationAddress);
+        }
+
+        private void addChangeOutput(BtcTransaction btcTx) {
+            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
         }
     }
 
