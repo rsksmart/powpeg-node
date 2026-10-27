@@ -72,7 +72,7 @@ public class PegUtils {
         if (outputsCount != SVP_FUND_TX_OUTPUTS_WITHOUT_CHANGE && outputsCount != SVP_FUND_TX_OUTPUTS_WITH_CHANGE) {
             return false;
         }
-        if (!allInputsAreFromFederation(btcTx, activeFederation)) {
+        if (!allTxInputsAreFromFed(btcTx, activeFederation)) {
             return false;
         }
 
@@ -150,7 +150,7 @@ public class PegUtils {
         return expectedSpendingScript.equals(p2shOutputScript) || expectedSpendingScript.equals(p2wshOutputScript);
     }
 
-    private static boolean allInputsAreFromFederation(BtcTransaction btcTx, Federation federation) {
+    private static boolean allTxInputsAreFromFed(BtcTransaction btcTx, Federation federation) {
         Script fedStandardP2SHScript = ((ErpFederation) federation).getDefaultP2SHScript();
         int inputsSize = btcTx.getInputs().size();
         if (inputsSize == 0) {
