@@ -29,6 +29,10 @@ public enum HSMVersion {
         return number >= V5.getNumber();
     }
 
+    public boolean requiresSigHashComputationMode() {
+        return this == HSMVersion.V5;
+    }
+
     @Override
     public String toString() {
         return Integer.toString(number);
