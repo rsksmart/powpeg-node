@@ -1,5 +1,6 @@
 package co.rsk.federate;
 
+import static co.rsk.federate.PegUtils.MINIMUM_PEGIN_TX_VALUE;
 import static co.rsk.federate.bitcoin.BitcoinTestUtils.*;
 import static co.rsk.federate.utils.ClientProofsAssertions.*;
 import static co.rsk.peg.federation.FederationChangeResponseCode.FEDERATION_NON_EXISTENT;
@@ -1749,7 +1750,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -1809,7 +1810,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -1849,7 +1850,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -1889,7 +1890,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -1951,7 +1952,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -1972,7 +1973,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2014,7 +2015,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2035,7 +2036,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2056,7 +2057,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2119,7 +2120,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2140,7 +2141,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2161,7 +2162,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2182,7 +2183,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2287,7 +2288,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2308,7 +2309,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2371,7 +2372,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2392,7 +2393,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2413,7 +2414,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2434,7 +2435,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2497,7 +2498,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2518,7 +2519,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2539,7 +2540,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2560,7 +2561,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2666,7 +2667,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2687,7 +2688,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2834,7 +2835,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2855,7 +2856,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2918,7 +2919,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -2939,7 +2940,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -3002,7 +3003,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -3023,7 +3024,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
 
             @Test
@@ -3182,7 +3183,7 @@ class BtcToRskClientTest {
             }
 
             @Test
-            void updateBridgeBtcTransactions_pegoutTx_withChangeToFed_shouldBeInformed() throws Exception {
+            void updateBridgeBtcTransactions_pegoutTx_withChangeToFed_shouldBeRegisteredAsPegout() throws Exception {
                 // arrange
                 Federation federation = TestUtils.createP2shP2wshErpFederation(
                     MAINNET_BTC_PARAMS,
@@ -3211,11 +3212,141 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(pegoutBtcTx);
+                assertTxSentToBridgeAsPegoutByActiveFedClient(pegoutBtcTx);
             }
 
             @Test
-            void updateBridgeBtcTransactions_migrationTx_shouldBeInformed() throws Exception {
+            void updateBridgeBtcTransactions_pegoutTx_withChangeAboveMinimumPeginValue_shouldBeRegisteredAsPegout() throws Exception {
+                // arrange
+                Federation federation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    20
+                );
+                setUpActiveFedClient(federation);
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(federation, MINIMUM_PEGIN_TX_VALUE);
+                setUpTx(activeFedClient, pegoutBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                assertTxSentToBridgeAsPegoutByActiveFedClient(pegoutBtcTx);
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_pegoutTx_withProposedFed_shouldBeRegisteredAsPegout() throws Exception {
+                // arrange
+                Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    9
+                );
+                Federation proposedFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    20
+                );
+                setUpProposedFed(proposedFederation);
+                setUpActiveFedClient(activeFederation);
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(activeFederation, MINIMUM_PEGIN_TX_VALUE);
+                setUpTx(activeFedClient, pegoutBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                assertTxSentToBridgeAsPegoutByActiveFedClient(pegoutBtcTx);
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_pegoutTx_alreadyProcessed_shouldNotBeRegistered() throws Exception {
+                // arrange
+                Federation federation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    20
+                );
+                setUpActiveFedClient(federation);
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(federation, MINIMUM_PEGIN_TX_VALUE);
+                setUpTx(activeFedClient, pegoutBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+
+                var pegoutTxId = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, pegoutBtcTx).getTxId();
+                when(federatorSupport.isBtcTxHashAlreadyProcessed(pegoutTxId)).thenReturn(true);
+                // the tx was just processed, so it is not yet removed from the proofs file
+                long txProcessedHeight = 1L;
+                when(federatorSupport.getBtcTxHashProcessedHeight(pegoutTxId)).thenReturn(txProcessedHeight);
+                when(federatorSupport.getRskBestChainHeight()).thenReturn(txProcessedHeight);
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                assertTxNotSentToBridge(pegoutBtcTx);
+                assertWTxIdIsInActiveFedClientProofsFile(pegoutBtcTx);
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_pegoutTx_whenSendRegisterPegoutTransactionThrows_shouldKeepTxInProofsFile() throws Exception {
+                // arrange
+                Federation federation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    20
+                );
+                setUpActiveFedClient(federation);
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(federation, MINIMUM_PEGIN_TX_VALUE);
+                setUpTx(activeFedClient, pegoutBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                doThrow(new RuntimeException("simulated failure sending the rsk tx"))
+                    .when(federatorSupport).sendRegisterPegoutTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                assertWTxIdIsInActiveFedClientProofsFile(pegoutBtcTx);
+                assertWTxIdIsInActiveFedClientTxsToBeSentMap(pegoutBtcTx);
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_pegoutTxs_aboveMaximumPerTurn_shouldRegisterOnlyMaximum() throws Exception {
+                // arrange
+                Federation federation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    20
+                );
+                setUpActiveFedClient(federation);
+                int pegoutsCount = BtcToRskClient.MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN + 1;
+                for (int i = 0; i < pegoutsCount; i++) {
+                    // a different change value per pegout gives each one a different txid
+                    var changeValue = MINIMUM_PEGIN_TX_VALUE.add(co.rsk.bitcoinj.core.Coin.valueOf(i));
+                    BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(federation, changeValue);
+                    setUpTx(activeFedClient, pegoutBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                }
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                verify(federatorSupport, times(BtcToRskClient.MAXIMUM_REGISTER_BTC_LOCK_TXS_PER_TURN))
+                    .sendRegisterPegoutTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
+                verify(federatorSupport, never())
+                    .sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
+            }
+
+            private BtcTransaction createPegoutWithChangeToFed(Federation federation, co.rsk.bitcoinj.core.Coin changeValue) {
+                var userAddress = BitcoinTestUtils.createP2PKHAddress(
+                    MAINNET_BTC_PARAMS,
+                    "userAddress"
+                );
+                var outpointValues = Collections.singletonList(co.rsk.bitcoinj.core.Coin.COIN);
+                BtcTransaction pegoutBtcTx = createPegout(
+                    MAINNET_BTC_PARAMS,
+                    federation,
+                    outpointValues,
+                    Collections.singletonList(userAddress)
+                );
+                addOutputToFed(pegoutBtcTx, federation.getAddress(), changeValue);
+                return pegoutBtcTx;
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_migrationTx_shouldBeRegisteredAsPegout() throws Exception {
                 // arrange
                 Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
                     MAINNET_BTC_PARAMS,
@@ -3234,11 +3365,11 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(migrationBtcTx);
+                assertTxSentToBridgeAsPegoutByActiveFedClient(migrationBtcTx);
             }
 
             @Test
-            void updateBridgeBtcTransactions_migrationTxBelowMinimumPeginValue_shouldBeInformed() throws Exception {
+            void updateBridgeBtcTransactions_migrationTxBelowMinimumPeginValue_shouldBeRegisteredAsPegout() throws Exception {
                 // arrange
                 Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
                     MAINNET_BTC_PARAMS,
@@ -3257,7 +3388,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(migrationBtcTx);
+                assertTxSentToBridgeAsPegoutByActiveFedClient(migrationBtcTx);
             }
 
             @Test
@@ -3286,7 +3417,7 @@ class BtcToRskClientTest {
             }
 
             @Test
-            void updateBridgeBtcTransactions_svpFundTx_shouldBeInformed() throws Exception {
+            void updateBridgeBtcTransactions_svpFundTx_withProposedFed_shouldBeRegisteredAsBtcTx() throws Exception {
                 // arrange
                 Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
                     MAINNET_BTC_PARAMS,
@@ -3306,7 +3437,59 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(svpFundBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(svpFundBtcTx);
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_svpFundTx_withoutProposedFed_shouldBeRegisteredAsPegout() throws Exception {
+                // arrange
+                Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    9
+                );
+                Federation notActiveFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    20
+                );
+                // the svp is over, so there is no proposed federation anymore
+                setUpActiveFedClient(activeFederation);
+
+                var svpFundBtcTx = createSVPFundTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, notActiveFederation);
+                setUpTx(activeFedClient, svpFundBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                assertTxSentToBridgeAsPegoutByActiveFedClient(svpFundBtcTx);
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_svpFundTx_toAnotherProposedFed_shouldBeRegisteredAsPegout() throws Exception {
+                // arrange
+                Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    9
+                );
+                Federation notActiveFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    20
+                );
+                Federation proposedFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    15
+                );
+                setUpProposedFed(proposedFederation);
+                setUpActiveFedClient(activeFederation);
+
+                var svpFundBtcTx = createSVPFundTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, notActiveFederation);
+                setUpTx(activeFedClient, svpFundBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                assertTxSentToBridgeAsPegoutByActiveFedClient(svpFundBtcTx);
             }
 
             @Test
@@ -3330,7 +3513,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(svpSpendBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(svpSpendBtcTx);
             }
 
             @Test
@@ -3433,7 +3616,7 @@ class BtcToRskClientTest {
                 assertWTxIdIsInActiveFedClientTxsToBeSentMap(btcTx2);
                 // calling to update bridge txs will send it to the bridge
                 activeFedClient.updateBridgeBtcTransactions();
-                assertTxSentToBridge(btcToRskActiveFedClientFileStorage, btcTx2, 2);
+                assertRegisterBtcTxSentToBridge(btcToRskActiveFedClientFileStorage, btcTx2, 2);
             }
 
             private void setUpForFileStorageTests(Federation retiringFed, Federation activeFed, BtcTransaction btcTx1, BtcTransaction btcTx2) throws Exception {
@@ -3623,7 +3806,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeByActiveFedClient(peginBtcTx);
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(peginBtcTx);
             }
         }
 
@@ -4023,16 +4206,25 @@ class BtcToRskClientTest {
             assertWTxIdIsInTxsToBeSentMap(retiringFedClient, tx);
         }
 
-        private void assertTxSentToBridgeByActiveFedClient(BtcTransaction btcTx) throws IOException {
+        private void assertRegisterBtcTxSentToBridgeByActiveFedClient(BtcTransaction btcTx) throws IOException {
             int expectedBlockWithTxHeight = 1;
-            assertTxSentToBridge(btcToRskActiveFedClientFileStorage, btcTx, expectedBlockWithTxHeight);
+            assertRegisterBtcTxSentToBridge(btcToRskActiveFedClientFileStorage, btcTx, expectedBlockWithTxHeight);
         }
 
-        private void assertTxSentToBridge(BtcToRskClientFileStorage btcToRskClientFileStorage, BtcTransaction btcTx, int blockWithTxHeight) throws IOException {
+        private void assertRegisterBtcTxSentToBridge(BtcToRskClientFileStorage btcToRskClientFileStorage, BtcTransaction btcTx, int blockWithTxHeight) throws IOException {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
 
             org.bitcoinj.core.PartialMerkleTree pmt = getPMT(btcToRskClientFileStorage, tx);
             verify(federatorSupport).sendRegisterBtcTransaction(tx, blockWithTxHeight, pmt);
+            verify(federatorSupport, never()).sendRegisterPegoutTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
+        }
+
+        private void assertTxSentToBridgeAsPegoutByActiveFedClient(BtcTransaction btcTx) throws IOException {
+            var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+
+            org.bitcoinj.core.PartialMerkleTree pmt = getPMT(btcToRskActiveFedClientFileStorage, tx);
+            verify(federatorSupport).sendRegisterPegoutTransaction(tx, DEFAULT_BLOCK_WITH_TX_INDEX, pmt);
+            verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
         }
 
         private org.bitcoinj.core.PartialMerkleTree getPMT(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
@@ -4046,6 +4238,7 @@ class BtcToRskClientTest {
         private void assertTxNotSentToBridge(BtcTransaction btcTx) {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
             verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
+            verify(federatorSupport, never()).sendRegisterPegoutTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
         }
 
         private void restartNode(BtcToRskClientFileStorage btcToRskClientFileStorage, BtcToRskClient client, Federation federation) throws Exception {
