@@ -1722,19 +1722,20 @@ class BtcToRskClientTest {
         @TestInstance(TestInstance.Lifecycle.PER_METHOD)
         class UpdateBridgeBtcTransactions {
 
+            private final int FEDERATION_MEMBERS_SIZE = 20;
             private final Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
                 MAINNET_BTC_PARAMS,
-                20,
+                FEDERATION_MEMBERS_SIZE,
                 "active"
             );
             private final Federation proposedFederation = TestUtils.createP2shP2wshErpFederation(
                 MAINNET_BTC_PARAMS,
-                20,
+                FEDERATION_MEMBERS_SIZE,
                 "proposed"
             );
             private final Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
                 MAINNET_BTC_PARAMS,
-                20,
+                FEDERATION_MEMBERS_SIZE,
                 "retiring"
             );
 
@@ -3132,7 +3133,7 @@ class BtcToRskClientTest {
                 // arrange
                 Federation notActiveFederation = TestUtils.createP2shP2wshErpFederation(
                     MAINNET_BTC_PARAMS,
-                    20,
+                    FEDERATION_MEMBERS_SIZE,
                     "notActive"
                 );
                 setUpProposedFed(proposedFederation);
@@ -3169,7 +3170,7 @@ class BtcToRskClientTest {
                 // arrange
                 Federation notActiveFederation = TestUtils.createP2shP2wshErpFederation(
                     MAINNET_BTC_PARAMS,
-                    20,
+                    FEDERATION_MEMBERS_SIZE,
                     "notActive"
                 );
                 setUpActiveFedClient(activeFederation);
@@ -3355,7 +3356,7 @@ class BtcToRskClientTest {
                 var testnet = testnetConstants.getBtcParams();
 
                 co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(testnet));
-                var amountOfMembers = 20;
+                var amountOfMembers = FEDERATION_MEMBERS_SIZE;
                 List<BtcECKey> keys = new ArrayList<>();
                 for (int i = 0; i < amountOfMembers; i++) {
                     String seed = "seed" + i;
