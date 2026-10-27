@@ -43,6 +43,7 @@ class PegUtilsTest {
     private static final NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
     private static final Coin SVP_FUND_TX_OUTPUTS_VALUE = BRIDGE_MAINNET_CONSTANTS.getSvpFundTxOutputsValue();
     private static final Coin CHANGE_VALUE = Coin.COIN;
+    private static final Coin USER_OUTPUT_VALUE = Coin.valueOf(100_000);
     private static final int FEDERATION_SIZE = 20;
     private static final int ANOTHER_FEDERATION_SIZE = 15;
     // derivation hash of a flyover peg-in, unrelated to the proposed federation flyover prefix
@@ -201,7 +202,7 @@ class PegUtilsTest {
             addInputFromFederation(btcTx, activeFederation, 1);
             addSvpFundOutputs(btcTx);
             addChangeOutput(btcTx);
-            btcTx.addOutput(CHANGE_VALUE, userAddress);
+            btcTx.addOutput(USER_OUTPUT_VALUE, userAddress);
 
             // act & assert
             assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
