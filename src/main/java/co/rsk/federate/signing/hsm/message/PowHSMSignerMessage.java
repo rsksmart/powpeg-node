@@ -101,7 +101,7 @@ public class PowHSMSignerMessage extends SignerMessage {
         messageToSend.put(TX.getFieldName(), Hex.toHexString(serializedTx));
         messageToSend.put(INPUT.getFieldName(), inputIndex);
 
-        if (shouldHaveSigHashComputationMode(hsmVersion)) {
+        if (hsmVersion.requiresSigHashComputationMode()) {
             messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_SEGWIT_MODE);
         }
 
@@ -112,10 +112,6 @@ public class PowHSMSignerMessage extends SignerMessage {
         String encodedWitnessScript = Hex.toHexString(witness.getScriptBytes());
         messageToSend.put(WITNESS_SCRIPT.getFieldName(), encodedWitnessScript);
         return messageToSend;
-    }
-
-    private boolean shouldHaveSigHashComputationMode(HSMVersion hsmVersion) {
-        return hsmVersion == HSMVersion.V5;
     }
 
     private long getOutpointValueForInputIndex() {
