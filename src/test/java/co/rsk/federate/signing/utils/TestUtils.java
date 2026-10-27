@@ -168,10 +168,14 @@ public final class TestUtils {
     }
 
     public static Federation createP2shP2wshErpFederation(NetworkParameters params, int amountOfMembers) {
+        return createP2shP2wshErpFederation(params, amountOfMembers, "seed");
+    }
+
+    public static Federation createP2shP2wshErpFederation(NetworkParameters params, int amountOfMembers, String seed) {
         List<BtcECKey> keys = new ArrayList<>();
         for (int i = 0; i < amountOfMembers; i++) {
-            String seed = "seed" + i;
-            BtcECKey key = getBtcEcKeyFromSeed(seed);
+            String memberSeed = seed + i;
+            BtcECKey key = getBtcEcKeyFromSeed(memberSeed);
             keys.add(key);
         }
 

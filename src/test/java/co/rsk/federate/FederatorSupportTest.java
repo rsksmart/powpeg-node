@@ -1,6 +1,7 @@
 package co.rsk.federate;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.Mockito.*;
 
 import co.rsk.bitcoinj.core.Address;
@@ -16,6 +17,7 @@ import co.rsk.peg.Bridge;
 import co.rsk.peg.BridgeMethods;
 import co.rsk.peg.StateForProposedFederator;
 import co.rsk.peg.constants.BridgeMainNetConstants;
+import co.rsk.peg.federation.Federation;
 import co.rsk.peg.federation.FederationMember;
 import java.math.BigInteger;
 import java.time.Instant;
@@ -43,7 +45,9 @@ class FederatorSupportTest {
     private static final NetworkParameters NETWORK_PARAMETERS = BridgeMainNetConstants.getInstance().getBtcParams();
     private static final List<BtcECKey> KEYS = BitcoinTestUtils.getBtcEcKeysFromSeeds(new String[]{"k1", "k2", "k3"}, true);
     private static final Address DEFAULT_ADDRESS = BitcoinTestUtils.createP2SHMultisigAddress(NETWORK_PARAMETERS, KEYS);
+    private static final Federation P2SH_P2WSH_FEDERATION = TestUtils.createP2shP2wshErpFederation(NETWORK_PARAMETERS, KEYS);
     private static final byte[] PUBLIC_KEY = ECKey.fromPrivate(BigInteger.valueOf(100)).getPubKey();
+    private static final int PEGOUT_TX_BLOCK_HEIGHT = 850_000;
 
     private BridgeTransactionSender bridgeTransactionSender;
     private FederatorSupport federatorSupport;
@@ -141,6 +145,52 @@ class FederatorSupportTest {
         fs.sendRegisterCoinbaseTransaction(coinbaseInformation);
 
         verify(bridgeTransactionSender, times(1)).sendRskTx(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void sendRegisterPegoutTransaction_shouldSendRegisterPegoutTransactionWithTxIdHeightAndPmt() {
+        // arrange
+        org.bitcoinj.core.Transaction pegoutTx = createPegoutTx();
+        PartialMerkleTree pmt = createPmt(pegoutTx);
+
+        // act
+        federatorSupport.sendRegisterPegoutTransaction(pegoutTx, PEGOUT_TX_BLOCK_HEIGHT, pmt);
+
+        // assert
+        verify(bridgeTransactionSender).sendRskTx(
+            any(),
+            any(),
+            eq(Bridge.REGISTER_PEGOUT_TRANSACTION),
+            aryEq(pegoutTx.getTxId().getBytes()),
+            eq(PEGOUT_TX_BLOCK_HEIGHT),
+            aryEq(pmt.bitcoinSerialize())
+        );
+    }
+
+    private org.bitcoinj.core.Transaction createPegoutTx() {
+        org.bitcoinj.core.NetworkParameters networkParameters = ThinConverter.toOriginalInstance(
+            BridgeMainNetConstants.getInstance().getBtcParamsString()
+        );
+        org.bitcoinj.core.Transaction tx = new org.bitcoinj.core.Transaction(networkParameters);
+        TransactionInput input = new TransactionInput(networkParameters, null, new byte[]{});
+        TransactionWitness witness = new TransactionWitness(1);
+        // any non-empty witness makes the wtxid differ from the txid
+        witness.setPush(0, new byte[]{1});
+        input.setWitness(witness);
+        tx.addInput(input);
+        tx.addOutput(new TransactionOutput(
+            networkParameters,
+            null,
+            Coin.COIN,
+            org.bitcoinj.core.Address.fromString(networkParameters, P2SH_P2WSH_FEDERATION.getAddress().toBase58())
+        ));
+        return tx;
+    }
+
+    private PartialMerkleTree createPmt(org.bitcoinj.core.Transaction tx) {
+        List<Sha256Hash> hashes = Collections.singletonList(tx.getTxId());
+        byte[] includeTxBits = new byte[]{1};
+        return PartialMerkleTree.buildFromLeaves(tx.getParams(), includeTxBits, hashes);
     }
 
     @Test
