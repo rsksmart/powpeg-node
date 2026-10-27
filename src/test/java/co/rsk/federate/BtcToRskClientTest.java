@@ -3190,22 +3190,9 @@ class BtcToRskClientTest {
                     20
                 );
                 setUpActiveFedClient(federation);
-                var userAddress = BitcoinTestUtils.createP2PKHAddress(
-                    MAINNET_BTC_PARAMS,
-                    "userAddress"
-                );
-                var outpointValues = Collections.singletonList(co.rsk.bitcoinj.core.Coin.COIN);
-                BtcTransaction pegoutBtcTx = createPegout(
-                    MAINNET_BTC_PARAMS,
-                    federation,
-                    outpointValues,
-                    Collections.singletonList(userAddress)
-                );
-
                 var oneSatoshi = co.rsk.bitcoinj.core.Coin.valueOf(1L);
-                var amountToSend = BRIDGE_MAINNET_CONSTANTS.getMinimumPegoutTxValue().subtract(oneSatoshi);
-                addOutputToFed(pegoutBtcTx, federation.getAddress(), amountToSend);
-
+                var changeValue = BRIDGE_MAINNET_CONSTANTS.getMinimumPegoutTxValue().subtract(oneSatoshi);
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(federation, changeValue);
                 setUpTx(activeFedClient, pegoutBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
 
                 // act
