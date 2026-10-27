@@ -3441,6 +3441,62 @@ class BtcToRskClientTest {
             }
 
             @Test
+            void updateBridgeBtcTransactions_svpFundTx_withProposedFed_shouldNotBeRegisteredAsPegout() throws Exception {
+                // arrange
+                Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    9
+                );
+                Federation proposedFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    20
+                );
+                setUpProposedFed(proposedFederation);
+                setUpActiveFedClient(activeFederation);
+
+                var svpFundBtcTx = createSVPFundTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, proposedFederation);
+                setUpTx(activeFedClient, svpFundBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                var svpFundTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, svpFundBtcTx);
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                // the Bridge needs the full svp fund tx to build the svp spend tx, so only registerBtcTransaction can be used
+                verify(federatorSupport, never()).sendRegisterPegoutTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
+                verify(federatorSupport).sendRegisterBtcTransaction(eq(svpFundTx), anyInt(), any(PartialMerkleTree.class));
+                assertWTxIdIsInActiveFedClientProofsFile(svpFundBtcTx);
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_svpFundTx_withChangeBelowMinimumPeginValue_shouldBeRegisteredAsBtcTx() throws Exception {
+                // arrange
+                Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    9
+                );
+                Federation proposedFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    20
+                );
+                setUpProposedFed(proposedFederation);
+                setUpActiveFedClient(activeFederation);
+
+                var svpFundBtcTx = createSVPFundTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, proposedFederation);
+                // with change below the minimum pegin value the tx is not a valid pegin,
+                // so only the svp fund check can send it through registerBtcTransaction
+                int changeOutputIndex = 2;
+                svpFundBtcTx.getOutput(changeOutputIndex).setValue(MINIMUM_PEGIN_TX_VALUE.minus(co.rsk.bitcoinj.core.Coin.SATOSHI));
+                setUpTx(activeFedClient, svpFundBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                assertRegisterBtcTxSentToBridgeByActiveFedClient(svpFundBtcTx);
+            }
+
+            @Test
             void updateBridgeBtcTransactions_svpFundTx_withoutProposedFed_shouldBeRegisteredAsPegout() throws Exception {
                 // arrange
                 Federation activeFederation = TestUtils.createP2shP2wshErpFederation(
