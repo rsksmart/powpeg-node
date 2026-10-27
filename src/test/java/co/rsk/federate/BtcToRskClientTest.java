@@ -3212,7 +3212,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeAsPegoutByActiveFedClient(pegoutBtcTx);
+                assertRegisterPegoutTxSentToBridgeByActiveFedClient(pegoutBtcTx);
             }
 
             @Test
@@ -3230,7 +3230,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeAsPegoutByActiveFedClient(pegoutBtcTx);
+                assertRegisterPegoutTxSentToBridgeByActiveFedClient(pegoutBtcTx);
             }
 
             @Test
@@ -3253,7 +3253,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeAsPegoutByActiveFedClient(pegoutBtcTx);
+                assertRegisterPegoutTxSentToBridgeByActiveFedClient(pegoutBtcTx);
             }
 
             @Test
@@ -3365,7 +3365,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeAsPegoutByActiveFedClient(migrationBtcTx);
+                assertRegisterPegoutTxSentToBridgeByActiveFedClient(migrationBtcTx);
             }
 
             @Test
@@ -3388,7 +3388,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeAsPegoutByActiveFedClient(migrationBtcTx);
+                assertRegisterPegoutTxSentToBridgeByActiveFedClient(migrationBtcTx);
             }
 
             @Test
@@ -3489,7 +3489,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeAsPegoutByActiveFedClient(svpFundBtcTx);
+                assertRegisterPegoutTxSentToBridgeByActiveFedClient(svpFundBtcTx);
             }
 
             @Test
@@ -3517,7 +3517,7 @@ class BtcToRskClientTest {
                 activeFedClient.updateBridgeBtcTransactions();
 
                 // assert
-                assertTxSentToBridgeAsPegoutByActiveFedClient(svpFundBtcTx);
+                assertRegisterPegoutTxSentToBridgeByActiveFedClient(svpFundBtcTx);
             }
 
             @Test
@@ -4235,8 +4235,7 @@ class BtcToRskClientTest {
         }
 
         private void assertRegisterBtcTxSentToBridgeByActiveFedClient(BtcTransaction btcTx) throws IOException {
-            int expectedBlockWithTxHeight = 1;
-            assertRegisterBtcTxSentToBridge(btcToRskActiveFedClientFileStorage, btcTx, expectedBlockWithTxHeight);
+            assertRegisterBtcTxSentToBridge(btcToRskActiveFedClientFileStorage, btcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
         }
 
         private void assertRegisterBtcTxSentToBridge(BtcToRskClientFileStorage btcToRskClientFileStorage, BtcTransaction btcTx, int blockWithTxHeight) throws IOException {
@@ -4247,7 +4246,7 @@ class BtcToRskClientTest {
             verify(federatorSupport, never()).sendRegisterPegoutTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
         }
 
-        private void assertTxSentToBridgeAsPegoutByActiveFedClient(BtcTransaction btcTx) throws IOException {
+        private void assertRegisterPegoutTxSentToBridgeByActiveFedClient(BtcTransaction btcTx) throws IOException {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
 
             org.bitcoinj.core.PartialMerkleTree pmt = getPMT(btcToRskActiveFedClientFileStorage, tx);
