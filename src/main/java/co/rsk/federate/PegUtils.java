@@ -94,8 +94,7 @@ public class PegUtils {
             return false;
         }
 
-        boolean hasNoChangeOutput = outputsCount == SVP_FUND_TX_OUTPUTS_WITHOUT_CHANGE;
-        if (hasNoChangeOutput) {
+        if (outputsCount == SVP_FUND_TX_OUTPUTS_WITHOUT_CHANGE) {
             return true;
         }
 
