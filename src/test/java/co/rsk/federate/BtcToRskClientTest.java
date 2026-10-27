@@ -3316,22 +3316,6 @@ class BtcToRskClientTest {
                     .sendRegisterBtcTransaction(any(Transaction.class), anyInt(), any(PartialMerkleTree.class));
             }
 
-            private BtcTransaction createPegoutWithChangeToFed(Federation federation, co.rsk.bitcoinj.core.Coin changeValue) {
-                var userAddress = BitcoinTestUtils.createP2PKHAddress(
-                    MAINNET_BTC_PARAMS,
-                    "userAddress"
-                );
-                var outpointValues = Collections.singletonList(co.rsk.bitcoinj.core.Coin.COIN);
-                BtcTransaction pegoutBtcTx = createPegout(
-                    MAINNET_BTC_PARAMS,
-                    federation,
-                    outpointValues,
-                    Collections.singletonList(userAddress)
-                );
-                addOutputToFed(pegoutBtcTx, federation.getAddress(), changeValue);
-                return pegoutBtcTx;
-            }
-
             @Test
             void updateBridgeBtcTransactions_migrationTx_shouldBeRegisteredAsPegout() throws Exception {
                 // arrange
@@ -3632,6 +3616,22 @@ class BtcToRskClientTest {
                 // calling to update bridge txs will send it to the bridge
                 activeFedClient.updateBridgeBtcTransactions();
                 assertRegisterBtcTxSentToBridge(btcToRskActiveFedClientFileStorage, btcTx2, 2);
+            }
+
+            private BtcTransaction createPegoutWithChangeToFed(Federation federation, co.rsk.bitcoinj.core.Coin changeValue) {
+                var userAddress = BitcoinTestUtils.createP2PKHAddress(
+                    MAINNET_BTC_PARAMS,
+                    "userAddress"
+                );
+                var outpointValues = Collections.singletonList(co.rsk.bitcoinj.core.Coin.COIN);
+                BtcTransaction pegoutBtcTx = createPegout(
+                    MAINNET_BTC_PARAMS,
+                    federation,
+                    outpointValues,
+                    Collections.singletonList(userAddress)
+                );
+                addOutputToFed(pegoutBtcTx, federation.getAddress(), changeValue);
+                return pegoutBtcTx;
             }
 
             private void setUpForFileStorageTests(Federation retiringFed, Federation activeFed, BtcTransaction btcTx1, BtcTransaction btcTx2) throws Exception {
