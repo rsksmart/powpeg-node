@@ -380,6 +380,8 @@ public final class TestUtils {
     }
 
     public static HSMVersion getLatestHsmVersion() {
-        return HSMVersion.V5;
+        return Arrays.stream(HSMVersion.values())
+            .max(Comparator.comparingInt(HSMVersion::getNumber))
+            .orElseThrow();
     }
 }
