@@ -38,8 +38,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.Nonnull;
-
 class PegUtilsTest {
     private static final BridgeConstants BRIDGE_MAINNET_CONSTANTS = BridgeMainNetConstants.getInstance();
     private static final NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
@@ -430,7 +428,7 @@ class PegUtilsTest {
     // spend tx 09ad59d490ff4f40cab886c6ae63f670be4555505144fec3510dd8748e6a37df
     // pegout tx f926f41bf5212af9c02e6958a9858ab2cfe5a28aeadf351957ef62c0dd23a612, spending the fund tx change
     @Nested
-    class IsSvpFundTxWithMainnetTxsTest {
+    class IsSVPFundTxWithMainnetTxsTest {
         private static final String MAINNET_TXS_DIRECTORY = "src/test/resources/bitcoin";
         private static final List<BtcECKey> ACTIVE_FEDERATION_PUBLIC_KEYS = publicKeysFromHex(
             "0274c7a2c584eb9dbc3d78fede48d1258b974cd537d82fce4d18f0e85604774e65",
