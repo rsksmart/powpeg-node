@@ -159,6 +159,31 @@ class PegUtilsTest {
         }
 
         @Test
+        void isSVPFundTx_withInputFromRetiringFed_shouldReturnFalse() {
+            // arrange
+            Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, ANOTHER_FEDERATION_SIZE);
+            BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
+            addInputFromFederation(btcTx, retiringFederation, 1);
+            addSvpFundOutputs(btcTx);
+            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+
+            // act & assert
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+        }
+
+        @Test
+        void isSVPFundTx_withInputFromProposedFed_shouldReturnFalse() {
+            // arrange
+            BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
+            addInputFromFederation(btcTx, proposedFederation, 1);
+            addSvpFundOutputs(btcTx);
+            btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
+
+            // act & assert
+            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+        }
+
+        @Test
         void isSVPFundTx_withSingleOutput_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
