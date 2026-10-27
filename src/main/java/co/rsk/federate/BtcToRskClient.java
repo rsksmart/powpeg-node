@@ -650,18 +650,25 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         continue;
                     }
 
-                    if (shouldSendRegisterPegoutTx(tx, federationWallet, proposedFederation, retiringFederation, activeFederation)) {
-                        sendRegisterPegoutTx(tx, txStoredBlock, pmt.get());
-                    } else if (shouldSendRegisterBtcTx(tx, federationWallet, proposedFederation, activeFederation)) {
-                        sendRegisterBtcTx(tx, txStoredBlock, pmt.get());
-                    } else {
-                        removeTxHashFromFile(txHashIterator);
-                        logger.warn(
-                            "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to send to the Bridge",
-                            txId,
-                            wTxId
-                        );
-                        continue;
+                    BridgeRegistrationMethod registrationMethod = classifyBridgeRegistrationMethod(
+                        tx,
+                        federationWallet,
+                        proposedFederation,
+                        retiringFederation,
+                        activeFederation
+                    );
+                    switch (registrationMethod) {
+                        case REGISTER_PEGOUT_TRANSACTION -> sendRegisterPegoutTx(tx, txStoredBlock, pmt.get());
+                        case REGISTER_BTC_TRANSACTION -> sendRegisterBtcTx(tx, txStoredBlock, pmt.get());
+                        case NONE -> {
+                            removeTxHashFromFile(txHashIterator);
+                            logger.warn(
+                                "[updateBridgeBtcTransactions] Removed transaction {} (wtxid: {}) from txs to send to the Bridge",
+                                txId,
+                                wTxId
+                            );
+                            continue;
+                        }
                     }
 
                     numberOfTxsSent++;
@@ -734,13 +741,43 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             .map(Proof::getPartialMerkleTree);
     }
 
-    private boolean shouldSendRegisterBtcTx(Transaction tx, Wallet federationWallet, Optional<Federation> proposedFederation, Federation activeFederation) {
-        logger.debug("[shouldSendTx] Checking if tx should be sent {} (wtxid: {})", tx.getTxId(), tx.getWTxId());
+    private enum BridgeRegistrationMethod {
+        REGISTER_PEGOUT_TRANSACTION,
+        REGISTER_BTC_TRANSACTION,
+        NONE
+    }
+
+    private BridgeRegistrationMethod classifyBridgeRegistrationMethod(
+        Transaction tx,
+        Wallet federationWallet,
+        Optional<Federation> proposedFederation,
+        Optional<Federation> retiringFederation,
+        Federation activeFederation
+    ) {
+        logger.debug("[classifyBridgeRegistrationMethod] Classifying tx {} (wtxid: {})", tx.getTxId(), tx.getWTxId());
         BtcTransaction btcTx = ThinConverter.toThinInstance(federationWallet.getNetworkParameters(), tx);
 
         co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(federationWallet);
         if (valueSentToMe.isZero()) {
-            return false;
+            return BridgeRegistrationMethod.NONE;
+        }
+
+        // The order of these checks matters, and it matches the Bridge's PegUtils.getTransactionType.
+        // An SVP fund tx spends from the active federation, so it also matches isPegOutTx.
+
+        // While the SVP is ongoing, the Bridge needs the full SVP fund tx to build the SVP spend tx,
+        // so it has to be registered through registerBtcTransaction
+        if (proposedFederation.isPresent() && isSVPFundTx(btcTx, proposedFederation.get(), activeFederation, bridgeConstants)) {
+            return BridgeRegistrationMethod.REGISTER_BTC_TRANSACTION;
+        }
+        if (proposedFederation.isPresent() && isSVPSpendTx(btcTx, proposedFederation.get(), activeFederation)) {
+            return BridgeRegistrationMethod.REGISTER_BTC_TRANSACTION;
+        }
+        if (retiringFederation.isPresent() && isMigrationTx(btcTx, retiringFederation.get(), activeFederation)) {
+            return BridgeRegistrationMethod.REGISTER_PEGOUT_TRANSACTION;
+        }
+        if (isPegOutTx(btcTx, federationToListen)) {
+            return BridgeRegistrationMethod.REGISTER_PEGOUT_TRANSACTION;
         }
 
         long bestBlockNumber = federatorSupport.getRskBestChainHeight();
@@ -750,35 +787,10 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             peginInstructionsProvider,
             activations
         );
-
-        if (proposedFederation.isPresent() && isSVPSpendTx(btcTx, proposedFederation.get(), activeFederation)) {
-            return true;
+        if (isValidPegInTx(btcTx, federationWallet, peginInformation)) {
+            return BridgeRegistrationMethod.REGISTER_BTC_TRANSACTION;
         }
-        if (proposedFederation.isPresent() && isSVPFundTx(btcTx, proposedFederation.get(), activeFederation, bridgeConstants)) {
-            return true;
-        }
-        return isValidPegInTx(btcTx, federationWallet, peginInformation);
-    }
-
-    private boolean shouldSendRegisterPegoutTx(Transaction tx, Wallet federationWallet, Optional<Federation> proposedFederation, Optional<Federation> retiringFederation, Federation activeFederation) {
-        logger.debug("[shouldSendRegisterPegoutTx] Checking if tx should be sent {} (wtxid: {})", tx.getTxId(), tx.getWTxId());
-
-        BtcTransaction btcTx = ThinConverter.toThinInstance(federationWallet.getNetworkParameters(), tx);
-        co.rsk.bitcoinj.core.Coin valueSentToMe = btcTx.getValueSentToMe(federationWallet);
-        if (valueSentToMe.isZero()) {
-            return false;
-        }
-
-        // While the SVP is ongoing, the Bridge needs the full SVP fund tx to build the SVP spend tx,
-        // so it has to be registered through registerBtcTransaction
-        if (proposedFederation.isPresent() && isSVPFundTx(btcTx, proposedFederation.get(), activeFederation, bridgeConstants)) {
-            return false;
-        }
-
-        if (retiringFederation.isPresent() && isMigrationTx(btcTx, retiringFederation.get(), activeFederation)) {
-            return true;
-        }
-        return isPegOutTx(btcTx, federationToListen);
+        return BridgeRegistrationMethod.NONE;
     }
 
     private void sendRegisterPegoutTx(Transaction tx, StoredBlock txStoredBlock, PartialMerkleTree pmt) {
