@@ -38,12 +38,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import javax.annotation.Nonnull;
+
 class PegUtilsTest {
     private static final BridgeConstants BRIDGE_MAINNET_CONSTANTS = BridgeMainNetConstants.getInstance();
     private static final NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
     private static final Coin SVP_FUND_TX_OUTPUTS_VALUE = BRIDGE_MAINNET_CONSTANTS.getSvpFundTxOutputsValue();
     private static final Coin CHANGE_VALUE = Coin.COIN;
     private static final Coin USER_OUTPUT_VALUE = Coin.valueOf(100_000);
+    private static final Coin EXTRA_OUTPUT_VALUE = Coin.valueOf(50_000);
     private static final int FEDERATION_SIZE = 20;
     private static final int ANOTHER_FEDERATION_SIZE = 15;
     // derivation hash of a flyover peg-in, unrelated to the proposed federation flyover prefix
@@ -356,8 +359,7 @@ class PegUtilsTest {
         @Test
         void isSVPFundTx_withPegin_shouldReturnFalse() {
             // arrange
-            BtcTransaction pegin = createTxFromP2pkh(MAINNET_BTC_PARAMS);
-            addOutputToFedWithMinimumPeginValue(pegin, activeFederation.getAddress());
+            BtcTransaction pegin = getTransactionWithTwoOutputs(activeFederation.getAddress());
 
             // act & assert
             assertIsNotSVPFundTx(pegin, proposedFederation, activeFederation);
@@ -366,8 +368,7 @@ class PegUtilsTest {
         @Test
         void isSVPFundTx_withPeginToProposedFed_shouldReturnFalse() {
             // arrange
-            BtcTransaction peginToProposedFederation = createTxFromP2pkh(MAINNET_BTC_PARAMS);
-            addOutputToFedWithMinimumPeginValue(peginToProposedFederation, proposedFederationAddress);
+            BtcTransaction peginToProposedFederation = getTransactionWithTwoOutputs(proposedFederationAddress);
 
             // act & assert
             assertIsNotSVPFundTx(peginToProposedFederation, proposedFederation, activeFederation);
@@ -392,6 +393,7 @@ class PegUtilsTest {
             // arrange
             Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, ANOTHER_FEDERATION_SIZE);
             BtcTransaction migrationTx = createMigrationTx(MAINNET_BTC_PARAMS, retiringFederation, activeFederation);
+            migrationTx.addOutput(EXTRA_OUTPUT_VALUE, activeFederation.getAddress());
 
             // act & assert
             assertIsNotSVPFundTx(migrationTx, proposedFederation, activeFederation);
@@ -404,6 +406,13 @@ class PegUtilsTest {
 
             // act & assert
             assertIsNotSVPFundTx(svpSpendTx, proposedFederation, activeFederation);
+        }
+
+        private BtcTransaction getTransactionWithTwoOutputs(Address destination) {
+            BtcTransaction pegin = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(pegin, destination);
+            addOutputToFedWithMinimumPeginValue(pegin, destination);
+            return pegin;
         }
 
         private void addSvpFundOutputs(BtcTransaction btcTx) {
