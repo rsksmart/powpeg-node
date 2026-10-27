@@ -135,7 +135,7 @@ class PegUtilsTest {
         }
 
         @Test
-        void isSVPFundTx_withATxWithInputFromUser_shouldReturnFalse() {
+        void isSVPFundTx_withInputFromUser_shouldReturnFalse() {
             // arrange
             BtcTransaction btcTx = new BtcTransaction(MAINNET_BTC_PARAMS);
             addInputFromUser(btcTx);
