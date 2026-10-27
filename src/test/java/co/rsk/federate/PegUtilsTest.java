@@ -79,7 +79,7 @@ class PegUtilsTest {
             BtcTransaction svpFundTx = createSVPFundTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, proposedFederation);
 
             // act & assert
-            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsSVPFundTx(svpFundTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -90,7 +90,7 @@ class PegUtilsTest {
             addSvpFundOutputs(svpFundTx);
 
             // act & assert
-            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsSVPFundTx(svpFundTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -104,7 +104,7 @@ class PegUtilsTest {
             svpFundTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsSVPFundTx(svpFundTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -118,7 +118,7 @@ class PegUtilsTest {
             svpFundTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsSVPFundTx(svpFundTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -129,7 +129,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -141,7 +141,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -155,7 +155,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -168,7 +168,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -180,7 +180,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -191,7 +191,7 @@ class PegUtilsTest {
             btcTx.addOutput(SVP_FUND_TX_OUTPUTS_VALUE, proposedFederationAddress);
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -204,7 +204,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, userAddress);
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -217,7 +217,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -230,7 +230,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -243,7 +243,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -256,7 +256,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -269,7 +269,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -286,7 +286,7 @@ class PegUtilsTest {
 
             // act & assert
             assertTrue(isPegOutTx(btcTx, activeFederation));
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -299,7 +299,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -312,7 +312,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -327,7 +327,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -337,7 +337,7 @@ class PegUtilsTest {
             BtcTransaction btcTx = createSVPFundTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, anotherProposedFederation);
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -349,7 +349,7 @@ class PegUtilsTest {
             btcTx.addOutput(CHANGE_VALUE, userAddress);
 
             // act & assert
-            assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(btcTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -359,7 +359,7 @@ class PegUtilsTest {
             addOutputToFedWithMinimumPeginValue(pegin, activeFederation.getAddress());
 
             // act & assert
-            assertFalse(isSVPFundTx(pegin, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(pegin, proposedFederation, activeFederation);
         }
 
         @Test
@@ -369,7 +369,7 @@ class PegUtilsTest {
             addOutputToFedWithMinimumPeginValue(peginToProposedFederation, proposedFederationAddress);
 
             // act & assert
-            assertFalse(isSVPFundTx(peginToProposedFederation, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(peginToProposedFederation, proposedFederation, activeFederation);
         }
 
         @Test
@@ -383,7 +383,7 @@ class PegUtilsTest {
             );
 
             // act & assert
-            assertFalse(isSVPFundTx(pegout, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(pegout, proposedFederation, activeFederation);
         }
 
         @Test
@@ -393,7 +393,7 @@ class PegUtilsTest {
             BtcTransaction migrationTx = createMigrationTx(MAINNET_BTC_PARAMS, retiringFederation, activeFederation);
 
             // act & assert
-            assertFalse(isSVPFundTx(migrationTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(migrationTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -402,7 +402,7 @@ class PegUtilsTest {
             BtcTransaction svpSpendTx = createSVPSpendTx(BRIDGE_MAINNET_CONSTANTS, activeFederation, proposedFederation);
 
             // act & assert
-            assertFalse(isSVPFundTx(svpSpendTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(svpSpendTx, proposedFederation, activeFederation);
         }
 
         private void addSvpFundOutputs(BtcTransaction btcTx) {
@@ -456,7 +456,7 @@ class PegUtilsTest {
             BtcTransaction svpFundTx = readMainnetTx("mainnet-svp-fund-tx.hex");
 
             // act & assert
-            assertTrue(isSVPFundTx(svpFundTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsSVPFundTx(svpFundTx, proposedFederation, activeFederation);
         }
 
         @Test
@@ -465,7 +465,7 @@ class PegUtilsTest {
             BtcTransaction svpSpendTx = readMainnetTx("mainnet-svp-spend-tx.hex");
 
             // act & assert
-            assertFalse(isSVPFundTx(svpSpendTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(svpSpendTx, proposedFederation, activeFederation);
             assertTrue(isSVPSpendTx(svpSpendTx, proposedFederation, activeFederation));
         }
 
@@ -476,7 +476,7 @@ class PegUtilsTest {
 
             // act & assert
             assertTrue(isPegOutTx(pegout, activeFederation));
-            assertFalse(isSVPFundTx(pegout, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+            assertIsNotSVPFundTx(pegout, proposedFederation, activeFederation);
         }
 
         private static BtcTransaction readMainnetTx(String fileName) throws IOException {
@@ -489,6 +489,14 @@ class PegUtilsTest {
                 .map(publicKeyHex -> BtcECKey.fromPublicOnly(Hex.decode(publicKeyHex)))
                 .toList();
         }
+    }
+
+    private static void assertIsSVPFundTx(BtcTransaction btcTx, Federation proposedFederation, Federation activeFederation) {
+        assertTrue(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
+    }
+
+    private static void assertIsNotSVPFundTx(BtcTransaction btcTx, Federation proposedFederation, Federation activeFederation) {
+        assertFalse(isSVPFundTx(btcTx, proposedFederation, activeFederation, BRIDGE_MAINNET_CONSTANTS));
     }
 
     private static Address getFlyoverAddress(Keccak256 flyoverPrefix, Federation federation) {
