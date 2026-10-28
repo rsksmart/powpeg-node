@@ -577,6 +577,28 @@ class BtcToRskClientTest {
     }
 
     @Test
+    void onBlock_withNonSegwitTransaction_shouldStoreEqualPMTForWTxIdAndPMTForTxId() throws Exception {
+        // arrange
+        Transaction nonSegwitTx = getTx(false);
+        Block block = createBlock(createTransaction(), nonSegwitTx);
+        BtcToRskClient client = createClientWithMocks();
+        client.onTransaction(nonSegwitTx);
+        assertFalse(nonSegwitTx.hasWitnesses());
+        assertEquals(nonSegwitTx.getTxId(), nonSegwitTx.getWTxId());
+
+        // act
+        client.onBlock(block);
+
+        // assert
+        Proof proof = client.getTransactionsToSendToRsk().get(nonSegwitTx.getWTxId()).get(0);
+        assertEquals(proof.getPartialMerkleTree(), proof.getNonWitnessPartialMerkleTree());
+
+        List<Sha256Hash> hashesInNonWitnessPartialMerkleTree = new ArrayList<>();
+        proof.getNonWitnessPartialMerkleTree().getTxnHashAndMerkleRoot(hashesInNonWitnessPartialMerkleTree);
+        assertEquals(Collections.singletonList(nonSegwitTx.getTxId()), hashesInNonWitnessPartialMerkleTree);
+    }
+
+    @Test
     void onBlock_without_segwit_tx_doesnt_register_coinbase() throws Exception {
         Transaction tx = getTx(false);
         // Though there aren't segwit txs in this block let's set the data as if there were
