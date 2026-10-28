@@ -49,6 +49,7 @@ import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.util.ByteUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.mockito.internal.util.MockUtil;
 import org.spongycastle.util.encoders.Hex;
 
@@ -3031,6 +3032,29 @@ class BtcToRskClientTest {
             }
 
             @Test
+            void updateBridgeBtcTransactions_segwitPegoutTx_shouldBeRegisteredWithPMTForTxId() throws Exception {
+                // arrange
+                setUpActiveFedClient(activeFederation);
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(activeFederation, MINIMUM_PEGIN_TX_VALUE);
+                setUpTx(activeFedClient, pegoutBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                var pegoutTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, pegoutBtcTx);
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                // the Bridge looks the pegout up by its txid, so the PMT must be built over txids, not wtxids
+                assertTrue(pegoutTx.hasWitnesses());
+                assertNotEquals(pegoutTx.getTxId(), pegoutTx.getWTxId());
+
+                ArgumentCaptor<PartialMerkleTree> pmtCaptor = ArgumentCaptor.forClass(PartialMerkleTree.class);
+                verify(federatorSupport).sendRegisterPegoutTransaction(eq(pegoutTx), eq(DEFAULT_BLOCK_WITH_TX_INDEX), pmtCaptor.capture());
+                List<Sha256Hash> hashesInPmt = new ArrayList<>();
+                pmtCaptor.getValue().getTxnHashAndMerkleRoot(hashesInPmt);
+                assertEquals(Collections.singletonList(pegoutTx.getTxId()), hashesInPmt);
+            }
+
+            @Test
             void updateBridgeBtcTransactions_pegoutTx_alreadyProcessed_shouldNotBeRegistered() throws Exception {
                 // arrange
                 setUpActiveFedClient(activeFederation);
@@ -3913,25 +3937,32 @@ class BtcToRskClientTest {
         private void assertRegisterBtcTxSentToBridge(BtcToRskClientFileStorage btcToRskClientFileStorage, BtcTransaction btcTx, int blockWithTxHeight) throws IOException {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
 
-            org.bitcoinj.core.PartialMerkleTree pmt = getPMT(btcToRskClientFileStorage, tx);
-            verify(federatorSupport).sendRegisterBtcTransaction(tx, blockWithTxHeight, pmt);
+            org.bitcoinj.core.PartialMerkleTree pmtForWTxId = getPMTForWTxId(btcToRskClientFileStorage, tx);
+            verify(federatorSupport).sendRegisterBtcTransaction(tx, blockWithTxHeight, pmtForWTxId);
             verify(federatorSupport, never()).sendRegisterPegoutTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
         }
 
         private void assertRegisterPegoutTxSentToBridgeByActiveFedClient(BtcTransaction btcTx) throws IOException {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
 
-            org.bitcoinj.core.PartialMerkleTree pmt = getPMT(btcToRskActiveFedClientFileStorage, tx);
-            verify(federatorSupport).sendRegisterPegoutTransaction(tx, DEFAULT_BLOCK_WITH_TX_INDEX, pmt);
+            org.bitcoinj.core.PartialMerkleTree pmtForTxId = getPMTForTxId(btcToRskActiveFedClientFileStorage, tx);
+            verify(federatorSupport).sendRegisterPegoutTransaction(tx, DEFAULT_BLOCK_WITH_TX_INDEX, pmtForTxId);
             verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
         }
 
-        private org.bitcoinj.core.PartialMerkleTree getPMT(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
+        private org.bitcoinj.core.PartialMerkleTree getPMTForWTxId(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
+            return getFirstProof(btcToRskClientFileStorage, tx).getPartialMerkleTree();
+        }
+
+        private org.bitcoinj.core.PartialMerkleTree getPMTForTxId(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
+            return getFirstProof(btcToRskClientFileStorage, tx).getNonWitnessPartialMerkleTree();
+        }
+
+        private Proof getFirstProof(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
             BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData();
             List<Proof> proofs = fileData.getTransactionProofs().get(tx.getWTxId());
 
-            Proof proof = proofs.get(0);
-            return proof.getPartialMerkleTree();
+            return proofs.get(0);
         }
 
         private void assertTxNotSentToBridge(BtcTransaction btcTx) {
