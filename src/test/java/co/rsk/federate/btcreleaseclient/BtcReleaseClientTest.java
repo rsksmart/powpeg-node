@@ -957,6 +957,110 @@ class BtcReleaseClientTest {
             assertTxWasNotSigned(releaseCreationRskTxHash);
         }
 
+        @Test
+        void processReleases_signWithHSM_withInvalidSignature_shouldNotSign() throws Exception {
+            // Arrange
+            // INVALID_ETH_SIG_1 is not a valid signature of the pegout sighash for hsm1 public key
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, INVALID_ETH_SIG_1);
+            setUpReleaseTxFromFed(segwitFederation);
+
+            // act & assert
+            client.processReleases(releases.entrySet());
+            assertTxWasNotSigned(releaseCreationRskTxHash);
+
+            // pegout was not cached as signed, so it tries to sign it again on the next round
+            clearInvocations(signer);
+            client.processReleases(releases.entrySet());
+            verify(signer).sign(eq(BTC.getKeyId()), any(SignerMessage.class));
+        }
+
+        @Test
+        void processReleases_signWithHSM_withInvalidSignatureForSecondInput_shouldNotSign() throws Exception {
+            // Arrange
+            // build a release tx with two inputs
+            List<Coin> outpointValues = List.of(Coin.COIN, Coin.COIN.div(2));
+            BtcTransaction prevTx = new BtcTransaction(params);
+            outpointValues.forEach(value -> prevTx.addOutput(value, segwitFederation.getAddress()));
+            releaseTx = new BtcTransaction(params);
+            for (int inputIndex = 0; inputIndex < outpointValues.size(); inputIndex++) {
+                releaseTx.addInput(prevTx.getOutput(inputIndex));
+                addSpendingFederationBaseScript(
+                    releaseTx,
+                    inputIndex,
+                    segwitFederation.getRedeemScript(),
+                    segwitFederation.getFormatVersion()
+                );
+            }
+            setUpBlockchainForProcessingRelease(releaseCreationRskTxHash, releaseTx);
+
+            // valid signature for the first input, invalid one for the second
+            Sha256Hash firstInputSigHash = calculateInputSigHash(releaseTx, 0);
+            ECKey.ECDSASignature firstInputEthSig = createTxSignature(releaseTx, 0, hsm1BtcPubKey);
+            doReturn(firstInputEthSig).when(signer).sign(
+                eq(BTC.getKeyId()),
+                argThat(message -> Arrays.equals(firstInputSigHash.getBytes(), message.getBytes()))
+            );
+            Sha256Hash secondInputSigHash = calculateInputSigHash(releaseTx, 1);
+            doReturn(INVALID_ETH_SIG_1).when(signer).sign(
+                eq(BTC.getKeyId()),
+                argThat(message -> Arrays.equals(secondInputSigHash.getBytes(), message.getBytes()))
+            );
+            when(signer.getPublicKey(BTC.getKeyId())).thenReturn(new ECPublicKey(hsm1BtcPubKey.getPubKey()));
+            when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(LATEST_HSM_VERSION);
+            setUpNewClient(segwitFederation, hsm1Member);
+
+            // act & assert
+            client.processReleases(releases.entrySet());
+            // both inputs were signed, but the signatures were not sent to the bridge
+            verify(signer, times(2)).sign(eq(BTC.getKeyId()), any(SignerMessage.class));
+            assertTxWasNotSigned(releaseCreationRskTxHash);
+
+            // pegout was not cached as signed, so it tries to sign it again on the next round
+            clearInvocations(signer);
+            client.processReleases(releases.entrySet());
+            verify(signer, times(2)).sign(eq(BTC.getKeyId()), any(SignerMessage.class));
+        }
+
+        @Test
+        void processReleases_signWithHSM_whenInvalidSignatureForOneRound_shouldSignOnNextRound() throws Exception {
+            // Arrange
+            setUpReleaseTxFromFed(segwitFederation);
+            when(signer.getPublicKey(BTC.getKeyId())).thenReturn(new ECPublicKey(hsm1BtcPubKey.getPubKey()));
+            when(signer.getVersionForKeyId(BTC.getKeyId())).thenReturn(LATEST_HSM_VERSION);
+            setUpNewClient(segwitFederation, hsm1Member);
+
+            // act & assert
+            // first round returns an invalid signature, next round a valid one
+            when(signer.sign(eq(BTC.getKeyId()), any(SignerMessage.class))).thenReturn(INVALID_ETH_SIG_1);
+            client.processReleases(releases.entrySet());
+            assertTxWasNotSigned(releaseCreationRskTxHash);
+
+            ECKey.ECDSASignature ethSig = createTxSignature(releaseTx, 0, hsm1BtcPubKey);
+            when(signer.sign(eq(BTC.getKeyId()), any(SignerMessage.class))).thenReturn(ethSig);
+            client.processReleases(releases.entrySet());
+            assertTxWasSigned(releaseCreationRskTxHash, ethSig);
+
+            // pegout was cached as signed, so it is not signed again
+            clearInvocations(signer);
+            client.processReleases(releases.entrySet());
+            verify(signer, never()).sign(any(KeyId.class), any(SignerMessage.class));
+        }
+
+        @Test
+        void processReleases_signWithHSM_withValidSignatureFromAnotherKey_shouldNotSign() throws Exception {
+            // Arrange
+            setUpReleaseTxFromFed(segwitFederation);
+            // valid signature of the pegout sighash, but made with a key that is not the federator's
+            ECKey.ECDSASignature anotherKeyEthSig = createTxSignature(releaseTx, 0, hsm2BtcPubKey);
+            setUpFederator(segwitFederation, hsm1Member, LATEST_HSM_VERSION, anotherKeyEthSig);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            assertTxWasNotSigned(releaseCreationRskTxHash);
+        }
+
         private BtcTransaction buildUnprocessableReleaseTx(Federation federation) {
             BtcTransaction prevTx = new BtcTransaction(params);
             Coin prevTxValue = Coin.COIN.div(2);
