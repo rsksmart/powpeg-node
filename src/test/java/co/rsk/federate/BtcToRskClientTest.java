@@ -267,6 +267,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -293,6 +294,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -323,6 +325,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -354,6 +357,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
 
         proofs = txs.get(tx2.getTxId());
 
@@ -365,6 +369,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx2), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMT(block, tx2, false), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -395,6 +400,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -425,11 +431,13 @@ class BtcToRskClientTest {
 
         assertEquals(block1.getHash(), proof1.getBlockHash());
         assertEquals(client.generatePMT(block1, tx), proof1.getPartialMerkleTree());
+        assertEquals(client.generatePMT(block1, tx, false), proof1.getNonWitnessPartialMerkleTree());
 
         Proof proof2 = proofs.get(1);
 
         assertEquals(block2.getHash(), proof2.getBlockHash());
         assertEquals(client.generatePMT(block2, tx), proof2.getPartialMerkleTree());
+        assertEquals(client.generatePMT(block2, tx, false), proof2.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -511,6 +519,60 @@ class BtcToRskClientTest {
         assertTrue(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
         assertTrue(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
         assertEquals(coinbaseTx, btcToRskClientFileData.getCoinbaseInformationMap().get(block.getHash()).getCoinbaseTransaction());
+    }
+
+    @Test
+    void onBlock_withSegwitTransaction_shouldStoreProofWithWTxIdAndTxIdTree() throws Exception {
+        // arrange
+        Transaction segwitTx = getTx(true);
+        Sha256Hash witnessRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(Sha256Hash.ZERO_HASH.getReversedBytes(), segwitTx.getWTxId().getReversedBytes()));
+        Transaction coinbaseTx = getCoinbaseTx(true, witnessRoot, Sha256Hash.ZERO_HASH.getBytes());
+
+        Sha256Hash merkleRoot = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(coinbaseTx.getTxId().getReversedBytes(), segwitTx.getTxId().getReversedBytes()));
+        Block block = new Block(networkParameters, 2L, Sha256Hash.ZERO_HASH, merkleRoot, 0L,0L,0L, Arrays.asList(coinbaseTx, segwitTx));
+        block.verifyTransactions(0, EnumSet.noneOf(Block.VerifyFlag.class));
+
+        BtcToRskClientFileData btcToRskClientFileData = new BtcToRskClientFileData();
+        btcToRskClientFileData.getTransactionProofs().put(segwitTx.getWTxId(), new ArrayList<>());
+
+        BtcToRskClientFileStorage btcToRskClientFileStorageMock = mock(BtcToRskClientFileStorage.class);
+        when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
+
+        ActivationConfig mockedActivationConfig = mock(ActivationConfig.class);
+        when(mockedActivationConfig.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(true);
+        when(mockedActivationConfig.isActive(eq(ConsensusRule.RSKIP460), anyLong())).thenReturn(true);
+
+        FederatorSupport federatorSupport = mock(FederatorSupport.class);
+        when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
+        when(federatorSupport.getConfigForBestBlock()).thenReturn(activationsForBlock);
+
+        BtcToRskClient client = buildWithFactoryAndSetup(
+            federatorSupport,
+            mock(NodeBlockProcessor.class),
+            mockedActivationConfig,
+            mock(BitcoinWrapperImpl.class),
+            bridgeRegTestConstants,
+            btcToRskClientFileStorageMock,
+            mock(BtcLockSenderProvider.class),
+            mock(PeginInstructionsProvider.class),
+            null
+        );
+
+        // act
+        client.onBlock(block);
+
+        // assert
+        Proof proof = btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).get(0);
+
+        List<Sha256Hash> hashesInPartialMerkleTree = new ArrayList<>();
+        Sha256Hash partialMerkleTreeRoot = proof.getPartialMerkleTree().getTxnHashAndMerkleRoot(hashesInPartialMerkleTree);
+        assertEquals(Collections.singletonList(segwitTx.getWTxId()), hashesInPartialMerkleTree);
+        assertEquals(witnessRoot, partialMerkleTreeRoot);
+
+        List<Sha256Hash> hashesInNonWitnessPartialMerkleTree = new ArrayList<>();
+        Sha256Hash nonWitnessPartialMerkleTreeRoot = proof.getNonWitnessPartialMerkleTree().getTxnHashAndMerkleRoot(hashesInNonWitnessPartialMerkleTree);
+        assertEquals(Collections.singletonList(segwitTx.getTxId()), hashesInNonWitnessPartialMerkleTree);
+        assertEquals(block.getMerkleRoot(), nonWitnessPartialMerkleTreeRoot);
     }
 
     @Test
@@ -3913,7 +3975,8 @@ class BtcToRskClientTest {
 
         Sha256Hash hash = Sha256Hash.of(new byte[]{1});
         BtcToRskClientFileData newData = new BtcToRskClientFileData();
-        newData.getTransactionProofs().put(hash, Collections.singletonList(new Proof(hash, new PartialMerkleTree(networkParameters, new byte[]{}, new ArrayList<>(), 0))));
+        PartialMerkleTree pmt = new PartialMerkleTree(networkParameters, new byte[]{}, new ArrayList<>(), 0);
+        newData.getTransactionProofs().put(hash, Collections.singletonList(new Proof(hash, pmt, pmt)));
 
         BtcToRskClientFileReadResult result = spy(new BtcToRskClientFileReadResult(true, newData));
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(result);

@@ -151,7 +151,12 @@ class BtcToRskClientFileStorageImplTest {
         Map<Sha256Hash, List<Proof>> proofData = new HashMap<>();
         List<Proof> proofs = new ArrayList<>();
         List<Sha256Hash> hashes = Collections.singletonList(Sha256Hash.ZERO_HASH);
-        proofs.add(new Proof(Sha256Hash.ZERO_HASH, new PartialMerkleTree(parameters, new byte[] {}, hashes, hashes.size())));
+        List<Sha256Hash> nonWitnessHashes = Collections.singletonList(Sha256Hash.of(new byte[] {1}));
+        proofs.add(new Proof(
+            Sha256Hash.ZERO_HASH,
+            new PartialMerkleTree(parameters, new byte[] {}, hashes, hashes.size()),
+            new PartialMerkleTree(parameters, new byte[] {}, nonWitnessHashes, nonWitnessHashes.size())
+        ));
         proofData.put(Sha256Hash.ZERO_HASH, proofs);
 
         return proofData;

@@ -316,7 +316,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     }
                 }
 
-                proofs.add(new Proof(block.getHash(), tree));
+                PartialMerkleTree nonWitnessTree = generatePMT(block, tx, false);
+                proofs.add(new Proof(block.getHash(), tree, nonWitnessTree));
                 logger.info(
                     "[onBlock] New proof for tx {} (wtxid: {}) in block {}",
                     tx.getTxId(),
