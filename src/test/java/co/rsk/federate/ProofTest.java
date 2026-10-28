@@ -72,6 +72,9 @@ class ProofTest {
 
         // act & assert
         assertNotEquals(proof, proofWithOtherNonWitnessTree);
+        assertEquals(proof.getBlockHash(), proofWithOtherNonWitnessTree.getBlockHash());
+        assertEquals(proof.getPartialMerkleTree(), proofWithOtherNonWitnessTree.getPartialMerkleTree());
+        assertNotEquals(proof.getNonWitnessPartialMerkleTree(), proofWithOtherNonWitnessTree.getNonWitnessPartialMerkleTree());
     }
 
     private PartialMerkleTree buildPartialMerkleTree(String sha) {
