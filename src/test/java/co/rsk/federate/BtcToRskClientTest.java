@@ -3055,6 +3055,29 @@ class BtcToRskClientTest {
             }
 
             @Test
+            void updateBridgeBtcTransactions_segwitPeginTx_shouldBeRegisteredWithPMTForWTxId() throws Exception {
+                // arrange
+                setUpActiveFedClient(activeFederation);
+                var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+                addOutputToFedWithMinimumPeginValue(peginBtcTx, activeFederation.getAddress());
+                setUpTx(activeFedClient, peginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                var peginTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, peginBtcTx);
+                assertTrue(peginTx.hasWitnesses());
+                assertNotEquals(peginTx.getTxId(), peginTx.getWTxId());
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                // a segwit peg-in is validated against the witness merkle root, so the PMT must be built over wtxids
+                ArgumentCaptor<PartialMerkleTree> pmtCaptor = ArgumentCaptor.forClass(PartialMerkleTree.class);
+                verify(federatorSupport).sendRegisterBtcTransaction(eq(peginTx), eq(DEFAULT_BLOCK_WITH_TX_INDEX), pmtCaptor.capture());
+                List<Sha256Hash> hashesInPmt = new ArrayList<>();
+                pmtCaptor.getValue().getTxnHashAndMerkleRoot(hashesInPmt);
+                assertEquals(Collections.singletonList(peginTx.getWTxId()), hashesInPmt);
+            }
+
+            @Test
             void updateBridgeBtcTransactions_pegoutTx_alreadyProcessed_shouldNotBeRegistered() throws Exception {
                 // arrange
                 setUpActiveFedClient(activeFederation);
