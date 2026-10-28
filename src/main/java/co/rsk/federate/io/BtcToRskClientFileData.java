@@ -14,9 +14,12 @@ public class BtcToRskClientFileData {
 
     private final Map<Sha256Hash, CoinbaseInformation> coinbaseInformationMap;
 
+    private final Map<Sha256Hash, List<Proof>> nonWitnessTransactionProofs;
+
     public BtcToRskClientFileData() {
         this.transactionsProofs = new ConcurrentHashMap<>();
         this.coinbaseInformationMap = new ConcurrentHashMap<>();
+        this.nonWitnessTransactionProofs = new ConcurrentHashMap<>();
     }
 
     public Map<Sha256Hash, List<Proof>> getTransactionProofs() {
@@ -25,5 +28,9 @@ public class BtcToRskClientFileData {
 
     public Map<Sha256Hash, CoinbaseInformation> getCoinbaseInformationMap() {
         return this.coinbaseInformationMap;
+    }
+
+    public Map<Sha256Hash, List<Proof>> getNonWitnessTransactionProofs() {
+        return this.nonWitnessTransactionProofs;
     }
 }

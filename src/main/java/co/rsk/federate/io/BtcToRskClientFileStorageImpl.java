@@ -42,8 +42,9 @@ public class BtcToRskClientFileStorageImpl implements BtcToRskClientFileStorage 
 
         byte[] proofsForFile = Proof.encodeProofs(data.getTransactionProofs());
         byte[] coinbasesForFile = this.serializeCoinbaseInformation(data.getCoinbaseInformationMap());
+        byte[] nonWitnessProofsForFile = Proof.encodeProofs(data.getNonWitnessTransactionProofs());
 
-        byte[] encodedData = RLP.encodeList(proofsForFile, coinbasesForFile);
+        byte[] encodedData = RLP.encodeList(proofsForFile, coinbasesForFile, nonWitnessProofsForFile);
 
         FileUtils.writeByteArrayToFile(dataFile, encodedData);
     }
@@ -69,6 +70,9 @@ public class BtcToRskClientFileStorageImpl implements BtcToRskClientFileStorage 
             RLPList rlpList = (RLPList)elements.get(0);
             data.getTransactionProofs().putAll(Proof.deserializeProofs(rlpList.get(0).getRLPData(), networkParameters));
             data.getCoinbaseInformationMap().putAll(deserializeCoinbaseInformation(rlpList.get(1).getRLPData(), networkParameters));
+            if (rlpList.size() > 2) {
+                data.getNonWitnessTransactionProofs().putAll(Proof.deserializeProofs(rlpList.get(2).getRLPData(), networkParameters));
+            }
         } catch (Exception e) {
             return new BtcToRskClientFileReadResult(Boolean.FALSE, null);
         }
