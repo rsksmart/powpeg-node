@@ -540,8 +540,7 @@ class BtcToRskClientTest {
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(new BtcToRskClientFileReadResult(true, btcToRskClientFileData));
 
         ActivationConfig mockedActivationConfig = mock(ActivationConfig.class);
-        when(mockedActivationConfig.isActive(eq(ConsensusRule.RSKIP143), anyLong())).thenReturn(true);
-        when(mockedActivationConfig.isActive(eq(ConsensusRule.RSKIP460), anyLong())).thenReturn(true);
+        when(mockedActivationConfig.isActive(any(ConsensusRule.class), anyLong())).thenReturn(true);
 
         FederatorSupport federatorSupport = mock(FederatorSupport.class);
         when(federatorSupport.getFederationMember()).thenReturn(activeFederationMember);
