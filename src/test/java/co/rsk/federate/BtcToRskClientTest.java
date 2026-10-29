@@ -3169,10 +3169,9 @@ class BtcToRskClientTest {
                 assertTrue(pegoutTx.hasWitnesses());
                 assertNotEquals(pegoutTx.getTxId(), pegoutTx.getWTxId());
 
-                ArgumentCaptor<PartialMerkleTree> pmtCaptor = ArgumentCaptor.forClass(PartialMerkleTree.class);
-                verify(federatorSupport).sendRegisterPegoutTransaction(eq(pegoutTx), eq(DEFAULT_BLOCK_WITH_TX_INDEX), pmtCaptor.capture());
+                assertRegisterPegoutTxSentToBridgeByActiveFedClient(pegoutBtcTx);
                 List<Sha256Hash> hashesInPmt = new ArrayList<>();
-                pmtCaptor.getValue().getTxnHashAndMerkleRoot(hashesInPmt);
+                getPMTForTxId(btcToRskActiveFedClientFileStorage, pegoutTx).getTxnHashAndMerkleRoot(hashesInPmt);
                 assertEquals(Collections.singletonList(pegoutTx.getTxId()), hashesInPmt);
             }
 
