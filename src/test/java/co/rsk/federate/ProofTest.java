@@ -49,7 +49,7 @@ class ProofTest {
     }
 
     @Test
-    void decode_withDifferentNonWitnessPartialMerkleTree_shouldKeepBothTrees() {
+    void decode_withWitnessAndNonWitnessPartialMerkleTree_shouldKeepBothTrees() {
         // arrange
         PartialMerkleTree partialMerkleTree = buildPartialMerkleTree(SHA_1);
         PartialMerkleTree nonWitnessPartialMerkleTree = buildPartialMerkleTree(SHA_2);
