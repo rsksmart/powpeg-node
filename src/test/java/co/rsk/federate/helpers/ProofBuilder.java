@@ -26,7 +26,11 @@ public class ProofBuilder {
         List<Sha256Hash> hashes = new ArrayList<>();
         hashes.add(s1);
         PartialMerkleTree pm1 = new PartialMerkleTree(this.networkParameters, new byte[]{}, hashes, hashes.size());
-        return new Proof(s1, pm1);
+        Sha256Hash s2 = Sha256Hash.of(s1.getBytes());
+        List<Sha256Hash> nonWitnessHashes = new ArrayList<>();
+        nonWitnessHashes.add(s2);
+        PartialMerkleTree pm2 = new PartialMerkleTree(this.networkParameters, new byte[]{}, nonWitnessHashes, nonWitnessHashes.size());
+        return new Proof(s1, pm1, pm2);
     }
 
     public List<Proof> buildProofList(String ... shas) {

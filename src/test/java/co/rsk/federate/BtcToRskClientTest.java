@@ -49,6 +49,7 @@ import org.ethereum.config.blockchain.upgrades.ConsensusRule;
 import org.ethereum.util.ByteUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.mockito.internal.util.MockUtil;
 import org.spongycastle.util.encoders.Hex;
 
@@ -56,6 +57,7 @@ class BtcToRskClientTest {
     private static final BridgeConstants BRIDGE_MAINNET_CONSTANTS = BridgeMainNetConstants.getInstance();
     private static final String MAINNET_BTC_PARAMS_STRING = BRIDGE_MAINNET_CONSTANTS.getBtcParamsString();
     private static final co.rsk.bitcoinj.core.NetworkParameters MAINNET_BTC_PARAMS = BRIDGE_MAINNET_CONSTANTS.getBtcParams();
+    private static final NetworkParameters MAINNET_PARAMS = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING);
 
     private int nhash = 0;
     private ActivationConfig activationConfig;
@@ -267,6 +269,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -293,6 +296,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -323,6 +327,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -354,6 +359,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
 
         proofs = txs.get(tx2.getTxId());
 
@@ -365,6 +371,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx2), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx2), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -395,6 +402,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -425,11 +433,13 @@ class BtcToRskClientTest {
 
         assertEquals(block1.getHash(), proof1.getBlockHash());
         assertEquals(client.generatePMT(block1, tx), proof1.getPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block1, tx), proof1.getNonWitnessPartialMerkleTree());
 
         Proof proof2 = proofs.get(1);
 
         assertEquals(block2.getHash(), proof2.getBlockHash());
         assertEquals(client.generatePMT(block2, tx), proof2.getPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block2, tx), proof2.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -511,6 +521,28 @@ class BtcToRskClientTest {
         assertTrue(btcToRskClientFileData.getTransactionProofs().get(segwitTx.getWTxId()).stream().anyMatch(b -> b.getBlockHash().equals(block.getHash())));
         assertTrue(btcToRskClientFileData.getCoinbaseInformationMap().containsKey(block.getHash()));
         assertEquals(coinbaseTx, btcToRskClientFileData.getCoinbaseInformationMap().get(block.getHash()).getCoinbaseTransaction());
+    }
+
+    @Test
+    void onBlock_withNonSegwitTransaction_shouldStoreEqualPMTForWTxIdAndPMTForTxId() throws Exception {
+        // arrange
+        Transaction nonSegwitTx = getTx(false);
+        Block block = createBlock(createTransaction(), nonSegwitTx);
+        BtcToRskClient client = createClientWithMocks();
+        client.onTransaction(nonSegwitTx);
+        assertFalse(nonSegwitTx.hasWitnesses());
+        assertEquals(nonSegwitTx.getTxId(), nonSegwitTx.getWTxId());
+
+        // act
+        client.onBlock(block);
+
+        // assert
+        Proof proof = client.getTransactionsToSendToRsk().get(nonSegwitTx.getWTxId()).get(0);
+        assertEquals(proof.getPartialMerkleTree(), proof.getNonWitnessPartialMerkleTree());
+
+        List<Sha256Hash> hashesInNonWitnessPartialMerkleTree = new ArrayList<>();
+        proof.getNonWitnessPartialMerkleTree().getTxnHashAndMerkleRoot(hashesInNonWitnessPartialMerkleTree);
+        assertEquals(Collections.singletonList(nonSegwitTx.getTxId()), hashesInNonWitnessPartialMerkleTree);
     }
 
     @Test
@@ -1432,8 +1464,161 @@ class BtcToRskClientTest {
 
     @Nested
     @TestInstance(TestInstance.Lifecycle.PER_METHOD)
+    class OnBlockProofs {
+        private static final int FEDERATION_MEMBERS_SIZE = 20;
+
+        private final Federation activeFederation = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, FEDERATION_MEMBERS_SIZE);
+
+        @TempDir
+        private Path tempDir;
+        private BtcToRskClientFileStorage btcToRskClientFileStorage;
+        private BtcToRskClient client;
+
+        @BeforeEach
+        void setUp() throws Exception {
+            co.rsk.bitcoinj.core.Context.propagate(new co.rsk.bitcoinj.core.Context(MAINNET_BTC_PARAMS));
+
+            PowpegNodeSystemProperties config = mock(PowpegNodeSystemProperties.class);
+            when(config.databaseDir()).thenReturn(tempDir.toAbsolutePath().toString());
+            DirectoryStorageInfo directoryStorageInfo = new BtcToRskClientDirectoryStorageInfo(config);
+            btcToRskClientFileStorage = new BtcToRskClientFileStorageFactory(directoryStorageInfo).forActive();
+
+            FederatorSupport federatorSupportMock = mock(FederatorSupport.class);
+            when(federatorSupportMock.getConfigForBestBlock()).thenReturn(activationsForBlock);
+
+            client = BtcToRskClientBuilder.builder()
+                .withFederatorSupport(federatorSupportMock)
+                .withFederation(activeFederation)
+                .withBridgeConstants(BRIDGE_MAINNET_CONSTANTS)
+                .withBtcToRskClientFileStorage(btcToRskClientFileStorage)
+                .withActivationConfig(activationConfig)
+                .build();
+        }
+
+        @Test
+        void onBlock_withSegwitTransaction_shouldStoreProofWithBothPMTs() throws Exception {
+            // arrange
+            BtcTransaction segwitPeginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(segwitPeginBtcTx, activeFederation.getAddress());
+            Transaction segwitPegin = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, segwitPeginBtcTx);
+
+            client.onTransaction(segwitPegin);
+            Block block = createBlock(segwitPegin);
+
+            // act
+            client.onBlock(block);
+
+            // assert
+            assertSegwitProofIsStored(segwitPegin, block);
+        }
+
+        @Test
+        void onBlock_withSegwitAndNonSegwitTransactions_shouldStoreProofForEachTransaction() throws Exception {
+            // arrange
+            BtcTransaction segwitPeginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(segwitPeginBtcTx, activeFederation.getAddress());
+            Transaction segwitPegin = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, segwitPeginBtcTx);
+
+            BtcTransaction nonSegwitPeginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(nonSegwitPeginBtcTx, activeFederation.getAddress());
+            Transaction nonSegwitPegin = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, nonSegwitPeginBtcTx);
+
+            client.onTransaction(segwitPegin);
+            client.onTransaction(nonSegwitPegin);
+            Block block = createBlock(segwitPegin, nonSegwitPegin);
+
+            // act
+            client.onBlock(block);
+
+            // assert
+            assertSegwitProofIsStored(segwitPegin, block);
+            assertNonSegwitProofIsStored(nonSegwitPegin, block);
+        }
+
+        @Test
+        void onBlock_withManyTransactions_shouldStoreProofsOnlyForWatchedTransactionsCoveringEachOne() throws Exception {
+            // arrange
+            BtcTransaction unwatchedPeginBtcTx = createTxFromP2pkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(unwatchedPeginBtcTx, activeFederation.getAddress());
+            Transaction unwatchedPegin = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, unwatchedPeginBtcTx);
+
+            BtcTransaction firstWatchedPeginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(firstWatchedPeginBtcTx, activeFederation.getAddress());
+            Transaction firstWatchedPegin = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, firstWatchedPeginBtcTx);
+
+            BtcTransaction anotherUnwatchedPeginBtcTx = createTxFromP2wpkh(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(anotherUnwatchedPeginBtcTx, activeFederation.getAddress());
+            Transaction anotherUnwatchedPegin = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, anotherUnwatchedPeginBtcTx);
+
+            BtcTransaction secondWatchedPeginBtcTx = createTxFromP2wshMultiSig(MAINNET_BTC_PARAMS);
+            addOutputToFedWithMinimumPeginValue(secondWatchedPeginBtcTx, activeFederation.getAddress());
+            Transaction secondWatchedPegin = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, secondWatchedPeginBtcTx);
+
+            client.onTransaction(firstWatchedPegin);
+            client.onTransaction(secondWatchedPegin);
+            Block block = createBlock(unwatchedPegin, firstWatchedPegin, anotherUnwatchedPegin, secondWatchedPegin);
+
+            // act
+            client.onBlock(block);
+
+            // assert
+            Map<Sha256Hash, List<Proof>> storedProofs = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData().getTransactionProofs();
+            assertEquals(Set.of(firstWatchedPegin.getWTxId(), secondWatchedPegin.getWTxId()), storedProofs.keySet());
+
+            assertSegwitProofIsStored(firstWatchedPegin, block);
+            assertSegwitProofIsStored(secondWatchedPegin, block);
+        }
+
+        private Block createBlock(Transaction... txs) {
+            List<Transaction> blockTxs = new ArrayList<>();
+            // the witness root ignores the coinbase content, so any coinbase works to calculate it
+            BtcTransaction anyCoinbase = createCoinbaseTransactionWithWitnessCommitment(MAINNET_BTC_PARAMS, co.rsk.bitcoinj.core.Sha256Hash.ZERO_HASH);
+            blockTxs.add(ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, anyCoinbase));
+            blockTxs.addAll(Arrays.asList(txs));
+            Sha256Hash witnessRoot = new Block(MAINNET_PARAMS, Block.BLOCK_VERSION_BIP66, Sha256Hash.ZERO_HASH, null, 0L, 0L, 0L, blockTxs).getWitnessRoot();
+
+            co.rsk.bitcoinj.core.Sha256Hash witnessCommitment = co.rsk.bitcoinj.core.Sha256Hash.twiceOf(
+                witnessRoot.getReversedBytes(),
+                WITNESS_RESERVED_VALUE.getBytes()
+            );
+            BtcTransaction coinbase = createCoinbaseTransactionWithWitnessCommitment(MAINNET_BTC_PARAMS, witnessCommitment);
+            blockTxs.set(0, ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, coinbase));
+            return new Block(MAINNET_PARAMS, Block.BLOCK_VERSION_BIP66, Sha256Hash.ZERO_HASH, null, 0L, 0L, 0L, blockTxs);
+        }
+
+        private void assertSegwitProofIsStored(Transaction tx, Block block) throws IOException {
+            Proof proof = getStoredProof(tx);
+            assertEquals(block.getHash(), proof.getBlockHash());
+            assertPMTIsTheExpectedOne(proof.getPartialMerkleTree(), tx.getWTxId(), block.getWitnessRoot());
+            assertPMTIsTheExpectedOne(proof.getNonWitnessPartialMerkleTree(), tx.getTxId(), block.getMerkleRoot());
+        }
+
+        private void assertNonSegwitProofIsStored(Transaction tx, Block block) throws IOException {
+            Proof proof = getStoredProof(tx);
+            assertEquals(block.getHash(), proof.getBlockHash());
+            assertPMTIsTheExpectedOne(proof.getPartialMerkleTree(), tx.getTxId(), block.getMerkleRoot());
+            assertPMTIsTheExpectedOne(proof.getNonWitnessPartialMerkleTree(), tx.getTxId(), block.getMerkleRoot());
+        }
+
+        private Proof getStoredProof(Transaction tx) throws IOException {
+            List<Proof> proofs = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData().getTransactionProofs().get(tx.getWTxId());
+            assertEquals(1, proofs.size());
+
+            return proofs.get(0);
+        }
+
+        private void assertPMTIsTheExpectedOne(PartialMerkleTree partialMerkleTree, Sha256Hash expectedHash, Sha256Hash expectedMerkleRoot) {
+            List<Sha256Hash> hashesInPartialMerkleTree = new ArrayList<>();
+            Sha256Hash merkleRoot = partialMerkleTree.getTxnHashAndMerkleRoot(hashesInPartialMerkleTree);
+
+            assertEquals(Collections.singletonList(expectedHash), hashesInPartialMerkleTree);
+            assertEquals(expectedMerkleRoot, merkleRoot);
+        }
+    }
+
+    @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_METHOD)
     class UpdateBridgeTests {
-        private static final NetworkParameters MAINNET_PARAMS = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING);
         private static final Context MAINNET_CONTEXT = new Context(MAINNET_PARAMS);
         private static final int CHAIN_HEIGHT = 4;
         private static final int DEFAULT_BLOCK_WITH_TX_INDEX = 1;
@@ -2969,6 +3154,51 @@ class BtcToRskClientTest {
             }
 
             @Test
+            void updateBridgeBtcTransactions_segwitPegoutTx_shouldBeRegisteredWithPMTForTxId() throws Exception {
+                // arrange
+                setUpActiveFedClient(activeFederation);
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(activeFederation, MINIMUM_PEGIN_TX_VALUE);
+                setUpTx(activeFedClient, pegoutBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                var pegoutTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, pegoutBtcTx);
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                // the Bridge looks the pegout up by its txid, so the PMT must be built over txids, not wtxids
+                assertTrue(pegoutTx.hasWitnesses());
+                assertNotEquals(pegoutTx.getTxId(), pegoutTx.getWTxId());
+
+                assertRegisterPegoutTxSentToBridgeByActiveFedClient(pegoutBtcTx);
+                List<Sha256Hash> hashesInPmt = new ArrayList<>();
+                getPMTForTxId(btcToRskActiveFedClientFileStorage, pegoutTx).getTxnHashAndMerkleRoot(hashesInPmt);
+                assertEquals(Collections.singletonList(pegoutTx.getTxId()), hashesInPmt);
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_segwitPeginTx_shouldBeRegisteredWithPMTForWTxId() throws Exception {
+                // arrange
+                setUpActiveFedClient(activeFederation);
+                var peginBtcTx = createTxFromP2shP2wpkh(MAINNET_BTC_PARAMS);
+                addOutputToFedWithMinimumPeginValue(peginBtcTx, activeFederation.getAddress());
+                setUpTx(activeFedClient, peginBtcTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                var peginTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, peginBtcTx);
+                assertTrue(peginTx.hasWitnesses());
+                assertNotEquals(peginTx.getTxId(), peginTx.getWTxId());
+
+                // act
+                activeFedClient.updateBridgeBtcTransactions();
+
+                // assert
+                // a segwit peg-in is validated against the witness merkle root, so the PMT must be built over wtxids
+                ArgumentCaptor<PartialMerkleTree> pmtCaptor = ArgumentCaptor.forClass(PartialMerkleTree.class);
+                verify(federatorSupport).sendRegisterBtcTransaction(eq(peginTx), eq(DEFAULT_BLOCK_WITH_TX_INDEX), pmtCaptor.capture());
+                List<Sha256Hash> hashesInPmt = new ArrayList<>();
+                pmtCaptor.getValue().getTxnHashAndMerkleRoot(hashesInPmt);
+                assertEquals(Collections.singletonList(peginTx.getWTxId()), hashesInPmt);
+            }
+
+            @Test
             void updateBridgeBtcTransactions_pegoutTx_alreadyProcessed_shouldNotBeRegistered() throws Exception {
                 // arrange
                 setUpActiveFedClient(activeFederation);
@@ -3851,25 +4081,32 @@ class BtcToRskClientTest {
         private void assertRegisterBtcTxSentToBridge(BtcToRskClientFileStorage btcToRskClientFileStorage, BtcTransaction btcTx, int blockWithTxHeight) throws IOException {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
 
-            org.bitcoinj.core.PartialMerkleTree pmt = getPMT(btcToRskClientFileStorage, tx);
-            verify(federatorSupport).sendRegisterBtcTransaction(tx, blockWithTxHeight, pmt);
+            org.bitcoinj.core.PartialMerkleTree pmtForWTxId = getPMTForWTxId(btcToRskClientFileStorage, tx);
+            verify(federatorSupport).sendRegisterBtcTransaction(tx, blockWithTxHeight, pmtForWTxId);
             verify(federatorSupport, never()).sendRegisterPegoutTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
         }
 
         private void assertRegisterPegoutTxSentToBridgeByActiveFedClient(BtcTransaction btcTx) throws IOException {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
 
-            org.bitcoinj.core.PartialMerkleTree pmt = getPMT(btcToRskActiveFedClientFileStorage, tx);
-            verify(federatorSupport).sendRegisterPegoutTransaction(tx, DEFAULT_BLOCK_WITH_TX_INDEX, pmt);
+            org.bitcoinj.core.PartialMerkleTree pmtForTxId = getPMTForTxId(btcToRskActiveFedClientFileStorage, tx);
+            verify(federatorSupport).sendRegisterPegoutTransaction(tx, DEFAULT_BLOCK_WITH_TX_INDEX, pmtForTxId);
             verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
         }
 
-        private org.bitcoinj.core.PartialMerkleTree getPMT(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
+        private org.bitcoinj.core.PartialMerkleTree getPMTForWTxId(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
+            return getFirstProof(btcToRskClientFileStorage, tx).getPartialMerkleTree();
+        }
+
+        private org.bitcoinj.core.PartialMerkleTree getPMTForTxId(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
+            return getFirstProof(btcToRskClientFileStorage, tx).getNonWitnessPartialMerkleTree();
+        }
+
+        private Proof getFirstProof(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
             BtcToRskClientFileData fileData = btcToRskClientFileStorage.read(MAINNET_PARAMS).getData();
             List<Proof> proofs = fileData.getTransactionProofs().get(tx.getWTxId());
 
-            Proof proof = proofs.get(0);
-            return proof.getPartialMerkleTree();
+            return proofs.get(0);
         }
 
         private void assertTxNotSentToBridge(BtcTransaction btcTx) {
@@ -3913,7 +4150,8 @@ class BtcToRskClientTest {
 
         Sha256Hash hash = Sha256Hash.of(new byte[]{1});
         BtcToRskClientFileData newData = new BtcToRskClientFileData();
-        newData.getTransactionProofs().put(hash, Collections.singletonList(new Proof(hash, new PartialMerkleTree(networkParameters, new byte[]{}, new ArrayList<>(), 0))));
+        PartialMerkleTree pmt = new PartialMerkleTree(networkParameters, new byte[]{}, new ArrayList<>(), 0);
+        newData.getTransactionProofs().put(hash, Collections.singletonList(new Proof(hash, pmt, pmt)));
 
         BtcToRskClientFileReadResult result = spy(new BtcToRskClientFileReadResult(true, newData));
         when(btcToRskClientFileStorageMock.read(any())).thenReturn(result);

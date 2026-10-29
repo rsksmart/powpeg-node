@@ -285,7 +285,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     );
                     // We don't want to generate the PMT with the wtxid for the coinbase
                     // as it doesn't have a corresponding hash in the witness root
-                    PartialMerkleTree coinbasePmt = generatePMT(block, coinbase, false);
+                    PartialMerkleTree coinbasePmt = generatePMTForTxId(block, coinbase);
                     try {
                         Sha256Hash witnessMerkleRoot = tree.getTxnHashAndMerkleRoot(new ArrayList<>());
                         CoinbaseInformation coinbaseInformation = new CoinbaseInformation(
@@ -316,7 +316,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                     }
                 }
 
-                proofs.add(new Proof(block.getHash(), tree));
+                PartialMerkleTree nonWitnessTree = generatePMTForTxId(block, tx);
+                proofs.add(new Proof(block.getHash(), tree, nonWitnessTree));
                 logger.info(
                     "[onBlock] New proof for tx {} (wtxid: {}) in block {}",
                     tx.getTxId(),
@@ -644,8 +645,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         continue;
                     }
                     StoredBlock txStoredBlock = txStoredBlockOpt.get();
-                    Optional<PartialMerkleTree> pmt = getPMT(txProofs.get(), txStoredBlock);
-                    if (pmt.isEmpty()) {
+                    Optional<PartialMerkleTree> pmtForWTxId = getPMTForWTxId(txProofs.get(), txStoredBlock);
+                    Optional<PartialMerkleTree> pmtForTxId = getPMTForTxId(txProofs.get(), txStoredBlock);
+                    if (pmtForWTxId.isEmpty() || pmtForTxId.isEmpty()) {
                         logger.debug("[updateBridgeBtcTransactions] Couldn't find pmt for tx {}", txHash);
                         continue;
                     }
@@ -658,8 +660,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                         activeFederation
                     );
                     switch (registrationMethod) {
-                        case REGISTER_PEGOUT_TRANSACTION -> sendRegisterPegoutTx(tx, txStoredBlock, pmt.get());
-                        case REGISTER_BTC_TRANSACTION -> sendRegisterBtcTx(tx, txStoredBlock, pmt.get());
+                        case REGISTER_PEGOUT_TRANSACTION -> sendRegisterPegoutTx(tx, txStoredBlock, pmtForTxId.get());
+                        case REGISTER_BTC_TRANSACTION -> sendRegisterBtcTx(tx, txStoredBlock, pmtForWTxId.get());
                         case NONE -> {
                             removeTxHashFromFile(txHashIterator);
                             logger.warn(
@@ -732,13 +734,20 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         }
     }
 
-    private Optional<PartialMerkleTree> getPMT(List<Proof> txProofs, StoredBlock txStoredBlock) {
+    private Optional<PartialMerkleTree> getPMTForWTxId(List<Proof> txProofs, StoredBlock txStoredBlock) {
+        return getProofForBlock(txProofs, txStoredBlock).map(Proof::getPartialMerkleTree);
+    }
+
+    private Optional<PartialMerkleTree> getPMTForTxId(List<Proof> txProofs, StoredBlock txStoredBlock) {
+        return getProofForBlock(txProofs, txStoredBlock).map(Proof::getNonWitnessPartialMerkleTree);
+    }
+
+    private Optional<Proof> getProofForBlock(List<Proof> txProofs, StoredBlock txStoredBlock) {
         Sha256Hash blockHash = txStoredBlock.getHeader().getHash();
 
         return txProofs.stream()
             .filter(proof -> proof.getBlockHash().equals(blockHash))
-            .findFirst()
-            .map(Proof::getPartialMerkleTree);
+            .findFirst();
     }
 
     private enum BridgeRegistrationMethod {
@@ -952,7 +961,6 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
         }
     }
-
     @VisibleForTesting
     protected PartialMerkleTree generatePMT(Block block, Transaction transaction, boolean useWtxId) {
         List<Transaction> txns = block.getTransactions();
@@ -972,6 +980,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             }
         }
         return PartialMerkleTree.buildFromLeaves(block.getParams(), bits, txHashes);
+    }
+
+    @VisibleForTesting
+    protected PartialMerkleTree generatePMTForTxId(Block block, Transaction transaction) {
+        return generatePMT(block, transaction, false);
     }
 
     @VisibleForTesting

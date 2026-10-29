@@ -5,17 +5,21 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import co.rsk.federate.helpers.ProofBuilder;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PartialMerkleTree;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.params.RegTestParams;
 import org.bouncycastle.util.encoders.Hex;
+import org.ethereum.util.RLP;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -33,7 +37,7 @@ class ProofTest {
     private static final String SHA_5 = "5555555555555555555555555555555555555555555555555555555555555555";
     private static final String SHA_6 = "6666666666666666666666666666666666666666666666666666666666666666";
 
-    private static final String ENCODED_RESULT = "f848a01111111111111111111111111111111111111111111111111111111111111111a60100000001111111111111111111111111111111111111111111111111111111111111111100";
+    private static final String ENCODED_RESULT = "f86fa01111111111111111111111111111111111111111111111111111111111111111a60100000001111111111111111111111111111111111111111111111111111111111111111100a60100000001dcbea4e5bd4e45d62f50aabe1b5cc95f3e9ea768992e358f7c26bb1fa349d40200";
 
     @Test
     void create() {
@@ -41,6 +45,73 @@ class ProofTest {
         assertNotNull(p1);
         assertNotNull(p1.getBlockHash());
         assertNotNull(p1.getPartialMerkleTree());
+        assertNotNull(p1.getNonWitnessPartialMerkleTree());
+    }
+
+    @Test
+    void decode_withWitnessAndNonWitnessPartialMerkleTree_shouldKeepBothTrees() {
+        // arrange
+        PartialMerkleTree partialMerkleTree = buildPartialMerkleTree(SHA_1);
+        PartialMerkleTree nonWitnessPartialMerkleTree = buildPartialMerkleTree(SHA_2);
+        Proof proof = new Proof(Sha256Hash.wrap(SHA_3), partialMerkleTree, nonWitnessPartialMerkleTree);
+
+        // act
+        Proof decodedProof = new Proof(proof.getEnconded(), this.networkParameters);
+
+        // assert
+        assertEquals(proof, decodedProof);
+        assertEquals(partialMerkleTree, decodedProof.getPartialMerkleTree());
+        assertEquals(nonWitnessPartialMerkleTree, decodedProof.getNonWitnessPartialMerkleTree());
+    }
+
+    @Test
+    void equals_withOnlyNonWitnessPartialMerkleTreeDifferent_shouldReturnFalse() {
+        // arrange
+        Sha256Hash blockHash = Sha256Hash.wrap(SHA_3);
+        PartialMerkleTree partialMerkleTree = buildPartialMerkleTree(SHA_1);
+        Proof proof = new Proof(blockHash, partialMerkleTree, buildPartialMerkleTree(SHA_1));
+        Proof proofWithOtherNonWitnessTree = new Proof(blockHash, partialMerkleTree, buildPartialMerkleTree(SHA_2));
+
+        // act & assert
+        assertNotEquals(proof, proofWithOtherNonWitnessTree);
+        assertEquals(proof.getBlockHash(), proofWithOtherNonWitnessTree.getBlockHash());
+        assertEquals(proof.getPartialMerkleTree(), proofWithOtherNonWitnessTree.getPartialMerkleTree());
+        assertNotEquals(proof.getNonWitnessPartialMerkleTree(), proofWithOtherNonWitnessTree.getNonWitnessPartialMerkleTree());
+    }
+
+    @Test
+    void hashCode_withOnlyNonWitnessPartialMerkleTreeDifferent_shouldReturnDifferentHashCode() {
+        // arrange
+        Sha256Hash blockHash = Sha256Hash.wrap(SHA_3);
+        PartialMerkleTree partialMerkleTree = buildPartialMerkleTree(SHA_1);
+        Proof proof = new Proof(blockHash, partialMerkleTree, buildPartialMerkleTree(SHA_1));
+        Proof proofWithOtherNonWitnessTree = new Proof(blockHash, partialMerkleTree, buildPartialMerkleTree(SHA_2));
+
+        // act & assert
+        assertNotEquals(proof.hashCode(), proofWithOtherNonWitnessTree.hashCode());
+        assertEquals(proof.getBlockHash(), proofWithOtherNonWitnessTree.getBlockHash());
+        assertEquals(proof.getPartialMerkleTree(), proofWithOtherNonWitnessTree.getPartialMerkleTree());
+        assertNotEquals(proof.getNonWitnessPartialMerkleTree(), proofWithOtherNonWitnessTree.getNonWitnessPartialMerkleTree());
+    }
+
+    @Test
+    void decode_withEncodingWithoutNonWitnessPartialMerkleTree_shouldThrow() {
+        // arrange
+        // proofs encoded before the non-witness PMT was added only have the block hash and one PMT
+        byte[] encodedBlockHash = RLP.encodeElement(Sha256Hash.wrap(SHA_3).getBytes());
+        byte[] encodedPartialMerkleTree = RLP.encodeElement(buildPartialMerkleTree(SHA_1).bitcoinSerialize());
+        byte[] encodedProofWithoutNonWitnessPartialMerkleTree = RLP.encodeList(encodedBlockHash, encodedPartialMerkleTree);
+
+        // act & assert
+        assertThrows(
+            IndexOutOfBoundsException.class,
+            () -> new Proof(encodedProofWithoutNonWitnessPartialMerkleTree, this.networkParameters)
+        );
+    }
+
+    private PartialMerkleTree buildPartialMerkleTree(String sha) {
+        List<Sha256Hash> hashes = Collections.singletonList(Sha256Hash.wrap(sha));
+        return new PartialMerkleTree(this.networkParameters, new byte[]{}, hashes, hashes.size());
     }
 
     @Test
@@ -58,6 +129,7 @@ class ProofTest {
         Proof p2 = new Proof(p1.getEnconded(), this.networkParameters);
         assertNotNull(p2);
         assertEquals(p1.getPartialMerkleTree(), p2.getPartialMerkleTree());
+        assertEquals(p1.getNonWitnessPartialMerkleTree(), p2.getNonWitnessPartialMerkleTree());
         assertEquals(p1.getBlockHash(), p2.getBlockHash());
 
         Proof p3 = pb.buildProof(SHA_2);
