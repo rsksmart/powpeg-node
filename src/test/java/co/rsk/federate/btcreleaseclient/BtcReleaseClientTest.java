@@ -18,7 +18,11 @@ import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCache;
 import co.rsk.federate.btcreleaseclient.cache.PegoutSignedCacheImpl;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.*;
+import co.rsk.federate.signing.hsm.HSMClientException;
 import co.rsk.federate.signing.hsm.SignerException;
+import co.rsk.federate.signing.hsm.client.HSMSignature;
+import co.rsk.federate.signing.hsm.client.HSMSigningClient;
+import co.rsk.federate.signing.hsm.client.HSMSigningClientProvider;
 import co.rsk.federate.signing.hsm.message.*;
 import co.rsk.federate.signing.hsm.requirements.ReleaseRequirementsEnforcer;
 import co.rsk.federate.signing.utils.TestUtils;
@@ -46,6 +50,7 @@ import org.ethereum.crypto.ECKey;
 import org.ethereum.db.*;
 import org.ethereum.facade.Ethereum;
 import org.ethereum.listener.EthereumListener;
+import org.ethereum.util.ByteUtil;
 import org.ethereum.vm.DataWord;
 import org.ethereum.vm.LogInfo;
 import org.ethereum.vm.PrecompiledContracts;
@@ -297,6 +302,10 @@ class BtcReleaseClientTest {
         );
         private static final int LATEST_HSM_VERSION = TestUtils.getLatestHsmVersion().getNumber();
         private static final int KEY_FILE_VERSION = 1;
+        private static final String HSM_BTC_KEY_ID = "m/44'/0'/0'/0/0";
+        private static final BigInteger NO_FAULT = BigInteger.ZERO;
+        private static final BigInteger S_FAULT = BigInteger.ONE;
+        private static final Byte RECOVERY_ID = 27;
 
         private final BtcECKey keyFile1BtcPubKey = getBtcEcKeyFromSeed("keyFile1BtcPubKey");
         private final ECKey keyFile1RskPubKey = ECKey.fromPublicOnly(keyFile1BtcPubKey.getPubKey());
@@ -1059,6 +1068,78 @@ class BtcReleaseClientTest {
 
             // assert
             assertTxWasNotSigned(releaseCreationRskTxHash);
+        }
+
+        @Test
+        void processReleases_signWithHSMSigner_whenHSMReturnsValidSignature_shouldSign() throws Exception {
+            // Arrange
+            setUpReleaseTxFromFed(segwitFederation);
+            setUpHSMSigner(hsm1BtcPubKey, NO_FAULT, null);
+            setUpNewClient(segwitFederation, hsm1Member);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            ECKey.ECDSASignature expectedEthSig = createTxSignature(releaseTx, 0, hsm1BtcPubKey);
+            assertTxWasSigned(releaseCreationRskTxHash, expectedEthSig);
+        }
+
+        @Test
+        void processReleases_signWithHSMSigner_whenHSMReturnsFaultySignature_shouldNotSign() throws Exception {
+            // Arrange
+            setUpReleaseTxFromFed(segwitFederation);
+            HSMSigningClient hsmClient = setUpHSMSigner(hsm1BtcPubKey, S_FAULT, null);
+            setUpNewClient(segwitFederation, hsm1Member);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            verify(hsmClient).sign(eq(HSM_BTC_KEY_ID), any(SignerMessage.class));
+            assertTxWasNotSigned(releaseCreationRskTxHash);
+        }
+
+        @Test
+        void processReleases_signWithHSMSigner_whenHSMReturnsFaultySignatureWithRecoveryId_shouldNotSign() throws Exception {
+            // Arrange
+            // with a recovery id, HSMSignature skips the public key recovery,
+            // so the signature check in BtcReleaseClient is the only protection
+            setUpReleaseTxFromFed(segwitFederation);
+            HSMSigningClient hsmClient = setUpHSMSigner(hsm1BtcPubKey, S_FAULT, RECOVERY_ID);
+            setUpNewClient(segwitFederation, hsm1Member);
+
+            // act
+            client.processReleases(releases.entrySet());
+
+            // assert
+            verify(hsmClient).sign(eq(HSM_BTC_KEY_ID), any(SignerMessage.class));
+            assertTxWasNotSigned(releaseCreationRskTxHash);
+        }
+
+        /**
+         * Replaces the mocked signer with a real ECDSAHSMSigner backed by a mocked HSM client.
+         * The client signs the message with the given key and adds sFault to s, to simulate a device glitch.
+         */
+        private HSMSigningClient setUpHSMSigner(BtcECKey hsmKey, BigInteger sFault, Byte recoveryId) throws HSMClientException {
+            HSMSigningClient hsmClient = mock(HSMSigningClient.class);
+            when(hsmClient.getVersion()).thenReturn(TestUtils.getLatestHsmVersion());
+            when(hsmClient.getPublicKey(HSM_BTC_KEY_ID)).thenReturn(hsmKey.getPubKey());
+            when(hsmClient.sign(eq(HSM_BTC_KEY_ID), any(SignerMessage.class))).thenAnswer(invocation -> {
+                SignerMessage message = invocation.getArgument(1);
+                BtcECKey.ECDSASignature sig = hsmKey.sign(Sha256Hash.wrap(message.getBytes()));
+                byte[] r = ByteUtil.bigIntegerToBytes(sig.r, 32);
+                byte[] s = ByteUtil.bigIntegerToBytes(sig.s.add(sFault), 32);
+                return new HSMSignature(r, s, message.getBytes(), hsmKey.getPubKey(), recoveryId);
+            });
+
+            HSMSigningClientProvider clientProvider = mock(HSMSigningClientProvider.class);
+            when(clientProvider.getSigningClient()).thenReturn(hsmClient);
+            ECDSAHSMSigner hsmSigner = new ECDSAHSMSigner(clientProvider);
+            hsmSigner.addKeyMapping(BTC.getKeyId(), HSM_BTC_KEY_ID);
+            signer = hsmSigner;
+
+            return hsmClient;
         }
 
         private BtcTransaction buildUnprocessableReleaseTx(Federation federation) {
