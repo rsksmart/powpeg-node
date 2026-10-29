@@ -18,6 +18,7 @@ import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.signing.ECDSASigner;
 import co.rsk.federate.signing.FederationCantSignException;
 import co.rsk.federate.signing.FederatorAlreadySignedException;
+import co.rsk.federate.signing.InvalidSignatureException;
 import co.rsk.federate.signing.SegwitSigHashCalculatorImpl;
 import co.rsk.federate.signing.SigHashCalculator;
 import co.rsk.federate.signing.hsm.HSMClientException;
@@ -495,13 +496,27 @@ public class BtcReleaseClient {
                 signerVersion,
                 pegoutCreationInformation
             );
+
+            // Verify the signature against the federation member key known by the bridge
+            BtcECKey federatorPublicKey = federatorSupport.getFederationMember().getBtcPublicKey();
             int inputsSize = pegoutBtcTx.getInputs().size();
             for (int inputIndex = 0; inputIndex < inputsSize; inputIndex++) {
                 SignerMessage messageToSign = messageBuilder.buildMessageForIndex(inputIndex);
                 logger.trace("[signRelease] Message to sign: {}", messageToSign.getClass());
                 ECKey.ECDSASignature ethSig = signer.sign(BTC.getKeyId(), messageToSign);
-                logger.debug("[signRelease] Message successfully signed");
                 BtcECKey.ECDSASignature sig = new BtcECKey.ECDSASignature(ethSig.r, ethSig.s);
+
+                co.rsk.bitcoinj.core.Sha256Hash signedSigHash = co.rsk.bitcoinj.core.Sha256Hash.wrap(messageToSign.getBytes());
+                if (!federatorPublicKey.verify(signedSigHash, sig)) {
+                    String message = String.format(
+                        "HSM produced an invalid signature for input %d of pegout %s created in rsk tx %s",
+                        inputIndex,
+                        pegoutBtcTx.getHash(),
+                        pegoutCreationRskTxHash
+                    );
+                    throw new InvalidSignatureException(message);
+                }
+                logger.debug("[signRelease] Message successfully signed");
                 signatures.add(sig.encodeToDER());
             }
 
@@ -510,6 +525,9 @@ public class BtcReleaseClient {
 
             pegoutSignedCache.putIfAbsent(pegoutCreationRskTxHash);
             logger.trace("[signRelease] Put pegoutCreationRskTxHash {} in the pegouts signed cache", pegoutCreationRskTxHash);
+        } catch (InvalidSignatureException e) {
+            String message = String.format("[signRelease] Invalid HSM signature for pegout %s. Signatures will not be sent to the bridge", pegoutCreationRskTxHash);
+            logger.error(message, e);
         } catch (SignerException e) {
             String message = String.format("Error signing pegout created in rsk transaction %s", pegoutCreationRskTxHash);
             logger.error(message, e);
