@@ -268,7 +268,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
-        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -295,7 +295,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
-        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -326,7 +326,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
-        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -358,7 +358,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
-        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
 
         proofs = txs.get(tx2.getTxId());
 
@@ -370,7 +370,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx2), proof.getPartialMerkleTree());
-        assertEquals(client.generatePMT(block, tx2, false), proof.getNonWitnessPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx2), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -401,7 +401,7 @@ class BtcToRskClientTest {
 
         assertEquals(block.getHash(), proof.getBlockHash());
         assertEquals(client.generatePMT(block, tx), proof.getPartialMerkleTree());
-        assertEquals(client.generatePMT(block, tx, false), proof.getNonWitnessPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block, tx), proof.getNonWitnessPartialMerkleTree());
     }
 
     @Test
@@ -432,13 +432,13 @@ class BtcToRskClientTest {
 
         assertEquals(block1.getHash(), proof1.getBlockHash());
         assertEquals(client.generatePMT(block1, tx), proof1.getPartialMerkleTree());
-        assertEquals(client.generatePMT(block1, tx, false), proof1.getNonWitnessPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block1, tx), proof1.getNonWitnessPartialMerkleTree());
 
         Proof proof2 = proofs.get(1);
 
         assertEquals(block2.getHash(), proof2.getBlockHash());
         assertEquals(client.generatePMT(block2, tx), proof2.getPartialMerkleTree());
-        assertEquals(client.generatePMT(block2, tx, false), proof2.getNonWitnessPartialMerkleTree());
+        assertEquals(client.generatePMTForTxId(block2, tx), proof2.getNonWitnessPartialMerkleTree());
     }
 
     @Test
