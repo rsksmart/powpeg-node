@@ -1,5 +1,9 @@
 package co.rsk.federate;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.bitcoinj.core.NetworkParameters;
@@ -9,19 +13,11 @@ import org.ethereum.util.RLP;
 import org.ethereum.util.RLPElement;
 import org.ethereum.util.RLPList;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-/**
- * Created by mario on 20/04/17.
- */
 public class Proof {
 
-    private Sha256Hash blockHash;
-    private PartialMerkleTree partialMerkleTree;
-    private PartialMerkleTree nonWitnessPartialMerkleTree;
+    private final Sha256Hash blockHash;
+    private final PartialMerkleTree partialMerkleTree;
+    private final PartialMerkleTree nonWitnessPartialMerkleTree;
 
     public Proof(Sha256Hash blockHash, PartialMerkleTree partialMerkleTree, PartialMerkleTree nonWitnessPartialMerkleTree) {
         this.blockHash = blockHash;
@@ -126,10 +122,10 @@ public class Proof {
         Proof proof = (Proof) o;
 
         return new EqualsBuilder()
-                .append(blockHash, proof.blockHash)
-                .append(partialMerkleTree, proof.partialMerkleTree)
-                .append(nonWitnessPartialMerkleTree, proof.nonWitnessPartialMerkleTree)
-                .isEquals();
+            .append(blockHash, proof.blockHash)
+            .append(partialMerkleTree, proof.partialMerkleTree)
+            .append(nonWitnessPartialMerkleTree, proof.nonWitnessPartialMerkleTree)
+            .isEquals();
     }
 
     @Override
