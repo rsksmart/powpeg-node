@@ -192,12 +192,14 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
      */
     public void moveTransactionsToSendToRsk(BtcToRskClient destinationClient) {
         Map<Sha256Hash, List<Proof>> transactionsToMove;
+        Map<Sha256Hash, CoinbaseInformation> coinbaseInformationToMove;
         synchronized (this) {
             if (federationToListen == null) {
                 return;
             }
 
             transactionsToMove = new HashMap<>(fileData.getTransactionProofs());
+            coinbaseInformationToMove = new HashMap<>(fileData.getCoinbaseInformationMap());
             logger.info(
                 "[moveTransactionsToSendToRsk] Moving {} pending txs of federation {}",
                 transactionsToMove.size(),
@@ -205,12 +207,16 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             );
         }
 
-        destinationClient.addTransactionsToSendToRsk(transactionsToMove);
+        destinationClient.addTransactionsToSendToRsk(transactionsToMove, coinbaseInformationToMove);
     }
 
-    private void addTransactionsToSendToRsk(Map<Sha256Hash, List<Proof>> transactionsToAdd) {
+    private void addTransactionsToSendToRsk(
+        Map<Sha256Hash, List<Proof>> transactionsToAdd,
+        Map<Sha256Hash, CoinbaseInformation> coinbaseInformationToAdd
+    ) {
         synchronized (this) {
             transactionsToAdd.forEach(fileData.getTransactionProofs()::putIfAbsent);
+            coinbaseInformationToAdd.forEach(fileData.getCoinbaseInformationMap()::putIfAbsent);
             writeToStorage();
         }
     }
