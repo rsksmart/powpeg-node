@@ -198,7 +198,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 return;
             }
 
-            transactionsToMove = new HashMap<>(fileData.getTransactionProofs());
+            // each client needs its own proof lists, so both add and persist the proofs of the blocks they receive
+            transactionsToMove = new HashMap<>();
+            fileData.getTransactionProofs().forEach((txHash, proofs) ->
+                transactionsToMove.put(txHash, new ArrayList<>(proofs))
+            );
             coinbaseInformationToMove = new HashMap<>(fileData.getCoinbaseInformationMap());
             logger.info(
                 "[moveTransactionsToSendToRsk] Moving {} pending txs of federation {}",
