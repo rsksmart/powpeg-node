@@ -205,7 +205,7 @@ tasks.withType(AbstractArchiveTask) {
 
 ext {
     bitcoinjcoreVersion = '0.15.6-rsk-6'
-    bitcoinjVersion = '0.14.4-rsk-19'
+    bitcoinjVersion = '0.14.4-rsk-20'
     commonsLang3Version = '3.12.0'
     commonsIoVersion = '2.11.0'
     slf4jVersion = '1.7.36'
