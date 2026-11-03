@@ -205,8 +205,9 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
             );
             coinbaseInformationToMove = new HashMap<>(fileData.getCoinbaseInformationMap());
             logger.info(
-                "[moveTransactionsToSendToRsk] Moving {} pending txs of federation {}",
+                "[moveTransactionsToSendToRsk] Moving {} pending txs and {} coinbase information txs of federation {}",
                 transactionsToMove.size(),
+                coinbaseInformationToMove.size(),
                 federationToListen.getAddress()
             );
         }
