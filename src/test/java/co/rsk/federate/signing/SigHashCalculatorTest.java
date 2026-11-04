@@ -28,56 +28,6 @@ class SigHashCalculatorTest {
     }
 
     @Test
-    void calculate_forLegacySigHashCalculator_forLegacyTxInput_shouldReturnExpectedLegacySigHash() {
-        // arrange
-        Federation federation = TestUtils.createStandardMultisigFederation(mainnet, 9);
-        setUp(federation);
-
-        Script redeemScript = federation.getRedeemScript();
-        addSpendingFederationBaseScript(transaction, inputIndex, redeemScript, federation.getFormatVersion());
-
-        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
-
-        // act
-        Sha256Hash actualSigHash = sigHashCalculator.calculate(transaction, inputIndex);
-
-        // assert
-        Sha256Hash legacySigHash = transaction.hashForSignature(inputIndex, redeemScript, BtcTransaction.SigHash.ALL, false);
-        assertEquals(legacySigHash, actualSigHash);
-    }
-
-    @Test
-    void calculate_forLegacySigHashCalculator_forSegwitTxInput_shouldNotReturnLegacySigHash() {
-        // arrange
-        Federation federation = TestUtils.createP2shP2wshErpFederation(mainnet, 20);
-        setUp(federation);
-
-        Script redeemScript = federation.getRedeemScript();
-        addSpendingFederationBaseScript(transaction, inputIndex, redeemScript, federation.getFormatVersion());
-
-        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
-
-        // act
-        Sha256Hash actualSigHash = sigHashCalculator.calculate(transaction, inputIndex);
-
-        // assert
-        Sha256Hash segwitSigHash = transaction.hashForWitnessSignature(inputIndex, redeemScript, prevValue, BtcTransaction.SigHash.ALL, false);
-        assertNotEquals(segwitSigHash, actualSigHash);
-    }
-
-    @Test
-    void calculate_forLegacySigHashCalculator_whenNoRedeemScriptInInput_shouldThrowISE() {
-        // arrange
-        Federation federation = TestUtils.createStandardMultisigFederation(mainnet, 9);
-        setUp(federation);
-
-        SigHashCalculator sigHashCalculator = new LegacySigHashCalculatorImpl();
-
-        // act
-        assertThrows(IllegalStateException.class, () -> sigHashCalculator.calculate(transaction, inputIndex));
-    }
-
-    @Test
     void calculate_forSegwitSigHashCalculator_forSegwitTxInput_shouldReturnExpectedSegwitSigHash() {
         // arrange
         Federation federation = TestUtils.createP2shP2wshErpFederation(mainnet, 20);

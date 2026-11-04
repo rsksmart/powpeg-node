@@ -3,6 +3,7 @@ package co.rsk.federate.signing.hsm;
 public enum HSMVersion {
     V1(1),
     V5(5),
+    V6(6)
     ;
 
     private final int number;
@@ -26,6 +27,10 @@ public enum HSMVersion {
 
     public boolean isPowHSM() {
         return number >= V5.getNumber();
+    }
+
+    public boolean requiresSigHashComputationMode() {
+        return this == HSMVersion.V5;
     }
 
     @Override
