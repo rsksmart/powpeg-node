@@ -25,11 +25,11 @@ package co.rsk.federate.signing.hsm;
  */
 public abstract class HSMClientException extends Exception {
 
-    public HSMClientException(String message) {
+    protected HSMClientException(String message) {
         super(message);
     }
 
-    public HSMClientException(String message, Throwable reason) {
+    protected HSMClientException(String message, Throwable reason) {
         super(message, reason);
     }
 }
