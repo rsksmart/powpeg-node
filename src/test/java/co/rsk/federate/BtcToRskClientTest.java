@@ -15,10 +15,12 @@ import co.rsk.cli.CliArgs;
 import co.rsk.config.*;
 import co.rsk.federate.adapter.ThinConverter;
 import co.rsk.federate.bitcoin.*;
+import co.rsk.federate.btcreleaseclient.BtcReleaseClient;
 import co.rsk.federate.config.PowpegNodeSystemProperties;
 import co.rsk.federate.io.*;
 import co.rsk.federate.mock.*;
 import co.rsk.federate.signing.utils.TestUtils;
+import co.rsk.federate.watcher.FederationWatcherListenerImpl;
 import co.rsk.net.NodeBlockProcessor;
 import co.rsk.peg.btcLockSender.*;
 import co.rsk.peg.btcLockSender.BtcLockSender.TxSenderAddressType;
@@ -1809,16 +1811,20 @@ class BtcToRskClientTest {
         private void setUpTx(BtcToRskClient client, BtcTransaction btcTx, int blockHeight) {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
 
-            setUpTxConfidence(tx);
+            setUpTxWithEnoughConfirmations(tx);
             listenTx(client, tx);
             Block blockWithTx = addTxToBlock(tx, blockHeight);
             client.onBlock(blockWithTx);
         }
 
-        private void setUpTxConfidence(Transaction tx) {
+        private void setUpTxWithConfirmations(Transaction tx, int depth) {
             org.bitcoinj.core.TransactionConfidence confidence = tx.getConfidence();
             confidence.setConfidenceType(org.bitcoinj.core.TransactionConfidence.ConfidenceType.BUILDING);
-            confidence.setDepthInBlocks(BRIDGE_MAINNET_CONSTANTS.getBtc2RskMinimumAcceptableConfirmations());
+            confidence.setDepthInBlocks(depth);
+        }
+
+        private void setUpTxWithEnoughConfirmations(Transaction tx) {
+            setUpTxWithConfirmations(tx, BRIDGE_MAINNET_CONSTANTS.getBtc2RskMinimumAcceptableConfirmations());
         }
 
         private void listenTx(BtcToRskClient client, Transaction tx) {
@@ -3307,6 +3313,120 @@ class BtcToRskClientTest {
             }
 
             @Test
+            void updateBridgeBtcTransactions_pegoutTxSeenBeforeFedChange_memberOfBothFeds_shouldBeRegisteredByRetiringFedClient() throws Exception {
+                // arrange
+                // A pegout from the active fed is mined, but it does not reach the minimum confirmations to be registered
+                // before a new fed is activated. After the change, the old active fed is the retiring one.
+
+                // 1. Set up the clients before the change: the fed that will retire is the active one, and there is no retiring fed
+                int fedMembers = 19;
+                Federation retiringFederation = TestUtils.createP2shP2wshErpFederation(
+                    MAINNET_BTC_PARAMS,
+                    fedMembers,
+                    "retiring"
+                );
+                setUpActiveFedClient(retiringFederation);
+                retiringFedClient = buildClient(btcToRskRetiringFedClientFileStorage, null);
+                // 2. Create a pegout from the fed that will retire, with change to itself
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(retiringFederation, MINIMUM_PEGIN_TX_VALUE);
+
+                // 3. Listen to the pegout and the block that contains it, without enough confirmations to be registered
+                var pegoutTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, pegoutBtcTx);
+                int notEnoughConfirmations = BRIDGE_MAINNET_CONSTANTS.getBtc2RskMinimumAcceptableConfirmations() - 1;
+                setUpTxWithConfirmations(pegoutTx, notEnoughConfirmations);
+                listenTx(activeFedClient, pegoutTx);
+                Block blockWithTx = addTxToBlock(pegoutTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                activeFedClient.onBlock(blockWithTx);
+
+                // active fed client should have the pegout in its proofs file and its in-memory fileData
+                assertWTxIdIsInActiveFedClientProofsFile(pegoutBtcTx);
+                assertWTxIdIsInActiveFedClientTxsToBeSentMap(pegoutBtcTx);
+
+                // 4. Create a new fed that keeps all the members of the fed that will retire, plus a new one
+                List<BtcECKey> newFedKeys = new ArrayList<>(retiringFederation.getBtcPublicKeys());
+                BtcECKey newMemberKey = TestUtils.getBtcEcKeyFromSeed("newMember");
+                newFedKeys.add(newMemberKey);
+                Federation newFed = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, newFedKeys);
+
+                // 5. Set up the node as a member of both feds
+                FederationMember memberOfBothFeds = retiringFederation.getMembers().get(0);
+                when(federatorSupport.getFederationMember()).thenReturn(memberOfBothFeds);
+
+                // act
+                // The new fed is activated, so the old active fed becomes the retiring one
+                setUpRetiringFed(retiringFederation);
+                setUpActiveFed(newFed);
+                // trigger the client change
+                BtcReleaseClient btcReleaseClient = mock(BtcReleaseClient.class);
+                var federationWatcherListener = new FederationWatcherListenerImpl(activeFedClient, retiringFedClient, btcReleaseClient);
+                federationWatcherListener.onActiveFederationChange(newFed);
+                federationWatcherListener.onRetiringFederationChange(retiringFederation);
+
+                // assert
+                // the pegout should be in the retiring fed client proofs file
+                assertWTxIdIsInRetiringFedClientProofsFile(pegoutBtcTx);
+                // recreate the pegout reaches the minimum confirmations to be registered
+                setUpTxWithEnoughConfirmations(pegoutTx);
+                // calling to update bridge txs from retiring fed client should send it to the bridge
+                retiringFedClient.updateBridgeBtcTransactions();
+                assertRegisterPegoutTxSentToBridgeByRetiringFedClient(pegoutBtcTx);
+            }
+
+            @Test
+            void updateBridgeBtcTransactions_pegoutTxSeenBeforeFedChange_memberOnlyOfOldFed_shouldBeRegisteredByRetiringFedClient() throws Exception {
+                // arrange
+                // A pegout from the active fed is mined, but it does not reach the minimum confirmations to be registered
+                // before a new fed is activated. After the change, the old active fed is the retiring one.
+
+                // 1. Set up the clients before the change: the fed that will retire is the active one, and there is no retiring fed
+                setUpActiveFedClient(retiringFederation);
+                retiringFedClient = buildClient(btcToRskRetiringFedClientFileStorage, null);
+                // 2. Create a pegout from the fed that will retire, with change to itself
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(retiringFederation, MINIMUM_PEGIN_TX_VALUE);
+
+                // 3. Listen to the pegout and the block that contains it, without enough confirmations to be registered
+                var pegoutTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, pegoutBtcTx);
+                int notEnoughConfirmations = BRIDGE_MAINNET_CONSTANTS.getBtc2RskMinimumAcceptableConfirmations() - 1;
+                setUpTxWithConfirmations(pegoutTx, notEnoughConfirmations);
+                listenTx(activeFedClient, pegoutTx);
+                Block blockWithTx = addTxToBlock(pegoutTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                activeFedClient.onBlock(blockWithTx);
+
+                // active fed client should have the pegout in its proofs file and its in-memory fileData
+                assertWTxIdIsInActiveFedClientProofsFile(pegoutBtcTx);
+                assertWTxIdIsInActiveFedClientTxsToBeSentMap(pegoutBtcTx);
+
+                // 4. Create a new fed with all the members of the fed that will retire except the first one
+                List<BtcECKey> newFedKeys = new ArrayList<>(retiringFederation.getBtcPublicKeys().subList(1, FEDERATION_MEMBERS_SIZE));
+                Federation newFed = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, newFedKeys);
+
+                // 5. Set up the node as the member that is only in the fed that will retire
+                Optional<FederationMember> memberOfOldFedOnly = retiringFederation.getMemberByBtcPublicKey(retiringFederation.getBtcPublicKeys().get(0));
+                assertTrue(memberOfOldFedOnly.isPresent());
+                when(federatorSupport.getFederationMember()).thenReturn(memberOfOldFedOnly.get());
+
+                // act
+                // The new fed is activated, so the old active fed becomes the retiring one
+                setUpRetiringFed(retiringFederation);
+                setUpActiveFed(newFed);
+                // trigger the client change
+                BtcReleaseClient btcReleaseClient = mock(BtcReleaseClient.class);
+                var federationWatcherListener = new FederationWatcherListenerImpl(activeFedClient, retiringFedClient, btcReleaseClient);
+                federationWatcherListener.onActiveFederationChange(newFed);
+                federationWatcherListener.onRetiringFederationChange(retiringFederation);
+
+                // assert
+                // the pegout should be in the retiring fed client proofs file
+                assertWTxIdIsInRetiringFedClientProofsFile(pegoutBtcTx);
+
+                // recreate it reaches the minimum confirmations to be registered
+                setUpTxWithEnoughConfirmations(pegoutTx);
+                // calling to update bridge txs from retiring fed client should send it to the bridge
+                retiringFedClient.updateBridgeBtcTransactions();
+                assertRegisterPegoutTxSentToBridgeByRetiringFedClient(pegoutBtcTx);
+            }
+
+            @Test
             void updateBridgeBtcTransactions_svpFundTx_withProposedFed_shouldBeRegisteredAsBtcTx() throws Exception {
                 // arrange
                 setUpProposedFed(proposedFederation);
@@ -3501,7 +3621,7 @@ class BtcToRskClientTest {
 
                 // listen to tx1 and block that contains it
                 var tx1 = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx1);
-                setUpTxConfidence(tx1);
+                setUpTxWithEnoughConfirmations(tx1);
                 listenTx(activeFedClient, tx1);
                 listenTx(retiringFedClient, tx1);
                 // both clients should listen to the same block containing the tx
@@ -3617,7 +3737,7 @@ class BtcToRskClientTest {
                 addOutputToFedWithMinimumPeginValue(peginBtcTx, federation.getAddress());
                 // setup pegin
                 var peginTx = ThinConverter.toOriginalInstance(testnetParamsString, peginBtcTx);
-                setUpTxConfidence(peginTx);
+                setUpTxWithEnoughConfirmations(peginTx);
                 listenTx(activeFedClient, peginTx);
                 addTxToBlock(peginTx, DEFAULT_BLOCK_WITH_TX_INDEX);
                 assertWTxIdIsInProofsFile(testnetParams, btcToRskActiveFedClientFileStorage, peginTx);
@@ -3770,6 +3890,48 @@ class BtcToRskClientTest {
                 // after block is informed, coinbase should be sent
                 when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(true);
                 activeFedClient.updateBridgeBtcCoinbaseTransactions();
+                assertCoinbaseTxSentToBridge(coinbaseInformation);
+            }
+
+            @Test
+            void updateBridgeBtcCoinbaseTransactions_coinbaseNotInformedBeforeFedChange_disjointFeds_shouldBeSentByRetiringFedClient() throws Exception {
+                // arrange
+                // A segwit pegin to the fed is mined, but its block is not informed to the bridge before a new fed is activated,
+                // and the feds do not share any member.
+
+                // 1. The block with the pegin is not informed to the bridge, so the coinbase is not sent
+                when(federatorSupport.hasBlockCoinbaseInformed(blockHash)).thenReturn(false);
+                when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(false);
+                activeFedClient.updateBridgeBtcCoinbaseTransactions();
+                assertCoinbaseTxNotSentToBridge(coinbaseInformation);
+
+                // 2. Set up the retiring fed client, that is not listening to any fed yet
+                retiringFedClient = buildClient(btcToRskRetiringFedClientFileStorage, null);
+
+                // 3. Create a new fed that does not share any member with the current one
+                Federation newFed = TestUtils.createP2shP2wshErpFederation(MAINNET_BTC_PARAMS, 20, "newFed");
+
+                // 4. Set up the node as a member of the fed that will retire
+                FederationMember memberOnlyOfOldFed = federation.getMembers().get(0);
+                when(federatorSupport.getFederationMember()).thenReturn(memberOnlyOfOldFed);
+
+                // act
+                // The new fed is activated, so the old active fed becomes the retiring one
+                setUpRetiringFed(federation);
+                setUpActiveFed(newFed);
+                // notify the changes in the same order FederationWatcher does
+                var federationWatcherListener = new FederationWatcherListenerImpl(activeFedClient, retiringFedClient, mock(BtcReleaseClient.class));
+                federationWatcherListener.onActiveFederationChange(newFed);
+                federationWatcherListener.onRetiringFederationChange(federation);
+
+                // assert
+                // the coinbase information should be in the retiring fed client file
+                assertBlockWithTxHashIsInCoinbaseInformationMap(MAINNET_PARAMS, btcToRskRetiringFedClientFileStorage, blockWithPegin);
+
+                // recreate the block with the pegin is informed to the bridge
+                when(federatorSupport.isBlockHashInformedToBridge(blockHash)).thenReturn(true);
+                // calling to update bridge coinbase txs from the retiring fed client should send it to the bridge
+                retiringFedClient.updateBridgeBtcCoinbaseTransactions();
                 assertCoinbaseTxSentToBridge(coinbaseInformation);
             }
 

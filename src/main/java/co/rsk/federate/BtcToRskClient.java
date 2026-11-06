@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -184,6 +185,45 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     public synchronized Map<Sha256Hash, List<Proof>> getTransactionsToSendToRsk() {
         return fileData.getTransactionProofs();
+    }
+
+    /**
+     * Moves the pending txs of the federation this client is operating on to the given client.
+     */
+    public void moveTransactionsToSendToRsk(BtcToRskClient destinationClient) {
+        Map<Sha256Hash, List<Proof>> transactionsToMove;
+        Map<Sha256Hash, CoinbaseInformation> coinbaseInformationToMove;
+        synchronized (this) {
+            if (federationToListen == null) {
+                return;
+            }
+
+            // each client needs its own proof lists, so both add and persist the proofs of the blocks they receive
+            transactionsToMove = new HashMap<>();
+            fileData.getTransactionProofs().forEach((txHash, proofs) ->
+                transactionsToMove.put(txHash, new ArrayList<>(proofs))
+            );
+            coinbaseInformationToMove = new HashMap<>(fileData.getCoinbaseInformationMap());
+            logger.info(
+                "[moveTransactionsToSendToRsk] Moving {} pending txs and {} coinbase information txs of federation {}",
+                transactionsToMove.size(),
+                coinbaseInformationToMove.size(),
+                federationToListen.getAddress()
+            );
+        }
+
+        destinationClient.addTransactionsToSendToRsk(transactionsToMove, coinbaseInformationToMove);
+    }
+
+    private void addTransactionsToSendToRsk(
+        Map<Sha256Hash, List<Proof>> transactionsToAdd,
+        Map<Sha256Hash, CoinbaseInformation> coinbaseInformationToAdd
+    ) {
+        synchronized (this) {
+            transactionsToAdd.forEach(fileData.getTransactionProofs()::putIfAbsent);
+            coinbaseInformationToAdd.forEach(fileData.getCoinbaseInformationMap()::putIfAbsent);
+            writeToStorage();
+        }
     }
 
     public void updateBridge() {
