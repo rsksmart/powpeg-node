@@ -64,7 +64,7 @@ class HsmBookkeepingClientImplTest {
 
     @Test
     void getVersion_forPowHSM() {
-        assertEquals(HSMVersion.V5, hsmBookkeepingClient.getVersion());
+        assertEquals(HSMVersion.V6, hsmBookkeepingClient.getVersion());
     }
 
     @Test

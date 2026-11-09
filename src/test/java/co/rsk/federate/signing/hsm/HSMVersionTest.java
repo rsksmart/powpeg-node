@@ -2,7 +2,11 @@ package co.rsk.federate.signing.hsm;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class HSMVersionTest {
 
@@ -24,6 +28,20 @@ class HSMVersionTest {
     void isPowHSM() {
         assertFalse(HSMVersion.V1.isPowHSM());
         assertTrue(HSMVersion.V5.isPowHSM());
+    }
+
+    @ParameterizedTest
+    @MethodSource("sigHashComputationModeRequirementArgs")
+    void requiresSigHashComputationMode(HSMVersion hsmVersion, boolean expectedResult) {
+        assertEquals(expectedResult, hsmVersion.requiresSigHashComputationMode());
+    }
+
+    private static Stream<Arguments> sigHashComputationModeRequirementArgs() {
+        return Stream.of(
+            Arguments.of(HSMVersion.V1, false),
+            Arguments.of(HSMVersion.V5, true),
+            Arguments.of(HSMVersion.V6, false)
+        );
     }
 
     @Test
