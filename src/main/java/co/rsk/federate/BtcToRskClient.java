@@ -198,6 +198,11 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
                 return;
             }
 
+            if (fileData.getTransactionProofs().isEmpty() && fileData.getCoinbaseInformationMap().isEmpty()) {
+                logger.debug("[copyTransactionsToSendToRsk] No pending txs nor coinbase information to copy");
+                return;
+            }
+
             // each client needs its own proof lists, so both add and persist the proofs of the blocks they receive
             transactionsToCopy = new HashMap<>();
             fileData.getTransactionProofs().forEach((txHash, proofs) ->
