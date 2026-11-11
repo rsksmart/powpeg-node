@@ -3356,11 +3356,7 @@ class BtcToRskClientTest {
                 // The new fed is activated, so the old active fed becomes the retiring one
                 setUpRetiringFed(retiringFederation);
                 setUpActiveFed(newFed);
-                // trigger the client change
-                BtcReleaseClient btcReleaseClient = mock(BtcReleaseClient.class);
-                var federationWatcherListener = new FederationWatcherListenerImpl(activeFedClient, retiringFedClient, btcReleaseClient);
-                federationWatcherListener.onActiveFederationChange(newFed);
-                federationWatcherListener.onRetiringFederationChange(retiringFederation);
+                triggerClientsChange(newFed, retiringFederation);
 
                 // assert
                 // the pegout should be in the retiring fed client proofs file
@@ -3409,11 +3405,7 @@ class BtcToRskClientTest {
                 // The new fed is activated, so the old active fed becomes the retiring one
                 setUpRetiringFed(retiringFederation);
                 setUpActiveFed(newFed);
-                // trigger the client change
-                BtcReleaseClient btcReleaseClient = mock(BtcReleaseClient.class);
-                var federationWatcherListener = new FederationWatcherListenerImpl(activeFedClient, retiringFedClient, btcReleaseClient);
-                federationWatcherListener.onActiveFederationChange(newFed);
-                federationWatcherListener.onRetiringFederationChange(retiringFederation);
+                triggerClientsChange(newFed, retiringFederation);
 
                 // assert
                 // the pegout should be in the retiring fed client proofs file
@@ -3454,11 +3446,7 @@ class BtcToRskClientTest {
                 // The new fed is activated, so the old active fed becomes the retiring one
                 setUpRetiringFed(retiringFederation);
                 setUpActiveFed(activeFederation);
-                // trigger the client change
-                BtcReleaseClient btcReleaseClient = mock(BtcReleaseClient.class);
-                var federationWatcherListener = new FederationWatcherListenerImpl(activeFedClient, retiringFedClient, btcReleaseClient);
-                federationWatcherListener.onActiveFederationChange(activeFederation);
-                federationWatcherListener.onRetiringFederationChange(retiringFederation);
+                triggerClientsChange(activeFederation, retiringFederation);
 
                 // The pegout is mined after the change.
                 // Both clients receive the block, the active fed client first, since it is the first block listener in FedNodeRunner
@@ -3474,6 +3462,34 @@ class BtcToRskClientTest {
                 // calling to update bridge txs from retiring fed client should send it to the bridge
                 retiringFedClient.updateBridgeBtcTransactions();
                 assertRegisterPegoutTxSentToBridgeByRetiringFedClient(pegoutBtcTx);
+            }
+
+            @Test
+            void copyTransactionsToSendToRsk_withoutPendingTxs_shouldNotWriteRetiringFedClientFile() throws Exception {
+                // arrange
+                // A new fed is activated when the active fed client has no pending txs nor coinbase information to copy
+
+                // 1. Set up the clients before the change: the fed that will retire is the active one, and there is no retiring fed
+                setUpActiveFedClient(retiringFederation);
+                retiringFedClient = buildClient(btcToRskRetiringFedClientFileStorage, null);
+                // 2. Set up the node as a member of just the fed that will retire
+                FederationMember memberOnlyOfOldFed = retiringFederation.getMembers().get(0);
+                when(federatorSupport.getFederationMember()).thenReturn(memberOnlyOfOldFed);
+
+                // active fed client should not have pending txs, and the retiring fed client file should not exist yet
+                assertProofsFileIsEmpty(MAINNET_PARAMS, btcToRskActiveFedClientFileStorage);
+                File retiringFedClientFile = new File(btcToRskRetiringFedClientFileStorage.getInfo().getFilePath());
+                assertFalse(retiringFedClientFile.exists());
+
+                // act
+                // The new fed is activated, so the old active fed becomes the retiring one
+                setUpRetiringFed(retiringFederation);
+                setUpActiveFed(activeFederation);
+                triggerClientsChange(activeFederation, retiringFederation);
+
+                // assert
+                // there is nothing to copy, so the retiring fed client file should not be written
+                assertFalse(retiringFedClientFile.exists());
             }
 
             @Test
@@ -3969,10 +3985,7 @@ class BtcToRskClientTest {
                 // The new fed is activated, so the old active fed becomes the retiring one
                 setUpRetiringFed(federation);
                 setUpActiveFed(newFed);
-                // notify the changes in the same order FederationWatcher does
-                var federationWatcherListener = new FederationWatcherListenerImpl(activeFedClient, retiringFedClient, mock(BtcReleaseClient.class));
-                federationWatcherListener.onActiveFederationChange(newFed);
-                federationWatcherListener.onRetiringFederationChange(federation);
+                triggerClientsChange(newFed, federation);
 
                 // assert
                 // the coinbase information should be in the retiring fed client file
@@ -4339,6 +4352,13 @@ class BtcToRskClientTest {
             var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
             verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
             verify(federatorSupport, never()).sendRegisterPegoutTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
+        }
+
+        private void triggerClientsChange(Federation newActiveFederation, Federation newRetiringFederation) {
+            // perform FederationWatcher actions, notifying the changes in the same order it does
+            var federationWatcherListener = new FederationWatcherListenerImpl(activeFedClient, retiringFedClient, mock(BtcReleaseClient.class));
+            federationWatcherListener.onActiveFederationChange(newActiveFederation);
+            federationWatcherListener.onRetiringFederationChange(newRetiringFederation);
         }
 
         private void restartNode(BtcToRskClientFileStorage btcToRskClientFileStorage, BtcToRskClient client, Federation federation) throws Exception {
