@@ -3427,6 +3427,56 @@ class BtcToRskClientTest {
             }
 
             @Test
+            void updateBridgeBtcTransactions_pegoutTxSeenBeforeFedChange_minedAfterFedChange_shouldBeRegisteredByRetiringFedClient() throws Exception {
+                // arrange
+                // A pegout from the active fed is seen before a new fed is activated, but it is mined after the change.
+                // So it is copied to the retiring fed client without proofs, and both clients receive the block that contains it.
+
+                // 1. Set up the clients before the change: the fed that will retire is the active one, and there is no retiring fed
+                setUpActiveFedClient(retiringFederation);
+                retiringFedClient = buildClient(btcToRskRetiringFedClientFileStorage, null);
+                // 2. Create a pegout from the fed that will retire, with change to itself
+                BtcTransaction pegoutBtcTx = createPegoutWithChangeToFed(retiringFederation, MINIMUM_PEGIN_TX_VALUE);
+
+                // 3. Listen to the pegout, that is not mined yet
+                var pegoutTx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, pegoutBtcTx);
+                listenTx(activeFedClient, pegoutTx);
+
+                // active fed client should have the pegout in its proofs file and its in-memory fileData
+                assertWTxIdIsInActiveFedClientProofsFile(pegoutBtcTx);
+                assertWTxIdIsInActiveFedClientTxsToBeSentMap(pegoutBtcTx);
+
+                // 4. Set up the node as a member of just the fed that will retire
+                FederationMember memberOnlyOfOldFed = retiringFederation.getMembers().get(0);
+                when(federatorSupport.getFederationMember()).thenReturn(memberOnlyOfOldFed);
+
+                // act
+                // The new fed is activated, so the old active fed becomes the retiring one
+                setUpRetiringFed(retiringFederation);
+                setUpActiveFed(activeFederation);
+                // trigger the client change
+                BtcReleaseClient btcReleaseClient = mock(BtcReleaseClient.class);
+                var federationWatcherListener = new FederationWatcherListenerImpl(activeFedClient, retiringFedClient, btcReleaseClient);
+                federationWatcherListener.onActiveFederationChange(activeFederation);
+                federationWatcherListener.onRetiringFederationChange(retiringFederation);
+
+                // The pegout is mined after the change.
+                // Both clients receive the block, the active fed client first, since it is the first block listener in FedNodeRunner
+                Block blockWithTx = addTxToBlock(pegoutTx, DEFAULT_BLOCK_WITH_TX_INDEX);
+                activeFedClient.onBlock(blockWithTx);
+                retiringFedClient.onBlock(blockWithTx);
+
+                // assert
+                // the proof of the block should be persisted in the retiring fed client proofs file
+                assertTxProofForBlockIsInRetiringFedClientProofsFile(pegoutBtcTx, blockWithTx);
+                // the pegout reaches the minimum confirmations to be registered
+                setUpTxWithEnoughConfirmations(pegoutTx);
+                // calling to update bridge txs from retiring fed client should send it to the bridge
+                retiringFedClient.updateBridgeBtcTransactions();
+                assertRegisterPegoutTxSentToBridgeByRetiringFedClient(pegoutBtcTx);
+            }
+
+            @Test
             void updateBridgeBtcTransactions_svpFundTx_withProposedFed_shouldBeRegisteredAsBtcTx() throws Exception {
                 // arrange
                 setUpProposedFed(proposedFederation);
@@ -4229,6 +4279,12 @@ class BtcToRskClientTest {
         private void assertWTxIdIsInRetiringFedClientProofsFile(BtcTransaction btcTx) throws IOException {
             Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
             assertWTxIdIsInProofsFile(MAINNET_PARAMS, btcToRskRetiringFedClientFileStorage, tx);
+        }
+
+        private void assertTxProofForBlockIsInRetiringFedClientProofsFile(BtcTransaction btcTx, Block blockWithTx) throws IOException {
+            Transaction tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+            List<Proof> proofs = btcToRskRetiringFedClientFileStorage.read(MAINNET_PARAMS).getData().getTransactionProofs().get(tx.getWTxId());
+            assertTrue(proofs.stream().anyMatch(proof -> proof.getBlockHash().equals(blockWithTx.getHash())));
         }
 
         private void assertWTxIdIsInRetiringFedClientTxsToBeSentMap(BtcTransaction btcTx) {
