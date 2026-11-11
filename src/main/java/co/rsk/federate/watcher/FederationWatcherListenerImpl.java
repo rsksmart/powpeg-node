@@ -28,7 +28,7 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
     @Override
     public void onActiveFederationChange(Federation newActiveFederation) {
         // the previous active federation becomes the retiring one, so its pending txs have to be registered by the retiring client
-        btcToRskClientActive.moveTransactionsToSendToRsk(btcToRskClientRetiring);
+        btcToRskClientActive.copyTransactionsToSendToRsk(btcToRskClientRetiring);
         triggerClientChange(btcToRskClientActive, newActiveFederation);
     }
 
