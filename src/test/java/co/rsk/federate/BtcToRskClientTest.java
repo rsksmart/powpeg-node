@@ -4256,6 +4256,14 @@ class BtcToRskClientTest {
             verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
         }
 
+        private void assertRegisterPegoutTxSentToBridgeByRetiringFedClient(BtcTransaction btcTx) throws IOException {
+            var tx = ThinConverter.toOriginalInstance(MAINNET_BTC_PARAMS_STRING, btcTx);
+
+            org.bitcoinj.core.PartialMerkleTree pmt = getPMTForTxId(btcToRskRetiringFedClientFileStorage, tx);
+            verify(federatorSupport).sendRegisterPegoutTransaction(tx, DEFAULT_BLOCK_WITH_TX_INDEX, pmt);
+            verify(federatorSupport, never()).sendRegisterBtcTransaction(eq(tx), anyInt(), any(PartialMerkleTree.class));
+        }
+
         private org.bitcoinj.core.PartialMerkleTree getPMTForWTxId(BtcToRskClientFileStorage btcToRskClientFileStorage, Transaction tx) throws IOException {
             return getFirstProof(btcToRskClientFileStorage, tx).getPartialMerkleTree();
         }
