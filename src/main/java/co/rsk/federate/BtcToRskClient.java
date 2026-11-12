@@ -125,7 +125,7 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         if (!federation.isMember(federator)) {
             logger.warn(
                 "[start] Member {} is not part of the federation {}, skipping. This node will not watch this federation nor update the bridge for it",
-                federatorBtcKey,
+                federator,
                 federation.getAddress()
             );
             return;
