@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -184,6 +185,50 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
 
     public synchronized Map<Sha256Hash, List<Proof>> getTransactionsToSendToRsk() {
         return fileData.getTransactionProofs();
+    }
+
+    /**
+     * Copies the pending txs of the federation this client is operating on to the given client.
+     */
+    public void copyTransactionsToSendToRsk(BtcToRskClient destinationClient) {
+        Map<Sha256Hash, List<Proof>> transactionsToCopy;
+        Map<Sha256Hash, CoinbaseInformation> coinbaseInformationToCopy;
+        synchronized (this) {
+            if (federationToListen == null) {
+                return;
+            }
+
+            if (fileData.getTransactionProofs().isEmpty() && fileData.getCoinbaseInformationMap().isEmpty()) {
+                logger.debug("[copyTransactionsToSendToRsk] No pending txs nor coinbase information to copy");
+                return;
+            }
+
+            // each client needs its own proof lists, so both add and persist the proofs of the blocks they receive
+            transactionsToCopy = new HashMap<>();
+            fileData.getTransactionProofs().forEach((txHash, proofs) ->
+                transactionsToCopy.put(txHash, new ArrayList<>(proofs))
+            );
+            coinbaseInformationToCopy = new HashMap<>(fileData.getCoinbaseInformationMap());
+            logger.info(
+                "[copyTransactionsToSendToRsk] Copying {} pending txs and {} coinbase information txs of federation {}",
+                transactionsToCopy.size(),
+                coinbaseInformationToCopy.size(),
+                federationToListen.getAddress()
+            );
+        }
+
+        destinationClient.addTransactionsToSendToRsk(transactionsToCopy, coinbaseInformationToCopy);
+    }
+
+    private void addTransactionsToSendToRsk(
+        Map<Sha256Hash, List<Proof>> transactionsToAdd,
+        Map<Sha256Hash, CoinbaseInformation> coinbaseInformationToAdd
+    ) {
+        synchronized (this) {
+            transactionsToAdd.forEach(fileData.getTransactionProofs()::putIfAbsent);
+            coinbaseInformationToAdd.forEach(fileData.getCoinbaseInformationMap()::putIfAbsent);
+            writeToStorage();
+        }
     }
 
     public void updateBridge() {
