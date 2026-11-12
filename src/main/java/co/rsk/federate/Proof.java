@@ -1,5 +1,9 @@
 package co.rsk.federate;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.bitcoinj.core.NetworkParameters;
@@ -9,31 +13,27 @@ import org.ethereum.util.RLP;
 import org.ethereum.util.RLPElement;
 import org.ethereum.util.RLPList;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-/**
- * Created by mario on 20/04/17.
- */
 public class Proof {
 
-    private Sha256Hash blockHash;
-    private PartialMerkleTree partialMerkleTree;
+    private final Sha256Hash blockHash;
+    private final PartialMerkleTree partialMerkleTree;
+    private final PartialMerkleTree nonWitnessPartialMerkleTree;
 
-    public Proof(Sha256Hash blockHash, PartialMerkleTree partialMerkleTree) {
+    public Proof(Sha256Hash blockHash, PartialMerkleTree partialMerkleTree, PartialMerkleTree nonWitnessPartialMerkleTree) {
         this.blockHash = blockHash;
         this.partialMerkleTree = partialMerkleTree;
+        this.nonWitnessPartialMerkleTree = nonWitnessPartialMerkleTree;
     }
 
     public Proof(byte[] rlpData, NetworkParameters parameters) {
         RLPList rlpList = (RLPList) RLP.decode2(rlpData).get(0);
         byte[] encodedHash = rlpList.get(0).getRLPData();
         byte[] encodedMerkle = rlpList.get(1).getRLPData();
+        byte[] encodedNonWitnessMerkle = rlpList.get(2).getRLPData();
 
         this.blockHash = Sha256Hash.wrap(encodedHash);
         this.partialMerkleTree = new PartialMerkleTree(parameters, encodedMerkle, 0);
+        this.nonWitnessPartialMerkleTree = new PartialMerkleTree(parameters, encodedNonWitnessMerkle, 0);
     }
 
     public Sha256Hash getBlockHash() {
@@ -44,11 +44,16 @@ public class Proof {
         return partialMerkleTree;
     }
 
+    public PartialMerkleTree getNonWitnessPartialMerkleTree() {
+        return nonWitnessPartialMerkleTree;
+    }
+
     public byte[] getEnconded() {
         byte[] hastToEncode = RLP.encodeElement(this.blockHash.getBytes());
         byte[] partialMerkleToEncode = RLP.encodeElement(this.partialMerkleTree.bitcoinSerialize());
+        byte[] nonWitnessPartialMerkleToEncode = RLP.encodeElement(this.nonWitnessPartialMerkleTree.bitcoinSerialize());
 
-        return RLP.encodeList(hastToEncode, partialMerkleToEncode);
+        return RLP.encodeList(hastToEncode, partialMerkleToEncode, nonWitnessPartialMerkleToEncode);
     }
 
     public static byte[] serializeProofList(List<Proof> list){
@@ -117,13 +122,18 @@ public class Proof {
         Proof proof = (Proof) o;
 
         return new EqualsBuilder()
-                .append(blockHash, proof.blockHash)
-                .append(partialMerkleTree, proof.partialMerkleTree)
-                .isEquals();
+            .append(blockHash, proof.blockHash)
+            .append(partialMerkleTree, proof.partialMerkleTree)
+            .append(nonWitnessPartialMerkleTree, proof.nonWitnessPartialMerkleTree)
+            .isEquals();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37).append(blockHash).append(partialMerkleTree).toHashCode();
+        return new HashCodeBuilder(17, 37)
+            .append(blockHash)
+            .append(partialMerkleTree)
+            .append(nonWitnessPartialMerkleTree)
+            .toHashCode();
     }
 }
