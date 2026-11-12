@@ -53,11 +53,6 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
         // Failures are propagated on purpose, so that FederationWatcher does not record this
         // federation as notified and retries on the next best block. See triggerClientChange
         btcReleaseClient.start(newProposedFederation);
-
-        logger.info(
-            "[onProposedFederationChange] BtcReleaseClient for proposed federation [{}] started with success",
-            newProposedFederation.getAddress()
-        );
     }
 
     private void triggerClientChange(BtcToRskClient btcToRskClient, Federation newFederation) {
@@ -78,10 +73,6 @@ public class FederationWatcherListenerImpl implements FederationWatcherListener 
         // Start the current clients
         btcToRskClient.start(newFederation);
         btcReleaseClient.start(newFederation);
-
-        logger.info(
-            "[triggerClientChange] Clients for federation [{}] changed with success",
-            newFederation.getAddress());
     }
     
     private void clearRetiringFederationClient() {

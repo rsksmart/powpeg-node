@@ -158,7 +158,7 @@ public class BtcReleaseClient {
         if (!federation.isMember(federationMember)) {
             logger.warn(
                 "[start] Member {} is not part of the federation {}, skipping. This node will not sign pegouts for it",
-                federationMember.getBtcPublicKey(),
+                federationMember,
                 federation.getAddress()
             );
             return;
