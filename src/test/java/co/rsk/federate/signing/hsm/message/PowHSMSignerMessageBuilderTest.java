@@ -62,6 +62,7 @@ class PowHSMSignerMessageBuilderTest {
     void setUp() {
         Keccak256 pegoutCreationRskTxHash = TestUtils.createHash(2);
         pegoutCreationRskTx = mock(Transaction.class);
+        when(pegoutCreationRskTx.getTypePrefix()).thenReturn(TransactionTypePrefix.legacy());
         when(pegoutCreationRskTx.getHash()).thenReturn(pegoutCreationRskTxHash);
         when(pegoutCreationRskTx.getReceiveAddress()).thenReturn(PrecompiledContracts.BRIDGE_ADDR);
 
