@@ -570,7 +570,8 @@ public class BtcToRskClient implements BlockListener, TransactionListener {
         Optional<Federation> retiringFederation = federationProviderFromFederatorSupport.getRetiringFederation();
         Federation activeFederation = federationProviderFromFederatorSupport.getActiveFederation();
 
-        int btcToRskMinimumAcceptableConfirmations = bridgeConstants.getBtc2RskMinimumAcceptableConfirmations();
+        ActivationConfig.ForBlock activations = activationConfig.forBlock(federatorSupport.getRskBestChainHeight());
+        int btcToRskMinimumAcceptableConfirmations = bridgeConstants.getBtc2RskMinimumAcceptableConfirmations(activations);
         Map<Sha256Hash, Transaction> federatorWalletTxMap = bitcoinWrapper.getTransactionMap(btcToRskMinimumAcceptableConfirmations);
 
         Set<Sha256Hash> txsToSendToRskHashes = this.fileData.getTransactionProofs().keySet();

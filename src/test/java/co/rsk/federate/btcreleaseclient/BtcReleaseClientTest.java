@@ -1392,6 +1392,9 @@ class BtcReleaseClientTest {
         when(powpegNodeSystemProperties.getPegoutSignedCacheTtl())
             .thenReturn(PEGOUT_SIGNED_CACHE_TTL);
         when(powpegNodeSystemProperties.isPegoutEnabled()).thenReturn(isPegoutEnabled); //enabled by default
+        ActivationConfig activationConfig = mock(ActivationConfig.class);
+        when(activationConfig.forBlock(anyLong())).thenReturn(mock(ActivationConfig.ForBlock.class));
+        when(powpegNodeSystemProperties.getActivationConfig()).thenReturn(activationConfig);
         return powpegNodeSystemProperties;
     }
 

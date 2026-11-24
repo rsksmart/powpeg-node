@@ -1632,7 +1632,7 @@ class BtcToRskClientTest {
         private void setUpTxConfidence(Transaction tx) {
             org.bitcoinj.core.TransactionConfidence confidence = tx.getConfidence();
             confidence.setConfidenceType(org.bitcoinj.core.TransactionConfidence.ConfidenceType.BUILDING);
-            confidence.setDepthInBlocks(BRIDGE_MAINNET_CONSTANTS.getBtc2RskMinimumAcceptableConfirmations());
+            confidence.setDepthInBlocks(BRIDGE_MAINNET_CONSTANTS.getBtc2RskMinimumAcceptableConfirmations(activationsForBlock));
         }
 
         private void listenTx(BtcToRskClient client, Transaction tx) {
@@ -4307,7 +4307,7 @@ class BtcToRskClientTest {
         when(bitcoinWrapper.getBestChainHeight()).thenReturn(1);
         Map<Sha256Hash, Transaction> txsInWallet = new HashMap<>();
         txsInWallet.put(peginBtcTx.getWTxId(), peginBtcTx);
-        when(bitcoinWrapper.getTransactionMap(bridgeRegTestConstants.getBtc2RskMinimumAcceptableConfirmations()))
+        when(bitcoinWrapper.getTransactionMap(bridgeRegTestConstants.getBtc2RskMinimumAcceptableConfirmations(activationsForBlock)))
             .thenReturn(txsInWallet);
 
         List<Proof> proofs = new ArrayList<>();

@@ -59,6 +59,7 @@ import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.script.ScriptPattern;
+import org.ethereum.config.blockchain.upgrades.ActivationConfig;
 import org.ethereum.core.Block;
 import org.ethereum.core.TransactionReceipt;
 import org.ethereum.crypto.ECKey;
@@ -92,6 +93,7 @@ public class BtcReleaseClient {
     private final Set<Federation> observedFederations;
     private final NodeBlockProcessor nodeBlockProcessor;
     private final BridgeConstants bridgeConstants;
+    private final ActivationConfig activationConfig;
     private final boolean isPegoutEnabled;
     private final PegoutSignedCache pegoutSignedCache;
 
@@ -113,6 +115,7 @@ public class BtcReleaseClient {
         this.observedFederations = new HashSet<>();
         this.blockListener = new BtcReleaseEthereumListener();
         this.bridgeConstants = systemProperties.getNetworkConstants().getBridgeConstants();
+        this.activationConfig = systemProperties.getActivationConfig();
         this.isPegoutEnabled = systemProperties.isPegoutEnabled();
         this.nodeBlockProcessor = nodeBlockProcessor;
         this.pegoutSignedCache = new PegoutSignedCacheImpl(
@@ -281,11 +284,13 @@ public class BtcReleaseClient {
                 ReleaseCreationInformation releaseCreationInformation = releaseCreationInformationGetter.getTxInfoToSign(
                     svpSpendTxEntry.getKey(), svpSpendTx);
 
+                ActivationConfig.ForBlock activations = activationConfig.forBlock(currentBlockNumber);
+                int minimumConfirmations = bridgeConstants.getRsk2BtcMinimumAcceptableConfirmations(activations);
                 boolean isReadyToSign = Optional.ofNullable(releaseCreationInformation)
                     .map(ReleaseCreationInformation::getPegoutCreationBlock)
                     .map(Block::getNumber)
                     .map(blockNumberWithSvpSpendTx -> currentBlockNumber - blockNumberWithSvpSpendTx)
-                    .filter(confirmationDifference -> confirmationDifference >= bridgeConstants.getRsk2BtcMinimumAcceptableConfirmations())
+                    .filter(confirmationDifference -> confirmationDifference >= minimumConfirmations)
                     .isPresent();
                 
                 logger.info("[isSvpSpendTxReadyToSign] SVP spend tx readiness check for signing: tx hash [{}], Current block [{}], Ready to sign? [{}]",
