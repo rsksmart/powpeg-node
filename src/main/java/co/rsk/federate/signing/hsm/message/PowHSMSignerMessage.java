@@ -28,6 +28,7 @@ import co.rsk.bitcoinj.core.BtcTransaction;
 import co.rsk.bitcoinj.core.Coin;
 import co.rsk.bitcoinj.core.Sha256Hash;
 import co.rsk.bitcoinj.core.TransactionWitness;
+import co.rsk.federate.signing.hsm.HSMVersion;
 import co.rsk.peg.bitcoin.BitcoinUtils;
 import co.rsk.trie.Trie;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -43,7 +44,6 @@ import org.spongycastle.util.encoders.Hex;
 
 public class PowHSMSignerMessage extends SignerMessage {
 
-    private static final String SIGHASH_LEGACY_MODE = "legacy";
     private static final String SIGHASH_SEGWIT_MODE = "segwit";
     private final BtcTransaction btcTransaction;
     private final int inputIndex;
@@ -93,27 +93,17 @@ public class PowHSMSignerMessage extends SignerMessage {
         return sigHash;
     }
 
-    public JsonNode getMessageToSign() {
+    public JsonNode getMessageToSign(HSMVersion hsmVersion) {
         ObjectNode messageToSend = new ObjectMapper().createObjectNode();
         // The hsm expects the transaction without any witness data
         BtcTransaction txWithoutWitness = BitcoinUtils.getTransactionWithoutWitness(btcTransaction);
         byte[] serializedTx = txWithoutWitness.bitcoinSerialize();
         messageToSend.put(TX.getFieldName(), Hex.toHexString(serializedTx));
         messageToSend.put(INPUT.getFieldName(), inputIndex);
-        if (hasWitness()) {
-            populateWithSegwitValues(messageToSend);
-        } else {
-            populateWithLegacyValues(messageToSend);
+
+        if (hsmVersion.requiresSigHashComputationMode()) {
+            messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_SEGWIT_MODE);
         }
-        return messageToSend;
-    }
-
-    private void populateWithLegacyValues(ObjectNode messageToSend) {
-        messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_LEGACY_MODE);
-    }
-
-    private void populateWithSegwitValues(ObjectNode messageToSend) {
-        messageToSend.put(SIGHASH_COMPUTATION_MODE.getFieldName(), SIGHASH_SEGWIT_MODE);
 
         long outpointValue = getOutpointValueForInputIndex();
         messageToSend.put(OUTPOINT_VALUE.getFieldName(), outpointValue);
@@ -121,6 +111,7 @@ public class PowHSMSignerMessage extends SignerMessage {
         TransactionWitness witness = btcTransaction.getWitness(inputIndex);
         String encodedWitnessScript = Hex.toHexString(witness.getScriptBytes());
         messageToSend.put(WITNESS_SCRIPT.getFieldName(), encodedWitnessScript);
+        return messageToSend;
     }
 
     private long getOutpointValueForInputIndex() {
@@ -130,10 +121,6 @@ public class PowHSMSignerMessage extends SignerMessage {
             .map(Coin::getValue)
             // this exception is never supposed to be thrown unless a wrong input index is passed
             .orElseThrow(IllegalStateException::new);
-    }
-
-    private boolean hasWitness() {
-        return btcTransaction.hasWitness();
     }
 
     @Override

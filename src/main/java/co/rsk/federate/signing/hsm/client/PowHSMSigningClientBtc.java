@@ -28,7 +28,7 @@ public class PowHSMSigningClientBtc extends PowHSMSigningClient {
             getVersion());
         objectToSign.put(KEY_ID.getFieldName(), keyId);
         objectToSign.set(AUTH.getFieldName(), createAuthField(powHSMSignerMessage));
-        objectToSign.set(MESSAGE.getFieldName(), powHSMSignerMessage.getMessageToSign());
+        objectToSign.set(MESSAGE.getFieldName(), powHSMSignerMessage.getMessageToSign(getVersion()));
 
         return objectToSign;
     }

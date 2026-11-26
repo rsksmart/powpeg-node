@@ -72,7 +72,7 @@ class PowHSMSigningClientTest {
         expectedRequest.put(COMMAND.getFieldName(), HSMCommand.VERSION.getCommand());
         when(jsonRpcClientMock.send(expectedRequest)).thenReturn(buildLatestPowHSMResponse());
         HSMVersion version = client.getVersion();
-        assertEquals(HSMVersion.V5, version);
+        assertEquals(HSMVersion.V6, version);
     }
 
     @Test
