@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk@sha256:08295ab0f5007a37cbcc6679a8447a7278d9403f9f82acd80ed08cd10921e026 AS build
+FROM eclipse-temurin:17-jdk@sha256:b077006a4e93bbc3c07575d09b2fd528d7f720b3ee31ee879d2433e437dbcbb1 AS build
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -19,7 +19,7 @@ RUN gpg --keyserver https://secchannel.rsk.co/SUPPORT.asc --recv-keys 1DC9157991
     mkdir -p artifacts && \
     cp build/libs/federate-node-*.jar artifacts/
 
-FROM eclipse-temurin:17-jre@sha256:f1515395c0695910a3ca665e973cc11013d1f50d265e61cb8c9156e999d914b4
+FROM eclipse-temurin:17-jre@sha256:ce7dece87d45d67f2534fa4941e0db105c0daf5094600d1cbf1eee30cc8173d6
 LABEL org.opencontainers.image.authors="ops@rootstocklabs.com"
 
 RUN useradd -ms /sbin/nologin -d /var/lib/rsk rsk
@@ -35,4 +35,6 @@ ENV RSKJ_LOG_PROPS="-Dlogging.stdout=INFO"
 ENV RSKJ_CLASS=co.rsk.federate.FederateRunner
 ENV RSKJ_OPTS=""
 
-ENTRYPOINT ["/bin/sh", "-c", "exec java $DEFAULT_JVM_OPTS $RSKJ_SYS_PROPS $RSKJ_LOG_PROPS -cp rsk.jar $RSKJ_CLASS $RSKJ_OPTS \"${@}\"", "--"]
+# The Base64 intrinsic stays off: it is the code path affected by CVE-2026-114938 in JDK 17 builds before 17.0.21.1.
+# Placing the flag after DEFAULT_JVM_OPTS, RSKJ_SYS_PROPS and RSKJ_LOG_PROPS prevents those variables from re-enabling it; _JAVA_OPTIONS can still override it.
+ENTRYPOINT ["/bin/sh", "-c", "exec java $DEFAULT_JVM_OPTS $RSKJ_SYS_PROPS $RSKJ_LOG_PROPS -XX:-UseBASE64Intrinsics -cp rsk.jar $RSKJ_CLASS $RSKJ_OPTS \"${@}\"", "--"]
